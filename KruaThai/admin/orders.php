@@ -1,12 +1,47 @@
 <?php
 /**
- * Krua Thai - Orders Management
+ * Krua Thai - Orders Management (แก้ไขแล้ว)
  * File: admin/orders.php
- * Description: Complete order management system with real-time updates and filtering
  */
 session_start();
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+// ✅ Path ที่ถูกต้องสำหรับ admin folder
 require_once '../config/database.php';
 require_once '../includes/functions.php';
+
+// ✅ ลบ generateUUID() ออกแล้ว - ใช้จาก includes/functions.php
+
+// Debug: ตรวจสอบ database
+if (!isset($pdo)) {
+    try {
+        $database = new Database();
+        $pdo = $database->getConnection();
+        echo "<!-- ✅ Database connection successful -->";
+    } catch (Exception $e) {
+        die("❌ Database connection failed: " . $e->getMessage());
+    }
+}
+
+try {
+    $stmt = $pdo->query("SELECT COUNT(*) FROM orders");
+    $orderCount = $stmt->fetchColumn();
+    echo "<!-- DEBUG: Found $orderCount orders in database -->";
+    
+    if ($orderCount == 0) {
+        $stmt = $pdo->query("SELECT COUNT(*) FROM subscriptions WHERE status = 'active'");
+        $subsCount = $stmt->fetchColumn();
+        
+        $stmt = $pdo->query("SELECT COUNT(*) FROM subscription_menus");
+        $menuCount = $stmt->fetchColumn();
+        
+        echo "<!-- DEBUG: $subsCount active subscriptions, $menuCount subscription menus -->";
+        echo "<!-- DEBUG: Need to run generate_orders.php to create orders! -->";
+    }
+} catch (Exception $e) {
+    echo "<!-- DEBUG ERROR: " . $e->getMessage() . " -->";
+}
 
 // Check admin authentication
 if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
@@ -132,7 +167,9 @@ function bulkUpdateStatus($pdo, $orderIds, $status) {
     }
 }
 
-// Get filter parameters
+// Get filter parameters และโค้ดส่วนอื่นๆ ต่อไปเหมือนเดิม...
+// (ใส่โค้ดส่วนที่เหลือจากไฟล์เดิม โดยไม่ต้องมี generateUUID function)
+
 $status_filter = $_GET['status'] ?? '';
 $date_filter = $_GET['date'] ?? '';
 $search = $_GET['search'] ?? '';
@@ -223,14 +260,23 @@ try {
 
 } catch (Exception $e) {
     $orders = [];
-    $stats = ['total_orders' => 0, 'pending_orders' => 0, 'confirmed_orders' => 0, 'preparing_orders' => 0, 'ready_orders' => 0, 'out_for_delivery_orders' => 0, 'delivered_orders' => 0, 'cancelled_orders' => 0, 'today_orders' => 0];
+    $stats = [
+        'total_orders' => 0, 'pending_orders' => 0, 'confirmed_orders' => 0, 
+        'preparing_orders' => 0, 'ready_orders' => 0, 'out_for_delivery_orders' => 0, 
+        'delivered_orders' => 0, 'cancelled_orders' => 0, 'today_orders' => 0
+    ];
     $riders = [];
     $total_orders = 0;
     $total_pages = 1;
     error_log("Orders page error: " . $e->getMessage());
 }
-?>
 
+// ตัวอย่างการแสดงผลเมื่อไม่มี Orders
+if (empty($orders)) {
+    echo "<!-- DEBUG: No orders found. Need to run generate_orders.php -->";
+}
+
+?>
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -1357,19 +1403,25 @@ try {
                             <?php endforeach; ?>
                         </tbody>
                     </table>
-                    <?php else: ?>
-                    <div style="text-align: center; padding: 4rem; color: var(--text-gray);">
-                        <i class="fas fa-shopping-cart" style="font-size: 4rem; margin-bottom: 2rem; opacity: 0.3;"></i>
-                        <h3>No orders found</h3>
-                        <p>No orders match your current filters. Try adjusting your search criteria.</p>
-                        <a href="orders.php" class="btn btn-primary">
-                            <i class="fas fa-refresh"></i>
-                            View All Orders
-                        </a>
-                    </div>
-                    <?php endif; ?>
-                </div>
-
+               <?php else: ?>
+<div style="text-align: center; padding: 4rem; color: var(--text-gray);">
+    <i class="fas fa-shopping-cart" style="font-size: 4rem; margin-bottom: 2rem; opacity: 0.3;"></i>
+    <h3>No orders found</h3>
+    <p><strong>สาเหตุ:</strong> ยังไม่มี Orders ในระบบ</p>
+    <p>ระบบ Krua Thai ต้องสร้าง Orders จาก Subscriptions ก่อน</p>
+    <div style="margin-top: 1.5rem;">
+        <p style="background: #fff3cd; padding: 1rem; border-radius: 8px; margin: 1rem 0;">
+            📋 <strong>วิธีแก้:</strong><br>
+            1. รัน SQL Script เพื่อสร้าง Orders จาก Subscription Menus<br>
+            2. หรือสร้างไฟล์ generate_orders.php
+        </p>
+    </div>
+    <a href="subscriptions.php" class="btn btn-primary">
+        <i class="fas fa-calendar-alt"></i>
+        ดู Subscriptions
+    </a>
+</div>
+<?php endif; ?>
                 <!-- Pagination -->
                 <?php if ($total_pages > 1): ?>
                 <div class="pagination-container">
