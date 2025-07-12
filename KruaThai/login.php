@@ -133,7 +133,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             } elseif ($user->role === 'kitchen') {
                 $redirect_url = 'kitchen/kitchen_dashboard.php';
             } elseif ($user->role === 'rider') {
-                $redirect_url = 'rider/dashboard.php';
+                $redirect_url = 'rider/rider-dashboard.php';
             }
             
             // Special handling for just verified users

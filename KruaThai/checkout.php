@@ -1,5 +1,5 @@
 <?php
-// Krua Thai - Checkout
+// Krua Thai - Checkout (Simple Weekend Version - Based on Working Code)
 session_start();
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
@@ -46,6 +46,39 @@ function getMenuName($menu) {
         return 'Menu Item';
     }
 }
+
+// Generate weekend dates (Saturday & Sunday only) - SIMPLE VERSION
+function getWeekendDates() {
+    $dates = [];
+    $currentDate = new DateTime();
+    $currentDate->setTimezone(new DateTimeZone('Asia/Bangkok'));
+    
+    // Find next 4 weekends (8 days total)
+    for ($week = 0; $week < 4; $week++) {
+        // Calculate this week's Saturday
+        $saturday = clone $currentDate;
+        $saturday->modify('this week monday')->modify('+' . (5 + $week * 7) . ' days');
+        
+        // Calculate this week's Sunday  
+        $sunday = clone $saturday;
+        $sunday->modify('+1 day');
+        
+        // Only include future dates
+        $today = new DateTime();
+        $today->setTimezone(new DateTimeZone('Asia/Bangkok'));
+        
+        if ($saturday >= $today) {
+            $dates['sat_' . $week] = $saturday->format('l, M j') . ' (Saturday)';
+        }
+        
+        if ($sunday >= $today) {
+            $dates['sun_' . $week] = $sunday->format('l, M j') . ' (Sunday)';
+        }
+    }
+    
+    return $dates;
+}
+
 // ---------------------------------------------
 
 // 1. Get selection data from SESSION
@@ -61,12 +94,33 @@ $user_id = $_SESSION['user_id'];
 $plan = $order['plan'];
 $selected_meals = $order['selected_meals'] ?? [];
 $meal_details = $order['meal_details'] ?? [];
+
+// FIXED: If meal_details is empty, fetch from database
+if (empty($meal_details) && !empty($selected_meals)) {
+    try {
+        $placeholders = str_repeat('?,', count($selected_meals) - 1) . '?';
+        $stmt = $db->prepare("SELECT id, name, name_thai, base_price FROM menus WHERE id IN ($placeholders)");
+        $stmt->execute($selected_meals);
+        $fetched_meals = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Convert to associative array by ID
+        foreach ($fetched_meals as $meal) {
+            $meal_details[$meal['id']] = $meal;
+        }
+    } catch (Exception $e) {
+        error_log("Error fetching meal details: " . $e->getMessage());
+    }
+}
+
 $total_price = $plan['final_price'];
 $success = false;
 $errors = [];
 $flash_message = '';
 
-// 2. Process Form Submission
+// Get weekend dates
+$weekend_dates = getWeekendDates();
+
+// 2. Process Form Submission - KEEP EXACTLY SAME AS WORKING VERSION
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_order'])) {
     $delivery_address = trim($_POST['delivery_address'] ?? '');
     $city = trim($_POST['city'] ?? '');
@@ -76,7 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_order'])) {
     $preferred_time = $_POST['preferred_time'] ?? 'afternoon';
     $delivery_instructions = trim($_POST['delivery_instructions'] ?? '');
 
-    // Basic validation
+    // Basic validation - SAME AS WORKING VERSION
     if (empty($delivery_address)) $errors[] = "Please enter delivery address";
     if (empty($city)) $errors[] = "Please enter city/state";
     if (empty($zip_code)) $errors[] = "Please enter ZIP code";
@@ -281,7 +335,7 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
             padding: 2rem 20px 4rem;
         }
 
-        /* Progress Bar */
+        /* Progress Bar - FIXED: One line layout */
         .progress-container {
             background: var(--white);
             border-radius: var(--radius-lg);
@@ -293,9 +347,10 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
         .progress-bar {
             display: flex;
             align-items: center;
-            justify-content: center;
+            justify-content: space-between;
             gap: 1rem;
-            flex-wrap: wrap;
+            max-width: 800px;
+            margin: 0 auto;
         }
 
         .progress-step {
@@ -311,6 +366,8 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
             border: 2px solid var(--cream);
             transition: var(--transition);
             white-space: nowrap;
+            flex: 1;
+            justify-content: center;
         }
 
         .progress-step.active {
@@ -330,6 +387,7 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
             color: var(--sage);
             font-size: 1.2rem;
             font-weight: 600;
+            flex-shrink: 0;
         }
 
         .title {
@@ -527,6 +585,7 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
             content: "⚠️";
         }
 
+        /* Weekend delivery - SAME STYLE AS WORKING VERSION */
         .delivery-day-checkbox {
             display: flex;
             align-items: center;
@@ -555,6 +614,16 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
             flex-wrap: wrap;
         }
 
+        .weekend-info {
+            background: linear-gradient(135deg, #e8f5e8, #f0f8f0);
+            border: 1px solid var(--sage);
+            border-radius: var(--radius-md);
+            padding: 1rem;
+            margin-bottom: 1rem;
+            color: var(--text-dark);
+            font-size: 0.9rem;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .container {
@@ -566,12 +635,15 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
             }
 
             .progress-bar {
+                flex-wrap: wrap;
                 gap: 0.5rem;
             }
 
             .progress-step {
                 font-size: 0.8rem;
                 padding: 0.6rem 1rem;
+                flex: none;
+                min-width: 120px;
             }
 
             .progress-arrow {
@@ -603,6 +675,7 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
             .progress-step {
                 font-size: 0.7rem;
                 padding: 0.5rem 0.8rem;
+                min-width: 100px;
             }
 
             .meal-list li {
@@ -635,7 +708,7 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
     </header>
 
     <div class="container">
-        <!-- Progress Bar -->
+        <!-- Progress Bar - FIXED: One line layout -->
         <div class="progress-container">
             <div class="progress-bar">
                 <div class="progress-step completed">
@@ -705,17 +778,22 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
             </div>
 
             <div class="section">
-                <div class="label"><i class="fas fa-calendar-alt"></i> Select Delivery Days (choose multiple)</div>
+                <div class="label"><i class="fas fa-calendar-weekend"></i> Select Weekend Delivery Days</div>
+                
+                <div class="weekend-info">
+                    <i class="fas fa-info-circle" style="color: var(--sage); margin-right: 0.5rem;"></i>
+                    <strong>Weekend Delivery Only:</strong> We deliver on Saturdays and Sundays only. Choose from the next 4 weekends.
+                </div>
+                
                 <div class="delivery-days-container">
-                    <?php
-                    $days = ['monday'=>'Monday','tuesday'=>'Tuesday','wednesday'=>'Wednesday','thursday'=>'Thursday','friday'=>'Friday','saturday'=>'Saturday','sunday'=>'Sunday'];
-                    foreach($days as $val=>$label): ?>
+                    <?php foreach($weekend_dates as $val => $label): ?>
                         <label class="delivery-day-checkbox">
-                            <input type="checkbox" name="delivery_days[]" value="<?php echo $val; ?>" <?php if(isset($order['delivery_days']) && in_array($val,$order['delivery_days'])) echo 'checked'; ?>>
+                            <input type="checkbox" name="delivery_days[]" value="<?php echo $val; ?>">
                             <?php echo $label; ?>
                         </label>
                     <?php endforeach; ?>
                 </div>
+                
                 <div class="label" style="margin-top:1rem;"><i class="fas fa-clock"></i> Preferred Delivery Time</div>
                 <select name="preferred_time" class="address-input" required>
                     <option value="morning">Morning (8:00 AM - 12:00 PM)</option>
@@ -750,5 +828,7 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
             </div>
         </form>
     </div>
+
+    <!-- NO COMPLEX JAVASCRIPT - Keep it simple like working version -->
 </body>
 </html>

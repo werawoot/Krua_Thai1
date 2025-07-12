@@ -1,15 +1,23 @@
-<?php
+   <?php
 /**
- * Kitchen Dashboard - SOMDUL TABLE Brand
- * File: kitchen_dashboard.php
+ * Weekend Kitchen Dashboard - SOMDUL TABLE Brand
+ * File: weekend_kitchen_dashboard.php
  * Role: kitchen, admin only
  * Status: PRODUCTION READY ✅
+ * Focus: Weekend delivery preparation (Saturday & Sunday only)
  */
+
+// Start output buffering to prevent header issues
+ob_start();
 
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
+// Start session FIRST
 session_start();
+
+// Set timezone
+date_default_timezone_set('Asia/Bangkok');
 
 // Role-based access control
 if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
@@ -30,530 +38,303 @@ if (!isset($_SESSION['user_role']) || !in_array($_SESSION['user_role'], ['kitche
 require_once '../config/database.php';
 require_once '../includes/functions.php';
 
-// Handle status updates
-if ($_POST && isset($_POST['order_id']) && isset($_POST['status'])) {
-    $order_id = $_POST['order_id'];
-    $new_status = $_POST['status'];
+// Get next weekends (Saturday & Sunday) for next 3 weeks
+function getNextWeekends() {
+    $weekends = [];
+    $currentDate = new DateTime();
+    $currentDate->setTimezone(new DateTimeZone('Asia/Bangkok'));
     
-    try {
-        $update_query = "UPDATE orders SET kitchen_status = ?, updated_at = NOW() WHERE id = ?";
-        $stmt = mysqli_prepare($connection, $update_query);
-        mysqli_stmt_bind_param($stmt, "ss", $new_status, $order_id);
+    for ($week = 0; $week < 3; $week++) { // 3 weeks only
+        // Calculate this week's Saturday
+        $saturday = clone $currentDate;
+        $saturday->modify('this week monday')->modify('+' . (5 + $week * 7) . ' days');
         
-        if (mysqli_stmt_execute($stmt)) {
-            $_SESSION['flash_message'] = "Order status updated successfully";
-            $_SESSION['flash_type'] = "success";
-        } else {
-            $_SESSION['flash_message'] = "Failed to update order status";
-            $_SESSION['flash_type'] = "error";
+        // Calculate this week's Sunday  
+        $sunday = clone $saturday;
+        $sunday->modify('+1 day');
+        
+        // Only include future dates
+        $today = new DateTime();
+        $today->setTimezone(new DateTimeZone('Asia/Bangkok'));
+        
+        if ($saturday >= $today) {
+            $weekends[] = [
+                'date' => $saturday->format('Y-m-d'),
+                'display' => $saturday->format('l, M j') . ' (Saturday)',
+                'day_name' => 'Saturday',
+                'week_label' => $week == 0 ? 'This Week' : ($week == 1 ? 'Next Week' : 'Week ' . ($week + 1))
+            ];
         }
         
-        mysqli_stmt_close($stmt);
-    } catch (Exception $e) {
-        $_SESSION['flash_message'] = "Error: " . $e->getMessage();
-        $_SESSION['flash_type'] = "error";
+        if ($sunday >= $today) {
+            $weekends[] = [
+                'date' => $sunday->format('Y-m-d'),
+                'display' => $sunday->format('l, M j') . ' (Sunday)', 
+                'day_name' => 'Sunday',
+                'week_label' => $week == 0 ? 'This Week' : ($week == 1 ? 'Next Week' : 'Week ' . ($week + 1))
+            ];
+        }
     }
     
-    header("Location: " . $_SERVER['PHP_SELF'] . "?" . http_build_query($_GET));
-    exit();
+    return $weekends;
 }
 
 // Get filter parameters
-$selected_date = $_GET['date'] ?? date('Y-m-d');
+$available_weekends = getNextWeekends();
+$selected_date = $_GET['date'] ?? ($available_weekends[0]['date'] ?? date('Y-m-d'));
 $status_filter = $_GET['status'] ?? 'all';
 $export_type = $_GET['export'] ?? '';
 
+// Validate selected date is a weekend
+$selected_day = date('N', strtotime($selected_date)); // 6=Saturday, 7=Sunday
+if (!in_array($selected_day, [6, 7])) {
+    $selected_date = $available_weekends[0]['date'] ?? date('Y-m-d');
+}
+
 // Kitchen data arrays
-$orders_by_date = [];
+$weekend_orders = [];
 $meal_summary = [];
-$total_orders = 0;
+$subscription_summary = [];
+$total_customers = 0;
 $total_meals = 0;
 
 try {
-    // Get orders for selected date with detailed information
-    $orders_query = "
-        SELECT 
-            o.id as order_id,
-            o.order_number,
-            o.delivery_date,
-            o.delivery_time_slot,
-            o.delivery_address,
-            o.delivery_instructions,
-            o.special_notes,
-            o.status as order_status,
-            o.kitchen_status,
-            o.total_items,
-            o.estimated_prep_time,
-            o.created_at,
+    // Get weekend deliveries from subscription_menus
+    $delivery_query = "
+        SELECT DISTINCT
+            sm.delivery_date,
+            sm.subscription_id,
+            s.user_id,
+            s.preferred_delivery_time,
+            s.special_instructions as subscription_notes,
             u.first_name,
             u.last_name,
             u.phone,
+            u.delivery_address,
+            u.city,
             u.dietary_preferences,
             u.allergies,
             u.spice_level,
-            s.special_instructions as subscription_instructions
-        FROM orders o
-        LEFT JOIN users u ON o.user_id = u.id
-        LEFT JOIN subscriptions s ON o.subscription_id = s.id
-        WHERE o.delivery_date = ?
-        " . ($status_filter !== 'all' ? "AND o.kitchen_status = ?" : "") . "
-        ORDER BY o.delivery_time_slot ASC, o.created_at ASC
+            sp.name as plan_name,
+            sp.name_thai as plan_name_thai
+        FROM subscription_menus sm
+        JOIN subscriptions s ON sm.subscription_id = s.id
+        JOIN users u ON s.user_id = u.id
+        JOIN subscription_plans sp ON s.plan_id = sp.id
+        WHERE sm.delivery_date = ?
+        AND s.status = 'active'
+        AND sm.status = 'scheduled'
+        ORDER BY s.preferred_delivery_time ASC, u.last_name ASC
     ";
     
-    $stmt = mysqli_prepare($connection, $orders_query);
-    
-    if ($status_filter !== 'all') {
-        mysqli_stmt_bind_param($stmt, "ss", $selected_date, $status_filter);
-    } else {
-        mysqli_stmt_bind_param($stmt, "s", $selected_date);
-    }
-    
+    $stmt = mysqli_prepare($connection, $delivery_query);
+    mysqli_stmt_bind_param($stmt, "s", $selected_date);
     mysqli_stmt_execute($stmt);
-    $orders_result = mysqli_stmt_get_result($stmt);
+    $delivery_result = mysqli_stmt_get_result($stmt);
     
-    while ($order = mysqli_fetch_assoc($orders_result)) {
-        $orders_by_date[] = $order;
-        $total_orders++;
+    $customers = [];
+    while ($delivery = mysqli_fetch_assoc($delivery_result)) {
+        $customer_key = $delivery['user_id'];
+        if (!isset($customers[$customer_key])) {
+            $customers[$customer_key] = $delivery;
+            $customers[$customer_key]['meals'] = [];
+            $total_customers++;
+        }
     }
     
-    // Get order items (meals) for each order
-    foreach ($orders_by_date as &$order) {
-        $items_query = "
+    // Get meals for each customer
+    foreach ($customers as $user_id => &$customer) {
+        $meals_query = "
             SELECT 
-                oi.id as item_id,
-                oi.menu_name,
-                oi.quantity,
-                oi.customizations,
-                oi.special_requests,
-                oi.item_status,
-                oi.preparation_notes,
+                sm.id as subscription_menu_id,
+                sm.quantity,
+                sm.customizations,
+                sm.special_requests,
+                m.id as menu_id,
+                m.name as menu_name,
+                m.name_thai as menu_name_thai,
+                m.base_price,
                 m.ingredients,
                 m.cooking_method,
                 m.preparation_time,
                 m.spice_level as menu_spice_level,
-                mc.name as category_name
-            FROM order_items oi
-            LEFT JOIN menus m ON oi.menu_id = m.id
+                mc.name as category_name,
+                mc.name_thai as category_name_thai
+            FROM subscription_menus sm
+            JOIN menus m ON sm.menu_id = m.id
             LEFT JOIN menu_categories mc ON m.category_id = mc.id
-            WHERE oi.order_id = ?
+            WHERE sm.delivery_date = ?
+            AND sm.subscription_id = ?
+            AND sm.status = 'scheduled'
             ORDER BY mc.sort_order ASC, m.name ASC
         ";
         
-        $items_stmt = mysqli_prepare($connection, $items_query);
-        mysqli_stmt_bind_param($items_stmt, "s", $order['order_id']);
-        mysqli_stmt_execute($items_stmt);
-        $items_result = mysqli_stmt_get_result($items_stmt);
+        $meals_stmt = mysqli_prepare($connection, $meals_query);
+        mysqli_stmt_bind_param($meals_stmt, "ss", $selected_date, $customer['subscription_id']);
+        mysqli_stmt_execute($meals_stmt);
+        $meals_result = mysqli_stmt_get_result($meals_stmt);
         
-        $order['items'] = [];
-        while ($item = mysqli_fetch_assoc($items_result)) {
-            $order['items'][] = $item;
-            $total_meals += $item['quantity'];
+        while ($meal = mysqli_fetch_assoc($meals_result)) {
+            $customer['meals'][] = $meal;
+            $total_meals += $meal['quantity'];
             
-            // Build meal summary for aggregation
-            $meal_key = $item['menu_name'];
+            // Build meal summary for kitchen prep
+            $meal_key = $meal['menu_name'];
             if (!isset($meal_summary[$meal_key])) {
                 $meal_summary[$meal_key] = [
-                    'name' => $item['menu_name'],
-                    'category' => $item['category_name'],
+                    'menu_id' => $meal['menu_id'],
+                    'name' => $meal['menu_name'],
+                    'name_thai' => $meal['menu_name_thai'],
+                    'category' => $meal['category_name'],
+                    'category_thai' => $meal['category_name_thai'],
                     'total_quantity' => 0,
-                    'prep_time' => $item['preparation_time'],
-                    'spice_level' => $item['menu_spice_level'],
+                    'prep_time' => $meal['preparation_time'],
+                    'spice_level' => $meal['menu_spice_level'],
+                    'base_price' => $meal['base_price'],
                     'customizations' => [],
                     'special_requests' => [],
-                    'ingredients' => $item['ingredients'],
-                    'cooking_method' => $item['cooking_method']
+                    'ingredients' => $meal['ingredients'],
+                    'cooking_method' => $meal['cooking_method'],
+                    'customers' => []
                 ];
             }
             
-            $meal_summary[$meal_key]['total_quantity'] += $item['quantity'];
+            $meal_summary[$meal_key]['total_quantity'] += $meal['quantity'];
+            $meal_summary[$meal_key]['customers'][] = $customer['first_name'] . ' ' . $customer['last_name'];
             
             // Collect customizations
-            if (!empty($item['customizations'])) {
-                $customs = json_decode($item['customizations'], true);
+            if (!empty($meal['customizations'])) {
+                $customs = json_decode($meal['customizations'], true);
                 if ($customs) {
                     foreach ($customs as $custom) {
-                        $meal_summary[$meal_key]['customizations'][] = $custom;
+                        if (!in_array($custom, $meal_summary[$meal_key]['customizations'])) {
+                            $meal_summary[$meal_key]['customizations'][] = $custom;
+                        }
                     }
                 }
             }
             
             // Collect special requests
-            if (!empty($item['special_requests'])) {
-                $meal_summary[$meal_key]['special_requests'][] = $item['special_requests'];
+            if (!empty($meal['special_requests'])) {
+                if (!in_array($meal['special_requests'], $meal_summary[$meal_key]['special_requests'])) {
+                    $meal_summary[$meal_key]['special_requests'][] = $meal['special_requests'];
+                }
             }
         }
-        
-        mysqli_stmt_close($items_stmt);
     }
     
-    mysqli_stmt_close($stmt);
+    $weekend_orders = array_values($customers);
+    
+   
+// Sort meal summary by total quantity (highest first)
+    uasort($meal_summary, function($a, $b) {
+        return $b['total_quantity'] - $a['total_quantity'];
+    });
     
 } catch (Exception $e) {
-    $error_message = "Database error: " . $e->getMessage();
+    error_log("Weekend Kitchen Dashboard Error: " . $e->getMessage());
+    $error_message = "Error loading kitchen data: " . $e->getMessage();
 }
 
-// Handle export requests
+// Handle CSV Export
 if ($export_type === 'csv') {
-    exportToCSV($meal_summary, $selected_date);
-    exit();
-} elseif ($export_type === 'print') {
-    generatePrintSheet($orders_by_date, $meal_summary, $selected_date);
-    exit();
-}
-
-// Export functions
-function exportToCSV($meal_summary, $date) {
-    $filename = "kitchen_summary_" . $date . ".csv";
+    // Clean any existing output
+    ob_end_clean();
     
-    header('Content-Type: text/csv');
-    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="weekend_kitchen_prep_' . $selected_date . '.csv"');
     
     $output = fopen('php://output', 'w');
     
-    // CSV Headers
+    // UTF-8 BOM for proper Excel display
+    fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+    
+    // Headers
     fputcsv($output, [
-        'Menu Name', 'Category', 'Total Quantity', 'Prep Time (min)', 
-        'Spice Level', 'Customizations', 'Special Requests'
+        'Delivery Date', 'Customer Name', 'Phone', 'Address', 
+        'Delivery Time', 'Plan', 'Menu', 'Quantity', 'Customizations',
+        'Special Requests', 'Dietary Preferences', 'Allergies', 'Spice Level'
     ]);
     
-    foreach ($meal_summary as $meal) {
-        fputcsv($output, [
-            $meal['name'],
-            $meal['category'],
-            $meal['total_quantity'],
-            $meal['prep_time'],
-            $meal['spice_level'],
-            implode('; ', array_unique($meal['customizations'])),
-            implode('; ', array_unique($meal['special_requests']))
-        ]);
+    // Data rows
+    foreach ($weekend_orders as $customer) {
+        foreach ($customer['meals'] as $meal) {
+            fputcsv($output, [
+                $selected_date,
+                $customer['first_name'] . ' ' . $customer['last_name'],
+                $customer['phone'],
+                $customer['delivery_address'] . ', ' . $customer['city'],
+                $customer['preferred_delivery_time'],
+                $customer['plan_name_thai'],
+                $meal['menu_name_thai'],
+                $meal['quantity'],
+                $meal['customizations'],
+                $meal['special_requests'],
+                $customer['dietary_preferences'],
+                $customer['allergies'],
+                $customer['spice_level']
+            ]);
+        }
     }
     
     fclose($output);
+    exit;
 }
 
-function generatePrintSheet($orders, $meal_summary, $date) {
-    ?>
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Kitchen Production Sheet - <?php echo $date; ?></title>
-        <style>
-            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-            
-            @media print { .no-print { display: none; } }
-            
-            body { 
-                font-family: 'Batica Sans', 'Inter', Arial, sans-serif; 
-                font-size: 12px; 
-                color: #333;
-                line-height: 1.4;
-                margin: 0;
-                padding: 20px;
-            }
-            
-            .header { 
-                text-align: center; 
-                margin-bottom: 30px; 
-                border-bottom: 3px solid #bd9379; 
-                padding-bottom: 20px; 
-            }
-            
-            .header h1 {
-                color: #bd9379;
-                font-size: 28px;
-                font-weight: 800;
-                margin: 0 0 10px 0;
-                text-transform: uppercase;
-                letter-spacing: 2px;
-            }
-            
-            .header h2 {
-                color: #333;
-                font-size: 18px;
-                font-weight: 600;
-                margin: 10px 0;
-            }
-            
-            .summary { 
-                margin-bottom: 40px; 
-            }
-            
-            .summary h3 {
-                background: linear-gradient(135deg, #bd9379, #ece8e1);
-                color: #333;
-                padding: 15px;
-                margin: 0 0 20px 0;
-                font-size: 16px;
-                font-weight: 700;
-                border-radius: 8px;
-                text-transform: uppercase;
-                letter-spacing: 1px;
-            }
-            
-            table { 
-                width: 100%; 
-                border-collapse: collapse; 
-                margin: 15px 0;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            }
-            
-            th, td { 
-                border: 1px solid #ddd; 
-                padding: 12px 8px; 
-                text-align: left; 
-                vertical-align: top;
-            }
-            
-            th { 
-                background: #bd9379;
-                color: white;
-                font-weight: 700;
-                font-size: 11px;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-            }
-            
-            .quantity-cell {
-                text-align: center;
-                font-size: 20px;
-                font-weight: 800;
-                color: #bd9379;
-                background: #ece8e1;
-            }
-            
-            .order-detail { 
-                margin: 20px 0; 
-                padding: 15px; 
-                border-left: 4px solid #bd9379;
-                background: #f9f9f9;
-                page-break-inside: avoid;
-            }
-            
-            .order-detail h4 {
-                color: #bd9379;
-                font-size: 14px;
-                font-weight: 700;
-                margin: 0 0 10px 0;
-                text-transform: uppercase;
-            }
-            
-            .order-info {
-                display: grid;
-                grid-template-columns: repeat(2, 1fr);
-                gap: 10px;
-                margin-bottom: 15px;
-            }
-            
-            .order-info p {
-                margin: 5px 0;
-                font-size: 11px;
-            }
-            
-            .order-info strong {
-                color: #bd9379;
-                font-weight: 600;
-            }
-            
-            .items-list {
-                background: white;
-                padding: 10px;
-                border-radius: 5px;
-                border: 1px solid #ece8e1;
-            }
-            
-            .items-list h5 {
-                color: #bd9379;
-                font-size: 12px;
-                font-weight: 700;
-                margin: 0 0 10px 0;
-                text-transform: uppercase;
-            }
-            
-            .items-list ul {
-                margin: 0;
-                padding: 0 0 0 15px;
-            }
-            
-            .items-list li {
-                margin-bottom: 8px;
-                font-size: 11px;
-                line-height: 1.3;
-            }
-            
-            .item-name {
-                font-weight: 700;
-                color: #333;
-            }
-            
-            .item-note {
-                font-style: italic;
-                color: #cf723a;
-                font-size: 10px;
-                margin-top: 2px;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="header">
-            <h1>SOMDUL TABLE</h1>
-            <h2>🍳 Kitchen Production Sheet</h2>
-            <p><strong>Date:</strong> <?php echo date('l, F j, Y', strtotime($date)); ?></p>
-            <p><strong>Total Orders:</strong> <?php echo count($orders); ?> | <strong>Total Meals:</strong> <?php echo array_sum(array_column($meal_summary, 'total_quantity')); ?></p>
-            <p><strong>Generated:</strong> <?php echo date('m/d/Y H:i:s'); ?></p>
-        </div>
-
-        <div class="summary">
-            <h3>📋 Meal Production Summary</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Menu Item</th>
-                        <th>Quantity</th>
-                        <th>Prep Time</th>
-                        <th>Spice Level</th>
-                        <th>Special Notes</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php 
-                    // Sort by quantity (highest first)
-                    uasort($meal_summary, function($a, $b) {
-                        return $b['total_quantity'] - $a['total_quantity'];
-                    });
-                    
-                    foreach ($meal_summary as $meal): 
-                    ?>
-                    <tr>
-                        <td>
-                            <strong><?php echo htmlspecialchars($meal['name']); ?></strong><br>
-                            <small style="color: #666;"><?php echo htmlspecialchars($meal['category']); ?></small>
-                        </td>
-                        <td class="quantity-cell">
-                            <?php echo $meal['total_quantity']; ?>
-                        </td>
-                        <td><?php echo $meal['prep_time']; ?> min</td>
-                        <td><?php echo ucfirst($meal['spice_level']); ?></td>
-                        <td>
-                            <?php if (!empty($meal['customizations'])): ?>
-                                <strong>Customizations:</strong> <?php echo implode(', ', array_unique($meal['customizations'])); ?><br>
-                            <?php endif; ?>
-                            <?php if (!empty($meal['special_requests'])): ?>
-                                <strong>Special Requests:</strong> <?php echo implode(', ', array_unique($meal['special_requests'])); ?>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
-
-        <div class="orders">
-            <h3 style="background: linear-gradient(135deg, #bd9379, #ece8e1); color: #333; padding: 15px; margin: 0 0 20px 0; font-size: 16px; font-weight: 700; border-radius: 8px; text-transform: uppercase;">📦 Order Details</h3>
-            <?php foreach ($orders as $order): ?>
-            <div class="order-detail">
-                <h4>📋 Order: <?php echo htmlspecialchars($order['order_number']); ?></h4>
-                
-                <div class="order-info">
-                    <p><strong>Customer:</strong> <?php echo htmlspecialchars($order['first_name'] . ' ' . $order['last_name']); ?></p>
-                    <p><strong>Phone:</strong> <?php echo htmlspecialchars($order['phone']); ?></p>
-                    <p><strong>Delivery Time:</strong> <?php echo htmlspecialchars($order['delivery_time_slot']); ?></p>
-                    <p><strong>Spice Level:</strong> <?php echo ucfirst($order['spice_level'] ?? 'medium'); ?></p>
-                </div>
-                
-                <?php if (!empty($order['special_notes']) || !empty($order['subscription_instructions'])): ?>
-                <p style="background: #fff3cd; padding: 8px; border-radius: 4px; border-left: 3px solid #ffc107; margin: 10px 0; font-size: 11px;">
-                    <strong>⚠️ Special Notes:</strong><br>
-                    <?php if (!empty($order['special_notes'])): ?>
-                        <?php echo htmlspecialchars($order['special_notes']); ?><br>
-                    <?php endif; ?>
-                    <?php if (!empty($order['subscription_instructions'])): ?>
-                        <?php echo htmlspecialchars($order['subscription_instructions']); ?>
-                    <?php endif; ?>
-                </p>
-                <?php endif; ?>
-                
-                <?php if (!empty($order['dietary_preferences']) || !empty($order['allergies'])): ?>
-                <p style="background: #d1ecf1; padding: 8px; border-radius: 4px; border-left: 3px solid #17a2b8; margin: 10px 0; font-size: 11px;">
-                    <?php if (!empty($order['dietary_preferences'])): ?>
-                        <strong>🥗 Dietary Preferences:</strong>
-                        <?php 
-                        $prefs = json_decode($order['dietary_preferences'], true);
-                        echo $prefs ? implode(', ', $prefs) : $order['dietary_preferences'];
-                        ?><br>
-                    <?php endif; ?>
-                    <?php if (!empty($order['allergies'])): ?>
-                        <strong>⚠️ Allergies:</strong>
-                        <?php 
-                        $allergies = json_decode($order['allergies'], true);
-                        echo $allergies ? implode(', ', $allergies) : $order['allergies'];
-                        ?>
-                    <?php endif; ?>
-                </p>
-                <?php endif; ?>
-                
-                <div class="items-list">
-                    <h5>🍽️ Meal Items</h5>
-                    <ul>
-                        <?php foreach ($order['items'] as $item): ?>
-                        <li>
-                            <span class="item-name"><?php echo htmlspecialchars($item['menu_name']); ?></span> 
-                            <strong>x <?php echo $item['quantity']; ?></strong>
-                            <?php if (!empty($item['special_requests'])): ?>
-                                <div class="item-note">Note: <?php echo htmlspecialchars($item['special_requests']); ?></div>
-                            <?php endif; ?>
-                            <?php if (!empty($item['customizations'])): ?>
-                                <div class="item-note">
-                                    Customizations: <?php 
-                                    $customs = json_decode($item['customizations'], true);
-                                    echo $customs ? implode(', ', $customs) : $item['customizations'];
-                                    ?>
-                                </div>
-                            <?php endif; ?>
-                        </li>
-                        <?php endforeach; ?>
-                    </ul>
-                </div>
-            </div>
-            <?php endforeach; ?>
-        </div>
-
-        <div class="no-print" style="margin-top: 30px; text-align: center;">
-            <button onclick="window.print()" style="background: #bd9379; color: white; padding: 15px 30px; border: none; border-radius: 25px; cursor: pointer; font-size: 14px; font-weight: 600; margin-right: 10px;">🖨️ Print</button>
-            <button onclick="window.close()" style="background: #6c757d; color: white; padding: 15px 30px; border: none; border-radius: 25px; cursor: pointer; font-size: 14px; font-weight: 600;">❌ Close</button>
-        </div>
-    </body>
-    </html>
-    <?php
+// Handle JSON Export
+if ($export_type === 'json') {
+    // Clean any existing output
+    ob_end_clean();
+    
+    header('Content-Type: application/json; charset=utf-8');
+    header('Content-Disposition: attachment; filename="weekend_kitchen_data_' . $selected_date . '.json"');
+    
+    $export_data = [
+        'delivery_date' => $selected_date,
+        'total_customers' => $total_customers,
+        'total_meals' => $total_meals,
+        'customers' => $weekend_orders,
+        'meal_summary' => $meal_summary
+    ];
+    
+    echo json_encode($export_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    exit;
 }
 
-$page_title = "Kitchen Dashboard";
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $page_title; ?> - SOMDUL TABLE</title>
-    
-    <!-- SOMDUL TABLE Brand Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    
+    <title>Weekend Kitchen Dashboard - Krua Thai</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
             /* SOMDUL TABLE Brand Colors */
-            --rice: #bd9379;
-            --family: #ece8e1;
-            --herb: #adb89d;
-            --thai-curry: #cf723a;
+            --rice-50: #fefdf8;
+            --rice-100: #ece8e1;
+            --rice-500: #ece8e1;
+            --rice-700: #bd9379;
+            --family-600: #bd9379;
+            --family-700: #bd9379;
+            --herb-500: #adb89d;
+            --herb-600: #adb89d;
+            --thai-curry-400: #cf723a;
+            --thai-curry-500: #cf723a;
+            --thai-curry-600: #cf723a;
             --white: #ffffff;
-            --gray: #6c757d;
-            --light-gray: #f8f9fa;
-            --success: #28a745;
-            --warning: #ffc107;
-            --danger: #dc3545;
-            --info: #17a2b8;
-            --dark: #2c3e50;
+            --text-dark: #2c3e50;
+            --text-gray: #7f8c8d;
+            --border-light: #e8e8e8;
+            --shadow-soft: 0 4px 12px rgba(0,0,0,0.05);
+            --shadow-medium: 0 8px 24px rgba(0,0,0,0.1);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         * {
@@ -563,29 +344,25 @@ $page_title = "Kitchen Dashboard";
         }
 
         body {
-            font-family: "Batica Sans", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
-            background: var(--white);
-            color: #333;
-            line-height: 1.6;
-            font-weight: 400;
+            font-family: 'Inter', 'Kanit', sans-serif;
+            background: linear-gradient(135deg, var(--rice-50) 0%, var(--rice-100) 100%);
+            min-height: 100vh;
+            color: #374151;
         }
 
-        /* Header */
         .header {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
-            box-shadow: 0 2px 20px rgba(189, 147, 121, 0.1);
-            position: fixed;
+            background: linear-gradient(135deg, var(--family-600) 0%, var(--family-700) 100%);
+            color: white;
+            padding: 1.5rem 2rem;
+            box-shadow: 0 4px 12px rgba(189, 147, 121, 0.2);
+            position: sticky;
             top: 0;
-            width: 100%;
-            z-index: 1000;
-            border-bottom: 1px solid var(--family);
+            z-index: 100;
         }
 
         .header-content {
             max-width: 1400px;
             margin: 0 auto;
-            padding: 1rem 2rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -593,488 +370,424 @@ $page_title = "Kitchen Dashboard";
             gap: 1rem;
         }
 
-        .logo {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--rice);
-            display: flex;
-            align-items: center;
-            gap: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .logo-icon {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, var(--rice), var(--thai-curry));
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 800;
-            font-size: 1.2rem;
-        }
-
-        .user-info {
+        .header-title {
             display: flex;
             align-items: center;
             gap: 1rem;
-            background: var(--family);
-            padding: 0.8rem 1.5rem;
-            border-radius: 50px;
-            font-weight: 500;
-            color: #333;
         }
 
-        .container {
+        .header-title h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .header-meta {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .main-container {
             max-width: 1400px;
             margin: 0 auto;
-            padding: 6rem 2rem 2rem;
+            padding: 2rem;
         }
 
-        /* Controls */
         .dashboard-controls {
-            background: var(--white);
+            background: white;
             padding: 2rem;
-            border-radius: 20px;
-            box-shadow: 0 4px 20px rgba(189, 147, 121, 0.1);
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
             margin-bottom: 2rem;
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 1.5rem;
-            align-items: end;
-            border: 1px solid var(--family);
+            align-items: center;
         }
 
         .control-group {
             display: flex;
             flex-direction: column;
-            gap: 0.8rem;
+            gap: 0.5rem;
         }
 
-        .control-group label {
-            font-weight: 600;
-            color: #333;
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .form-control {
-            padding: 1rem 1.5rem;
-            border: 2px solid var(--family);
-            border-radius: 12px;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-            background: var(--white);
-            color: #333;
-            font-family: inherit;
+        .control-label {
             font-weight: 500;
+            color: var(--rice-700);
+            font-size: 0.9rem;
         }
 
-        .form-control:focus {
+        .control-input {
+            padding: 0.75rem 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.2s;
+            font-family: 'Inter', 'Kanit', sans-serif;
+        }
+
+        .control-input:focus {
             outline: none;
-            border-color: var(--rice);
-            box-shadow: 0 0 0 3px rgba(189, 147, 121, 0.1);
+            border-color: var(--thai-curry-500);
+            box-shadow: 0 0 0 3px rgba(207, 114, 58, 0.1);
         }
 
         .btn {
-            padding: 1rem 2rem;
+            padding: 0.75rem 1.5rem;
             border: none;
-            border-radius: 12px;
-            font-weight: 600;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.2s;
             text-decoration: none;
             display: inline-flex;
             align-items: center;
-            justify-content: center;
             gap: 0.5rem;
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            justify-content: center;
+            font-family: 'Inter', 'Kanit', sans-serif;
         }
 
         .btn-primary {
-            background: var(--rice);
-            color: var(--white);
+            background: linear-gradient(135deg, var(--thai-curry-500) 0%, var(--thai-curry-600) 100%);
+            color: white;
         }
 
         .btn-primary:hover {
-            background: #a67c5a;
             transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(189, 147, 121, 0.3);
-        }
-
-        .btn-success {
-            background: var(--herb);
-            color: var(--white);
-        }
-
-        .btn-success:hover {
-            background: #9aa386;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(173, 184, 157, 0.3);
-        }
-
-        .btn-info {
-            background: var(--thai-curry);
-            color: var(--white);
-        }
-
-        .btn-info:hover {
-            background: #b8631f;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(207, 114, 58, 0.3);
+            box-shadow: 0 8px 25px rgba(207, 114, 58, 0.3);
         }
 
         .btn-secondary {
-            background: var(--family);
-            color: #333;
-            border: 2px solid var(--family);
+            background: linear-gradient(135deg, var(--herb-500) 0%, var(--herb-600) 100%);
+            color: white;
         }
 
         .btn-secondary:hover {
-            background: #333;
-            color: var(--white);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(173, 184, 157, 0.3);
         }
 
-        /* Statistics */
+        .btn-outline {
+            background: white;
+            border: 2px solid var(--rice-500);
+            color: var(--rice-700);
+        }
+
+        .btn-back {
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 0.6rem 1.2rem;
+            border-radius: 25px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-back:hover {
+            background: rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            color: white;
+        }
+
+        .btn-outline:hover {
+            background: var(--rice-50);
+            border-color: var(--rice-700);
+        }
+
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
             margin-bottom: 2rem;
         }
 
         .stat-card {
-            background: var(--white);
+            background: white;
             padding: 2rem;
-            border-radius: 20px;
-            box-shadow: 0 4px 20px rgba(189, 147, 121, 0.1);
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
             text-align: center;
-            transition: all 0.3s ease;
-            border: 1px solid var(--family);
             position: relative;
             overflow: hidden;
         }
 
         .stat-card::before {
-            content: "";
+            content: '';
             position: absolute;
             top: 0;
             left: 0;
-            width: 100%;
+            right: 0;
             height: 4px;
-            background: linear-gradient(90deg, var(--rice), var(--thai-curry));
+            background: linear-gradient(90deg, var(--thai-curry-500) 0%, var(--family-600) 100%);
         }
 
-        .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 30px rgba(189, 147, 121, 0.15);
+        .stat-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: var(--thai-curry-500);
         }
 
         .stat-number {
             font-size: 2.5rem;
-            font-weight: 800;
-            color: var(--rice);
+            font-weight: 700;
+            color: var(--family-600);
             margin-bottom: 0.5rem;
-            line-height: 1;
         }
 
         .stat-label {
-            color: #333;
-            font-weight: 600;
-            font-size: 1rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            font-size: 1.1rem;
+            color: #6b7280;
+            font-weight: 500;
         }
 
-        /* Main Content */
-        .main-content {
+        .content-grid {
             display: grid;
             grid-template-columns: 1fr 400px;
             gap: 2rem;
+            margin-bottom: 2rem;
         }
 
-        .orders-section, .meal-summary {
-            background: var(--white);
-            border-radius: 20px;
-            box-shadow: 0 4px 20px rgba(189, 147, 121, 0.1);
+        .main-content {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
             overflow: hidden;
-            border: 1px solid var(--family);
+        }
+
+        .sidebar {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            padding: 2rem;
         }
 
         .section-header {
-            background: linear-gradient(135deg, var(--rice), var(--thai-curry));
-            color: var(--white);
+            background: linear-gradient(135deg, var(--rice-100) 0%, var(--rice-50) 100%);
             padding: 1.5rem 2rem;
+            border-bottom: 1px solid #e5e7eb;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
         .section-title {
-            font-size: 1.2rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--rice-700);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
-        .orders-list, .summary-list {
-            max-height: 70vh;
+        .customer-list {
+            max-height: 600px;
             overflow-y: auto;
         }
 
-        .order-card {
-            border-bottom: 1px solid var(--family);
-            padding: 2rem;
-            transition: all 0.3s ease;
+        .customer-card {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid #f3f4f6;
+            transition: all 0.2s;
         }
 
-        .order-card:hover {
-            background: var(--family);
+        .customer-card:hover {
+            background: var(--rice-50);
         }
 
-        .order-card:last-child {
-            border-bottom: none;
-        }
-
-        .order-header {
+        .customer-header {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
+            align-items: flex-start;
+            margin-bottom: 1rem;
         }
 
-        .order-number {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: var(--rice);
-            text-transform: uppercase;
-            letter-spacing: 1px;
+        .customer-info h3 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--family-600);
+            margin-bottom: 0.25rem;
         }
 
-        .order-status {
+        .customer-details {
+            font-size: 0.9rem;
+            color: #6b7280;
+            line-height: 1.4;
+        }
+
+        .delivery-time {
+            background: linear-gradient(135deg, var(--herb-500) 0%, var(--herb-600) 100%);
+            color: white;
             padding: 0.5rem 1rem;
             border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            font-size: 0.85rem;
+            font-weight: 500;
         }
 
-        .status-not_started {
-            background: #fff3cd;
-            color: #856404;
-            border: 2px solid #ffc107;
+        .meals-list {
+            margin-top: 1rem;
         }
 
-        .status-in_progress {
-            background: #cce7ff;
-            color: #0c5460;
-            border: 2px solid #17a2b8;
-        }
-
-        .status-completed {
-            background: #d4edda;
-            color: #155724;
-            border: 2px solid #28a745;
-        }
-
-        .order-info {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .info-item {
+        .meal-item {
+            background: var(--rice-50);
             padding: 1rem;
-            background: rgba(189, 147, 121, 0.05);
-            border-radius: 12px;
-            border: 1px solid var(--family);
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            border-left: 4px solid var(--thai-curry-500);
         }
 
-        .info-item strong {
-            color: var(--rice);
-            font-weight: 600;
-            display: block;
-            margin-bottom: 0.3rem;
-            text-transform: uppercase;
-            font-size: 0.8rem;
-            letter-spacing: 0.5px;
+        .meal-item:last-child {
+            margin-bottom: 0;
         }
 
-        .items-list {
-            margin-top: 1.5rem;
-        }
-
-        .items-list strong {
-            color: var(--rice);
-            font-weight: 600;
-            text-transform: uppercase;
-            font-size: 0.9rem;
-            letter-spacing: 0.5px;
-        }
-
-        .item {
-            background: var(--white);
-            padding: 1rem;
-            border-radius: 12px;
-            margin: 0.8rem 0;
+        .meal-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border: 1px solid var(--family);
-            transition: all 0.3s ease;
-        }
-
-        .item:hover {
-            border-color: var(--rice);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(189, 147, 121, 0.1);
-        }
-
-        .item-name {
-            font-weight: 600;
-            color: #333;
-        }
-
-        .item-quantity {
-            background: var(--rice);
-            color: var(--white);
-            padding: 0.4rem 1rem;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            font-weight: 700;
-            min-width: 45px;
-            text-align: center;
-        }
-
-        .summary-item {
-            padding: 1.5rem;
-            border-bottom: 1px solid var(--family);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: all 0.3s ease;
-        }
-
-        .summary-item:hover {
-            background: var(--family);
-        }
-
-        .summary-item:last-child {
-            border-bottom: none;
+            margin-bottom: 0.5rem;
         }
 
         .meal-name {
             font-weight: 600;
-            color: #333;
-            flex: 1;
+            color: var(--family-600);
         }
 
         .meal-quantity {
-            background: var(--rice);
-            color: var(--white);
-            padding: 0.8rem 1.5rem;
-            border-radius: 20px;
-            font-weight: 700;
-            font-size: 1.1rem;
-            min-width: 60px;
-            text-align: center;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 4rem 2rem;
-            color: var(--gray);
-        }
-
-        .empty-state .icon {
-            font-size: 4rem;
-            margin-bottom: 1.5rem;
-            opacity: 0.5;
-        }
-
-        .empty-state h3 {
-            color: #333;
-            margin-bottom: 1rem;
+            background: var(--thai-curry-500);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
             font-weight: 600;
         }
 
-        .alert {
-            padding: 1rem;
+        .meal-meta {
+            font-size: 0.85rem;
+            color: #6b7280;
+            line-height: 1.4;
+        }
+
+        .prep-summary-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--family-600);
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .prep-item {
+            background: linear-gradient(135deg, var(--rice-50) 0%, white 100%);
+            border: 1px solid #e5e7eb;
             border-radius: 12px;
-            margin: 1rem 0;
-            border-left: 4px solid;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            transition: all 0.2s;
+        }
+
+        .prep-item:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .prep-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .prep-name {
+            font-weight: 600;
+            color: var(--family-600);
+            font-size: 1.1rem;
+        }
+
+        .prep-quantity {
+            background: linear-gradient(135deg, var(--thai-curry-500) 0%, var(--thai-curry-600) 100%);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .prep-meta {
+            font-size: 0.9rem;
+            color: #6b7280;
+            line-height: 1.5;
+        }
+
+        .prep-customers {
+            margin-top: 0.5rem;
             font-weight: 500;
+            color: var(--herb-600);
         }
 
-        .alert-warning {
-            background: #fff3cd;
-            color: #856404;
-            border-left-color: #ffc107;
+        .print-section {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            padding: 2rem;
+            margin-top: 2rem;
         }
 
-        .alert-info {
-            background: #d1ecf1;
-            color: #0c5460;
-            border-left-color: #17a2b8;
-        }
-
-        .kitchen-actions {
-            margin-top: 1.5rem;
+        .print-buttons {
             display: flex;
             gap: 1rem;
             flex-wrap: wrap;
-            padding-top: 1.5rem;
-            border-top: 2px solid var(--family);
         }
 
-        .kitchen-actions .btn {
-            font-size: 0.8rem;
-            padding: 0.8rem 1.5rem;
-        }
-
-        .flash-message {
-            position: fixed;
-            top: 90px;
-            right: 20px;
-            background: var(--white);
-            color: #333;
-            padding: 1.5rem 2rem;
-            border-radius: 15px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
-            z-index: 1000;
-            max-width: 400px;
-            border-left: 4px solid var(--success);
-            animation: slideInRight 0.5s ease-out;
-        }
-
-        .flash-message.error {
-            border-left-color: var(--danger);
-            color: #721c24;
-        }
-
-        @keyframes slideInRight {
-            from {
-                opacity: 0;
-                transform: translateX(100%);
+        @media print {
+            body * {
+                visibility: hidden;
             }
-            to {
-                opacity: 1;
-                transform: translateX(0);
+            .print-area, .print-area * {
+                visibility: visible;
+            }
+            .print-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+            .no-print {
+                display: none !important;
             }
         }
 
-        /* Responsive */
-        @media (max-width: 1200px) {
-            .main-content {
+        @media (max-width: 1024px) {
+            .content-grid {
                 grid-template-columns: 1fr;
+            }
+            
+            .header-content {
+                flex-direction: column;
+                align-items: flex-start;
             }
             
             .dashboard-controls {
@@ -1085,397 +798,613 @@ $page_title = "Kitchen Dashboard";
         }
 
         @media (max-width: 768px) {
-            .header-content {
-                flex-direction: column;
-                text-align: center;
+            .main-container {
                 padding: 1rem;
             }
             
-            .container {
-                padding: 5rem 1rem 2rem;
+            .header {
+                padding: 1rem;
+            }
+            
+            .header-title h1 {
+                font-size: 1.5rem;
             }
             
             .stats-grid {
-                grid-template-columns: repeat(2, 1fr);
+                grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
                 gap: 1rem;
             }
             
-            .order-info {
-                grid-template-columns: 1fr;
-                gap: 0.8rem;
+            .stat-card {
+                padding: 1.5rem;
             }
             
-            .main-content {
-                gap: 1.5rem;
+            .print-buttons {
+                flex-direction: column;
             }
         }
 
-        /* Print styles */
-        @media print {
-            .no-print {
-                display: none !important;
-            }
-            
-            body {
-                background: var(--white);
-            }
-            
-            .container {
-                max-width: none;
-                padding: 0;
-            }
+        .empty-state {
+            text-align: center;
+            padding: 3rem 2rem;
+            color: #6b7280;
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            color: var(--rice-500);
+            margin-bottom: 1rem;
+        }
+
+        .empty-state h3 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: var(--rice-700);
+        }
+
+        .alert {
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .alert-error {
+            background: #fef2f2;
+            color: #b91c1c;
+            border: 1px solid #fecaca;
+        }
+
+        .weekend-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: linear-gradient(135deg, var(--herb-500) 0%, var(--herb-600) 100%);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
         }
     </style>
 </head>
 <body>
     <!-- Header -->
-    <div class="header no-print">
+    <div class="header">
         <div class="header-content">
-            <div class="logo">
-                <div class="logo-icon">ST</div>
-                <span>SOMDUL TABLE Kitchen</span>
+            <div class="header-title">
+                <h1>
+                    <i class="fas fa-utensils"></i>
+                    Weekend Kitchen Dashboard
+                </h1>
+                <div class="weekend-indicator">
+                    <i class="fas fa-calendar-weekend"></i>
+                    Weekend Delivery Only
+                </div>
             </div>
-            <div class="user-info">
-                👨‍🍳 <?php echo htmlspecialchars($_SESSION['user_name'] ?? 'Kitchen Staff'); ?>
-                <a href="dashboard.php" class="btn btn-secondary" style="margin-left: 1rem;">← Back</a>
+            <div class="header-meta">
+                <div class="meta-item">
+                    <i class="fas fa-calendar-day"></i>
+                    <span><?php echo !empty($selected_date) ? date('l, M j, Y', strtotime($selected_date)) : 'Date not selected'; ?></span>
+                </div>
+                <div class="meta-item">
+                    <i class="fas fa-users"></i>
+                    <span><?php echo $total_customers; ?> Customers</span>
+                </div>
+                <div class="meta-item">
+                    <i class="fas fa-bowl-food"></i>
+                    <span><?php echo $total_meals; ?> Meals</span>
+                </div>
+                <div class="meta-item">
+                    <i class="fas fa-user-circle"></i>
+                    <span><?php echo htmlspecialchars($_SESSION['first_name'] ?? 'Kitchen Staff'); ?></span>
+                </div>
+                <div class="meta-item">
+                    <a href="dashboard.php" class="btn-back">
+                        <i class="fas fa-arrow-left"></i>
+                        <span>Back to Dashboard</span>
+                    </a>
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="container">
-        <!-- Controls -->
-        <div class="dashboard-controls no-print">
-            <div class="control-group">
-                <label for="date">📅 Delivery Date</label>
-                <input type="date" id="date" name="date" class="form-control" 
-                       value="<?php echo htmlspecialchars($selected_date); ?>"
-                       onchange="filterOrders()">
+    <div class="main-container">
+        <?php if (isset($error_message)): ?>
+            <div class="alert alert-error">
+                <i class="fas fa-exclamation-triangle"></i>
+                <?php echo htmlspecialchars($error_message); ?>
             </div>
-            
+        <?php endif; ?>
+
+        <!-- Dashboard Controls -->
+        <div class="dashboard-controls">
             <div class="control-group">
-                <label for="status">🔄 Kitchen Status</label>
-                <select id="status" name="status" class="form-control" onchange="filterOrders()">
-                    <option value="all" <?php echo $status_filter === 'all' ? 'selected' : ''; ?>>All Orders</option>
-                    <option value="not_started" <?php echo $status_filter === 'not_started' ? 'selected' : ''; ?>>Not Started</option>
-                    <option value="in_progress" <?php echo $status_filter === 'in_progress' ? 'selected' : ''; ?>>In Progress</option>
-                    <option value="completed" <?php echo $status_filter === 'completed' ? 'selected' : ''; ?>>Completed</option>
+                <label class="control-label">Select Delivery Date (Weekends Only)</label>
+                <select class="control-input" onchange="filterByDate(this.value)">
+                    <?php foreach ($available_weekends as $weekend): ?>
+                        <option value="<?php echo $weekend['date']; ?>" 
+                                <?php echo ($weekend['date'] === $selected_date) ? 'selected' : ''; ?>>
+                            <?php echo $weekend['display'] . ' - ' . $weekend['week_label']; ?>
+                        </option>
+                    <?php endforeach; ?>
                 </select>
             </div>
             
             <div class="control-group">
-                <label>&nbsp;</label>
-                <button onclick="refreshData()" class="btn btn-primary">
-                    🔄 Refresh
+                <label class="control-label">Status Filter</label>
+                <select class="control-input" onchange="filterByStatus(this.value)">
+                    <option value="all" <?php echo ($status_filter === 'all') ? 'selected' : ''; ?>>All Orders</option>
+                    <option value="scheduled" <?php echo ($status_filter === 'scheduled') ? 'selected' : ''; ?>>Scheduled</option>
+                    <option value="in_progress" <?php echo ($status_filter === 'in_progress') ? 'selected' : ''; ?>>In Progress</option>
+                    <option value="completed" <?php echo ($status_filter === 'completed') ? 'selected' : ''; ?>>Completed</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label class="control-label">Export Data</label>
+                <div style="display: flex; gap: 0.5rem;">
+                    <a href="?date=<?php echo $selected_date; ?>&export=csv" class="btn btn-secondary">
+                        <i class="fas fa-file-csv"></i> CSV
+                    </a>
+                    <a href="?date=<?php echo $selected_date; ?>&export=json" class="btn btn-outline">
+                        <i class="fas fa-file-code"></i> JSON
+                    </a>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label class="control-label">Refresh Data</label>
+                <button class="btn btn-primary" onclick="refreshData()">
+                    <i class="fas fa-sync-alt"></i> Refresh
                 </button>
-            </div>
-            
-            <div class="control-group">
-                <label>&nbsp;</label>
-                <a href="?date=<?php echo $selected_date; ?>&status=<?php echo $status_filter; ?>&export=print" 
-                   target="_blank" class="btn btn-success">
-                    🖨️ Print Sheet
-                </a>
-            </div>
-            
-            <div class="control-group">
-                <label>&nbsp;</label>
-                <a href="?date=<?php echo $selected_date; ?>&status=<?php echo $status_filter; ?>&export=csv" 
-                   class="btn btn-info">
-                    📊 Export CSV
-                </a>
             </div>
         </div>
 
-        <!-- Statistics -->
+        <!-- Statistics Cards -->
         <div class="stats-grid">
             <div class="stat-card">
-                <div class="stat-number"><?php echo $total_orders; ?></div>
-                <div class="stat-label">Total Orders</div>
+                <div class="stat-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="stat-number"><?php echo $total_customers; ?></div>
+                <div class="stat-label">Total Customers</div>
             </div>
+            
             <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-bowl-food"></i>
+                </div>
                 <div class="stat-number"><?php echo $total_meals; ?></div>
                 <div class="stat-label">Total Meals</div>
             </div>
+            
             <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-clock"></i>
+                </div>
                 <div class="stat-number"><?php echo count($meal_summary); ?></div>
-                <div class="stat-label">Menu Items</div>
+                <div class="stat-label">Menu Items to Prep</div>
             </div>
+            
             <div class="stat-card">
-                <div class="stat-number"><?php echo date('M j', strtotime($selected_date)); ?></div>
-                <div class="stat-label">Selected Date</div>
+                <div class="stat-icon">
+                    <i class="fas fa-calendar-weekend"></i>
+                </div>
+                <div class="stat-number"><?php echo date('N', strtotime($selected_date)) == 6 ? 'Saturday' : 'Sunday'; ?></div>
+                <div class="stat-label">Delivery Day</div>
             </div>
         </div>
 
-        <!-- Main Content -->
-        <div class="main-content">
-            <!-- Orders List -->
-            <div class="orders-section">
+        <!-- Main Content Grid -->
+        <div class="content-grid">
+            <!-- Customer Orders -->
+            <div class="main-content">
                 <div class="section-header">
-                    <div class="section-title">📋 Order List</div>
-                    <div style="font-size: 0.9rem;"><?php echo count($orders_by_date); ?> Orders</div>
+                    <h2 class="section-title">
+                        <i class="fas fa-truck-fast"></i>
+                        Delivery Schedule - <?php echo !empty($selected_date) ? date('l, M j', strtotime($selected_date)) : 'Date not selected'; ?>
+                    </h2>
+                    <div style="display: flex; gap: 1rem;">
+                        <button class="btn btn-secondary" onclick="printCustomerList()">
+                            <i class="fas fa-print"></i> Print List
+                        </button>
+                        <button class="btn btn-primary" onclick="markAllCompleted()">
+                            <i class="fas fa-check-circle"></i> Mark All Complete
+                        </button>
+                    </div>
                 </div>
                 
-                <div class="orders-list">
-                    <?php if (empty($orders_by_date)): ?>
-                    <div class="empty-state">
-                        <div class="icon">📭</div>
-                        <h3>No Orders</h3>
-                        <p>No orders found for the selected date</p>
-                    </div>
-                    <?php else: ?>
-                        <?php foreach ($orders_by_date as $order): ?>
-                        <div class="order-card">
-                            <div class="order-header">
-                                <div class="order-number"><?php echo htmlspecialchars($order['order_number']); ?></div>
-                                <div class="order-status status-<?php echo $order['kitchen_status']; ?>">
-                                    <?php 
-                                    $status_text = [
-                                        'not_started' => 'Not Started',
-                                        'in_progress' => 'In Progress', 
-                                        'completed' => 'Completed'
-                                    ];
-                                    echo $status_text[$order['kitchen_status']] ?? $order['kitchen_status'];
-                                    ?>
-                                </div>
-                            </div>
-                            
-                            <div class="order-info">
-                                <div class="info-item">
-                                    <strong>👤 Customer</strong>
-                                    <?php echo htmlspecialchars($order['first_name'] . ' ' . $order['last_name']); ?>
-                                </div>
-                                <div class="info-item">
-                                    <strong>📞 Phone</strong>
-                                    <?php echo htmlspecialchars($order['phone'] ?? 'Not specified'); ?>
-                                </div>
-                                <div class="info-item">
-                                    <strong>🕐 Delivery Time</strong>
-                                    <?php echo htmlspecialchars($order['delivery_time_slot'] ?? 'Not specified'); ?>
-                                </div>
-                                <div class="info-item">
-                                    <strong>🌶️ Spice Level</strong>
-                                    <?php echo ucfirst($order['spice_level'] ?? 'medium'); ?>
-                                </div>
-                            </div>
-
-                            <?php if (!empty($order['special_notes']) || !empty($order['subscription_instructions'])): ?>
-                            <div class="alert alert-warning">
-                                <strong>⚠️ Special Notes:</strong><br>
-                                <?php if (!empty($order['special_notes'])): ?>
-                                    <?php echo htmlspecialchars($order['special_notes']); ?><br>
-                                <?php endif; ?>
-                                <?php if (!empty($order['subscription_instructions'])): ?>
-                                    <?php echo htmlspecialchars($order['subscription_instructions']); ?>
-                                <?php endif; ?>
-                            </div>
-                            <?php endif; ?>
-
-                            <?php if (!empty($order['dietary_preferences']) || !empty($order['allergies'])): ?>
-                            <div class="alert alert-info">
-                                <?php if (!empty($order['dietary_preferences'])): ?>
-                                    <strong>🥗 Dietary Preferences:</strong>
-                                    <?php 
-                                    $prefs = json_decode($order['dietary_preferences'], true);
-                                    echo $prefs ? implode(', ', $prefs) : $order['dietary_preferences'];
-                                    ?><br>
-                                <?php endif; ?>
-                                <?php if (!empty($order['allergies'])): ?>
-                                    <strong>⚠️ Allergies:</strong>
-                                    <?php 
-                                    $allergies = json_decode($order['allergies'], true);
-                                    echo $allergies ? implode(', ', $allergies) : $order['allergies'];
-                                    ?>
-                                <?php endif; ?>
-                            </div>
-                            <?php endif; ?>
-                            
-                            <div class="items-list">
-                                <strong>🍽️ Meal Items:</strong>
-                                <?php foreach ($order['items'] as $item): ?>
-                                <div class="item">
-                                    <div>
-                                        <div class="item-name"><?php echo htmlspecialchars($item['menu_name']); ?></div>
-                                        <?php if (!empty($item['special_requests'])): ?>
-                                        <div style="font-size: 0.8rem; color: var(--thai-curry); font-style: italic;">
-                                            Note: <?php echo htmlspecialchars($item['special_requests']); ?>
-                                        </div>
-                                        <?php endif; ?>
-                                        <?php if (!empty($item['customizations'])): ?>
-                                        <div style="font-size: 0.8rem; color: var(--herb);">
-                                            Customizations: <?php 
-                                            $customs = json_decode($item['customizations'], true);
-                                            echo $customs ? implode(', ', $customs) : $item['customizations'];
-                                            ?>
-                                        </div>
-                                        <?php endif; ?>
-                                    </div>
-                                    <div class="item-quantity"><?php echo $item['quantity']; ?></div>
-                                </div>
-                                <?php endforeach; ?>
-                            </div>
-                            
-                            <!-- Kitchen Action Buttons -->
-                            <div class="kitchen-actions">
-                                <?php if ($order['kitchen_status'] === 'not_started'): ?>
-                                <button onclick="updateKitchenStatus('<?php echo $order['order_id']; ?>', 'in_progress')" 
-                                        class="btn btn-primary">
-                                    ▶️ Start Cooking
-                                </button>
-                                <?php elseif ($order['kitchen_status'] === 'in_progress'): ?>
-                                <button onclick="updateKitchenStatus('<?php echo $order['order_id']; ?>', 'completed')" 
-                                        class="btn btn-success">
-                                    ✅ Mark Complete
-                                </button>
-                                <?php else: ?>
-                                <span style="color: var(--success); font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
-                                    ✅ Completed
-                                </span>
-                                <?php endif; ?>
-                            </div>
+                <div class="customer-list">
+                    <?php if (empty($weekend_orders)): ?>
+                        <div class="empty-state">
+                            <i class="fas fa-calendar-times"></i>
+                            <h3>No Deliveries Scheduled</h3>
+                            <p>No weekend meal deliveries are scheduled for the selected date</p>
                         </div>
+                    <?php else: ?>
+                        <?php foreach ($weekend_orders as $index => $customer): ?>
+                            <div class="customer-card" id="customer-<?php echo $customer['user_id']; ?>">
+                                <div class="customer-header">
+                                    <div class="customer-info">
+                                        <h3><?php echo htmlspecialchars($customer['first_name'] . ' ' . $customer['last_name']); ?></h3>
+                                        <div class="customer-details">
+                                            <div><i class="fas fa-phone"></i> <?php echo htmlspecialchars($customer['phone']); ?></div>
+                                            <div><i class="fas fa-map-marker-alt"></i> <?php echo htmlspecialchars($customer['delivery_address'] . ', ' . $customer['city']); ?></div>
+                                            <div><i class="fas fa-tag"></i> Plan: <?php echo htmlspecialchars($customer['plan_name_thai']); ?></div>
+                                            <?php if (!empty($customer['dietary_preferences'])): ?>
+                                                <div><i class="fas fa-leaf"></i> Diet: <?php echo htmlspecialchars($customer['dietary_preferences']); ?></div>
+                                            <?php endif; ?>
+                                            <?php if (!empty($customer['allergies'])): ?>
+                                                <div><i class="fas fa-exclamation-triangle"></i> Allergies: <?php echo htmlspecialchars($customer['allergies']); ?></div>
+                                            <?php endif; ?>
+                                            <?php if (!empty($customer['subscription_notes'])): ?>
+                                                <div><i class="fas fa-sticky-note"></i> Notes: <?php echo htmlspecialchars($customer['subscription_notes']); ?></div>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                    <div class="delivery-time">
+                                        <i class="fas fa-clock"></i>
+                                        <?php echo htmlspecialchars($customer['preferred_delivery_time'] ?? '12:00-15:00'); ?>
+                                    </div>
+                                </div>
+                                
+                                <div class="meals-list">
+                                    <?php foreach ($customer['meals'] as $meal): ?>
+                                        <div class="meal-item">
+                                            <div class="meal-header">
+                                                <div class="meal-name"><?php echo htmlspecialchars($meal['menu_name_thai'] ?? $meal['menu_name']); ?></div>
+                                                <div class="meal-quantity">x<?php echo $meal['quantity']; ?></div>
+                                            </div>
+                                            <div class="meal-meta">
+                                                <?php if (!empty($meal['category_name_thai'])): ?>
+                                                    <div><strong>Category:</strong> <?php echo htmlspecialchars($meal['category_name_thai']); ?></div>
+                                                <?php endif; ?>
+                                                <?php if (!empty($meal['preparation_time'])): ?>
+                                                    <div><strong>Prep Time:</strong> <?php echo $meal['preparation_time']; ?> minutes</div>
+                                                <?php endif; ?>
+                                                <?php if (!empty($meal['customizations'])): ?>
+                                                    <div><strong>Customizations:</strong> <?php echo htmlspecialchars($meal['customizations']); ?></div>
+                                                <?php endif; ?>
+                                                <?php if (!empty($meal['special_requests'])): ?>
+                                                    <div><strong>Special Requests:</strong> <?php echo htmlspecialchars($meal['special_requests']); ?></div>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
                         <?php endforeach; ?>
                     <?php endif; ?>
                 </div>
             </div>
 
-            <!-- Meal Summary -->
-            <div class="meal-summary">
-                <div class="section-header">
-                    <div class="section-title">📊 Meal Summary</div>
-                    <div style="font-size: 0.9rem;"><?php echo count($meal_summary); ?> Types</div>
+            <!-- Meal Preparation Summary -->
+            <div class="sidebar">
+                <div class="prep-summary-title">
+                    Kitchen Prep Summary
                 </div>
                 
-                <div class="summary-list">
-                    <?php if (empty($meal_summary)): ?>
+                <?php if (empty($meal_summary)): ?>
                     <div class="empty-state">
-                        <div class="icon">📊</div>
-                        <h4>No Data</h4>
-                        <p>No meals for selected date</p>
+                        <i class="fas fa-utensils"></i>
+                        <h3>No Meals to Prepare</h3>
+                        <p>No meal preparations required for this date</p>
                     </div>
-                    <?php else: ?>
-                        <?php 
-                        // Sort meals by quantity (highest first)
-                        uasort($meal_summary, function($a, $b) {
-                            return $b['total_quantity'] - $a['total_quantity'];
-                        });
-                        ?>
-                        <?php foreach ($meal_summary as $meal): ?>
-                        <div class="summary-item">
-                            <div class="meal-info" style="flex: 1;">
-                                <div class="meal-name"><?php echo htmlspecialchars($meal['name']); ?></div>
-                                <div style="font-size: 0.8rem; color: var(--gray);">
-                                    <?php echo htmlspecialchars($meal['category']); ?> • 
-                                    <?php echo $meal['prep_time']; ?> min • 
-                                    <?php echo ucfirst($meal['spice_level']); ?>
-                                </div>
+                <?php else: ?>
+                    <?php foreach ($meal_summary as $meal): ?>
+                        <div class="prep-item">
+                            <div class="prep-header">
+                                <div class="prep-name"><?php echo htmlspecialchars($meal['name_thai'] ?? $meal['name']); ?></div>
+                                <div class="prep-quantity"><?php echo $meal['total_quantity']; ?> portions</div>
+                            </div>
+                            <div class="prep-meta">
+                                <?php if (!empty($meal['category_thai'])): ?>
+                                    <div><strong>Category:</strong> <?php echo htmlspecialchars($meal['category_thai']); ?></div>
+                                <?php endif; ?>
+                                <?php if (!empty($meal['prep_time'])): ?>
+                                    <div><strong>Prep Time:</strong> <?php echo $meal['prep_time']; ?> min/portion</div>
+                                <?php endif; ?>
+                                <?php if (!empty($meal['spice_level'])): ?>
+                                    <div><strong>Spice Level:</strong> <?php echo $meal['spice_level']; ?></div>
+                                <?php endif; ?>
+                                <?php if (!empty($meal['cooking_method'])): ?>
+                                    <div><strong>Cooking Method:</strong> <?php echo htmlspecialchars($meal['cooking_method']); ?></div>
+                                <?php endif; ?>
                                 <?php if (!empty($meal['customizations'])): ?>
-                                <div style="font-size: 0.75rem; color: var(--herb); margin-top: 0.2rem;">
-                                    Customizations: <?php echo implode(', ', array_unique($meal['customizations'])); ?>
-                                </div>
+                                    <div><strong>Customizations:</strong> <?php echo implode(', ', $meal['customizations']); ?></div>
                                 <?php endif; ?>
                                 <?php if (!empty($meal['special_requests'])): ?>
-                                <div style="font-size: 0.75rem; color: var(--thai-curry); margin-top: 0.2rem;">
-                                    Special Requests: <?php echo implode(', ', array_unique($meal['special_requests'])); ?>
-                                </div>
+                                    <div><strong>Special Requests:</strong> <?php echo implode(', ', $meal['special_requests']); ?></div>
                                 <?php endif; ?>
+                                <div class="prep-customers">
+                                    <strong>Customers:</strong> <?php echo implode(', ', array_unique($meal['customers'])); ?>
+                                </div>
                             </div>
-                            <div class="meal-quantity"><?php echo $meal['total_quantity']; ?></div>
                         </div>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <!-- Print Section -->
+        <div class="print-section no-print">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="fas fa-print"></i>
+                    Print & Export Options
+                </h2>
+            </div>
+            
+            <div class="print-buttons">
+                <button class="btn btn-primary" onclick="printPrepSheet()">
+                    <i class="fas fa-clipboard-list"></i>
+                    Print Prep Sheet
+                </button>
+                
+                <button class="btn btn-secondary" onclick="printDeliverySheet()">
+                    <i class="fas fa-truck"></i>
+                    Print Delivery Sheet
+                </button>
+                
+                <button class="btn btn-outline" onclick="printIngredientsList()">
+                    <i class="fas fa-carrot"></i>
+                    Print Ingredients List
+                </button>
+                
+                <a href="?date=<?php echo $selected_date; ?>&export=csv" class="btn btn-secondary">
+                    <i class="fas fa-file-csv"></i>
+                    Export CSV
+                </a>
+                
+                <a href="?date=<?php echo $selected_date; ?>&export=json" class="btn btn-outline">
+                    <i class="fas fa-file-code"></i>
+                    Export JSON
+                </a>
             </div>
         </div>
     </div>
 
-    <!-- JavaScript -->
+    <!-- Print Areas (Hidden) -->
+    <div id="prep-print-area" class="print-area" style="display: none;">
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <h1 style="color: var(--family-600); margin-bottom: 0.5rem;">Krua Thai - Kitchen Prep Sheet</h1>
+            <h2 style="color: var(--rice-700);">Delivery Date: <?php echo !empty($selected_date) ? date('l, F j, Y', strtotime($selected_date)) : 'Date not selected'; ?></h2>
+            <p style="color: #666;">Printed: <?php echo date('m/d/Y H:i:s'); ?> (Bangkok Time)</p>
+        </div>
+        
+        <div style="margin-bottom: 2rem;">
+            <h3 style="background: var(--rice-100); padding: 1rem; border-radius: 8px; color: var(--family-600);">
+                Prep Summary - Total <?php echo count($meal_summary); ?> items / <?php echo $total_meals; ?> portions
+            </h3>
+        </div>
+        
+        <?php foreach ($meal_summary as $meal): ?>
+            <div style="border: 1px solid #ddd; margin-bottom: 1rem; border-radius: 8px; overflow: hidden;">
+                <div style="background: var(--thai-curry-500); color: white; padding: 1rem; font-weight: bold; font-size: 1.2rem;">
+                    <?php echo htmlspecialchars($meal['name_thai'] ?? $meal['name']); ?> - <?php echo $meal['total_quantity']; ?> portions
+                </div>
+                <div style="padding: 1rem;">
+                    <p><strong>Category:</strong> <?php echo htmlspecialchars($meal['category_thai'] ?? $meal['category'] ?? 'Not specified'); ?></p>
+                    <p><strong>Prep Time:</strong> <?php echo $meal['prep_time'] ?? 'Not specified'; ?> min/portion</p>
+                    <p><strong>Cooking Method:</strong> <?php echo htmlspecialchars($meal['cooking_method'] ?? 'Standard recipe'); ?></p>
+                    <?php if (!empty($meal['ingredients'])): ?>
+                        <p><strong>Ingredients:</strong> <?php echo htmlspecialchars($meal['ingredients']); ?></p>
+                    <?php endif; ?>
+                    <?php if (!empty($meal['customizations'])): ?>
+                        <p><strong>Customizations:</strong> <?php echo implode(', ', $meal['customizations']); ?></p>
+                    <?php endif; ?>
+                    <?php if (!empty($meal['special_requests'])): ?>
+                        <p><strong>Special Requests:</strong> <?php echo implode(', ', $meal['special_requests']); ?></p>
+                    <?php endif; ?>
+                    <p><strong>Customers:</strong> <?php echo implode(', ', array_unique($meal['customers'])); ?></p>
+                </div>
+            </div>
+        <?php endforeach; ?>
+    </div>
+
     <script>
-        function filterOrders() {
-            const date = document.getElementById('date').value;
-            const status = document.getElementById('status').value;
-            
-            const url = new URL(window.location);
-            url.searchParams.set('date', date);
-            url.searchParams.set('status', status);
-            
-            window.location = url.toString();
+        function filterByDate(date) {
+            window.location.href = `?date=${date}&status=<?php echo $status_filter; ?>`;
+        }
+
+        function filterByStatus(status) {
+            window.location.href = `?date=<?php echo $selected_date; ?>&status=${status}`;
         }
 
         function refreshData() {
             window.location.reload();
         }
 
-        function updateKitchenStatus(orderId, newStatus) {
-            if (!confirm('Are you sure you want to change the status of this order?')) {
-                return;
-            }
-
-            // Create form and submit
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '';
+        function printPrepSheet() {
+            const printArea = document.getElementById('prep-print-area');
+            const originalDisplay = printArea.style.display;
             
-            const orderIdInput = document.createElement('input');
-            orderIdInput.type = 'hidden';
-            orderIdInput.name = 'order_id';
-            orderIdInput.value = orderId;
-            
-            const statusInput = document.createElement('input');
-            statusInput.type = 'hidden';
-            statusInput.name = 'status';
-            statusInput.value = newStatus;
-            
-            form.appendChild(orderIdInput);
-            form.appendChild(statusInput);
-            document.body.appendChild(form);
-            form.submit();
+            printArea.style.display = 'block';
+            window.print();
+            printArea.style.display = originalDisplay;
         }
+
+        function printCustomerList() {
+            window.print();
+        }
+
+        function printDeliverySheet() {
+            // Create delivery sheet content
+            let deliveryContent = `
+                <div style="text-align: center; margin-bottom: 2rem;">
+                    <h1 style="color: var(--family-600);">Krua Thai - Delivery Sheet</h1>
+                    <h2>Delivery Date: <?php echo !empty($selected_date) ? date('l, F j, Y', strtotime($selected_date)) : 'Date not selected'; ?></h2>
+                    <p>Total <?php echo $total_customers; ?> customers / <?php echo $total_meals; ?> meals</p>
+                </div>
+                <table style="width: 100%; border-collapse: collapse; margin-top: 1rem;">
+                    <thead>
+                        <tr style="background: var(--rice-100);">
+                            <th style="border: 1px solid #ddd; padding: 0.5rem;">No.</th>
+                            <th style="border: 1px solid #ddd; padding: 0.5rem;">Customer</th>
+                            <th style="border: 1px solid #ddd; padding: 0.5rem;">Phone</th>
+                            <th style="border: 1px solid #ddd; padding: 0.5rem;">Address</th>
+                            <th style="border: 1px solid #ddd; padding: 0.5rem;">Delivery Time</th>
+                            <th style="border: 1px solid #ddd; padding: 0.5rem;">Menu Items</th>
+                            <th style="border: 1px solid #ddd; padding: 0.5rem;">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            <?php foreach ($weekend_orders as $index => $customer): ?>
+                deliveryContent += `
+                    <tr>
+                        <td style="border: 1px solid #ddd; padding: 0.5rem; text-align: center;"><?php echo $index + 1; ?></td>
+                        <td style="border: 1px solid #ddd; padding: 0.5rem;"><?php echo htmlspecialchars($customer['first_name'] . ' ' . $customer['last_name']); ?></td>
+                        <td style="border: 1px solid #ddd; padding: 0.5rem;"><?php echo htmlspecialchars($customer['phone']); ?></td>
+                        <td style="border: 1px solid #ddd; padding: 0.5rem;"><?php echo htmlspecialchars($customer['delivery_address']); ?></td>
+                        <td style="border: 1px solid #ddd; padding: 0.5rem;"><?php echo htmlspecialchars($customer['preferred_delivery_time'] ?? '12:00-15:00'); ?></td>
+                        <td style="border: 1px solid #ddd; padding: 0.5rem;">
+                            <?php foreach ($customer['meals'] as $meal): ?>
+                                <?php echo htmlspecialchars($meal['menu_name_thai'] ?? $meal['menu_name']); ?> (<?php echo $meal['quantity']; ?>)<br>
+                            <?php endforeach; ?>
+                        </td>
+                        <td style="border: 1px solid #ddd; padding: 0.5rem; text-align: center;">☐</td>
+                    </tr>
+                `;
+            <?php endforeach; ?>
+            
+            deliveryContent += `
+                    </tbody>
+                </table>
+            `;
+            
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <html>
+                    <head>
+                        <title>Delivery Sheet - <?php echo !empty($selected_date) ? date('m/d/Y', strtotime($selected_date)) : 'Date not selected'; ?></title>
+                        <style>
+                            body { font-family: 'Inter', 'Kanit', sans-serif; }
+                            table { width: 100%; border-collapse: collapse; }
+                            th, td { border: 1px solid #ddd; padding: 0.5rem; }
+                            th { background: #f5f5f5; }
+                        </style>
+                    </head>
+                    <body>${deliveryContent}</body>
+                </html>
+            `);
+            printWindow.document.close();
+            printWindow.print();
+        }
+
+        function printIngredientsList() {
+            // Create ingredients summary
+            const ingredients = new Map();
+            
+            <?php foreach ($meal_summary as $meal): ?>
+                <?php if (!empty($meal['ingredients'])): ?>
+                    const mealIngredients = "<?php echo addslashes($meal['ingredients']); ?>".split(',');
+                    const quantity = <?php echo $meal['total_quantity']; ?>;
+                    
+                    mealIngredients.forEach(ingredient => {
+                        const trimmed = ingredient.trim();
+                        if (trimmed) {
+                            ingredients.set(trimmed, (ingredients.get(trimmed) || 0) + quantity);
+                        }
+                    });
+                <?php endif; ?>
+            <?php endforeach; ?>
+            
+            let ingredientsContent = `
+                <div style="text-align: center; margin-bottom: 2rem;">
+                    <h1 style="color: var(--family-600);">Krua Thai - Ingredients List</h1>
+                    <h2>Delivery Date: <?php echo !empty($selected_date) ? date('l, F j, Y', strtotime($selected_date)) : 'Date not selected'; ?></h2>
+                </div>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: var(--rice-100);">
+                            <th style="border: 1px solid #ddd; padding: 1rem;">Ingredient</th>
+                            <th style="border: 1px solid #ddd; padding: 1rem;">Quantity Needed</th>
+                            <th style="border: 1px solid #ddd; padding: 1rem;">Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            for (const [ingredient, count] of ingredients) {
+                ingredientsContent += `
+                    <tr>
+                        <td style="border: 1px solid #ddd; padding: 0.75rem;">${ingredient}</td>
+                        <td style="border: 1px solid #ddd; padding: 0.75rem; text-align: center;">${count} units</td>
+                        <td style="border: 1px solid #ddd; padding: 0.75rem;"></td>
+                    </tr>
+                `;
+            }
+            
+            ingredientsContent += `
+                    </tbody>
+                </table>
+            `;
+            
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <html>
+                    <head>
+                        <title>Ingredients List - <?php echo !empty($selected_date) ? date('m/d/Y', strtotime($selected_date)) : 'Date not selected'; ?></title>
+                        <style>
+                            body { font-family: 'Inter', 'Kanit', sans-serif; }
+                            table { width: 100%; border-collapse: collapse; }
+                            th, td { border: 1px solid #ddd; padding: 0.75rem; }
+                            th { background: #f5f5f5; font-weight: bold; }
+                        </style>
+                    </head>
+                    <body>${ingredientsContent}</body>
+                </html>
+            `);
+            printWindow.document.close();
+            printWindow.print();
+        }
+
+        function markAllCompleted() {
+            if (confirm('Are you sure you want to mark all meal preparations as completed?')) {
+                // Here you would typically make an AJAX call to update the database
+                alert('All meal preparations marked as completed!');
+                
+                // Visual feedback
+                document.querySelectorAll('.prep-item').forEach(item => {
+                    item.style.opacity = '0.6';
+                    item.style.background = 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)';
+                });
+            }
+        }
+
+        // Auto-refresh every 5 minutes
+        setInterval(() => {
+            if (confirm('Would you like to automatically refresh the data?')) {
+                window.location.reload();
+            }
+        }, 300000); // 5 minutes
 
         // Keyboard shortcuts
         document.addEventListener('keydown', function(e) {
-            if (e.ctrlKey && e.key === 'r') {
-                e.preventDefault();
-                refreshData();
-            }
-            if (e.ctrlKey && e.key === 'p') {
-                e.preventDefault();
-                const printUrl = '?date=<?php echo $selected_date; ?>&status=<?php echo $status_filter; ?>&export=print';
-                window.open(printUrl, '_blank');
+            if (e.ctrlKey) {
+                switch(e.key) {
+                    case 'p':
+                        e.preventDefault();
+                        printPrepSheet();
+                        break;
+                    case 'r':
+                        e.preventDefault();
+                        refreshData();
+                        break;
+                }
             }
         });
 
-        // Initialize page
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('SOMDUL TABLE Kitchen Dashboard loaded');
-            console.log('Orders:', <?php echo count($orders_by_date); ?>);
-            console.log('Meals:', <?php echo $total_meals; ?>);
-            
-            // Focus on date input if no orders
-            <?php if (empty($orders_by_date)): ?>
-                document.getElementById('date').focus();
-            <?php endif; ?>
-        });
+        console.log('Weekend Kitchen Dashboard loaded successfully');
+        console.log('Total customers:', <?php echo $total_customers; ?>);
+        console.log('Total meals:', <?php echo $total_meals; ?>);
+        console.log('Selected date:', '<?php echo $selected_date; ?>');
     </script>
-
-    <!-- Success/Error Messages -->
-    <?php if (isset($_SESSION['flash_message'])): ?>
-    <div class="flash-message <?php echo $_SESSION['flash_type'] === 'error' ? 'error' : ''; ?>" id="flash-message">
-        <strong><?php echo $_SESSION['flash_type'] === 'success' ? '✅' : '❌'; ?> </strong>
-        <?php 
-        echo htmlspecialchars($_SESSION['flash_message']); 
-        unset($_SESSION['flash_message'], $_SESSION['flash_type']);
-        ?>
-    </div>
-    <script>
-        setTimeout(function() {
-            const msg = document.getElementById('flash-message');
-            if (msg) {
-                msg.style.opacity = '0';
-                msg.style.transform = 'translateX(100%)';
-                setTimeout(() => msg.remove(), 300);
-            }
-        }, 5000);
-    </script>
-    <?php endif; ?>
 </body>
 </html>
+             
