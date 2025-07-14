@@ -9,6 +9,85 @@
     <!-- BaticaSans Font Import -->
     <link rel="preconnect" href="https://ydpschool.com">
     <style>
+        .hiw-items {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .hiw-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: 2rem;
+            background: var(--white);
+            border-radius: 15px;
+            box-shadow: var(--shadow-soft);
+            transition: var(--transition);
+        }
+
+        .hiw-step--with-border {
+            border: 2px solid var(--cream);
+        }
+
+        .hiw-step:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .hiw-step-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin-bottom: 1.5rem;
+        }
+
+        .hiw-step-text {
+            text-align: center;
+        }
+
+        .hiw-step-text .font-bold {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 1rem;
+            font-family: 'BaticaSans', sans-serif;
+        }
+
+        .step-text {
+            color: var(--text-gray);
+            line-height: 1.6;
+            font-family: 'BaticaSans', sans-serif;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .hiw-items {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1.5rem;
+            }
+            
+            .hiw-step {
+                padding: 1.5rem;
+            }
+            
+            .hiw-step-image {
+                height: 150px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hiw-items {
+                grid-template-columns: 1fr;
+            }
+            
+            .hiw-step-image {
+                height: 180px;
+            }
+        }
         @font-face {
             font-family: 'BaticaSans';
             src: url('https://ydpschool.com/fonts/BaticaSans-Regular.woff2') format('woff2'),
@@ -377,90 +456,149 @@
             border-radius: 12px;
         }
 
-        /* Menu Section */
-        .menu-section {
-            background: var(--cream);
+        .meal-cards-container {
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 2rem;
+}
+
+    .meal-cards-track {
+        display: flex;
+        gap: 1.5rem;
+        transition: transform 0.3s ease;
+        padding: 0 2rem;
+    }
+
+    .meal-card {
+        flex: 0 0 320px;
+        height: 400px;
+        border-radius: 15px;
+        position: relative;
+        overflow: hidden;
+        cursor: pointer;
+        transition: transform 0.3s ease;
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+    }
+
+    .meal-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .meal-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(
+            180deg,
+            transparent 0%,
+            transparent 40%,
+            rgba(0, 0, 0, 0.3) 70%,
+            rgba(0, 0, 0, 0.8) 100%
+        );
+    }
+
+    .meal-card-content {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 1.5rem;
+        color: var(--white);
+        z-index: 2;
+    }
+
+    .meal-card-title {
+        font-size: 1.3rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        font-family: 'BaticaSans', sans-serif;
+    }
+
+    .meal-card-description {
+        font-size: 0.9rem;
+        opacity: 0.9;
+        margin-bottom: 1rem;
+        font-family: 'BaticaSans', sans-serif;
+    }
+
+    .meal-card-chef {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .chef-image {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+
+    .chef-info {
+        font-size: 0.8rem;
+        opacity: 0.8;
+    }
+
+    .chef-info span {
+        font-weight: 400;
+    }
+
+    /* Scroll Controls */
+    .scroll-controls {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+
+    .scroll-btn {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        border: 2px solid var(--curry);
+        background: var(--white);
+        color: var(--curry);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        transition: var(--transition);
+    }
+
+    .scroll-btn:hover {
+        background: var(--curry);
+        color: var(--white);
+    }
+
+    .scroll-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .meal-card {
+            flex: 0 0 280px;
+            height: 360px;
         }
 
-        .menu-container {
-            max-width: 1200px;
-            margin: 0 auto;
+        .meal-cards-track {
+            padding: 0 1rem;
         }
+    }
 
-        .menu-nav {
-            display: flex;
-            justify-content: center;
-            gap: 1rem;
-            margin-bottom: 3rem;
-            flex-wrap: wrap;
+    @media (max-width: 480px) {
+        .meal-card {
+            flex: 0 0 250px;
+            height: 320px;
         }
-
-        .menu-nav button {
-            padding: 0.8rem 1.5rem;
-            border: 2px solid var(--curry);
-            background: transparent;
-            color: var(--curry);
-            border-radius: 50px;
-            cursor: pointer;
-            font-family: 'BaticaSans', sans-serif;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-
-        .menu-nav button.active,
-        .menu-nav button:hover {
-            background: var(--curry);
-            color: var(--white);
-        }
-
-        .menu-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 2rem;
-        }
-
-        .menu-item {
-            background: var(--white);
-            border-radius: 15px;
-            overflow: hidden;
-            box-shadow: var(--shadow-soft);
-            transition: transform 0.3s;
-        }
-
-        .menu-item:hover {
-            transform: translateY(-5px);
-        }
-
-        .menu-item img {
-            width: 100%;
-            height: 250px;
-            object-fit: cover;
-        }
-
-        .menu-item-content {
-            padding: 1.5rem;
-        }
-
-        .menu-item h3 {
-            font-size: 1.3rem;
-            margin-bottom: 0.5rem;
-            color: var(--text-dark);
-            font-family: 'BaticaSans', sans-serif;
-            font-weight: 700;
-        }
-
-        .menu-item p {
-            color: var(--text-gray);
-            margin-bottom: 1rem;
-            font-family: 'BaticaSans', sans-serif;
-        }
-
-        .menu-price {
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: var(--curry);
-            font-family: 'BaticaSans', sans-serif;
-        }
+    }
 
         /* Steps Section */
         .steps-section {
@@ -589,10 +727,6 @@
 
             .nav-links {
                 display: none;
-            }
-
-            .menu-grid {
-                grid-template-columns: 1fr;
             }
 
             .steps-grid {
@@ -1015,88 +1149,127 @@
                 </div>
             </div>
 
-            <div class="menu-grid">
-                <div class="menu-item">
-                    <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 250'><rect fill='%23ff6b35' width='400' height='250'/><text x='200' y='130' text-anchor='middle' fill='white' font-size='18' font-family='BaticaSans, Arial'>Pad Thai</text></svg>" alt="Pad Thai">
-                    <div class="menu-item-content">
-                        <h3>Classic Pad Thai</h3>
-                        <p>Traditional stir-fried rice noodles with shrimp, tofu, bean sprouts, and our signature tamarind sauce</p>
-                        <div class="menu-price">$14.99</div>
+            <div class="meal-cards-container">
+                <div class="meal-cards-track" id="mealCardsTrack">
+                    <div class="meal-card" style="background-image: url('https://images.unsplash.com/photo-1559847844-d678f3c83db2?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80');">
+                        <div class="meal-card-content">
+                            <h3 class="meal-card-title">Thai Green Curry</h3>
+                            <p class="meal-card-description">Aromatic green curry with Thai basil and coconut milk</p>
+                            <div class="meal-card-chef">
+                                <img src="https://images.unsplash.com/photo-1607631568010-a87245c0daf8?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=100&q=80" alt="Chef" class="chef-image">
+                                <div class="chef-info">
+                                    <span>by</span> Chef Siriporn
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </div>
 
-                <div class="menu-item">
-                    <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 250'><rect fill='%23e74c3c' width='400' height='250'/><text x='200' y='130' text-anchor='middle' fill='white' font-size='18' font-family='BaticaSans, Arial'>Green Curry</text></svg>" alt="Green Curry">
-                    <div class="menu-item-content">
-                        <h3>Thai Green Curry</h3>
-                        <p>Aromatic green curry with chicken, Thai eggplant, bamboo shoots, and fresh basil leaves</p>
-                        <div class="menu-price">$16.99</div>
+                    <div class="meal-card" style="background-image: url('https://images.unsplash.com/photo-1576352187195-4849a0d02d18?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80');">
+                        <div class="meal-card-content">
+                            <h3 class="meal-card-title">Pad Thai Classic</h3>
+                            <p class="meal-card-description">Traditional stir-fried rice noodles with tamarind sauce</p>
+                            <div class="meal-card-chef">
+                                <img src="https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=100&q=80" alt="Chef" class="chef-image">
+                                <div class="chef-info">
+                                    <span>by</span> Chef Narong
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </div>
 
-                <div class="menu-item">
-                    <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 250'><rect fill='%23f39c12' width='400' height='250'/><text x='200' y='130' text-anchor='middle' fill='white' font-size='18' font-family='BaticaSans, Arial'>Massaman Curry</text></svg>" alt="Massaman Curry">
-                    <div class="menu-item-content">
-                        <h3>Massaman Beef Curry</h3>
-                        <p>Rich and mild curry with tender beef, potatoes, and roasted peanuts in coconut milk</p>
-                        <div class="menu-price">$18.99</div>
+                    <div class="meal-card" style="background-image: url('https://images.unsplash.com/photo-1594843318816-eca2593ecf74?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80');">
+                        <div class="meal-card-content">
+                            <h3 class="meal-card-title">Tom Yum Goong</h3>
+                            <p class="meal-card-description">Spicy and sour soup with fresh shrimp</p>
+                            <div class="meal-card-chef">
+                                <img src="https://images.unsplash.com/photo-1559847844-d678f3c83db2?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=100&q=80" alt="Chef" class="chef-image">
+                                <div class="chef-info">
+                                    <span>by</span> Chef Malee
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </div>
 
-                <div class="menu-item">
-                    <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 250'><rect fill='%2327ae60' width='400' height='250'/><text x='200' y='130' text-anchor='middle' fill='white' font-size='18' font-family='BaticaSans, Arial'>Som Tam</text></svg>" alt="Som Tam">
-                    <div class="menu-item-content">
-                        <h3>Papaya Salad (Som Tam)</h3>
-                        <p>Fresh green papaya salad with tomatoes, green beans, and lime dressing</p>
-                        <div class="menu-price">$12.99</div>
+                    <div class="meal-card" style="background-image: url('https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80');">
+                        <div class="meal-card-content">
+                            <h3 class="meal-card-title">Massaman Beef</h3>
+                            <p class="meal-card-description">Rich and mild curry with tender beef and potatoes</p>
+                            <div class="meal-card-chef">
+                                <img src="https://images.unsplash.com/photo-1607631568010-a87245c0daf8?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=100&q=80" alt="Chef" class="chef-image">
+                                <div class="chef-info">
+                                    <span>by</span> Chef Somchai
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </div>
 
-                <div class="menu-item">
-                    <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 250'><rect fill='%239b59b6' width='400' height='250'/><text x='200' y='130' text-anchor='middle' fill='white' font-size='18' font-family='BaticaSans, Arial'>Tom Yum</text></svg>" alt="Tom Yum">
-                    <div class="menu-item-content">
-                        <h3>Tom Yum Goong</h3>
-                        <p>Spicy and sour soup with shrimp, mushrooms, lemongrass, and lime leaves</p>
-                        <div class="menu-price">$15.99</div>
+                    <div class="meal-card" style="background-image: url('https://images.unsplash.com/photo-1559847844-d678f3c83db2?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80');">
+                        <div class="meal-card-content">
+                            <h3 class="meal-card-title">Papaya Salad</h3>
+                            <p class="meal-card-description">Fresh green papaya salad with lime dressing</p>
+                            <div class="meal-card-chef">
+                                <img src="https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=100&q=80" alt="Chef" class="chef-image">
+                                <div class="chef-info">
+                                    <span>by</span> Chef Wipada
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </div>
 
-                <div class="menu-item">
-                    <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 250'><rect fill='%2334495e' width='400' height='250'/><text x='200' y='130' text-anchor='middle' fill='white' font-size='18' font-family='BaticaSans, Arial'>Mango Sticky Rice</text></svg>" alt="Mango Sticky Rice">
-                    <div class="menu-item-content">
-                        <h3>Mango Sticky Rice</h3>
-                        <p>Sweet sticky rice topped with fresh mango slices and coconut cream</p>
-                        <div class="menu-price">$8.99</div>
+                    <div class="meal-card" style="background-image: url('https://images.unsplash.com/photo-1574653525595-5c8c7df3e6c9?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80');">
+                        <div class="meal-card-content">
+                            <h3 class="meal-card-title">Mango Sticky Rice</h3>
+                            <p class="meal-card-description">Sweet coconut sticky rice with fresh mango</p>
+                            <div class="meal-card-chef">
+                                <img src="https://images.unsplash.com/photo-1559847844-d678f3c83db2?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=100&q=80" alt="Chef" class="chef-image">
+                                <div class="chef-info">
+                                    <span>by</span> Chef Panida
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
+            </div>
+
+            <!-- Scroll Controls -->
+            <div class="scroll-controls">
+                <button class="scroll-btn" id="scrollLeft">←</button>
+                <button class="scroll-btn" id="scrollRight">→</button>
             </div>
         </div>
     </section>
 
-    <!-- Steps Section -->
-    <section class="steps-section" id="how-it-works">
+       <section class="steps-section" id="how-it-works">
         <div class="steps-container">
             <h2 class="steps-title">How It Works</h2>
-            <div class="steps-grid">
-                <div class="step">
-                    <div class="step-number">1</div>
-                    <h3>Register</h3>
-                    <p>Create your account and tell us about your dietary preferences and spice level tolerance</p>
+            <div data-testid="hiw-items" class="hiw-items">
+                <div data-testid="hiw-step" class="hiw-step hiw-step--with-border">
+                    <img src="assets/images/how-it-works/HIW_1.jpg" alt="Pick your weekly plan" class="hiw-step-image">
+                    <div data-testid="hiw-step-text" class="hiw-step-text">
+                        <p class="font-bold">Pick your weekly plan</p>
+                        <p data-testid="step-text" class="step-text">Choose from 4 to 16 meals per week – you can pause, skip, or cancel deliveries at any time.</p>
+                    </div>
                 </div>
-                <div class="step">
-                    <div class="step-number">2</div>
-                    <h3>Choose Plan</h3>
-                    <p>Select from our flexible meal plans - 4, 8, 12, or 16 meals per week to fit your lifestyle</p>
+                <div data-testid="hiw-step" class="hiw-step hiw-step--with-border">
+                    <img src="assets/images/how-it-works/HIW_2.jpg" alt="Select your meals" class="hiw-step-image">
+                    <div data-testid="hiw-step-text" class="hiw-step-text">
+                        <p class="font-bold">Select your meals</p>
+                        <p data-testid="step-text" class="step-text">Browse our menu and select your meals – new menus drop every week with exciting new offerings added all the time.</p>
+                    </div>
                 </div>
-                <div class="step">
-                    <div class="step-number">3</div>
-                    <h3>Choose Meals</h3>
-                    <p>Browse our weekly menu and pick your favorite Thai dishes from our chef-crafted selection</p>
+                <div data-testid="hiw-step" class="hiw-step hiw-step--with-border">
+                    <img src="assets/images/how-it-works/HIW_3.jpg" alt="Let chefs work their magic" class="hiw-step-image">
+                    <div data-testid="hiw-step-text" class="hiw-step-text">
+                        <p class="font-bold">Let chefs work their magic</p>
+                        <p data-testid="step-text" class="step-text">Every meal is made to order in small batches with the craft and artistry offered only by top-tier chefs.</p>
+                    </div>
                 </div>
-                <div class="step">
-                    <div class="step-number">4</div>
-                    <h3>Delivery & Enjoy</h3>
-                    <p>Choose your delivery date and pay securely. Fresh meals delivered right to your door!</p>
+                <div data-testid="hiw-step" class="hiw-step hiw-step--with-border">
+                    <img src="assets/images/how-it-works/HIW_4.jpg" alt="Sit back and enjoy" class="hiw-step-image">
+                    <div data-testid="hiw-step-text" class="hiw-step-text">
+                        <p class="font-bold">Sit back and enjoy</p>
+                        <p data-testid="step-text" class="step-text">Delivered fresh every week, enjoy chef-crafted meals in minutes with no prep or cleanup.</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1182,6 +1355,84 @@
                 navbar.style.background = 'rgba(255, 255, 255, 0.95)';
             }
         });
+// Meal cards scrolling functionality
+const track = document.getElementById('mealCardsTrack');
+const scrollLeftBtn = document.getElementById('scrollLeft');
+const scrollRightBtn = document.getElementById('scrollRight');
+let currentScroll = 0;
+const cardWidth = 320 + 24; // card width + gap
+const visibleCards = Math.floor(window.innerWidth / cardWidth);
+const maxScroll = -(track.children.length - visibleCards) * cardWidth;
+
+function updateScrollButtons() {
+    scrollLeftBtn.disabled = currentScroll >= 0;
+    scrollRightBtn.disabled = currentScroll <= maxScroll;
+}
+
+scrollLeftBtn.addEventListener('click', () => {
+    currentScroll = Math.min(currentScroll + cardWidth * 2, 0);
+    track.style.transform = `translateX(${currentScroll}px)`;
+    updateScrollButtons();
+});
+
+scrollRightBtn.addEventListener('click', () => {
+    currentScroll = Math.max(currentScroll - cardWidth * 2, maxScroll);
+    track.style.transform = `translateX(${currentScroll}px)`;
+    updateScrollButtons();
+});
+
+// Initialize buttons
+updateScrollButtons();
+
+// Update on window resize
+window.addEventListener('resize', () => {
+    const newVisibleCards = Math.floor(window.innerWidth / cardWidth);
+    const newMaxScroll = -(track.children.length - newVisibleCards) * cardWidth;
+    if (currentScroll < newMaxScroll) {
+        currentScroll = newMaxScroll;
+        track.style.transform = `translateX(${currentScroll}px)`;
+    }
+    updateScrollButtons();
+});
+
+// Touch/swipe support for mobile
+let startX;
+let currentX;
+let isDragging = false;
+
+track.addEventListener('touchstart', (e) => {
+    startX = e.touches[0].clientX;
+    isDragging = true;
+});
+
+track.addEventListener('touchmove', (e) => {
+    if (!isDragging) return;
+    currentX = e.touches[0].clientX;
+    const diffX = currentX - startX;
+    const newScroll = currentScroll + diffX;
+    
+    if (newScroll <= 0 && newScroll >= maxScroll) {
+        track.style.transform = `translateX(${newScroll}px)`;
+    }
+});
+
+track.addEventListener('touchend', (e) => {
+    if (!isDragging) return;
+    isDragging = false;
+    
+    const diffX = currentX - startX;
+    if (Math.abs(diffX) > 50) {
+        if (diffX > 0) {
+            // Swipe right (scroll left)
+            currentScroll = Math.min(currentScroll + cardWidth, 0);
+        } else {
+            // Swipe left (scroll right)
+            currentScroll = Math.max(currentScroll - cardWidth, maxScroll);
+        }
+        track.style.transform = `translateX(${currentScroll}px)`;
+        updateScrollButtons();
+    }
+});
     </script>
 </body>
 </html>
