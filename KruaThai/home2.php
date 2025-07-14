@@ -199,7 +199,7 @@
             display: flex;
             align-items: center;
             padding: 80px 2rem 2rem;
-            background: linear-gradient(135deg, var(--cream) 0%, #f8f9fa 100%);
+            background: url('./assets/image/padthai2.png') center/cover no-repeat, linear-gradient(135deg, var(--cream) 0%, #f8f9fa 100%);
             position: relative;
             overflow: hidden;
             margin-top: 0;
@@ -379,7 +379,6 @@
 
         /* Menu Section */
         .menu-section {
-            padding: 5rem 2rem;
             background: var(--cream);
         }
 
@@ -928,9 +927,7 @@
 
     <!-- Menu Section -->
     <section class="menu-section" id="menu">
-        <div class="menu-container">
-            <h2 style="text-align: center; font-size: 2.5rem; margin-bottom: 3rem; color: var(--text-dark); font-family: 'BaticaSans', sans-serif; font-weight: 700;">Our Thai Menu</h2>
-            
+        <div class="menu-container">            
             <div class="menu-nav-container">
                 <div class="menu-nav-wrapper">
                     <div class="menu-nav-list">
