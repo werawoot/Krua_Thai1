@@ -330,7 +330,7 @@
             display: flex;
             flex-direction: column;
             gap: 1.5rem;
-            animation-duration: 20s;
+            animation-duration: 40s;
             animation-timing-function: linear;
             animation-iteration-count: infinite;
         }
@@ -605,9 +605,12 @@
     <nav class="navbar">
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem; max-width: 1200px; margin: 0 auto; width: 100%;">
             <a href="#" class="logo">
-                <div class="logo-icon">ST</div>
+                <img src="./assets/image/LOGO_BG.png" alt="Somdul Table" style="height: 50px; width: auto;">
+            </a>
+            <a href="#" class="logo">
                 <span class="logo-text">Somdul Table</span>
             </a>
+
             
             <ul class="nav-links">
                 <li><a href="#menu">Menu</a></li>
