@@ -83,7 +83,7 @@
 
         .navbar {
             position: fixed;
-            top: 0;
+            top: 38px;
             left: 0;
             right: 0;
             background: rgba(255, 255, 255, 0.95);
@@ -194,6 +194,7 @@
 
         /* Hero Section */
         .hero-section {
+            padding-top: 120px;
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -523,6 +524,27 @@
 
         /* Responsive Design */
         @media (max-width: 768px) {
+        .promo-banner {
+            font-size: 12px;
+            padding: 6px 15px;
+        }
+        
+        .navbar {
+            top: 32px; /* UPDATE THIS */
+        }
+        
+        .hero-section {
+            padding-top: 100px; /* UPDATE THIS */
+        }
+        
+        .promo-banner-content {
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .promo-close {
+            right: 10px;
+        }
             .hero-container {
                 flex-direction: column;
                 text-align: center;
@@ -597,10 +619,195 @@
                 font-size: 0.8rem;
             }
         }
+.menu-nav-container {
+    margin-bottom: 32px;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px 0;
+}
+
+.menu-nav-wrapper {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.menu-nav-wrapper::-webkit-scrollbar {
+    display: none;
+}
+
+.menu-nav-list {
+    display: flex;
+    gap: 0;
+    min-width: max-content;
+    align-items: center;
+}
+
+.menu-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 54px;
+    padding: 0 16px;
+    border: none;
+    border-bottom: 2px solid #ece8e1;
+    background: transparent;
+    cursor: pointer;
+    font-family: 'BaticaSans', Arial, sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: #707070;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    text-decoration: none;
+}
+
+.menu-nav-item:hover {
+    color: #bd9379;
+    border-bottom-color: #bd9379;
+}
+
+.menu-nav-item.active {
+    color: #cf723a;
+    border-bottom-color: #cf723a;
+}
+
+.menu-nav-icon {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.menu-nav-icon svg {
+    width: 100%;
+    height: 100%;
+    fill: #707070;
+    transition: fill 0.3s ease;
+}
+
+.menu-nav-item:hover .menu-nav-icon svg {
+    fill: #bd9379;
+}
+
+.menu-nav-item.active .menu-nav-icon svg {
+    fill: #cf723a;
+}
+
+.menu-nav-text {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .menu-nav-container {
+        margin-bottom: 24px;
+    }
+    
+    .menu-nav-item {
+        padding: 0 12px;
+        font-size: 13px;
+    }
+    
+    .menu-nav-icon {
+        width: 20px;
+        height: 20px;
+    }
+}
+/* Promotional Banner Styles - ADD THIS */
+.promo-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(135deg, var(--curry) 0%, #e67e22 100%);
+    color: var(--white);
+    text-align: center;
+    padding: 8px 20px;
+    font-family: 'BaticaSans', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    z-index: 1001;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    animation: glow 2s ease-in-out infinite alternate;
+}
+
+.promo-banner-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.promo-icon {
+    font-size: 16px;
+    animation: bounce 1.5s ease-in-out infinite;
+}
+
+.promo-text {
+    letter-spacing: 0.5px;
+}
+
+.promo-close {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--white);
+    font-size: 18px;
+    cursor: pointer;
+    opacity: 0.8;
+    transition: opacity 0.3s ease;
+}
+
+.promo-close:hover {
+    opacity: 1;
+}
+
+@keyframes glow {
+    from {
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    to {
+        box-shadow: 0 2px 20px rgba(207, 114, 58, 0.3);
+    }
+}
+
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {
+        transform: translateY(0);
+    }
+    40% {
+        transform: translateY(-3px);
+    }
+    60% {
+        transform: translateY(-2px);
+    }
+}
     </style>
 </head>
 
 <body>
+    <div class="promo-banner" id="promoBanner">
+        <div class="promo-banner-content">
+            <span class="promo-icon">🍪</span>
+            <span class="promo-text">50% OFF First Week + Free Cookies for Life</span>
+            <span class="promo-icon">🎉</span>
+        </div>
+        <button class="promo-close" onclick="closePromoBanner()" title="Close">×</button>
+    </div>
+
+    <!-- Your existing navigation code starts here -->
+    <nav class="navbar">
+        <!-- existing nav content -->
+    </nav>
     <!-- Navigation -->
     <nav class="navbar">
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem; max-width: 1200px; margin: 0 auto; width: 100%;">
@@ -724,11 +931,91 @@
         <div class="menu-container">
             <h2 style="text-align: center; font-size: 2.5rem; margin-bottom: 3rem; color: var(--text-dark); font-family: 'BaticaSans', sans-serif; font-weight: 700;">Our Thai Menu</h2>
             
-            <div class="menu-nav">
-                <button class="active">Main Dishes</button>
-                <button>Soups</button>
-                <button>Appetizers</button>
-                <button>Desserts</button>
+            <div class="menu-nav-container">
+                <div class="menu-nav-wrapper">
+                    <div class="menu-nav-list">
+                        <button class="menu-nav-item active" data-category="appetizers">
+                            <span class="menu-nav-icon">
+                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-2V4c0-1.1-.9-2-2-2zm0 2v2h-2V4h2zm-4 4h8v2h-8V8zm0 4h8v6H8v-6z"/>
+                                </svg>
+                            </span>
+                            <span class="menu-nav-text">Appetizers</span>
+                        </button>
+                        
+                        <button class="menu-nav-item" data-category="curries">
+                            <span class="menu-nav-icon">
+                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
+                                </svg>
+                            </span>
+                            <span class="menu-nav-text">Curries</span>
+                        </button>
+                        
+                        <button class="menu-nav-item" data-category="stir-fry">
+                            <span class="menu-nav-icon">
+                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M12.5 3.5c0 .83-.67 1.5-1.5 1.5s-1.5-.67-1.5-1.5S10.17 2 11 2s1.5.67 1.5 1.5zM20 8H4c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2v-8c0-1.1-.9-2-2-2zm0 10H4v-8h16v8zm-8-6c1.38 0 2.5 1.12 2.5 2.5S13.38 17 12 17s-2.5-1.12-2.5-2.5S10.62 12 12 12z"/>
+                                </svg>
+                            </span>
+                            <span class="menu-nav-text">Stir Fry</span>
+                        </button>
+                        
+                        <button class="menu-nav-item" data-category="noodles">
+                            <span class="menu-nav-icon">
+                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M22 2v20H2V2h20zm-2 2H4v16h16V4zM6 8h12v2H6V8zm0 4h12v2H6v-2zm0 4h8v2H6v-2z"/>
+                                </svg>
+                            </span>
+                            <span class="menu-nav-text">Noodles</span>
+                        </button>
+                        
+                        <button class="menu-nav-item" data-category="rice">
+                            <span class="menu-nav-icon">
+                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M18 3H6c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H6V5h12v14zM8 7h8v2H8V7zm0 4h8v2H8v-2zm0 4h6v2H8v-2z"/>
+                                </svg>
+                            </span>
+                            <span class="menu-nav-text">Rice Dishes</span>
+                        </button>
+                        
+                        <button class="menu-nav-item" data-category="soups">
+                            <span class="menu-nav-icon">
+                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M4 18h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2zm0-10h16v8H4V8zm8-4c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z"/>
+                                </svg>
+                            </span>
+                            <span class="menu-nav-text">Soups</span>
+                        </button>
+                        
+                        <button class="menu-nav-item" data-category="salads">
+                            <span class="menu-nav-icon">
+                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M7 10c0-1.1.9-2 2-2s2 .9 2 2-.9 2-2 2-2-.9-2-2zm8 0c0-1.1.9-2 2-2s2 .9 2 2-.9 2-2 2-2-.9-2-2zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8 0-1.12.23-2.18.65-3.15C6.53 8.51 8 8 9.64 8c.93 0 1.83.22 2.64.61.81-.39 1.71-.61 2.64-.61 1.64 0 3.11.51 4.35.85.42.97.65 2.03.65 3.15 0 4.41-3.59 8-8 8z"/>
+                                </svg>
+                            </span>
+                            <span class="menu-nav-text">Salads</span>
+                        </button>
+                        
+                        <button class="menu-nav-item" data-category="desserts">
+                            <span class="menu-nav-icon">
+                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M12 3L8 6.5h8L12 3zm0 18c4.97 0 9-4.03 9-9H3c0 4.97 4.03 9 9 9zm0-16L8.5 8h7L12 5z"/>
+                                </svg>
+                            </span>
+                            <span class="menu-nav-text">Desserts</span>
+                        </button>
+                        
+                        <button class="menu-nav-item" data-category="beverages">
+                            <span class="menu-nav-icon">
+                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M5 4v3h5.5v12h3V7H19V4H5z"/>
+                                </svg>
+                            </span>
+                            <span class="menu-nav-text">Beverages</span>
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <div class="menu-grid">
@@ -819,6 +1106,42 @@
     </section>
 
     <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const menuItems = document.querySelectorAll('.menu-nav-item');
+        
+        menuItems.forEach(item => {
+            item.addEventListener('click', function() {
+                // Remove active class from all items
+                menuItems.forEach(i => i.classList.remove('active'));
+                
+                // Add active class to clicked item
+                this.classList.add('active');
+                
+                // Get category for filtering
+                const category = this.getAttribute('data-category');
+                console.log('Selected category:', category);
+                
+                // Add your PHP/AJAX filtering logic here
+                // Example: filterMenuItems(category);
+            });
+        });
+    });
+    function closePromoBanner() {
+        const promoBanner = document.getElementById('promoBanner');
+        const navbar = document.querySelector('.navbar');
+        const heroSection = document.querySelector('.hero-section');
+        
+        promoBanner.style.transform = 'translateY(-100%)';
+        promoBanner.style.opacity = '0';
+        
+        setTimeout(() => {
+            promoBanner.style.display = 'none';
+            navbar.style.top = '0';
+            heroSection.style.paddingTop = '80px';
+        }, 300);
+    }
+
+// Your existing JavaScript continues here...
         // Menu navigation functionality
         document.addEventListener('DOMContentLoaded', function() {
             const menuButtons = document.querySelectorAll('.menu-nav button');
