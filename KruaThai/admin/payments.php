@@ -1,8 +1,8 @@
 <?php
 /**
- * Krua Thai - Payments Management
+ * Krua Thai - Payments Management (Enhanced with Status Update)
  * File: admin/payments.php
- * Description: Complete payments management system with transaction tracking and refunds
+ * Description: Complete payments management system with transaction tracking, refunds, and status updates
  */
 
 error_reporting(E_ALL);
@@ -25,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     try {
         switch ($_POST['action']) {
             case 'update_payment_status':
-                $result = updatePaymentStatus($pdo, $_POST['id'], $_POST['status']);
+                $result = updatePaymentStatus($pdo, $_POST['id'], $_POST['status'], $_POST['notes'] ?? '');
                 echo json_encode($result);
                 exit;
                 
@@ -42,6 +42,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             case 'export_payments':
                 exportPayments($pdo, $_POST);
                 exit;
+                
+            case 'bulk_update_status':
+                $result = bulkUpdatePaymentStatus($pdo, $_POST['payment_ids'], $_POST['status']);
+                echo json_encode($result);
+                exit;
         }
     } catch (Exception $e) {
         echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
@@ -49,13 +54,131 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 }
 
-// Database Functions
-function updatePaymentStatus($pdo, $paymentId, $status) {
+// Enhanced Database Functions
+function updatePaymentStatus($pdo, $paymentId, $status, $notes = '') {
     try {
-        $stmt = $pdo->prepare("UPDATE payments SET status = ?, updated_at = NOW() WHERE id = ?");
-        $stmt->execute([$status, $paymentId]);
+        $pdo->beginTransaction();
+        
+        // Validate status
+        $validStatuses = ['pending', 'completed', 'failed', 'refunded', 'partial_refund'];
+        if (!in_array($status, $validStatuses)) {
+            throw new Exception('Invalid payment status');
+        }
+        
+        // Get current payment info
+        $stmt = $pdo->prepare("SELECT * FROM payments WHERE id = ?");
+        $stmt->execute([$paymentId]);
+        $payment = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$payment) {
+            throw new Exception('Payment not found');
+        }
+        
+        // Update payment status
+        $updateFields = ['status = ?', 'updated_at = NOW()'];
+        $updateParams = [$status];
+        
+        // Add payment_date if changing to completed
+        if ($status === 'completed' && !$payment['payment_date']) {
+            $updateFields[] = 'payment_date = NOW()';
+        }
+        
+        // Add failure reason if changing to failed
+        if ($status === 'failed' && $notes) {
+            $updateFields[] = 'failure_reason = ?';
+            $updateParams[] = $notes;
+        }
+        
+        $updateParams[] = $paymentId;
+        
+        $sql = "UPDATE payments SET " . implode(', ', $updateFields) . " WHERE id = ?";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($updateParams);
+        
+        // Update related subscription status if payment is completed
+        if ($status === 'completed' && $payment['subscription_id']) {
+            // Get subscription details first
+            $subStmt = $pdo->prepare("SELECT billing_cycle FROM subscriptions WHERE id = ?");
+            $subStmt->execute([$payment['subscription_id']]);
+            $subscription = $subStmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($subscription) {
+                $baseDate = $payment['billing_period_start'] ?: date('Y-m-d');
+                $nextBillingDate = $baseDate;
+                
+                if ($subscription['billing_cycle'] === 'weekly') {
+                    $nextBillingDate = date('Y-m-d', strtotime($baseDate . ' +7 days'));
+                } elseif ($subscription['billing_cycle'] === 'monthly') {
+                    $nextBillingDate = date('Y-m-d', strtotime($baseDate . ' +1 month'));
+                }
+                
+                $stmt = $pdo->prepare("
+                    UPDATE subscriptions 
+                    SET status = 'active', next_billing_date = ?
+                    WHERE id = ?
+                ");
+                $stmt->execute([$nextBillingDate, $payment['subscription_id']]);
+            }
+        }
+        
+        // Try to log the status change (if table exists)
+        try {
+            $logId = bin2hex(random_bytes(16));
+            $stmt = $pdo->prepare("
+                INSERT INTO payment_status_log (id, payment_id, old_status, new_status, changed_by, notes, created_at) 
+                VALUES (?, ?, ?, ?, ?, ?, NOW())
+            ");
+            $stmt->execute([
+                $logId,
+                $paymentId, 
+                $payment['status'], 
+                $status, 
+                $_SESSION['user_id'], 
+                $notes
+            ]);
+        } catch (Exception $e) {
+            // Ignore if table doesn't exist
+        }
+        
+        $pdo->commit();
         return ['success' => true, 'message' => 'Payment status updated successfully'];
+        
     } catch (Exception $e) {
+        $pdo->rollBack();
+        return ['success' => false, 'message' => 'Error: ' . $e->getMessage()];
+    }
+}
+
+function bulkUpdatePaymentStatus($pdo, $paymentIds, $status) {
+    try {
+        $pdo->beginTransaction();
+        
+        $validStatuses = ['pending', 'completed', 'failed', 'refunded', 'partial_refund'];
+        if (!in_array($status, $validStatuses)) {
+            throw new Exception('Invalid payment status');
+        }
+        
+        $placeholders = str_repeat('?,', count($paymentIds) - 1) . '?';
+        $params = array_merge($paymentIds, [$status]);
+        
+        $stmt = $pdo->prepare("
+            UPDATE payments 
+            SET status = ?, updated_at = NOW() 
+            WHERE id IN ($placeholders)
+        ");
+        
+        // Reorder params: status first, then IDs
+        $params = [$status];
+        $params = array_merge($params, $paymentIds);
+        
+        $stmt->execute($params);
+        $affectedRows = $stmt->rowCount();
+        
+        $pdo->commit();
+        return ['success' => true, 'message' => "Updated $affectedRows payments successfully"];
+        
+    } catch (Exception $e) {
+        $pdo->rollBack();
         return ['success' => false, 'message' => 'Error: ' . $e->getMessage()];
     }
 }
@@ -64,21 +187,42 @@ function processRefund($pdo, $paymentId, $refundAmount, $refundReason) {
     try {
         $pdo->beginTransaction();
         
+        // Get payment details
+        $stmt = $pdo->prepare("SELECT * FROM payments WHERE id = ?");
+        $stmt->execute([$paymentId]);
+        $payment = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$payment) {
+            throw new Exception('Payment not found');
+        }
+        
+        if ($payment['status'] !== 'completed') {
+            throw new Exception('Can only refund completed payments');
+        }
+        
+        $maxRefund = $payment['amount'] - $payment['refund_amount'];
+        if ($refundAmount > $maxRefund) {
+            throw new Exception('Refund amount exceeds available amount');
+        }
+        
         // Update payment with refund information
+        $newRefundAmount = $payment['refund_amount'] + $refundAmount;
+        $newStatus = ($newRefundAmount >= $payment['amount']) ? 'refunded' : 'partial_refund';
+        
         $stmt = $pdo->prepare("
             UPDATE payments 
-            SET refund_amount = ?, refund_reason = ?, refunded_at = NOW(), 
-                status = CASE 
-                    WHEN ? >= amount THEN 'refunded' 
-                    ELSE 'partial_refund' 
-                END,
+            SET refund_amount = ?, 
+                refund_reason = CONCAT(COALESCE(refund_reason, ''), ?, '\n'), 
+                refunded_at = NOW(), 
+                status = ?,
                 updated_at = NOW() 
             WHERE id = ?
         ");
-        $stmt->execute([$refundAmount, $refundReason, $refundAmount, $paymentId]);
+        $stmt->execute([$newRefundAmount, $refundReason, $newStatus, $paymentId]);
         
         $pdo->commit();
         return ['success' => true, 'message' => 'Refund processed successfully'];
+        
     } catch (Exception $e) {
         $pdo->rollBack();
         return ['success' => false, 'message' => 'Error processing refund: ' . $e->getMessage()];
@@ -104,6 +248,24 @@ function getPaymentDetails($pdo, $paymentId) {
         $payment = $stmt->fetch(PDO::FETCH_ASSOC);
         
         if ($payment) {
+            // Get status history separately (if table exists)
+            try {
+                $historyStmt = $pdo->prepare("
+                    SELECT CONCAT(old_status, ' → ', new_status, ' (', 
+                                  DATE_FORMAT(created_at, '%d/%m/%Y %H:%i'), 
+                                  CASE WHEN notes != '' AND notes IS NOT NULL THEN CONCAT(': ', notes) ELSE '' END, ')') as history_line
+                    FROM payment_status_log 
+                    WHERE payment_id = ? 
+                    ORDER BY created_at DESC
+                ");
+                $historyStmt->execute([$paymentId]);
+                $history = $historyStmt->fetchAll(PDO::FETCH_COLUMN);
+                $payment['status_history'] = implode("\n", $history);
+            } catch (Exception $e) {
+                // Table doesn't exist yet, ignore
+                $payment['status_history'] = '';
+            }
+            
             return ['success' => true, 'data' => $payment];
         } else {
             return ['success' => false, 'message' => 'Payment not found'];
@@ -192,6 +354,26 @@ function exportPayments($pdo, $filters) {
     } catch (Exception $e) {
         echo json_encode(['success' => false, 'message' => 'Export error: ' . $e->getMessage()]);
     }
+}
+
+// Create payment_status_log table if it doesn't exist
+try {
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS payment_status_log (
+            id CHAR(36) PRIMARY KEY,
+            payment_id CHAR(36) NOT NULL,
+            old_status VARCHAR(50),
+            new_status VARCHAR(50),
+            changed_by CHAR(36),
+            notes TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_payment_id (payment_id),
+            INDEX idx_created_at (created_at)
+        )
+    ");
+} catch (Exception $e) {
+    // Table might already exist or other error, continue
+    error_log("Payment status log table creation: " . $e->getMessage());
 }
 
 // Fetch Data
@@ -686,6 +868,7 @@ try {
         .payment-actions {
             display: flex;
             gap: 0.5rem;
+            flex-wrap: wrap;
         }
 
         .payment-body {
@@ -762,60 +945,7 @@ try {
             font-weight: 500;
         }
 
-        /* Payment Methods Chart */
-        .methods-chart {
-            background: var(--white);
-            border-radius: var(--radius-md);
-            box-shadow: var(--shadow-soft);
-            border: 1px solid var(--border-light);
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .method-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1rem 0;
-            border-bottom: 1px solid var(--border-light);
-        }
-
-        .method-item:last-child {
-            border-bottom: none;
-        }
-
-        .method-info {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .method-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: var(--radius-sm);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2rem;
-            color: var(--white);
-        }
-
-        .method-stats {
-            text-align: right;
-        }
-
-        .method-amount {
-            font-weight: 600;
-            color: var(--text-dark);
-        }
-
-        .method-count {
-            font-size: 0.8rem;
-            color: var(--text-gray);
-        }
-
-        /* Modals */
+        /* Enhanced Modals */
         .modal {
             display: none;
             position: fixed;
@@ -825,6 +955,7 @@ try {
             height: 100%;
             background: rgba(0, 0, 0, 0.5);
             z-index: 2000;
+            backdrop-filter: blur(4px);
         }
 
         .modal.show {
@@ -835,12 +966,24 @@ try {
 
         .modal-content {
             background: var(--white);
-            border-radius: var(--radius-md);
+            border-radius: var(--radius-lg);
             box-shadow: var(--shadow-medium);
             max-width: 800px;
             width: 90%;
             max-height: 90vh;
             overflow-y: auto;
+            animation: modalSlideIn 0.3s ease-out;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .modal-header {
@@ -855,6 +998,9 @@ try {
             font-size: 1.25rem;
             font-weight: 600;
             color: var(--text-dark);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
         .modal-close {
@@ -882,6 +1028,108 @@ try {
             gap: 1rem;
         }
 
+        /* Status Update Form */
+        .status-update-form {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .status-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+        }
+
+        .status-option {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            border: 2px solid var(--border-light);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .status-option:hover:not([style*="cursor: not-allowed"]) {
+            border-color: var(--curry);
+            background: rgba(207, 114, 58, 0.05);
+        }
+
+        .status-option.selected {
+            border-color: var(--curry);
+            background: rgba(207, 114, 58, 0.1);
+        }
+
+        .status-option input[type="radio"] {
+            margin-right: 0.75rem;
+        }
+
+        .status-option input[type="radio"]:disabled {
+            opacity: 0.5;
+        }
+
+        .status-option-label {
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .notes-section {
+            margin-top: 1rem;
+        }
+
+        .notes-textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 0.75rem;
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-sm);
+            font-family: inherit;
+            resize: vertical;
+        }
+
+        /* Bulk Actions */
+        .bulk-actions {
+            background: var(--white);
+            padding: 1rem 1.5rem;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-soft);
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border-light);
+            display: none;
+        }
+
+        .bulk-actions.show {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .bulk-counter {
+            font-weight: 600;
+            color: var(--curry);
+        }
+
+        /* Checkbox styling */
+        .payment-checkbox {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .payment-card {
+            position: relative;
+        }
+
+        .payment-card.selected {
+            border-color: var(--curry);
+            box-shadow: 0 0 0 3px rgba(207, 114, 58, 0.1);
+        }
+
         /* Toast Notifications */
         .toast-container {
             position: fixed;
@@ -906,8 +1154,7 @@ try {
             transform: translateX(0);
         }
 
-       
-.toast.success {
+        .toast.success {
             border-left-color: #27ae60;
         }
 
@@ -1074,7 +1321,7 @@ try {
                 <div class="header-content">
                     <div>
                         <h1 class="page-title">Payments Management</h1>
-                        <p class="page-subtitle">Monitor transactions, process refunds, and track revenue</p>
+                        <p class="page-subtitle">Monitor transactions, process refunds, and update payment status</p>
                     </div>
                     <div class="header-actions">
                         <button type="button" class="btn btn-secondary" onclick="exportPayments()">
@@ -1087,6 +1334,27 @@ try {
                         </button>
                     </div>
                 </div>
+            </div>
+
+            <!-- Bulk Actions -->
+            <div class="bulk-actions" id="bulkActions">
+                <div class="bulk-counter">
+                    <span id="selectedCount">0</span> payments selected
+                </div>
+                <select id="bulkStatusSelect" class="form-control" style="width: auto;">
+                    <option value="">Select Status</option>
+                    <option value="pending">Pending</option>
+                    <option value="completed">Completed</option>
+                    <option value="failed">Failed</option>
+                </select>
+                <button type="button" class="btn btn-primary" onclick="bulkUpdateStatus()">
+                    <i class="fas fa-edit"></i>
+                    Update Status
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="clearSelection()">
+                    <i class="fas fa-times"></i>
+                    Clear
+                </button>
             </div>
 
             <!-- Statistics -->
@@ -1172,58 +1440,6 @@ try {
                 </div>
             </div>
 
-            <!-- Payment Methods Overview -->
-            <?php if (!empty($paymentMethods)): ?>
-            <div class="methods-chart">
-                <h3 style="margin-bottom: 1.5rem; color: var(--text-dark);">
-                    <i class="fas fa-chart-pie" style="color: var(--curry); margin-right: 0.5rem;"></i>
-                    Revenue by Payment Method
-                </h3>
-                <?php foreach ($paymentMethods as $method): ?>
-                <div class="method-item">
-                    <div class="method-info">
-                        <div class="method-icon" style="background: 
-                            <?php 
-                                switch($method['payment_method']) {
-                                    case 'apple_pay': echo 'linear-gradient(135deg, #000000, #333333)'; break;
-                                    case 'google_pay': echo 'linear-gradient(135deg, #4285f4, #34a853)'; break;
-                                    case 'paypal': echo 'linear-gradient(135deg, #003087, #009cde)'; break;
-                                    case 'credit_card': echo 'linear-gradient(135deg, #1e3a8a, #3b82f6)'; break;
-                                    case 'bank_transfer': echo 'linear-gradient(135deg, #059669, #10b981)'; break;
-                                    default: echo 'linear-gradient(135deg, var(--curry), var(--brown))';
-                                }
-                            ?>;">
-                            <i class="fas fa-<?php 
-                                switch($method['payment_method']) {
-                                    case 'apple_pay': echo 'apple'; break;
-                                    case 'google_pay': echo 'google'; break;
-                                    case 'paypal': echo 'paypal'; break;
-                                    case 'credit_card': echo 'credit-card'; break;
-                                    case 'bank_transfer': echo 'university'; break;
-                                    default: echo 'credit-card';
-                                }
-                            ?>"></i>
-                        </div>
-                        <div>
-                            <div style="font-weight: 600; color: var(--text-dark);">
-                                <?php echo ucfirst(str_replace('_', ' ', $method['payment_method'])); ?>
-                            </div>
-                            <div style="font-size: 0.8rem; color: var(--text-gray);">
-                                <?php echo $method['transaction_count']; ?> transactions
-                            </div>
-                        </div>
-                    </div>
-                    <div class="method-stats">
-                        <div class="method-amount">₿<?php echo number_format($method['total_amount'], 0); ?></div>
-                        <div class="method-count">
-                            <?php echo round(($method['total_amount'] / $stats['total_revenue']) * 100, 1); ?>%
-                        </div>
-                    </div>
-                </div>
-                <?php endforeach; ?>
-            </div>
-            <?php endif; ?>
-
             <!-- Filters -->
             <div class="filters-section">
                 <form method="GET" class="filters-form">
@@ -1307,7 +1523,8 @@ try {
                     </div>
                 <?php else: ?>
                     <?php foreach ($payments as $payment): ?>
-                        <div class="payment-card">
+                        <div class="payment-card" data-payment-id="<?php echo $payment['id']; ?>">
+                            <input type="checkbox" class="payment-checkbox" onchange="togglePaymentSelection(this)">
                             <div class="payment-header">
                                 <div class="payment-meta">
                                     <div class="payment-id">
@@ -1331,8 +1548,13 @@ try {
                                             title="View Details">
                                         <i class="fas fa-eye"></i>
                                     </button>
+                                    <button type="button" class="btn btn-sm btn-warning btn-icon" 
+                                            onclick="updateStatus('<?php echo $payment['id']; ?>')" 
+                                            title="Update Status">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
                                     <?php if ($payment['status'] === 'completed' && $payment['refund_amount'] == 0): ?>
-                                        <button type="button" class="btn btn-sm btn-warning btn-icon" 
+                                        <button type="button" class="btn btn-sm btn-danger btn-icon" 
                                                 onclick="processRefund('<?php echo $payment['id']; ?>')" 
                                                 title="Process Refund">
                                             <i class="fas fa-undo"></i>
@@ -1445,7 +1667,10 @@ try {
     <div id="viewModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 class="modal-title">Payment Details</h2>
+                <h2 class="modal-title">
+                    <i class="fas fa-credit-card"></i>
+                    Payment Details
+                </h2>
                 <button type="button" class="modal-close" onclick="closeModal('viewModal')">&times;</button>
             </div>
             <div class="modal-body" id="viewModalBody">
@@ -1457,11 +1682,79 @@ try {
         </div>
     </div>
 
+    <!-- Update Status Modal -->
+    <div id="statusModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">
+                    <i class="fas fa-edit"></i>
+                    Update Payment Status
+                </h2>
+                <button type="button" class="modal-close" onclick="closeModal('statusModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="statusForm" class="status-update-form">
+                    <input type="hidden" id="statusPaymentId" name="payment_id">
+                    
+                    <div class="form-group">
+                        <label class="form-label">Current Status</label>
+                        <div id="currentStatus" class="form-control" style="background: #f8f9fa; cursor: not-allowed;"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">New Status</label>
+                        <div class="status-options">
+                            <div class="status-option">
+                                <input type="radio" name="status" value="pending" id="status_pending">
+                                <label for="status_pending" class="status-option-label">
+                                    <i class="fas fa-clock" style="color: #f39c12;"></i>
+                                    Pending
+                                </label>
+                            </div>
+                            <div class="status-option">
+                                <input type="radio" name="status" value="completed" id="status_completed">
+                                <label for="status_completed" class="status-option-label">
+                                    <i class="fas fa-check-circle" style="color: #27ae60;"></i>
+                                    Completed
+                                </label>
+                            </div>
+                            <div class="status-option">
+                                <input type="radio" name="status" value="failed" id="status_failed">
+                                <label for="status_failed" class="status-option-label">
+                                    <i class="fas fa-times-circle" style="color: #e74c3c;"></i>
+                                    Failed
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="notes-section">
+                        <label class="form-label">Notes (Optional)</label>
+                        <textarea id="statusNotes" 
+                                  name="notes" 
+                                  class="notes-textarea" 
+                                  placeholder="Add notes about this status change..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('statusModal')">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitStatusUpdate()">
+                    <i class="fas fa-save"></i>
+                    Update Status
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Refund Modal -->
     <div id="refundModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 class="modal-title">Process Refund</h2>
+                <h2 class="modal-title">
+                    <i class="fas fa-undo"></i>
+                    Process Refund
+                </h2>
                 <button type="button" class="modal-close" onclick="closeModal('refundModal')">&times;</button>
             </div>
             <div class="modal-body">
@@ -1507,6 +1800,8 @@ try {
     <div class="toast-container" id="toastContainer"></div>
 
     <script>
+        let selectedPayments = new Set();
+
         // Auto-submit form when filters change
         document.addEventListener('DOMContentLoaded', function() {
             const form = document.querySelector('.filters-form');
@@ -1527,7 +1822,92 @@ try {
                     form.submit();
                 }
             });
+
+            // Setup status option selection
+            document.querySelectorAll('.status-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    const radio = this.querySelector('input[type="radio"]');
+                    if (radio) {
+                        radio.checked = true;
+                        updateStatusOptionSelection();
+                    }
+                });
+            });
         });
+
+        // Payment selection for bulk actions
+        function togglePaymentSelection(checkbox) {
+            const paymentId = checkbox.closest('.payment-card').dataset.paymentId;
+            const card = checkbox.closest('.payment-card');
+            
+            if (checkbox.checked) {
+                selectedPayments.add(paymentId);
+                card.classList.add('selected');
+            } else {
+                selectedPayments.delete(paymentId);
+                card.classList.remove('selected');
+            }
+            
+            updateBulkActions();
+        }
+
+        function updateBulkActions() {
+            const bulkActions = document.getElementById('bulkActions');
+            const selectedCount = document.getElementById('selectedCount');
+            
+            selectedCount.textContent = selectedPayments.size;
+            
+            if (selectedPayments.size > 0) {
+                bulkActions.classList.add('show');
+            } else {
+                bulkActions.classList.remove('show');
+            }
+        }
+
+        function clearSelection() {
+            selectedPayments.clear();
+            document.querySelectorAll('.payment-checkbox').forEach(cb => cb.checked = false);
+            document.querySelectorAll('.payment-card').forEach(card => card.classList.remove('selected'));
+            updateBulkActions();
+        }
+
+        function bulkUpdateStatus() {
+            const status = document.getElementById('bulkStatusSelect').value;
+            if (!status) {
+                showToast('Please select a status', 'error');
+                return;
+            }
+            
+            if (selectedPayments.size === 0) {
+                showToast('No payments selected', 'error');
+                return;
+            }
+            
+            if (!confirm(`Update ${selectedPayments.size} payments to ${status}?`)) {
+                return;
+            }
+            
+            fetch('payments.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `action=bulk_update_status&payment_ids=${Array.from(selectedPayments).join(',')}&status=${status}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(data.message, 'success');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showToast(data.message || 'Error updating payments', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Error updating payments', 'error');
+            });
+        }
 
         // View payment details
         function viewPayment(paymentId) {
@@ -1542,158 +1922,7 @@ try {
             .then(data => {
                 if (data.success) {
                     const payment = data.data;
-                    document.getElementById('viewModalBody').innerHTML = `
-                        <div style="display: grid; gap: 1.5rem;">
-                            <div>
-                                <h4>Payment Information</h4>
-                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
-                                    <div>
-                                        <strong>Transaction ID:</strong><br>
-                                        <code>${payment.transaction_id || 'N/A'}</code>
-                                    </div>
-                                    <div>
-                                        <strong>External Payment ID:</strong><br>
-                                        <code>${payment.external_payment_id || 'N/A'}</code>
-                                    </div>
-                                    <div>
-                                        <strong>Payment Provider:</strong><br>
-                                        ${payment.payment_provider || 'N/A'}
-                                    </div>
-                                    <div>
-                                        <strong>Payment Date:</strong><br>
-                                        ${payment.payment_date ? new Date(payment.payment_date).toLocaleString('th-TH') : 'Not processed'}
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div>
-                                <h4>Customer Information</h4>
-                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
-                                    <div>
-                                        <strong>Name:</strong><br>
-                                        ${payment.customer_name}
-                                    </div>
-                                    <div>
-                                        <strong>Email:</strong><br>
-                                        ${payment.customer_email}
-                                    </div>
-                                    <div>
-                                        <strong>Phone:</strong><br>
-                                        ${payment.customer_phone || 'N/A'}
-                                    </div>
-                                    <div>
-                                        <strong>Plan:</strong><br>
-                                        ${payment.plan_name || 'N/A'} (${payment.billing_cycle || 'N/A'})
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div>
-                                <h4>Financial Details</h4>
-                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-top: 1rem;">
-                                    <div>
-                                        <strong>Amount:</strong><br>
-                                        <span style="color: var(--curry); font-size: 1.2rem; font-weight: 600;">
-                                            ₿${parseFloat(payment.amount).toLocaleString('th-TH', {minimumFractionDigits: 2})}
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <strong>Fee:</strong><br>
-                                        ₿${parseFloat(payment.fee_amount).toLocaleString('th-TH', {minimumFractionDigits: 2})}
-                                    </div>
-                                    <div>
-                                        <strong>Net Amount:</strong><br>
-                                        <span style="color: var(--sage); font-weight: 600;">
-                                            ₿${parseFloat(payment.net_amount).toLocaleString('th-TH', {minimumFractionDigits: 2})}
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <strong>Currency:</strong><br>
-                                        ${payment.currency}
-                                    </div>
-                                    ${payment.refund_amount > 0 ? `
-                                        <div>
-                                            <strong>Refund Amount:</strong><br>
-                                            <span style="color: #e74c3c; font-weight: 600;">
-                                                ₿${parseFloat(payment.refund_amount).toLocaleString('th-TH', {minimumFractionDigits: 2})}
-                                            </span>
-                                        </div>
-                                    ` : ''}
-                                </div>
-                            </div>
-                            
-                            <div>
-                                <h4>Status & Method</h4>
-                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-top: 1rem;">
-                                    <div>
-                                        <strong>Status:</strong><br>
-                                        <span class="status-badge status-${payment.status}">
-                                            ${payment.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <strong>Payment Method:</strong><br>
-                                        <span class="method-badge">
-                                            ${payment.payment_method.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            ${payment.billing_period_start && payment.billing_period_end ? `
-                                <div>
-                                    <h4>Billing Period</h4>
-                                    <div style="margin-top: 1rem;">
-                                        <strong>Period:</strong> ${new Date(payment.billing_period_start).toLocaleDateString('th-TH')} - ${new Date(payment.billing_period_end).toLocaleDateString('th-TH')}
-                                    </div>
-                                </div>
-                            ` : ''}
-                            
-                            ${payment.description ? `
-                                <div>
-                                    <h4>Description</h4>
-                                    <div style="background: var(--cream); padding: 1rem; border-radius: var(--radius-sm); margin-top: 1rem;">
-                                        ${payment.description}
-                                    </div>
-                                </div>
-                            ` : ''}
-                            
-                            ${payment.failure_reason ? `
-                                <div>
-                                    <h4>Failure Information</h4>
-                                    <div style="background: rgba(231, 76, 60, 0.1); padding: 1rem; border-radius: var(--radius-sm); border-left: 3px solid #e74c3c; margin-top: 1rem;">
-                                        <strong>Reason:</strong> ${payment.failure_reason}
-                                    </div>
-                                </div>
-                            ` : ''}
-                            
-                            ${payment.refund_reason ? `
-                                <div>
-                                    <h4>Refund Information</h4>
-                                    <div style="background: rgba(230, 126, 34, 0.1); padding: 1rem; border-radius: var(--radius-sm); border-left: 3px solid #e67e22; margin-top: 1rem;">
-                                        <strong>Refund Date:</strong> ${new Date(payment.refunded_at).toLocaleString('th-TH')}<br>
-                                        <strong>Reason:</strong> ${payment.refund_reason}
-                                    </div>
-                                </div>
-                            ` : ''}
-                            
-                            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-                                ${payment.status === 'pending' ? `
-                                    <select onchange="updatePaymentStatus('${payment.id}', this.value)" class="form-control" style="width: auto;">
-                                        <option value="">Change Status</option>
-                                        <option value="completed">Mark Completed</option>
-                                        <option value="failed">Mark Failed</option>
-                                    </select>
-                                ` : ''}
-                                
-                                ${payment.status === 'completed' && payment.refund_amount == 0 ? `
-                                    <button class="btn btn-warning btn-sm" onclick="closeModal('viewModal'); processRefund('${payment.id}');">
-                                        <i class="fas fa-undo"></i> Process Refund
-                                    </button>
-                                ` : ''}
-                            </div>
-                        </div>
-                    `;
+                    document.getElementById('viewModalBody').innerHTML = generatePaymentDetailsHTML(payment);
                     openModal('viewModal');
                 } else {
                     showToast('Error loading payment details', 'error');
@@ -1702,6 +1931,287 @@ try {
             .catch(error => {
                 console.error('Error:', error);
                 showToast('Error loading payment details', 'error');
+            });
+        }
+
+        function generatePaymentDetailsHTML(payment) {
+            return `
+                <div style="display: grid; gap: 1.5rem;">
+                    <div>
+                        <h4>Payment Information</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                            <div>
+                                <strong>Transaction ID:</strong><br>
+                                <code>${payment.transaction_id || 'N/A'}</code>
+                            </div>
+                            <div>
+                                <strong>External Payment ID:</strong><br>
+                                <code>${payment.external_payment_id || 'N/A'}</code>
+                            </div>
+                            <div>
+                                <strong>Payment Provider:</strong><br>
+                                ${payment.payment_provider || 'N/A'}
+                            </div>
+                            <div>
+                                <strong>Payment Date:</strong><br>
+                                ${payment.payment_date ? new Date(payment.payment_date).toLocaleString('th-TH') : 'Not processed'}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h4>Customer Information</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                            <div>
+                                <strong>Name:</strong><br>
+                                ${payment.customer_name}
+                            </div>
+                            <div>
+                                <strong>Email:</strong><br>
+                                ${payment.customer_email}
+                            </div>
+                            <div>
+                                <strong>Phone:</strong><br>
+                                ${payment.customer_phone || 'N/A'}
+                            </div>
+                            <div>
+                                <strong>Plan:</strong><br>
+                                ${payment.plan_name || 'N/A'} (${payment.billing_cycle || 'N/A'})
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h4>Financial Details</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                            <div>
+                                <strong>Amount:</strong><br>
+                                <span style="color: var(--curry); font-size: 1.2rem; font-weight: 600;">
+                                    ₿${parseFloat(payment.amount).toLocaleString('th-TH', {minimumFractionDigits: 2})}
+                                </span>
+                            </div>
+                            <div>
+                                <strong>Fee:</strong><br>
+                                ₿${parseFloat(payment.fee_amount).toLocaleString('th-TH', {minimumFractionDigits: 2})}
+                            </div>
+                            <div>
+                                <strong>Net Amount:</strong><br>
+                                <span style="color: var(--sage); font-weight: 600;">
+                                    ₿${parseFloat(payment.net_amount).toLocaleString('th-TH', {minimumFractionDigits: 2})}
+                                </span>
+                            </div>
+                            <div>
+                                <strong>Currency:</strong><br>
+                                ${payment.currency}
+                            </div>
+                            ${payment.refund_amount > 0 ? `
+                                <div>
+                                    <strong>Refund Amount:</strong><br>
+                                    <span style="color: #e74c3c; font-weight: 600;">
+                                        ₿${parseFloat(payment.refund_amount).toLocaleString('th-TH', {minimumFractionDigits: 2})}
+                                    </span>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h4>Status & Method</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                            <div>
+                                <strong>Status:</strong><br>
+                                <span class="status-badge status-${payment.status}">
+                                    ${payment.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                </span>
+                            </div>
+                            <div>
+                                <strong>Payment Method:</strong><br>
+                                <span class="method-badge">
+                                    ${payment.payment_method.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    ${payment.status_history ? `
+                        <div>
+                            <h4>Status History</h4>
+                            <div style="background: #f8f9fa; padding: 1rem; border-radius: var(--radius-sm); margin-top: 1rem; white-space: pre-line;">
+                                ${payment.status_history}
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    ${payment.billing_period_start && payment.billing_period_end ? `
+                        <div>
+                            <h4>Billing Period</h4>
+                            <div style="margin-top: 1rem;">
+                                <strong>Period:</strong> ${new Date(payment.billing_period_start).toLocaleDateString('th-TH')} - ${new Date(payment.billing_period_end).toLocaleDateString('th-TH')}
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    ${payment.description ? `
+                        <div>
+                            <h4>Description</h4>
+                            <div style="background: var(--cream); padding: 1rem; border-radius: var(--radius-sm); margin-top: 1rem;">
+                                ${payment.description}
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    ${payment.failure_reason ? `
+                        <div>
+                            <h4>Failure Information</h4>
+                            <div style="background: rgba(231, 76, 60, 0.1); padding: 1rem; border-radius: var(--radius-sm); border-left: 3px solid #e74c3c; margin-top: 1rem;">
+                                <strong>Reason:</strong> ${payment.failure_reason}
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    ${payment.refund_reason ? `
+                        <div>
+                            <h4>Refund Information</h4>
+                            <div style="background: rgba(230, 126, 34, 0.1); padding: 1rem; border-radius: var(--radius-sm); border-left: 3px solid #e67e22; margin-top: 1rem;">
+                                <strong>Refund Date:</strong> ${new Date(payment.refunded_at).toLocaleString('th-TH')}<br>
+                                <strong>Reason:</strong> ${payment.refund_reason}
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                        <button class="btn btn-warning btn-sm" onclick="closeModal('viewModal'); updateStatus('${payment.id}');">
+                            <i class="fas fa-edit"></i> Update Status
+                        </button>
+                        
+                        ${payment.status === 'completed' && payment.refund_amount == 0 ? `
+                            <button class="btn btn-danger btn-sm" onclick="closeModal('viewModal'); processRefund('${payment.id}');">
+                                <i class="fas fa-undo"></i> Process Refund
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Update payment status
+        function updateStatus(paymentId) {
+            // Get current payment details first
+            fetch('payments.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `action=get_payment_details&id=${paymentId}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const payment = data.data;
+                    const currentStatus = payment.status;
+                    
+                    document.getElementById('statusPaymentId').value = paymentId;
+                    document.getElementById('currentStatus').textContent = currentStatus.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+                    document.getElementById('statusNotes').value = '';
+                    
+                    // Reset and setup radio selections
+                    document.querySelectorAll('input[name="status"]').forEach(radio => {
+                        const statusOption = radio.closest('.status-option');
+                        
+                        if (radio.value === currentStatus) {
+                            // Disable current status
+                            radio.disabled = true;
+                            statusOption.style.opacity = '0.5';
+                            statusOption.style.cursor = 'not-allowed';
+                            statusOption.style.background = '#f8f9fa';
+                            
+                            // Add disabled indicator
+                            let disabledLabel = statusOption.querySelector('.disabled-label');
+                            if (!disabledLabel) {
+                                disabledLabel = document.createElement('small');
+                                disabledLabel.className = 'disabled-label';
+                                disabledLabel.style.color = '#6c757d';
+                                disabledLabel.style.fontSize = '0.75rem';
+                                disabledLabel.style.fontStyle = 'italic';
+                                disabledLabel.textContent = ' (Current)';
+                                statusOption.querySelector('label').appendChild(disabledLabel);
+                            }
+                        } else {
+                            // Enable other statuses
+                            radio.disabled = false;
+                            radio.checked = false;
+                            statusOption.style.opacity = '1';
+                            statusOption.style.cursor = 'pointer';
+                            statusOption.style.background = '';
+                            
+                            // Remove disabled indicator if exists
+                            const disabledLabel = statusOption.querySelector('.disabled-label');
+                            if (disabledLabel) {
+                                disabledLabel.remove();
+                            }
+                        }
+                    });
+                    
+                    updateStatusOptionSelection();
+                    openModal('statusModal');
+                } else {
+                    showToast('Error loading payment details', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Error loading payment details', 'error');
+            });
+        }
+
+        function updateStatusOptionSelection() {
+            document.querySelectorAll('.status-option').forEach(option => {
+                const radio = option.querySelector('input[type="radio"]');
+                if (radio && radio.checked) {
+                    option.classList.add('selected');
+                } else {
+                    option.classList.remove('selected');
+                }
+            });
+        }
+
+        function submitStatusUpdate() {
+            const paymentId = document.getElementById('statusPaymentId').value;
+            const selectedStatus = document.querySelector('input[name="status"]:checked:not(:disabled)');
+            const notes = document.getElementById('statusNotes').value.trim();
+            
+            if (!selectedStatus) {
+                showToast('Please select a new status different from current status', 'error');
+                return;
+            }
+            
+            const currentStatusText = document.getElementById('currentStatus').textContent.toLowerCase().replace(' ', '_');
+            
+            if (selectedStatus.value === currentStatusText) {
+                showToast('Please select a different status from the current one', 'error');
+                return;
+            }
+            
+            fetch('payments.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `action=update_payment_status&id=${paymentId}&status=${selectedStatus.value}&notes=${encodeURIComponent(notes)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Payment status updated successfully', 'success');
+                    closeModal('statusModal');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showToast(data.message || 'Error updating status', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Error updating status', 'error');
             });
         }
 
@@ -1771,32 +2281,6 @@ try {
             .catch(error => {
                 console.error('Error:', error);
                 showToast('Error processing refund', 'error');
-            });
-        }
-
-        // Update payment status
-        function updatePaymentStatus(paymentId, status) {
-            if (!status) return;
-            
-            fetch('payments.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: `action=update_payment_status&id=${paymentId}&status=${status}`
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showToast('Payment status updated successfully', 'success');
-                    setTimeout(() => location.reload(), 1500);
-                } else {
-                    showToast(data.message || 'Error updating status', 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showToast('Error updating status', 'error');
             });
         }
 
@@ -1898,12 +2382,7 @@ try {
             }
         });
 
-        // Initialize tooltips
-        document.querySelectorAll('[title]').forEach(element => {
-            element.setAttribute('data-toggle', 'tooltip');
-        });
-
-        console.log('Krua Thai Payments Management initialized successfully');
+        console.log('Enhanced Krua Thai Payments Management initialized successfully');
     </script>
 </body>
 </html>

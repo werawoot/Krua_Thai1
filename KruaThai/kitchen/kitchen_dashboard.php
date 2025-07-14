@@ -1,10 +1,12 @@
-   <?php
+<?php
 /**
- * Weekend Kitchen Dashboard - SOMDUL TABLE Brand
+ * Weekend Kitchen Dashboard - USA ENGLISH VERSION
  * File: weekend_kitchen_dashboard.php
  * Role: kitchen, admin only
  * Status: PRODUCTION READY ✅
  * Focus: Weekend delivery preparation (Saturday & Sunday only)
+ * Language: English (USA)
+ * Timezone: America/New_York
  */
 
 // Start output buffering to prevent header issues
@@ -16,12 +18,12 @@ ini_set('display_errors', 1);
 // Start session FIRST
 session_start();
 
-// Set timezone
-date_default_timezone_set('Asia/Bangkok');
+// Set timezone to US Eastern
+date_default_timezone_set('America/New_York');
 
 // Role-based access control
 if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
-    header("Location: login.php");
+    header("Location: ../login.php");
     exit();
 }
 
@@ -42,7 +44,7 @@ require_once '../includes/functions.php';
 function getNextWeekends() {
     $weekends = [];
     $currentDate = new DateTime();
-    $currentDate->setTimezone(new DateTimeZone('Asia/Bangkok'));
+    $currentDate->setTimezone(new DateTimeZone('America/New_York'));
     
     for ($week = 0; $week < 3; $week++) { // 3 weeks only
         // Calculate this week's Saturday
@@ -55,7 +57,7 @@ function getNextWeekends() {
         
         // Only include future dates
         $today = new DateTime();
-        $today->setTimezone(new DateTimeZone('Asia/Bangkok'));
+        $today->setTimezone(new DateTimeZone('America/New_York'));
         
         if ($saturday >= $today) {
             $weekends[] = [
@@ -99,7 +101,7 @@ $total_customers = 0;
 $total_meals = 0;
 
 try {
-    // Get weekend deliveries from subscription_menus
+    // Get weekend deliveries from subscription_menus with PDO
     $delivery_query = "
         SELECT DISTINCT
             sm.delivery_date,
@@ -127,13 +129,12 @@ try {
         ORDER BY s.preferred_delivery_time ASC, u.last_name ASC
     ";
     
-    $stmt = mysqli_prepare($connection, $delivery_query);
-    mysqli_stmt_bind_param($stmt, "s", $selected_date);
-    mysqli_stmt_execute($stmt);
-    $delivery_result = mysqli_stmt_get_result($stmt);
+    $stmt = $pdo->prepare($delivery_query);
+    $stmt->execute([$selected_date]);
+    $deliveries = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     $customers = [];
-    while ($delivery = mysqli_fetch_assoc($delivery_result)) {
+    foreach ($deliveries as $delivery) {
         $customer_key = $delivery['user_id'];
         if (!isset($customers[$customer_key])) {
             $customers[$customer_key] = $delivery;
@@ -169,12 +170,11 @@ try {
             ORDER BY mc.sort_order ASC, m.name ASC
         ";
         
-        $meals_stmt = mysqli_prepare($connection, $meals_query);
-        mysqli_stmt_bind_param($meals_stmt, "ss", $selected_date, $customer['subscription_id']);
-        mysqli_stmt_execute($meals_stmt);
-        $meals_result = mysqli_stmt_get_result($meals_stmt);
+        $meals_stmt = $pdo->prepare($meals_query);
+        $meals_stmt->execute([$selected_date, $customer['subscription_id']]);
+        $meals = $meals_stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        while ($meal = mysqli_fetch_assoc($meals_result)) {
+        foreach ($meals as $meal) {
             $customer['meals'][] = $meal;
             $total_meals += $meal['quantity'];
             
@@ -225,8 +225,7 @@ try {
     
     $weekend_orders = array_values($customers);
     
-   
-// Sort meal summary by total quantity (highest first)
+    // Sort meal summary by total quantity (highest first)
     uasort($meal_summary, function($a, $b) {
         return $b['total_quantity'] - $a['total_quantity'];
     });
@@ -265,8 +264,8 @@ if ($export_type === 'csv') {
                 $customer['phone'],
                 $customer['delivery_address'] . ', ' . $customer['city'],
                 $customer['preferred_delivery_time'],
-                $customer['plan_name_thai'],
-                $meal['menu_name_thai'],
+                $customer['plan_name'] ?? 'Standard Plan',
+                $meal['menu_name'],
                 $meal['quantity'],
                 $meal['customizations'],
                 $meal['special_requests'],
@@ -307,34 +306,27 @@ if ($export_type === 'json') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Weekend Kitchen Dashboard - Krua Thai</title>
+    <title>Weekend Kitchen Dashboard - Krua Thai USA</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            /* SOMDUL TABLE Brand Colors */
-            --rice-50: #fefdf8;
-            --rice-100: #ece8e1;
-            --rice-500: #ece8e1;
-            --rice-700: #bd9379;
-            --family-600: #bd9379;
-            --family-700: #bd9379;
-            --herb-500: #adb89d;
-            --herb-600: #adb89d;
-            --thai-curry-400: #cf723a;
-            --thai-curry-500: #cf723a;
-            --thai-curry-600: #cf723a;
+            /* Krua Thai USA Brand Colors */
+            --primary-cream: #f8f6f3;
+            --primary-green: #4a7c59;
+            --primary-brown: #8b4513;
+            --primary-orange: #e67e22;
             --white: #ffffff;
             --text-dark: #2c3e50;
-            --text-gray: #7f8c8d;
-            --border-light: #e8e8e8;
-            --shadow-soft: 0 4px 12px rgba(0,0,0,0.05);
-            --shadow-medium: 0 8px 24px rgba(0,0,0,0.1);
-            --radius-sm: 8px;
-            --radius-md: 12px;
-            --radius-lg: 16px;
-            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --text-gray: #6c757d;
+            --border-light: #e9ecef;
+            --shadow-soft: 0 2px 10px rgba(0,0,0,0.05);
+            --shadow-medium: 0 4px 20px rgba(0,0,0,0.1);
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 14px;
+            --transition: all 0.3s ease;
         }
 
         * {
@@ -344,17 +336,18 @@ if ($export_type === 'json') {
         }
 
         body {
-            font-family: 'Inter', 'Kanit', sans-serif;
-            background: linear-gradient(135deg, var(--rice-50) 0%, var(--rice-100) 100%);
+            font-family: 'Inter', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, var(--primary-cream) 0%, #f1f3f4 100%);
             min-height: 100vh;
-            color: #374151;
+            color: var(--text-dark);
+            line-height: 1.6;
         }
 
         .header {
-            background: linear-gradient(135deg, var(--family-600) 0%, var(--family-700) 100%);
+            background: linear-gradient(135deg, var(--primary-brown) 0%, var(--primary-orange) 100%);
             color: white;
             padding: 1.5rem 2rem;
-            box-shadow: 0 4px 12px rgba(189, 147, 121, 0.2);
+            box-shadow: var(--shadow-medium);
             position: sticky;
             top: 0;
             z-index: 100;
@@ -387,7 +380,7 @@ if ($export_type === 'json') {
         .header-meta {
             display: flex;
             align-items: center;
-            gap: 2rem;
+            gap: 1.5rem;
             flex-wrap: wrap;
         }
 
@@ -395,97 +388,11 @@ if ($export_type === 'json') {
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.15);
             padding: 0.5rem 1rem;
             border-radius: 20px;
             backdrop-filter: blur(10px);
-        }
-
-        .main-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-
-        .dashboard-controls {
-            background: white;
-            padding: 2rem;
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-            margin-bottom: 2rem;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.5rem;
-            align-items: center;
-        }
-
-        .control-group {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-
-        .control-label {
-            font-weight: 500;
-            color: var(--rice-700);
             font-size: 0.9rem;
-        }
-
-        .control-input {
-            padding: 0.75rem 1rem;
-            border: 2px solid #e5e7eb;
-            border-radius: 8px;
-            font-size: 1rem;
-            transition: all 0.2s;
-            font-family: 'Inter', 'Kanit', sans-serif;
-        }
-
-        .control-input:focus {
-            outline: none;
-            border-color: var(--thai-curry-500);
-            box-shadow: 0 0 0 3px rgba(207, 114, 58, 0.1);
-        }
-
-        .btn {
-            padding: 0.75rem 1.5rem;
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            justify-content: center;
-            font-family: 'Inter', 'Kanit', sans-serif;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--thai-curry-500) 0%, var(--thai-curry-600) 100%);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(207, 114, 58, 0.3);
-        }
-
-        .btn-secondary {
-            background: linear-gradient(135deg, var(--herb-500) 0%, var(--herb-600) 100%);
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(173, 184, 157, 0.3);
-        }
-
-        .btn-outline {
-            background: white;
-            border: 2px solid var(--rice-500);
-            color: var(--rice-700);
         }
 
         .btn-back {
@@ -500,22 +407,107 @@ if ($export_type === 'json') {
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
-            transition: all 0.3s ease;
+            transition: var(--transition);
             backdrop-filter: blur(10px);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
 
         .btn-back:hover {
             background: rgba(255, 255, 255, 0.25);
             border-color: rgba(255, 255, 255, 0.5);
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
             color: white;
         }
 
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .dashboard-controls {
+            background: white;
+            padding: 2rem;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-soft);
+            margin-bottom: 2rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            align-items: end;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .control-label {
+            font-weight: 500;
+            color: var(--primary-brown);
+            font-size: 0.9rem;
+        }
+
+        .control-input {
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--border-light);
+            border-radius: var(--radius-sm);
+            font-size: 1rem;
+            transition: var(--transition);
+            font-family: inherit;
+        }
+
+        .control-input:focus {
+            outline: none;
+            border-color: var(--primary-orange);
+            box-shadow: 0 0 0 3px rgba(230, 126, 34, 0.1);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            justify-content: center;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-orange), #d35400);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, var(--primary-green), #27ae60);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .btn-outline {
+            background: white;
+            border: 2px solid var(--primary-cream);
+            color: var(--primary-brown);
+        }
+
         .btn-outline:hover {
-            background: var(--rice-50);
-            border-color: var(--rice-700);
+            background: var(--primary-cream);
+            border-color: var(--primary-brown);
         }
 
         .stats-grid {
@@ -528,11 +520,12 @@ if ($export_type === 'json') {
         .stat-card {
             background: white;
             padding: 2rem;
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-soft);
             text-align: center;
             position: relative;
             overflow: hidden;
+            transition: var(--transition);
         }
 
         .stat-card::before {
@@ -542,25 +535,30 @@ if ($export_type === 'json') {
             left: 0;
             right: 0;
             height: 4px;
-            background: linear-gradient(90deg, var(--thai-curry-500) 0%, var(--family-600) 100%);
+            background: linear-gradient(90deg, var(--primary-orange), var(--primary-brown));
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-medium);
         }
 
         .stat-icon {
             font-size: 3rem;
             margin-bottom: 1rem;
-            color: var(--thai-curry-500);
+            color: var(--primary-orange);
         }
 
         .stat-number {
             font-size: 2.5rem;
             font-weight: 700;
-            color: var(--family-600);
+            color: var(--primary-brown);
             margin-bottom: 0.5rem;
         }
 
         .stat-label {
             font-size: 1.1rem;
-            color: #6b7280;
+            color: var(--text-gray);
             font-weight: 500;
         }
 
@@ -573,22 +571,24 @@ if ($export_type === 'json') {
 
         .main-content {
             background: white;
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-soft);
             overflow: hidden;
         }
 
         .sidebar {
             background: white;
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-soft);
             padding: 2rem;
+            max-height: 800px;
+            overflow-y: auto;
         }
 
         .section-header {
-            background: linear-gradient(135deg, var(--rice-100) 0%, var(--rice-50) 100%);
+            background: linear-gradient(135deg, var(--primary-cream), #f8f6f3);
             padding: 1.5rem 2rem;
-            border-bottom: 1px solid #e5e7eb;
+            border-bottom: 1px solid var(--border-light);
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -597,7 +597,7 @@ if ($export_type === 'json') {
         .section-title {
             font-size: 1.4rem;
             font-weight: 600;
-            color: var(--rice-700);
+            color: var(--primary-brown);
             display: flex;
             align-items: center;
             gap: 0.5rem;
@@ -611,11 +611,11 @@ if ($export_type === 'json') {
         .customer-card {
             padding: 1.5rem 2rem;
             border-bottom: 1px solid #f3f4f6;
-            transition: all 0.2s;
+            transition: var(--transition);
         }
 
         .customer-card:hover {
-            background: var(--rice-50);
+            background: var(--primary-cream);
         }
 
         .customer-header {
@@ -628,18 +628,22 @@ if ($export_type === 'json') {
         .customer-info h3 {
             font-size: 1.2rem;
             font-weight: 600;
-            color: var(--family-600);
+            color: var(--primary-brown);
             margin-bottom: 0.25rem;
         }
 
         .customer-details {
             font-size: 0.9rem;
-            color: #6b7280;
+            color: var(--text-gray);
             line-height: 1.4;
         }
 
+        .customer-details div {
+            margin-bottom: 0.25rem;
+        }
+
         .delivery-time {
-            background: linear-gradient(135deg, var(--herb-500) 0%, var(--herb-600) 100%);
+            background: linear-gradient(135deg, var(--primary-green), #27ae60);
             color: white;
             padding: 0.5rem 1rem;
             border-radius: 20px;
@@ -652,11 +656,11 @@ if ($export_type === 'json') {
         }
 
         .meal-item {
-            background: var(--rice-50);
+            background: var(--primary-cream);
             padding: 1rem;
-            border-radius: 8px;
+            border-radius: var(--radius-sm);
             margin-bottom: 0.5rem;
-            border-left: 4px solid var(--thai-curry-500);
+            border-left: 4px solid var(--primary-orange);
         }
 
         .meal-item:last-child {
@@ -672,11 +676,11 @@ if ($export_type === 'json') {
 
         .meal-name {
             font-weight: 600;
-            color: var(--family-600);
+            color: var(--primary-brown);
         }
 
         .meal-quantity {
-            background: var(--thai-curry-500);
+            background: var(--primary-orange);
             color: white;
             padding: 0.25rem 0.75rem;
             border-radius: 12px;
@@ -686,14 +690,18 @@ if ($export_type === 'json') {
 
         .meal-meta {
             font-size: 0.85rem;
-            color: #6b7280;
+            color: var(--text-gray);
             line-height: 1.4;
+        }
+
+        .meal-meta div {
+            margin-bottom: 0.25rem;
         }
 
         .prep-summary-title {
             font-size: 1.3rem;
             font-weight: 600;
-            color: var(--family-600);
+            color: var(--primary-brown);
             margin-bottom: 1.5rem;
             display: flex;
             align-items: center;
@@ -701,16 +709,16 @@ if ($export_type === 'json') {
         }
 
         .prep-item {
-            background: linear-gradient(135deg, var(--rice-50) 0%, white 100%);
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
+            background: linear-gradient(135deg, var(--primary-cream), white);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-md);
             padding: 1.5rem;
             margin-bottom: 1rem;
-            transition: all 0.2s;
+            transition: var(--transition);
         }
 
         .prep-item:hover {
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            box-shadow: var(--shadow-soft);
             transform: translateY(-2px);
         }
 
@@ -723,12 +731,12 @@ if ($export_type === 'json') {
 
         .prep-name {
             font-weight: 600;
-            color: var(--family-600);
+            color: var(--primary-brown);
             font-size: 1.1rem;
         }
 
         .prep-quantity {
-            background: linear-gradient(135deg, var(--thai-curry-500) 0%, var(--thai-curry-600) 100%);
+            background: linear-gradient(135deg, var(--primary-orange), #d35400);
             color: white;
             padding: 0.5rem 1rem;
             border-radius: 20px;
@@ -738,20 +746,24 @@ if ($export_type === 'json') {
 
         .prep-meta {
             font-size: 0.9rem;
-            color: #6b7280;
+            color: var(--text-gray);
             line-height: 1.5;
+        }
+
+        .prep-meta div {
+            margin-bottom: 0.25rem;
         }
 
         .prep-customers {
             margin-top: 0.5rem;
             font-weight: 500;
-            color: var(--herb-600);
+            color: var(--primary-green);
         }
 
         .print-section {
             background: white;
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-soft);
             padding: 2rem;
             margin-top: 2rem;
         }
@@ -760,6 +772,51 @@ if ($export_type === 'json') {
             display: flex;
             gap: 1rem;
             flex-wrap: wrap;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 2rem;
+            color: var(--text-gray);
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            color: var(--primary-cream);
+            margin-bottom: 1rem;
+        }
+
+        .empty-state h3 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: var(--primary-brown);
+        }
+
+        .alert {
+            padding: 1rem 1.5rem;
+            border-radius: var(--radius-sm);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .alert-error {
+            background: #fef2f2;
+            color: #b91c1c;
+            border: 1px solid #fecaca;
+        }
+
+        .weekend-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: linear-gradient(135deg, var(--primary-green), #27ae60);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
         }
 
         @media print {
@@ -791,7 +848,7 @@ if ($export_type === 'json') {
             }
             
             .dashboard-controls {
-                grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
                 gap: 1rem;
                 padding: 1.5rem;
             }
@@ -822,51 +879,6 @@ if ($export_type === 'json') {
             .print-buttons {
                 flex-direction: column;
             }
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 3rem 2rem;
-            color: #6b7280;
-        }
-
-        .empty-state i {
-            font-size: 4rem;
-            color: var(--rice-500);
-            margin-bottom: 1rem;
-        }
-
-        .empty-state h3 {
-            font-size: 1.5rem;
-            margin-bottom: 0.5rem;
-            color: var(--rice-700);
-        }
-
-        .alert {
-            padding: 1rem 1.5rem;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .alert-error {
-            background: #fef2f2;
-            color: #b91c1c;
-            border: 1px solid #fecaca;
-        }
-
-        .weekend-indicator {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            background: linear-gradient(135deg, var(--herb-500) 0%, var(--herb-600) 100%);
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            font-weight: 500;
         }
     </style>
 </head>
@@ -949,9 +961,7 @@ if ($export_type === 'json') {
                     <a href="?date=<?php echo $selected_date; ?>&export=csv" class="btn btn-secondary">
                         <i class="fas fa-file-csv"></i> CSV
                     </a>
-                    <a href="?date=<?php echo $selected_date; ?>&export=json" class="btn btn-outline">
-                        <i class="fas fa-file-code"></i> JSON
-                    </a>
+               
                 </div>
             </div>
             
@@ -993,7 +1003,7 @@ if ($export_type === 'json') {
                 <div class="stat-icon">
                     <i class="fas fa-calendar-weekend"></i>
                 </div>
-                <div class="stat-number"><?php echo date('N', strtotime($selected_date)) == 6 ? 'Saturday' : 'Sunday'; ?></div>
+                <div class="stat-number"><?php echo date('N', strtotime($selected_date)) == 6 ? 'Sat' : 'Sun'; ?></div>
                 <div class="stat-label">Delivery Day</div>
             </div>
         </div>
@@ -1008,9 +1018,7 @@ if ($export_type === 'json') {
                         Delivery Schedule - <?php echo !empty($selected_date) ? date('l, M j', strtotime($selected_date)) : 'Date not selected'; ?>
                     </h2>
                     <div style="display: flex; gap: 1rem;">
-                        <button class="btn btn-secondary" onclick="printCustomerList()">
-                            <i class="fas fa-print"></i> Print List
-                        </button>
+                       
                         <button class="btn btn-primary" onclick="markAllCompleted()">
                             <i class="fas fa-check-circle"></i> Mark All Complete
                         </button>
@@ -1033,7 +1041,7 @@ if ($export_type === 'json') {
                                         <div class="customer-details">
                                             <div><i class="fas fa-phone"></i> <?php echo htmlspecialchars($customer['phone']); ?></div>
                                             <div><i class="fas fa-map-marker-alt"></i> <?php echo htmlspecialchars($customer['delivery_address'] . ', ' . $customer['city']); ?></div>
-                                            <div><i class="fas fa-tag"></i> Plan: <?php echo htmlspecialchars($customer['plan_name_thai']); ?></div>
+                                            <div><i class="fas fa-tag"></i> Plan: <?php echo htmlspecialchars($customer['plan_name'] ?? 'Standard Plan'); ?></div>
                                             <?php if (!empty($customer['dietary_preferences'])): ?>
                                                 <div><i class="fas fa-leaf"></i> Diet: <?php echo htmlspecialchars($customer['dietary_preferences']); ?></div>
                                             <?php endif; ?>
@@ -1047,7 +1055,7 @@ if ($export_type === 'json') {
                                     </div>
                                     <div class="delivery-time">
                                         <i class="fas fa-clock"></i>
-                                        <?php echo htmlspecialchars($customer['preferred_delivery_time'] ?? '12:00-15:00'); ?>
+                                        <?php echo htmlspecialchars($customer['preferred_delivery_time'] ?? '12:00 PM - 3:00 PM'); ?>
                                     </div>
                                 </div>
                                 
@@ -1055,12 +1063,12 @@ if ($export_type === 'json') {
                                     <?php foreach ($customer['meals'] as $meal): ?>
                                         <div class="meal-item">
                                             <div class="meal-header">
-                                                <div class="meal-name"><?php echo htmlspecialchars($meal['menu_name_thai'] ?? $meal['menu_name']); ?></div>
+                                                <div class="meal-name"><?php echo htmlspecialchars($meal['menu_name']); ?></div>
                                                 <div class="meal-quantity">x<?php echo $meal['quantity']; ?></div>
                                             </div>
                                             <div class="meal-meta">
-                                                <?php if (!empty($meal['category_name_thai'])): ?>
-                                                    <div><strong>Category:</strong> <?php echo htmlspecialchars($meal['category_name_thai']); ?></div>
+                                                <?php if (!empty($meal['category_name'])): ?>
+                                                    <div><strong>Category:</strong> <?php echo htmlspecialchars($meal['category_name']); ?></div>
                                                 <?php endif; ?>
                                                 <?php if (!empty($meal['preparation_time'])): ?>
                                                     <div><strong>Prep Time:</strong> <?php echo $meal['preparation_time']; ?> minutes</div>
@@ -1084,6 +1092,7 @@ if ($export_type === 'json') {
             <!-- Meal Preparation Summary -->
             <div class="sidebar">
                 <div class="prep-summary-title">
+                    <i class="fas fa-clipboard-list"></i>
                     Kitchen Prep Summary
                 </div>
                 
@@ -1097,12 +1106,12 @@ if ($export_type === 'json') {
                     <?php foreach ($meal_summary as $meal): ?>
                         <div class="prep-item">
                             <div class="prep-header">
-                                <div class="prep-name"><?php echo htmlspecialchars($meal['name_thai'] ?? $meal['name']); ?></div>
+                                <div class="prep-name"><?php echo htmlspecialchars($meal['name']); ?></div>
                                 <div class="prep-quantity"><?php echo $meal['total_quantity']; ?> portions</div>
                             </div>
                             <div class="prep-meta">
-                                <?php if (!empty($meal['category_thai'])): ?>
-                                    <div><strong>Category:</strong> <?php echo htmlspecialchars($meal['category_thai']); ?></div>
+                                <?php if (!empty($meal['category'])): ?>
+                                    <div><strong>Category:</strong> <?php echo htmlspecialchars($meal['category']); ?></div>
                                 <?php endif; ?>
                                 <?php if (!empty($meal['prep_time'])): ?>
                                     <div><strong>Prep Time:</strong> <?php echo $meal['prep_time']; ?> min/portion</div>
@@ -1159,10 +1168,7 @@ if ($export_type === 'json') {
                     Export CSV
                 </a>
                 
-                <a href="?date=<?php echo $selected_date; ?>&export=json" class="btn btn-outline">
-                    <i class="fas fa-file-code"></i>
-                    Export JSON
-                </a>
+           
             </div>
         </div>
     </div>
@@ -1170,24 +1176,24 @@ if ($export_type === 'json') {
     <!-- Print Areas (Hidden) -->
     <div id="prep-print-area" class="print-area" style="display: none;">
         <div style="text-align: center; margin-bottom: 2rem;">
-            <h1 style="color: var(--family-600); margin-bottom: 0.5rem;">Krua Thai - Kitchen Prep Sheet</h1>
-            <h2 style="color: var(--rice-700);">Delivery Date: <?php echo !empty($selected_date) ? date('l, F j, Y', strtotime($selected_date)) : 'Date not selected'; ?></h2>
-            <p style="color: #666;">Printed: <?php echo date('m/d/Y H:i:s'); ?> (Bangkok Time)</p>
+            <h1 style="color: #8b4513; margin-bottom: 0.5rem;">Krua Thai USA - Kitchen Prep Sheet</h1>
+            <h2 style="color: #6c757d;">Delivery Date: <?php echo !empty($selected_date) ? date('l, F j, Y', strtotime($selected_date)) : 'Date not selected'; ?></h2>
+            <p style="color: #666;">Printed: <?php echo date('m/d/Y H:i:s'); ?> (Eastern Time)</p>
         </div>
         
         <div style="margin-bottom: 2rem;">
-            <h3 style="background: var(--rice-100); padding: 1rem; border-radius: 8px; color: var(--family-600);">
+            <h3 style="background: #f8f6f3; padding: 1rem; border-radius: 8px; color: #8b4513;">
                 Prep Summary - Total <?php echo count($meal_summary); ?> items / <?php echo $total_meals; ?> portions
             </h3>
         </div>
         
         <?php foreach ($meal_summary as $meal): ?>
             <div style="border: 1px solid #ddd; margin-bottom: 1rem; border-radius: 8px; overflow: hidden;">
-                <div style="background: var(--thai-curry-500); color: white; padding: 1rem; font-weight: bold; font-size: 1.2rem;">
-                    <?php echo htmlspecialchars($meal['name_thai'] ?? $meal['name']); ?> - <?php echo $meal['total_quantity']; ?> portions
+                <div style="background: #e67e22; color: white; padding: 1rem; font-weight: bold; font-size: 1.2rem;">
+                    <?php echo htmlspecialchars($meal['name']); ?> - <?php echo $meal['total_quantity']; ?> portions
                 </div>
                 <div style="padding: 1rem;">
-                    <p><strong>Category:</strong> <?php echo htmlspecialchars($meal['category_thai'] ?? $meal['category'] ?? 'Not specified'); ?></p>
+                    <p><strong>Category:</strong> <?php echo htmlspecialchars($meal['category'] ?? 'Not specified'); ?></p>
                     <p><strong>Prep Time:</strong> <?php echo $meal['prep_time'] ?? 'Not specified'; ?> min/portion</p>
                     <p><strong>Cooking Method:</strong> <?php echo htmlspecialchars($meal['cooking_method'] ?? 'Standard recipe'); ?></p>
                     <?php if (!empty($meal['ingredients'])): ?>
@@ -1235,13 +1241,13 @@ if ($export_type === 'json') {
             // Create delivery sheet content
             let deliveryContent = `
                 <div style="text-align: center; margin-bottom: 2rem;">
-                    <h1 style="color: var(--family-600);">Krua Thai - Delivery Sheet</h1>
+                    <h1 style="color: #8b4513;">Krua Thai USA - Delivery Sheet</h1>
                     <h2>Delivery Date: <?php echo !empty($selected_date) ? date('l, F j, Y', strtotime($selected_date)) : 'Date not selected'; ?></h2>
                     <p>Total <?php echo $total_customers; ?> customers / <?php echo $total_meals; ?> meals</p>
                 </div>
                 <table style="width: 100%; border-collapse: collapse; margin-top: 1rem;">
                     <thead>
-                        <tr style="background: var(--rice-100);">
+                        <tr style="background: #f8f6f3;">
                             <th style="border: 1px solid #ddd; padding: 0.5rem;">No.</th>
                             <th style="border: 1px solid #ddd; padding: 0.5rem;">Customer</th>
                             <th style="border: 1px solid #ddd; padding: 0.5rem;">Phone</th>
@@ -1261,10 +1267,10 @@ if ($export_type === 'json') {
                         <td style="border: 1px solid #ddd; padding: 0.5rem;"><?php echo htmlspecialchars($customer['first_name'] . ' ' . $customer['last_name']); ?></td>
                         <td style="border: 1px solid #ddd; padding: 0.5rem;"><?php echo htmlspecialchars($customer['phone']); ?></td>
                         <td style="border: 1px solid #ddd; padding: 0.5rem;"><?php echo htmlspecialchars($customer['delivery_address']); ?></td>
-                        <td style="border: 1px solid #ddd; padding: 0.5rem;"><?php echo htmlspecialchars($customer['preferred_delivery_time'] ?? '12:00-15:00'); ?></td>
+                        <td style="border: 1px solid #ddd; padding: 0.5rem;"><?php echo htmlspecialchars($customer['preferred_delivery_time'] ?? '12:00 PM - 3:00 PM'); ?></td>
                         <td style="border: 1px solid #ddd; padding: 0.5rem;">
                             <?php foreach ($customer['meals'] as $meal): ?>
-                                <?php echo htmlspecialchars($meal['menu_name_thai'] ?? $meal['menu_name']); ?> (<?php echo $meal['quantity']; ?>)<br>
+                                <?php echo htmlspecialchars($meal['menu_name']); ?> (<?php echo $meal['quantity']; ?>)<br>
                             <?php endforeach; ?>
                         </td>
                         <td style="border: 1px solid #ddd; padding: 0.5rem; text-align: center;">☐</td>
@@ -1283,7 +1289,7 @@ if ($export_type === 'json') {
                     <head>
                         <title>Delivery Sheet - <?php echo !empty($selected_date) ? date('m/d/Y', strtotime($selected_date)) : 'Date not selected'; ?></title>
                         <style>
-                            body { font-family: 'Inter', 'Kanit', sans-serif; }
+                            body { font-family: 'Inter', 'Roboto', sans-serif; }
                             table { width: 100%; border-collapse: collapse; }
                             th, td { border: 1px solid #ddd; padding: 0.5rem; }
                             th { background: #f5f5f5; }
@@ -1316,12 +1322,12 @@ if ($export_type === 'json') {
             
             let ingredientsContent = `
                 <div style="text-align: center; margin-bottom: 2rem;">
-                    <h1 style="color: var(--family-600);">Krua Thai - Ingredients List</h1>
+                    <h1 style="color: #8b4513;">Krua Thai USA - Ingredients List</h1>
                     <h2>Delivery Date: <?php echo !empty($selected_date) ? date('l, F j, Y', strtotime($selected_date)) : 'Date not selected'; ?></h2>
                 </div>
                 <table style="width: 100%; border-collapse: collapse;">
                     <thead>
-                        <tr style="background: var(--rice-100);">
+                        <tr style="background: #f8f6f3;">
                             <th style="border: 1px solid #ddd; padding: 1rem;">Ingredient</th>
                             <th style="border: 1px solid #ddd; padding: 1rem;">Quantity Needed</th>
                             <th style="border: 1px solid #ddd; padding: 1rem;">Notes</th>
@@ -1351,7 +1357,7 @@ if ($export_type === 'json') {
                     <head>
                         <title>Ingredients List - <?php echo !empty($selected_date) ? date('m/d/Y', strtotime($selected_date)) : 'Date not selected'; ?></title>
                         <style>
-                            body { font-family: 'Inter', 'Kanit', sans-serif; }
+                            body { font-family: 'Inter', 'Roboto', sans-serif; }
                             table { width: 100%; border-collapse: collapse; }
                             th, td { border: 1px solid #ddd; padding: 0.75rem; }
                             th { background: #f5f5f5; font-weight: bold; }
@@ -1400,11 +1406,11 @@ if ($export_type === 'json') {
             }
         });
 
-        console.log('Weekend Kitchen Dashboard loaded successfully');
+        console.log('Weekend Kitchen Dashboard (USA) loaded successfully');
         console.log('Total customers:', <?php echo $total_customers; ?>);
         console.log('Total meals:', <?php echo $total_meals; ?>);
         console.log('Selected date:', '<?php echo $selected_date; ?>');
+        console.log('Timezone: Eastern Time (US)');
     </script>
 </body>
 </html>
-             
