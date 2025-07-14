@@ -625,6 +625,10 @@ $page_title = "Dashboard";
                                 <span class="action-icon">📊</span>
                                 <span class="action-text">Track Nutrition</span>
                             </a>
+                            <a href="payment_status.php" class="action-button">
+                                <span class="action-icon">💵</span>
+                                <span class="action-text">Paymentstatus</span>
+                            </a>
                         </div>
                         
                         <div class="logout-section">

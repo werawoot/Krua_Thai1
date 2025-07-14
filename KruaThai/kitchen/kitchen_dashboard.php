@@ -31,7 +31,7 @@ if (!isset($_SESSION['user_role']) || !in_array($_SESSION['user_role'], ['kitche
         <h3>🚫 Access Denied</h3>
         <p>You do not have permission to access the kitchen dashboard.</p>
         <p>Required roles: Kitchen Staff or Admin</p>
-        <a href="dashboard.php" style="background: #007bff; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px;">← Back to Dashboard</a>
+        <a href="../dashboard.php" style="background: #007bff; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px;">← Back to Dashboard</a>
     </div>');
 }
 
@@ -902,7 +902,7 @@ if ($export_type === 'json') {
                     <span><?php echo htmlspecialchars($_SESSION['first_name'] ?? 'Kitchen Staff'); ?></span>
                 </div>
                 <div class="meta-item">
-                    <a href="dashboard.php" class="btn-back">
+                    <a href="../dashboard.php" class="btn-back">
                         <i class="fas fa-arrow-left"></i>
                         <span>Back to Dashboard</span>
                     </a>
