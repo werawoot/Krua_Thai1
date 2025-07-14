@@ -3,8 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Thai Delights - Fresh Thai Meal Prep Delivered</title>
+    <title>Somdul Table - Authentic Thai Restaurant Management</title>
+    <meta name="description" content="Experience authentic Thai cuisine with Somdul Table - Your premier Thai restaurant management system in the US">
+    
+    <!-- BaticaSans Font Import -->
+    <link rel="preconnect" href="https://ydpschool.com">
     <style>
+        @font-face {
+            font-family: 'BaticaSans';
+            src: url('https://ydpschool.com/fonts/BaticaSans-Regular.woff2') format('woff2'),
+                 url('https://ydpschool.com/fonts/BaticaSans-Regular.woff') format('woff'),
+                 url('https://ydpschool.com/fonts/BaticaSans-Regular.ttf') format('truetype');
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+        
+        @font-face {
+            font-family: 'BaticaSans';
+            src: url('https://ydpschool.com/fonts/BaticaSans-Bold.woff2') format('woff2'),
+                 url('https://ydpschool.com/fonts/BaticaSans-Bold.woff') format('woff'),
+                 url('https://ydpschool.com/fonts/BaticaSans-Bold.ttf') format('truetype');
+            font-weight: 700;
+            font-style: normal;
+            font-display: swap;
+        }
+        
+        @font-face {
+            font-family: 'BaticaSans';
+            src: url('https://ydpschool.com/fonts/BaticaSans-Medium.woff2') format('woff2'),
+                 url('https://ydpschool.com/fonts/BaticaSans-Medium.woff') format('woff'),
+                 url('https://ydpschool.com/fonts/BaticaSans-Medium.ttf') format('truetype');
+            font-weight: 500;
+            font-style: normal;
+            font-display: swap;
+        }
+    </style>
+    
+    <style>
+        /* CSS Custom Properties for Somdul Table Design System */
+        :root {
+            --brown: #bd9379;
+            --cream: #ece8e1;
+            --sage: #adb89d;
+            --curry: #cf723a;
+            --white: #ffffff;
+            --text-dark: #2c3e50;
+            --text-gray: #7f8c8d;
+            --border-light: #e8e8e8;
+            --shadow-soft: 0 4px 12px rgba(189, 147, 121, 0.15);
+            --shadow-medium: 0 8px 24px rgba(189, 147, 121, 0.25);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -12,83 +66,145 @@
         }
 
         body {
-            font-family: 'Arial', sans-serif;
-            background-color: #ffffff;
-            color: #333;
+            font-family: 'BaticaSans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             line-height: 1.6;
+            color: var(--text-dark);
+            background-color: var(--white);
+            font-weight: 400;
         }
 
-        /* Navigation */
+        /* Typography using BaticaSans */
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'BaticaSans', sans-serif;
+            font-weight: 700;
+            line-height: 1.2;
+            color: var(--text-dark);
+        }
+
         .navbar {
             position: fixed;
             top: 0;
-            width: 100%;
+            left: 0;
+            right: 0;
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
             z-index: 1000;
-            padding: 1rem 2rem;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: var(--transition);
+            box-shadow: var(--shadow-soft);
         }
 
-        .nav-container {
+        nav {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            max-width: 1200px;
-            margin: 0 auto;
+            padding: 1rem 2rem;
+            width: 100%;
         }
 
         .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            text-decoration: none;
+            color: var(--text-dark);
+        }
+
+        .logo-icon {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, var(--curry), var(--brown));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--white);
+            font-size: 1.5rem;
+            font-family: 'BaticaSans', sans-serif;
+            font-weight: 700;
+        }
+
+        .logo-text {
             font-size: 1.8rem;
-            font-weight: bold;
-            color: #e74c3c;
+            font-weight: 800;
+            color: var(--curry);
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .nav-links {
             display: flex;
             list-style: none;
             gap: 2rem;
+            align-items: center;
         }
 
         .nav-links a {
             text-decoration: none;
-            color: #333;
+            color: var(--text-gray);
             font-weight: 500;
-            transition: color 0.3s;
+            font-family: 'BaticaSans', sans-serif;
+            transition: var(--transition);
         }
 
         .nav-links a:hover {
-            color: #e74c3c;
+            color: var(--curry);
         }
 
-        .cta-button {
-            background: #e74c3c;
-            color: white;
-            padding: 0.8rem 1.5rem;
-            border: none;
-            border-radius: 25px;
-            cursor: pointer;
-            font-weight: bold;
-            text-decoration: none;
-            transition: transform 0.3s;
-        }
-
-        .cta-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.3);
-        }
-
-        /* Hero Vertical Slider */
-        .hero-vertical-slider {
-            height: 100vh;
-            position: relative;
-            overflow: hidden;
-            margin-top: 80px;
+        .nav-actions {
             display: flex;
+            gap: 1rem;
             align-items: center;
         }
 
-        .hero-vertical-slider__image-columns-container {
+        .btn {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 50px;
+            font-weight: 600;
+            font-family: 'BaticaSans', sans-serif;
+            text-decoration: none;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.95rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--curry), var(--brown));
+            color: var(--white);
+            box-shadow: var(--shadow-soft);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--curry);
+            border: 2px solid var(--curry);
+        }
+
+        .btn-secondary:hover {
+            background: var(--curry);
+            color: var(--white);
+        }
+
+        /* Hero Section */
+        .hero-section {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding: 80px 2rem 2rem;
+            background: linear-gradient(135deg, var(--cream) 0%, #f8f9fa 100%);
+            position: relative;
+            overflow: hidden;
+            margin-top: 0;
+        }
+
+        .hero-container {
             position: relative;
             width: 100%;
             height: 100%;
@@ -99,13 +215,13 @@
             padding: 0 2rem;
         }
 
-        .hero-vertical-slider__image-columns-container .background {
+        .hero-container .background {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            background: linear-gradient(135deg, var(--white) 0%, #f8f9fa 100%);
             z-index: -1;
         }
 
@@ -119,16 +235,18 @@
         .hero-content h1 {
             font-size: 4rem;
             margin-bottom: 1.5rem;
-            font-weight: bold;
-            color: #333;
+            font-weight: 800;
+            color: var(--text-dark);
             line-height: 1.1;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .hero-content p {
             font-size: 1.3rem;
             margin-bottom: 2rem;
-            color: #666;
+            color: var(--text-gray);
             line-height: 1.6;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .hero-form {
@@ -150,29 +268,32 @@
             border: 2px solid #e0e0e0;
             border-radius: 50px;
             font-size: 1.1rem;
-            background: white;
+            font-family: 'BaticaSans', sans-serif;
+            background: var(--white);
             transition: all 0.3s;
             outline: none;
         }
 
         .zip-input:focus {
-            border-color: #e74c3c;
-            box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.1);
+            border-color: var(--curry);
+            box-shadow: 0 0 0 3px rgba(207, 114, 58, 0.1);
         }
 
         .zip-input::placeholder {
             color: #999;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .order-now-button {
-            background: #e74c3c;
-            color: white;
+            background: var(--curry);
+            color: var(--white);
             padding: 1rem 2.5rem;
             border: none;
             border-radius: 50px;
             cursor: pointer;
-            font-weight: bold;
+            font-weight: 700;
             font-size: 1.2rem;
+            font-family: 'BaticaSans', sans-serif;
             text-decoration: none;
             transition: all 0.3s;
             display: inline-flex;
@@ -182,11 +303,12 @@
         }
 
         .order-now-button:hover {
-            background: #c0392b;
+            background: var(--brown);
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(231, 76, 60, 0.3);
+            box-shadow: var(--shadow-medium);
         }
 
+        /* Hero Videos - Vertical Sliding Animation */
         .hero-videos {
             flex: 1;
             height: 80vh;
@@ -236,7 +358,14 @@
             min-height: 300px;
             overflow: hidden;
             border-radius: 12px;
-            background: #f8f8f8;
+            background: linear-gradient(45deg, var(--curry), var(--brown));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--white);
+            font-weight: 600;
+            font-family: 'BaticaSans', sans-serif;
+            font-size: 1.2rem;
             clip-path: inset(0);
         }
 
@@ -250,7 +379,7 @@
         /* Menu Section */
         .menu-section {
             padding: 5rem 2rem;
-            background-color: #f8f9fa;
+            background: var(--cream);
         }
 
         .menu-container {
@@ -261,38 +390,40 @@
         .menu-nav {
             display: flex;
             justify-content: center;
+            gap: 1rem;
             margin-bottom: 3rem;
-            gap: 2rem;
+            flex-wrap: wrap;
         }
 
         .menu-nav button {
-            background: none;
-            border: 2px solid #e74c3c;
-            color: #e74c3c;
             padding: 0.8rem 1.5rem;
-            border-radius: 25px;
+            border: 2px solid var(--curry);
+            background: transparent;
+            color: var(--curry);
+            border-radius: 50px;
             cursor: pointer;
-            font-weight: bold;
+            font-family: 'BaticaSans', sans-serif;
+            font-weight: 600;
             transition: all 0.3s;
         }
 
         .menu-nav button.active,
         .menu-nav button:hover {
-            background: #e74c3c;
-            color: white;
+            background: var(--curry);
+            color: var(--white);
         }
 
         .menu-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
             gap: 2rem;
         }
 
         .menu-item {
-            background: white;
+            background: var(--white);
             border-radius: 15px;
             overflow: hidden;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            box-shadow: var(--shadow-soft);
             transition: transform 0.3s;
         }
 
@@ -313,24 +444,28 @@
         .menu-item h3 {
             font-size: 1.3rem;
             margin-bottom: 0.5rem;
-            color: #333;
+            color: var(--text-dark);
+            font-family: 'BaticaSans', sans-serif;
+            font-weight: 700;
         }
 
         .menu-item p {
-            color: #666;
+            color: var(--text-gray);
             margin-bottom: 1rem;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .menu-price {
             font-size: 1.2rem;
-            font-weight: bold;
-            color: #e74c3c;
+            font-weight: 700;
+            color: var(--curry);
+            font-family: 'BaticaSans', sans-serif;
         }
 
         /* Steps Section */
         .steps-section {
             padding: 5rem 2rem;
-            background: white;
+            background: var(--white);
         }
 
         .steps-container {
@@ -342,12 +477,14 @@
         .steps-title {
             font-size: 2.5rem;
             margin-bottom: 3rem;
-            color: #333;
+            color: var(--text-dark);
+            font-family: 'BaticaSans', sans-serif;
+            font-weight: 700;
         }
 
         .steps-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 2rem;
         }
 
@@ -359,119 +496,42 @@
         .step-number {
             width: 80px;
             height: 80px;
-            background: #e74c3c;
-            color: white;
+            background: var(--curry);
+            color: var(--white);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 2rem;
-            font-weight: bold;
+            font-weight: 700;
+            font-family: 'BaticaSans', sans-serif;
             margin: 0 auto 1rem;
         }
 
         .step h3 {
             font-size: 1.3rem;
             margin-bottom: 1rem;
-            color: #333;
+            color: var(--text-dark);
+            font-family: 'BaticaSans', sans-serif;
+            font-weight: 600;
         }
 
         .step p {
-            color: #666;
-        }
-
-        /* Help Section */
-        .help-section {
-            padding: 5rem 2rem;
-            background: #f8f9fa;
-        }
-
-        .help-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            text-align: center;
-        }
-
-        .help-title {
-            font-size: 2.5rem;
-            margin-bottom: 3rem;
-            color: #333;
-        }
-
-        .help-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 2rem;
-            margin-bottom: 3rem;
-        }
-
-        .help-item {
-            background: white;
-            padding: 2rem;
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-
-        .help-icon {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-        }
-
-        .help-item h3 {
-            font-size: 1.3rem;
-            margin-bottom: 1rem;
-            color: #333;
-        }
-
-        .meal-prep-info {
-            background: white;
-            padding: 3rem;
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            text-align: left;
-        }
-
-        .meal-prep-info h3 {
-            font-size: 2rem;
-            margin-bottom: 1.5rem;
-            color: #e74c3c;
-            text-align: center;
-        }
-
-        .meal-prep-features {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 1rem;
-            margin-top: 2rem;
-        }
-
-        .feature {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .feature-check {
-            color: #27ae60;
-            font-weight: bold;
+            color: var(--text-gray);
+            font-family: 'BaticaSans', sans-serif;
         }
 
         /* Responsive Design */
         @media (max-width: 768px) {
-            .nav-links {
-                display: none;
-            }
-
-            .hero-vertical-slider__image-columns-container {
+            .hero-container {
                 flex-direction: column;
-                padding: 1rem;
+                text-align: center;
             }
 
             .hero-content {
                 order: 1;
                 max-width: 100%;
                 padding: 2rem 1rem;
-                text-align: center;
             }
 
             .hero-content h1 {
@@ -495,6 +555,7 @@
 
             .video-container {
                 min-height: 120px;
+                font-size: 0.9rem;
             }
 
             .zip-input-container {
@@ -505,18 +566,24 @@
                 max-width: 100%;
             }
 
-            .menu-grid,
-            .steps-grid,
-            .help-grid {
+            .nav-links {
+                display: none;
+            }
+
+            .menu-grid {
                 grid-template-columns: 1fr;
             }
 
-            .meal-prep-features {
-                grid-template-columns: 1fr;
+            .steps-grid {
+                grid-template-columns: repeat(2, 1fr);
             }
         }
 
         @media (max-width: 480px) {
+            .steps-grid {
+                grid-template-columns: 1fr;
+            }
+            
             .hero-content h1 {
                 font-size: 2rem;
             }
@@ -527,116 +594,121 @@
             
             .video-container {
                 min-height: 100px;
+                font-size: 0.8rem;
             }
         }
     </style>
 </head>
+
 <body>
     <!-- Navigation -->
     <nav class="navbar">
-        <div class="nav-container">
-            <div class="logo">🍜 Thai Delights</div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem; max-width: 1200px; margin: 0 auto; width: 100%;">
+            <a href="#" class="logo">
+                <div class="logo-icon">ST</div>
+                <span class="logo-text">Somdul Table</span>
+            </a>
+            
             <ul class="nav-links">
-                <li><a href="#home">Home</a></li>
                 <li><a href="#menu">Menu</a></li>
                 <li><a href="#how-it-works">How It Works</a></li>
                 <li><a href="#about">About</a></li>
                 <li><a href="#contact">Contact</a></li>
             </ul>
-            <a href="#" class="cta-button">Get Started</a>
+            
+            <div class="nav-actions">
+                <a href="#" class="btn btn-secondary">Sign In</a>
+                <a href="#" class="btn btn-primary">Get Started</a>
+            </div>
         </div>
     </nav>
 
     <!-- Hero Vertical Slider -->
-    <section class="hero-vertical-slider" id="home" data-testid="hero-vertical-slider">
-        <div class="hero-vertical-slider__image-columns-container" data-testid="hero-vertical-slider-image-columns-container">
+    <section class="hero-section" id="home" data-testid="hero-vertical-slider">
+        <div class="hero-container" data-testid="hero-vertical-slider-image-columns-container">
             <div class="background"></div>
             
-            <!-- Left Side - Content -->
             <div class="hero-content">
-                <h1>Authentic Thai Flavors Delivered Fresh</h1>
-                <p>Experience the bold, vibrant tastes of Thailand with our chef-prepared meal prep service. Fresh ingredients, traditional recipes, delivered to your door.</p>
+                <h1>Fresh Thai Meals Delivered Daily</h1>
+                <p>Experience authentic Thai flavors crafted by expert chefs and delivered fresh to your door. Healthy, delicious, and perfectly spiced to your preference.</p>
                 
                 <div class="hero-form">
                     <div class="zip-input-container">
-                        <input type="text" class="zip-input" placeholder="Enter your ZIP code" maxlength="5">
+                        <input type="text" class="zip-input" placeholder="Enter your ZIP code">
                     </div>
-                    <a href="#" class="order-now-button">Order Now</a>
+                    <a href="#menu" class="order-now-button">View Menu</a>
                 </div>
-                
-                <p style="font-size: 0.9rem; color: #999; margin: 0;">Free delivery on orders over $50</p>
             </div>
-
-            <!-- Right Side - Video Columns -->
+            
             <div class="hero-videos">
                 <!-- Left Column - Sliding Up -->
                 <div class="image-column" data-testid="image-column">
                     <div class="image-slider-reverse">
                         <div class="video-container">
-                            <video autoplay loop playsinline muted preload="none" aria-hidden="true" tabindex="-1">
-                                <source src="data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAACKBtZGF0AAAC" type="video/mp4">
-                            </video>
+                            <span>Pad Thai</span>
                         </div>
                         <div class="video-container">
-                            <video autoplay loop playsinline muted preload="none" aria-hidden="true" tabindex="-1">
-                                <source src="data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAACKBtZGF0AAAC" type="video/mp4">
-                            </video>
+                            <span>Green Curry</span>
                         </div>
                         <div class="video-container">
-                            <video autoplay loop playsinline muted preload="none" aria-hidden="true" tabindex="-1">
-                                <source src="data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAACKBtZGF0AAAC" type="video/mp4">
-                            </video>
+                            <span>Tom Yum</span>
                         </div>
                         <div class="video-container">
-                            <video autoplay loop playsinline muted preload="none" aria-hidden="true" tabindex="-1">
-                                <source src="data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAACKBtZGF0AAAC" type="video/mp4">
-                            </video>
+                            <span>Massaman</span>
                         </div>
                         <div class="video-container">
-                            <video autoplay loop playsinline muted preload="none" aria-hidden="true" tabindex="-1">
-                                <source src="data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAACKBtZGF0AAAC" type="video/mp4">
-                            </video>
+                            <span>Som Tam</span>
                         </div>
                         <div class="video-container">
-                            <video autoplay loop playsinline muted preload="none" aria-hidden="true" tabindex="-1">
-                                <source src="data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAACKBtZGF0AAAC" type="video/mp4">
-                            </video>
+                            <span>Mango Rice</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Right Column - Sliding Down -->
+                <!-- Middle Column - Sliding Down -->
                 <div class="image-column" data-testid="image-column">
                     <div class="image-slider">
                         <div class="video-container">
-                            <video autoplay loop playsinline muted preload="none" aria-hidden="true" tabindex="-1">
-                                <source src="data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAACKBtZGF0AAAC" type="video/mp4">
-                            </video>
+                            <span>Larb</span>
                         </div>
                         <div class="video-container">
-                            <video autoplay loop playsinline muted preload="none" aria-hidden="true" tabindex="-1">
-                                <source src="data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAACKBtZGF0AAAC" type="video/mp4">
-                            </video>
+                            <span>Satay</span>
                         </div>
                         <div class="video-container">
-                            <video autoplay loop playsinline muted preload="none" aria-hidden="true" tabindex="-1">
-                                <source src="data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAACKBtZGF0AAAC" type="video/mp4">
-                            </video>
+                            <span>Panang</span>
                         </div>
                         <div class="video-container">
-                            <video autoplay loop playsinline muted preload="none" aria-hidden="true" tabindex="-1">
-                                <source src="data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAACKBtZGF0AAAC" type="video/mp4">
-                            </video>
+                            <span>Khao Pad</span>
                         </div>
                         <div class="video-container">
-                            <video autoplay loop playsinline muted preload="none" aria-hidden="true" tabindex="-1">
-                                <source src="data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAACKBtZGF0AAAC" type="video/mp4">
-                            </video>
+                            <span>Sticky Rice</span>
                         </div>
                         <div class="video-container">
-                            <video autoplay loop playsinline muted preload="none" aria-hidden="true" tabindex="-1">
-                                <source src="data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAACKBtZGF0AAAC" type="video/mp4">
-                            </video>
+                            <span>Thai Basil</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column - Sliding Up -->
+                <div class="image-column" data-testid="image-column">
+                    <div class="image-slider-reverse">
+                        <div class="video-container">
+                            <span>Red Curry</span>
+                        </div>
+                        <div class="video-container">
+                            <span>Drunken Noodles</span>
+                        </div>
+                        <div class="video-container">
+                            <span>Thai Fried Rice</span>
+                        </div>
+                        <div class="video-container">
+                            <span>Coconut Soup</span>
+                        </div>
+                        <div class="video-container">
+                            <span>Spring Rolls</span>
+                        </div>
+                        <div class="video-container">
+                            <span>Thai Tea</span>
                         </div>
                     </div>
                 </div>
@@ -647,7 +719,7 @@
     <!-- Menu Section -->
     <section class="menu-section" id="menu">
         <div class="menu-container">
-            <h2 style="text-align: center; font-size: 2.5rem; margin-bottom: 3rem; color: #333;">Our Thai Menu</h2>
+            <h2 style="text-align: center; font-size: 2.5rem; margin-bottom: 3rem; color: var(--text-dark); font-family: 'BaticaSans', sans-serif; font-weight: 700;">Our Thai Menu</h2>
             
             <div class="menu-nav">
                 <button class="active">Main Dishes</button>
@@ -658,7 +730,7 @@
 
             <div class="menu-grid">
                 <div class="menu-item">
-                    <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 250'><rect fill='%23ff6b35' width='400' height='250'/><text x='200' y='130' text-anchor='middle' fill='white' font-size='18' font-family='Arial'>Pad Thai</text></svg>" alt="Pad Thai">
+                    <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 250'><rect fill='%23ff6b35' width='400' height='250'/><text x='200' y='130' text-anchor='middle' fill='white' font-size='18' font-family='BaticaSans, Arial'>Pad Thai</text></svg>" alt="Pad Thai">
                     <div class="menu-item-content">
                         <h3>Classic Pad Thai</h3>
                         <p>Traditional stir-fried rice noodles with shrimp, tofu, bean sprouts, and our signature tamarind sauce</p>
@@ -667,7 +739,7 @@
                 </div>
 
                 <div class="menu-item">
-                    <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 250'><rect fill='%23e74c3c' width='400' height='250'/><text x='200' y='130' text-anchor='middle' fill='white' font-size='18' font-family='Arial'>Green Curry</text></svg>" alt="Green Curry">
+                    <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 250'><rect fill='%23e74c3c' width='400' height='250'/><text x='200' y='130' text-anchor='middle' fill='white' font-size='18' font-family='BaticaSans, Arial'>Green Curry</text></svg>" alt="Green Curry">
                     <div class="menu-item-content">
                         <h3>Thai Green Curry</h3>
                         <p>Aromatic green curry with chicken, Thai eggplant, bamboo shoots, and fresh basil leaves</p>
@@ -676,7 +748,7 @@
                 </div>
 
                 <div class="menu-item">
-                    <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 250'><rect fill='%23f39c12' width='400' height='250'/><text x='200' y='130' text-anchor='middle' fill='white' font-size='18' font-family='Arial'>Massaman Curry</text></svg>" alt="Massaman Curry">
+                    <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 250'><rect fill='%23f39c12' width='400' height='250'/><text x='200' y='130' text-anchor='middle' fill='white' font-size='18' font-family='BaticaSans, Arial'>Massaman Curry</text></svg>" alt="Massaman Curry">
                     <div class="menu-item-content">
                         <h3>Massaman Beef Curry</h3>
                         <p>Rich and mild curry with tender beef, potatoes, and roasted peanuts in coconut milk</p>
@@ -685,7 +757,7 @@
                 </div>
 
                 <div class="menu-item">
-                    <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 250'><rect fill='%2327ae60' width='400' height='250'/><text x='200' y='130' text-anchor='middle' fill='white' font-size='18' font-family='Arial'>Som Tam</text></svg>" alt="Som Tam">
+                    <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 250'><rect fill='%2327ae60' width='400' height='250'/><text x='200' y='130' text-anchor='middle' fill='white' font-size='18' font-family='BaticaSans, Arial'>Som Tam</text></svg>" alt="Som Tam">
                     <div class="menu-item-content">
                         <h3>Papaya Salad (Som Tam)</h3>
                         <p>Fresh green papaya salad with tomatoes, green beans, and lime dressing</p>
@@ -694,7 +766,7 @@
                 </div>
 
                 <div class="menu-item">
-                    <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 250'><rect fill='%239b59b6' width='400' height='250'/><text x='200' y='130' text-anchor='middle' fill='white' font-size='18' font-family='Arial'>Tom Yum</text></svg>" alt="Tom Yum">
+                    <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 250'><rect fill='%239b59b6' width='400' height='250'/><text x='200' y='130' text-anchor='middle' fill='white' font-size='18' font-family='BaticaSans, Arial'>Tom Yum</text></svg>" alt="Tom Yum">
                     <div class="menu-item-content">
                         <h3>Tom Yum Goong</h3>
                         <p>Spicy and sour soup with shrimp, mushrooms, lemongrass, and lime leaves</p>
@@ -703,7 +775,7 @@
                 </div>
 
                 <div class="menu-item">
-                    <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 250'><rect fill='%2334495e' width='400' height='250'/><text x='200' y='130' text-anchor='middle' fill='white' font-size='18' font-family='Arial'>Mango Sticky Rice</text></svg>" alt="Mango Sticky Rice">
+                    <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 250'><rect fill='%2334495e' width='400' height='250'/><text x='200' y='130' text-anchor='middle' fill='white' font-size='18' font-family='BaticaSans, Arial'>Mango Sticky Rice</text></svg>" alt="Mango Sticky Rice">
                     <div class="menu-item-content">
                         <h3>Mango Sticky Rice</h3>
                         <p>Sweet sticky rice topped with fresh mango slices and coconut cream</p>
@@ -736,103 +808,45 @@
                 </div>
                 <div class="step">
                     <div class="step-number">4</div>
-                    <h3>Delivery & Pay</h3>
-                    <p>Choose your delivery date and pay securely. Your fresh Thai meals arrive chilled and ready to heat</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Help Section -->
-    <section class="help-section">
-        <div class="help-container">
-            <h2 class="help-title">What Are You Looking For?</h2>
-            <div class="help-grid">
-                <div class="help-item">
-                    <div class="help-icon">🍽️</div>
-                    <h3>Meal Plans</h3>
-                    <p>Flexible weekly plans that adapt to your schedule and appetite</p>
-                </div>
-                <div class="help-item">
-                    <div class="help-icon">🌶️</div>
-                    <h3>Spice Levels</h3>
-                    <p>Customize heat levels from mild to authentic Thai spicy</p>
-                </div>
-                <div class="help-item">
-                    <div class="help-icon">🚚</div>
-                    <h3>Delivery Info</h3>
-                    <p>Free delivery on orders over $50, with flexible scheduling options</p>
-                </div>
-            </div>
-
-            <div class="meal-prep-info">
-                <h3>About Our Thai Meal Prep Service</h3>
-                <p>Thai Delights brings the authentic flavors of Thailand to your table with our premium meal prep service. Our experienced Thai chefs prepare each dish using traditional recipes and the finest imported ingredients, ensuring every bite delivers the perfect balance of sweet, sour, salty, and spicy flavors that Thai cuisine is famous for.</p>
-                
-                <div class="meal-prep-features">
-                    <div class="feature">
-                        <span class="feature-check">✓</span>
-                        <span>Authentic Thai recipes from Bangkok chefs</span>
-                    </div>
-                    <div class="feature">
-                        <span class="feature-check">✓</span>
-                        <span>Fresh ingredients delivered weekly</span>
-                    </div>
-                    <div class="feature">
-                        <span class="feature-check">✓</span>
-                        <span>No artificial preservatives or MSG</span>
-                    </div>
-                    <div class="feature">
-                        <span class="feature-check">✓</span>
-                        <span>Customizable spice levels</span>
-                    </div>
-                    <div class="feature">
-                        <span class="feature-check">✓</span>
-                        <span>Gluten-free and vegan options available</span>
-                    </div>
-                    <div class="feature">
-                        <span class="feature-check">✓</span>
-                        <span>Ready in 3 minutes - just heat and eat</span>
-                    </div>
-                    <div class="feature">
-                        <span class="feature-check">✓</span>
-                        <span>Environmentally friendly packaging</span>
-                    </div>
-                    <div class="feature">
-                        <span class="feature-check">✓</span>
-                        <span>Cancel or pause anytime</span>
-                    </div>
+                    <h3>Delivery & Enjoy</h3>
+                    <p>Choose your delivery date and pay securely. Fresh meals delivered right to your door!</p>
                 </div>
             </div>
         </div>
     </section>
 
     <script>
-        // Menu Navigation
-        const menuButtons = document.querySelectorAll('.menu-nav button');
-        
-        menuButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                menuButtons.forEach(btn => btn.classList.remove('active'));
-                this.classList.add('active');
-                
-                // Here you could add logic to filter menu items based on category
-                // For this demo, we'll just show the category change
-                console.log('Category selected:', this.textContent);
+        // Menu navigation functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const menuButtons = document.querySelectorAll('.menu-nav button');
+            
+            menuButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // Remove active class from all buttons
+                    menuButtons.forEach(btn => btn.classList.remove('active'));
+                    // Add active class to clicked button
+                    this.classList.add('active');
+                });
             });
         });
 
         // Smooth scrolling for navigation links
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                const target = document.querySelector(this.getAttribute('href'));
-                if (target) {
-                    target.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
-                }
+        document.addEventListener('DOMContentLoaded', function() {
+            const navLinks = document.querySelectorAll('a[href^="#"]');
+            
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute('href');
+                    const targetSection = document.querySelector(targetId);
+                    
+                    if (targetSection) {
+                        targetSection.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
+                });
             });
         });
 
@@ -844,64 +858,6 @@
             } else {
                 navbar.style.background = 'rgba(255, 255, 255, 0.95)';
             }
-        });
-
-        // Create placeholder video content for demo
-        document.addEventListener('DOMContentLoaded', function() {
-            const videos = document.querySelectorAll('.video-container');
-            
-            videos.forEach((container, index) => {
-                // Create colored placeholder backgrounds to simulate Thai food videos
-                const colors = ['#ff6b35', '#e74c3c', '#f39c12', '#27ae60', '#9b59b6', '#34495e'];
-                const foodItems = ['Pad Thai', 'Green Curry', 'Tom Yum', 'Som Tam', 'Massaman', 'Mango Rice'];
-                
-                const colorIndex = index % colors.length;
-                const foodIndex = index % foodItems.length;
-                
-                container.style.background = `linear-gradient(45deg, ${colors[colorIndex]}, ${colors[(colorIndex + 1) % colors.length]})`;
-                container.innerHTML = `
-                    <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: white; font-size: 1.2rem; font-weight: bold; text-align: center; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
-                        ${foodItems[foodIndex]}<br>
-                        <span style="font-size: 0.9rem; opacity: 0.8;">Thai Cuisine</span>
-                    </div>
-                `;
-            });
-
-            // ZIP code input functionality
-            const zipInput = document.querySelector('.zip-input');
-            const orderButton = document.querySelector('.order-now-button');
-
-            zipInput.addEventListener('input', function(e) {
-                // Only allow numbers and limit to 5 digits
-                let value = e.target.value.replace(/\D/g, '');
-                if (value.length > 5) {
-                    value = value.slice(0, 5);
-                }
-                e.target.value = value;
-
-                // Update button state based on ZIP code validity
-                if (value.length === 5) {
-                    orderButton.style.opacity = '1';
-                    orderButton.style.pointerEvents = 'auto';
-                } else {
-                    orderButton.style.opacity = '0.7';
-                    orderButton.style.pointerEvents = 'auto';
-                }
-            });
-
-            // Order Now button click handler
-            orderButton.addEventListener('click', function(e) {
-                e.preventDefault();
-                const zipCode = zipInput.value;
-                
-                if (zipCode.length === 5) {
-                    alert(`Great! We deliver to ${zipCode}. Redirecting to our menu...`);
-                    // Here you would normally redirect to the menu/ordering page
-                } else {
-                    alert('Please enter a valid 5-digit ZIP code to check delivery availability.');
-                    zipInput.focus();
-                }
-            });
         });
     </script>
 </body>
