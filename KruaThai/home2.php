@@ -1068,14 +1068,14 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
 
             
             <ul class="nav-links">
-                <li><a href="#menu">Menu</a></li>
+                <li><a href="./menus.php">Menu</a></li>
                 <li><a href="#how-it-works">How It Works</a></li>
                 <li><a href="#about">About</a></li>
                 <li><a href="#contact">Contact</a></li>
             </ul>
             
             <div class="nav-actions">
-                <a href="#" class="btn btn-secondary">Sign In</a>
+                <a href="login.php" class="btn btn-secondary">Sign In</a>
                 <a href="#" class="btn btn-primary">Get Started</a>
             </div>
         </div>
@@ -1094,7 +1094,7 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
                     <div class="zip-input-container">
                         <input type="text" class="zip-input" placeholder="Enter your ZIP code">
                     </div>
-                    <a href="#menu" class="order-now-button">View Menu</a>
+                    <a href="./menus.php" class="order-now-button">View Menu</a>
                 </div>
             </div>
             

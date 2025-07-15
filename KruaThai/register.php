@@ -1,6 +1,6 @@
 <?php
 /**
- * Krua Thai - User Registration Page
+ * Somdul Table - User Registration Page
  * File: register.php
  * Description: Complete registration form with validation and email verification
  */
@@ -74,7 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (empty($form_data['phone'])) {
         $errors[] = "Phone number is required";
     } elseif (!validatePhone($form_data['phone'])) {
-        $errors[] = "Please enter a valid Thai phone number (e.g., 0812345678)";
+        $errors[] = "Please enter a valid phone number (e.g., +1234567890)";
     }
 
     if (empty($form_data['password'])) {
@@ -164,7 +164,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             if ($email_sent) {
                 $success_message = "Registration successful! Please check your email (" . $user->email . ") for a verification link to activate your account.";
             } else {
-                $success_message = "Registration successful! However, we couldn't send the verification email. Please contact our support team at support@kruathai.com";
+                $success_message = "Registration successful! However, we couldn't send the verification email. Please contact our support team at support@somdultable.com";
             }
             
             // Clear form data on success
@@ -182,43 +182,92 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Join Krua Thai - Healthy Thai Meals Delivered</title>
-    <meta name="description" content="Join Krua Thai for authentic, healthy Thai meals delivered to your door. Fresh ingredients, traditional recipes, modern nutrition.">
+    <title>Join Somdul Table - Authentic Thai Meals Delivered</title>
+    <meta name="description" content="Join Somdul Table for authentic, healthy Thai meals delivered to your door. Fresh ingredients, traditional recipes, modern nutrition.">
     <meta name="keywords" content="Thai food delivery, healthy meals, authentic Thai cuisine, meal subscription">
+    
+    <!-- BaticaSans Font Import -->
+    <link rel="preconnect" href="https://ydpschool.com">
     <style>
+        /* BaticaSans Font Family */
+        @font-face {
+            font-family: 'BaticaSans';
+            src: url('https://ydpschool.com/fonts/BaticaSans-Regular.woff2') format('woff2'),
+                 url('https://ydpschool.com/fonts/BaticaSans-Regular.woff') format('woff'),
+                 url('https://ydpschool.com/fonts/BaticaSans-Regular.ttf') format('truetype');
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+        
+        @font-face {
+            font-family: 'BaticaSans';
+            src: url('https://ydpschool.com/fonts/BaticaSans-Bold.woff2') format('woff2'),
+                 url('https://ydpschool.com/fonts/BaticaSans-Bold.woff') format('woff'),
+                 url('https://ydpschool.com/fonts/BaticaSans-Bold.ttf') format('truetype');
+            font-weight: 700;
+            font-style: normal;
+            font-display: swap;
+        }
+        
+        @font-face {
+            font-family: 'BaticaSans';
+            src: url('https://ydpschool.com/fonts/BaticaSans-Medium.woff2') format('woff2'),
+                 url('https://ydpschool.com/fonts/BaticaSans-Medium.woff') format('woff'),
+                 url('https://ydpschool.com/fonts/BaticaSans-Medium.ttf') format('truetype');
+            font-weight: 500;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        /* CSS Custom Properties - Matching Somdul Table Design System */
+        :root {
+            --brown: #bd9379;
+            --cream: #ece8e1;
+            --sage: #adb89d;
+            --curry: #cf723a;
+            --white: #ffffff;
+            --text-dark: #2c3e50;
+            --text-gray: #7f8c8d;
+            --border-light: #e8e8e8;
+            --shadow-soft: 0 4px 12px rgba(189, 147, 121, 0.15);
+            --shadow-medium: 0 8px 24px rgba(189, 147, 121, 0.25);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --success: #28a745;
+            --warning: #ffc107;
+            --danger: #dc3545;
+            --info: #17a2b8;
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
-        :root {
-            --olive: #3d4028;
-            --matcha: #4e4f22;
-            --brown: #866028;
-            --cream: #d1b990;
-            --light-cream: #f5ede4;
-            --white: #ffffff;
-            --gray: #6c757d;
-            --light-gray: #f8f9fa;
-            --success: #28a745;
-            --warning: #ffc107;
-            --danger: #dc3545;
-            --info: #17a2b8;
-            --shadow: rgba(61, 64, 40, 0.1);
-        }
-
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif;
+            font-family: 'BaticaSans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             line-height: 1.6;
-            color: var(--olive);
-            background: linear-gradient(135deg, var(--light-cream) 0%, #f9f5ed 100%);
+            color: var(--text-dark);
+            background: linear-gradient(135deg, var(--cream) 0%, #f8f9fa 100%);
             min-height: 100vh;
             font-size: 16px;
+            font-weight: 400;
+        }
+
+        /* Typography using BaticaSans */
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'BaticaSans', sans-serif;
+            font-weight: 700;
+            line-height: 1.2;
+            color: var(--text-dark);
         }
 
         .container {
-            max-width: 480px;
+            max-width: 500px;
             margin: 0 auto;
             padding: 0 20px;
             min-height: 100vh;
@@ -226,94 +275,148 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             flex-direction: column;
         }
 
-        /* Header */
-        .header {
-            padding: 1.5rem 0 1rem;
+        /* Back to Home Link */
+        .back-to-home {
+            position: fixed;
+            top: 2rem;
+            left: 2rem;
+            z-index: 1000;
+        }
+
+        .back-to-home a {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--curry);
+            text-decoration: none;
+            font-weight: 600;
+            font-family: 'BaticaSans', sans-serif;
+            background: var(--white);
+            padding: 0.8rem 1.2rem;
+            border-radius: 50px;
+            box-shadow: var(--shadow-soft);
+            transition: var(--transition);
+            border: 2px solid var(--curry);
+        }
+
+        .back-to-home a:hover {
+            background: var(--curry);
+            color: var(--white);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-medium);
+        }
+
+        /* Registration Container */
+        .register-container {
+            background: var(--white);
+            border-radius: 20px;
+            box-shadow: var(--shadow-medium);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            width: 100%;
+            max-width: 500px;
+            margin: 2rem auto;
+            overflow: hidden;
+            flex: 1;
+        }
+
+        .register-header {
+            background: linear-gradient(135deg, var(--curry) 0%, var(--brown) 100%);
+            padding: 2.5rem 2rem 2rem;
             text-align: center;
+            color: var(--white);
+            position: relative;
+        }
+
+        .register-header::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 60%;
+            height: 100%;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="70" cy="30" r="15" fill="rgba(255,255,255,0.1)"/><circle cx="85" cy="60" r="8" fill="rgba(255,255,255,0.05)"/><circle cx="60" cy="75" r="12" fill="rgba(255,255,255,0.08)"/></svg>');
+            background-size: 200px 200px;
+            opacity: 0.3;
         }
 
         .logo {
             display: inline-flex;
             align-items: center;
             gap: 0.8rem;
-            color: var(--olive);
-            text-decoration: none;
             margin-bottom: 1rem;
+            position: relative;
+            z-index: 1;
+            text-decoration: none;
+            color: inherit;
+            transition: var(--transition);
+            cursor: pointer;
+        }
+
+        .logo:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.1);
         }
 
         .logo-icon {
-            width: 45px;
-            height: 45px;
+            width: 50px;
+            height: 50px;
             background: linear-gradient(135deg, var(--white), var(--cream));
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 4px 15px var(--shadow);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
             border: 2px solid rgba(255, 255, 255, 0.8);
-            position: relative;
-        }
-
-        .rice-grain {
-            width: 10px;
-            height: 18px;
-            background: linear-gradient(180deg, var(--olive), var(--matcha));
-            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
-            transform: rotate(-3deg);
-            box-shadow: inset 1px 0 2px rgba(255, 255, 255, 0.3);
         }
 
         .logo-text {
-            font-size: 1.8rem;
+            font-size: 2rem;
             font-weight: 700;
             letter-spacing: -0.5px;
+            font-family: 'BaticaSans', sans-serif;
         }
 
-        .welcome-text {
-            color: var(--gray);
-            font-size: 1rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .tagline {
-            color: var(--olive);
+        .register-subtitle {
             font-size: 1.1rem;
-            font-weight: 600;
+            opacity: 0.9;
+            font-weight: 400;
+            position: relative;
+            z-index: 1;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         /* Form Container */
-        .form-container {
-            background: var(--white);
-            border-radius: 20px;
-            padding: 2rem;
-            margin: 1rem 0;
-            box-shadow: 0 8px 30px var(--shadow);
-            border: 1px solid rgba(255, 255, 255, 0.8);
-            flex: 1;
+        .register-form {
+            padding: 2.5rem 2rem;
+            max-height: 70vh;
+            overflow-y: auto;
         }
 
         .form-title {
-            font-size: 1.4rem;
+            font-size: 1.5rem;
             font-weight: 700;
-            color: var(--olive);
+            color: var(--text-dark);
             margin-bottom: 0.5rem;
             text-align: center;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .form-subtitle {
-            color: var(--gray);
+            color: var(--text-gray);
             text-align: center;
             margin-bottom: 2rem;
             font-size: 0.95rem;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         /* Alerts */
         .alert {
             padding: 1rem;
-            border-radius: 12px;
+            border-radius: var(--radius-md);
             margin-bottom: 1.5rem;
             font-weight: 500;
             border: 2px solid;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .alert-success {
@@ -348,12 +451,31 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             gap: 1rem;
         }
 
+        fieldset {
+            border: none;
+            padding: 0;
+            margin: 2rem 0 0 0;
+        }
+
+        fieldset:first-of-type {
+            margin-top: 0;
+        }
+
+        legend {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 1rem;
+            font-family: 'BaticaSans', sans-serif;
+        }
+
         label {
             display: block;
             margin-bottom: 0.5rem;
             font-weight: 600;
-            color: var(--olive);
+            color: var(--text-dark);
             font-size: 0.95rem;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .required {
@@ -369,23 +491,23 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         textarea {
             width: 100%;
             padding: 1rem 1.2rem;
-            border: 2px solid #e9ecef;
-            border-radius: 12px;
+            border: 2px solid var(--border-light);
+            border-radius: var(--radius-md);
             font-size: 1rem;
-            transition: all 0.3s ease;
+            transition: var(--transition);
             background: var(--white);
-            color: var(--olive);
+            color: var(--text-dark);
+            font-family: 'BaticaSans', sans-serif;
             -webkit-appearance: none;
             appearance: none;
-            font-family: inherit;
         }
 
         input:focus,
         select:focus,
         textarea:focus {
             outline: none;
-            border-color: var(--brown);
-            box-shadow: 0 0 0 3px rgba(134, 96, 40, 0.1);
+            border-color: var(--curry);
+            box-shadow: 0 0 0 3px rgba(207, 114, 58, 0.1);
             transform: translateY(-1px);
         }
 
@@ -411,6 +533,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         textarea {
             resize: vertical;
             min-height: 80px;
+        }
+
+        small {
+            color: var(--text-gray);
+            font-size: 0.85rem;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         /* Password Strength */
@@ -447,7 +575,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         .strength-text {
             font-size: 0.85rem;
-            color: var(--gray);
+            color: var(--text-gray);
+            font-family: 'BaticaSans', sans-serif;
         }
 
         /* Checkbox Groups */
@@ -463,16 +592,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             align-items: center;
             gap: 0.5rem;
             padding: 0.6rem 1rem;
-            background: var(--light-cream);
+            background: rgba(189, 147, 121, 0.05);
             border-radius: 25px;
             border: 2px solid transparent;
-            transition: all 0.3s ease;
+            transition: var(--transition);
             cursor: pointer;
             font-size: 0.9rem;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .checkbox-item:hover {
-            border-color: var(--cream);
+            background: rgba(189, 147, 121, 0.1);
             transform: translateY(-1px);
         }
 
@@ -480,16 +610,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             width: auto;
             margin: 0;
             transform: scale(1.1);
-        }
-
-        .checkbox-item input[type="checkbox"]:checked {
-            accent-color: var(--brown);
+            accent-color: var(--curry);
         }
 
         .checkbox-item.checked {
-            background: var(--brown);
+            background: var(--curry);
             color: var(--white);
-            border-color: var(--brown);
+            border-color: var(--curry);
         }
 
         /* Terms Checkbox */
@@ -499,31 +626,32 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             gap: 0.8rem;
             margin: 1.5rem 0;
             padding: 1rem;
-            background: rgba(61, 64, 40, 0.05);
-            border-radius: 12px;
+            background: rgba(207, 114, 58, 0.05);
+            border-radius: var(--radius-md);
             border: 2px solid transparent;
-            transition: all 0.3s ease;
+            transition: var(--transition);
         }
 
         .terms-checkbox:hover {
-            border-color: rgba(61, 64, 40, 0.1);
+            background: rgba(207, 114, 58, 0.08);
         }
 
         .terms-checkbox input[type="checkbox"] {
             width: auto;
             margin-top: 0.2rem;
             transform: scale(1.2);
-            accent-color: var(--brown);
+            accent-color: var(--curry);
         }
 
         .terms-text {
             font-size: 0.9rem;
-            color: var(--gray);
+            color: var(--text-gray);
             line-height: 1.5;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .terms-text a {
-            color: var(--brown);
+            color: var(--curry);
             text-decoration: none;
             font-weight: 600;
             border-bottom: 1px solid transparent;
@@ -531,12 +659,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
 
         .terms-text a:hover {
-            border-bottom-color: var(--brown);
+            border-bottom-color: var(--curry);
         }
 
         /* Buttons */
         .btn-primary {
-            background: linear-gradient(45deg, var(--brown), #a67c00);
+            background: linear-gradient(135deg, var(--curry), var(--brown));
             color: var(--white);
             padding: 1.2rem 2rem;
             border: none;
@@ -545,23 +673,46 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             font-weight: 700;
             font-size: 1.1rem;
             width: 100%;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(134, 96, 40, 0.3);
+            transition: var(--transition);
+            box-shadow: var(--shadow-soft);
             margin-top: 1rem;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .btn-primary:hover:not(:disabled) {
-            background: linear-gradient(45deg, #a67c00, var(--brown));
+            background: linear-gradient(135deg, var(--brown), var(--curry));
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(134, 96, 40, 0.4);
+            box-shadow: var(--shadow-medium);
         }
 
         .btn-primary:disabled {
-            background: var(--gray);
+            background: var(--text-gray);
             cursor: not-allowed;
             transform: none;
             box-shadow: none;
             opacity: 0.7;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--curry);
+            padding: 0.8rem 1.5rem;
+            border: 2px solid var(--curry);
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
+            transition: var(--transition);
+            font-size: 0.9rem;
+            font-family: 'BaticaSans', sans-serif;
+        }
+
+        .btn-secondary:hover {
+            background: var(--curry);
+            color: var(--white);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-soft);
         }
 
         /* Login Link */
@@ -569,12 +720,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             text-align: center;
             margin-top: 2rem;
             padding-top: 2rem;
-            border-top: 1px solid #e9ecef;
-            color: var(--gray);
+            border-top: 1px solid var(--border-light);
+            color: var(--text-gray);
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .login-link a {
-            color: var(--brown);
+            color: var(--curry);
             text-decoration: none;
             font-weight: 600;
             border-bottom: 1px solid transparent;
@@ -582,7 +734,28 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
 
         .login-link a:hover {
-            border-bottom-color: var(--brown);
+            border-bottom-color: var(--curry);
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 2rem 0;
+            color: var(--text-gray);
+            font-size: 0.9rem;
+            font-family: 'BaticaSans', sans-serif;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border-light);
+        }
+
+        .divider span {
+            padding: 0 1rem;
         }
 
         /* Loading State */
@@ -611,6 +784,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
 
         /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .back-to-home {
+                top: 1rem;
+                left: 1rem;
+            }
+            
+            .back-to-home a {
+                padding: 0.6rem 1rem;
+                font-size: 0.9rem;
+            }
+        }
+
         @media (max-width: 600px) {
             .form-row {
                 grid-template-columns: 1fr;
@@ -620,9 +805,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 padding: 0 15px;
             }
             
-            .form-container {
-                padding: 1.5rem;
-                margin: 0.5rem 0;
+            .register-container {
+                margin: 1rem auto;
+            }
+            
+            .register-form {
+                padding: 2rem 1.5rem;
+            }
+            
+            .register-header {
+                padding: 2rem 1.5rem 1.5rem;
+            }
+            
+            .logo-text {
+                font-size: 1.6rem;
+            }
+            
+            .form-title {
+                font-size: 1.3rem;
             }
             
             .checkbox-group {
@@ -640,18 +840,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         select:focus-visible,
         textarea:focus-visible,
         button:focus-visible {
-            outline: 2px solid var(--brown);
+            outline: 2px solid var(--curry);
             outline-offset: 2px;
         }
 
         /* High contrast mode support */
         @media (prefers-contrast: high) {
-            :root {
-                --shadow: rgba(0, 0, 0, 0.3);
-            }
-            
-            .form-container {
-                border: 2px solid var(--olive);
+            .register-container {
+                border: 2px solid var(--text-dark);
             }
         }
 
@@ -668,325 +864,345 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     </style>
 </head>
 <body>
+    <!-- Back to Home Link -->
+    <div class="back-to-home">
+        <a href="home2.php">
+            <span>←</span>
+            <span>Back to Home</span>
+        </a>
+    </div>
+
     <div class="container">
-        <div class="header">
-            <a href="index.php" class="logo">
-                <div class="logo-icon">
-                    <div class="rice-grain"></div>
+        <div class="register-container">
+            <!-- Header -->
+            <div class="register-header">
+                <a href="home2.php" class="logo">
+                    <img src="./assets/image/LOGO_BG.png" alt="Somdul Table" style="height: 50px; width: auto; border-radius: 50%;">
+                    <span class="logo-text">Somdul Table</span>
+                </a>
+                <p class="register-subtitle">Join the authentic Thai cuisine experience</p>
+            </div>
+
+            <!-- Form -->
+            <div class="register-form">
+                <h1 class="form-title">Join Somdul Table</h1>
+                <p class="form-subtitle">Start your healthy Thai meal journey today</p>
+
+                <?php if (!empty($errors)): ?>
+                    <div class="alert alert-error" role="alert" aria-live="polite">
+                        <strong>Please correct the following errors:</strong>
+                        <ul>
+                            <?php foreach ($errors as $error): ?>
+                                <li><?php echo htmlspecialchars($error); ?></li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </div>
+                <?php endif; ?>
+
+                <?php if ($success_message): ?>
+                    <div class="alert alert-success" role="alert" aria-live="polite">
+                        <strong>✅ Success!</strong><br>
+                        <?php echo htmlspecialchars($success_message); ?>
+                        <br><br>
+                        <strong>Next steps:</strong>
+                        <ol style="margin: 10px 0 0 20px;">
+                            <li>Check your email inbox (and spam folder)</li>
+                            <li>Click the verification link</li>
+                            <li>Start ordering healthy Thai meals!</li>
+                        </ol>
+                        <p style="margin-top: 15px;">
+                            <a href="login.php" style="color: var(--curry); font-weight: 600;">Already verified? Sign in here →</a>
+                        </p>
+                    </div>
+                <?php else: ?>
+
+                <form method="POST" action="" id="registrationForm" novalidate>
+                    <!-- Personal Information -->
+                    <fieldset>
+                        <legend>Personal Information</legend>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="first_name">First Name <span class="required">*</span></label>
+                                <input type="text" 
+                                       id="first_name" 
+                                       name="first_name" 
+                                       required 
+                                       autocomplete="given-name"
+                                       value="<?php echo htmlspecialchars($form_data['first_name'] ?? ''); ?>"
+                                       aria-describedby="first_name_help">
+                                <small id="first_name_help">Your first name as you'd like it to appear</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="last_name">Last Name <span class="required">*</span></label>
+                                <input type="text" 
+                                       id="last_name" 
+                                       name="last_name" 
+                                       required 
+                                       autocomplete="family-name"
+                                       value="<?php echo htmlspecialchars($form_data['last_name'] ?? ''); ?>">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="email">Email Address <span class="required">*</span></label>
+                            <input type="email" 
+                                   id="email" 
+                                   name="email" 
+                                   required 
+                                   autocomplete="email"
+                                   value="<?php echo htmlspecialchars($form_data['email'] ?? ''); ?>"
+                                   aria-describedby="email_help">
+                            <small id="email_help">We'll send order updates and verification to this email</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="phone">Phone Number <span class="required">*</span></label>
+                            <input type="tel" 
+                                   id="phone" 
+                                   name="phone" 
+                                   placeholder="+1234567890" 
+                                   required 
+                                   autocomplete="tel"
+                                   value="<?php echo htmlspecialchars($form_data['phone'] ?? ''); ?>"
+                                   aria-describedby="phone_help">
+                            <small id="phone_help">Phone number for delivery coordination</small>
+                        </div>
+                    </fieldset>
+
+                    <!-- Password Section -->
+                    <fieldset>
+                        <legend>Account Security</legend>
+                        
+                        <div class="form-group">
+                            <label for="password">Password <span class="required">*</span></label>
+                            <input type="password" 
+                                   id="password" 
+                                   name="password" 
+                                   required 
+                                   autocomplete="new-password"
+                                   aria-describedby="password_help">
+                            <div class="password-strength" id="passwordStrength">
+                                <div class="strength-bars">
+                                    <div class="strength-bar"></div>
+                                    <div class="strength-bar"></div>
+                                    <div class="strength-bar"></div>
+                                    <div class="strength-bar"></div>
+                                </div>
+                                <div class="strength-text" id="strengthText">Enter a password</div>
+                            </div>
+                            <small id="password_help">At least 8 characters with uppercase, lowercase, and number</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="confirm_password">Confirm Password <span class="required">*</span></label>
+                            <input type="password" 
+                                   id="confirm_password" 
+                                   name="confirm_password" 
+                                   required 
+                                   autocomplete="new-password"
+                                   aria-describedby="confirm_password_help">
+                            <small id="confirm_password_help">Repeat your password to confirm</small>
+                        </div>
+                    </fieldset>
+
+                    <!-- Optional Information -->
+                    <fieldset>
+                        <legend>Additional Information <span style="font-weight: normal; color: var(--text-gray);">(Optional)</span></legend>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="date_of_birth">Date of Birth</label>
+                                <input type="date" 
+                                       id="date_of_birth" 
+                                       name="date_of_birth" 
+                                       autocomplete="bday"
+                                       value="<?php echo htmlspecialchars($form_data['date_of_birth'] ?? ''); ?>"
+                                       max="<?php echo date('Y-m-d', strtotime('-13 years')); ?>">
+                            </div>
+                            <div class="form-group">
+                                <label for="gender">Gender</label>
+                                <select id="gender" name="gender" autocomplete="sex">
+                                    <option value="">Select Gender</option>
+                                    <option value="male" <?php echo (($form_data['gender'] ?? '') == 'male') ? 'selected' : ''; ?>>Male</option>
+                                    <option value="female" <?php echo (($form_data['gender'] ?? '') == 'female') ? 'selected' : ''; ?>>Female</option>
+                                    <option value="other" <?php echo (($form_data['gender'] ?? '') == 'other') ? 'selected' : ''; ?>>Other</option>
+                                </select>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <!-- Delivery Information -->
+                    <fieldset>
+                        <legend>Delivery Information</legend>
+                        
+                        <div class="form-group">
+                            <label for="delivery_address">Delivery Address <span class="required">*</span></label>
+                            <textarea id="delivery_address" 
+                                      name="delivery_address" 
+                                      rows="3" 
+                                      required 
+                                      autocomplete="street-address"
+                                      placeholder="Enter your complete delivery address including building name, room number, and any landmarks"
+                                      aria-describedby="address_help"><?php echo htmlspecialchars($form_data['delivery_address'] ?? ''); ?></textarea>
+                            <small id="address_help">Please provide a detailed address for accurate delivery</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="address_line_2">Address Line 2</label>
+                            <input type="text" 
+                                   id="address_line_2" 
+                                   name="address_line_2" 
+                                   placeholder="Apartment, suite, unit, building, floor, etc."
+                                   autocomplete="address-line2"
+                                   value="<?php echo htmlspecialchars($form_data['address_line_2'] ?? ''); ?>">
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="city">City</label>
+                                <input type="text" 
+                                       id="city" 
+                                       name="city" 
+                                       autocomplete="address-level2"
+                                       placeholder="e.g., New York"
+                                       value="<?php echo htmlspecialchars($form_data['city'] ?? ''); ?>">
+                            </div>
+                            <div class="form-group">
+                                <label for="state">State/Province</label>
+                                <input type="text" 
+                                       id="state" 
+                                       name="state" 
+                                       autocomplete="address-level1"
+                                       placeholder="e.g., NY"
+                                       value="<?php echo htmlspecialchars($form_data['state'] ?? ''); ?>">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="zip_code">ZIP Code <span class="required">*</span></label>
+                            <input type="text" 
+                                   id="zip_code" 
+                                   name="zip_code" 
+                                   placeholder="12345" 
+                                   required 
+                                   autocomplete="postal-code"
+                                   maxlength="5"
+                                   pattern="\d{5}"
+                                   value="<?php echo htmlspecialchars($form_data['zip_code'] ?? ''); ?>"
+                                   aria-describedby="zip_help">
+                            <small id="zip_help">5-digit US postal code</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="delivery_instructions">Delivery Instructions</label>
+                            <textarea id="delivery_instructions" 
+                                      name="delivery_instructions" 
+                                      rows="2" 
+                                      placeholder="Special delivery instructions, access codes, or notes for the delivery person"
+                                      maxlength="500"><?php echo htmlspecialchars($form_data['delivery_instructions'] ?? ''); ?></textarea>
+                        </div>
+                    </fieldset>
+
+                    <!-- Food Preferences -->
+                    <fieldset>
+                        <legend>Food Preferences</legend>
+                        
+                        <div class="form-group">
+                            <label for="spice_level">Preferred Spice Level</label>
+                            <select id="spice_level" name="spice_level" aria-describedby="spice_help">
+                                <option value="mild" <?php echo (($form_data['spice_level'] ?? 'medium') == 'mild') ? 'selected' : ''; ?>>Mild 🌶️ - Very gentle heat</option>
+                                <option value="medium" <?php echo (($form_data['spice_level'] ?? 'medium') == 'medium') ? 'selected' : ''; ?>>Medium 🌶️🌶️ - Moderate spice (recommended)</option>
+                                <option value="hot" <?php echo (($form_data['spice_level'] ?? 'medium') == 'hot') ? 'selected' : ''; ?>>Hot 🌶️🌶️🌶️ - Authentic Thai heat</option>
+                                <option value="extra_hot" <?php echo (($form_data['spice_level'] ?? 'medium') == 'extra_hot') ? 'selected' : ''; ?>>Extra Hot 🌶️🌶️🌶️🌶️ - For spice lovers</option>
+                            </select>
+                            <small id="spice_help">You can always adjust this later in your profile</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Dietary Preferences (Optional)</label>
+                            <div class="checkbox-group" role="group" aria-labelledby="dietary_preferences_label">
+                                <?php 
+                                $dietary_options = [
+                                    'vegetarian' => 'Vegetarian',
+                                    'vegan' => 'Vegan',
+                                    'gluten_free' => 'Gluten-Free',
+                                    'keto' => 'Keto-Friendly',
+                                    'low_sodium' => 'Low Sodium',
+                                    'diabetic_friendly' => 'Diabetic-Friendly'
+                                ];
+                                $selected_preferences = $form_data['dietary_preferences'] ?? [];
+                                ?>
+                                <?php foreach ($dietary_options as $value => $label): ?>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" 
+                                               id="diet_<?php echo $value; ?>" 
+                                               name="dietary_preferences[]" 
+                                               value="<?php echo $value; ?>"
+                                               <?php echo in_array($value, $selected_preferences) ? 'checked' : ''; ?>>
+                                        <label for="diet_<?php echo $value; ?>"><?php echo $label; ?></label>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                            <small>Select all that apply - we'll recommend meals that match your preferences</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="allergies">Food Allergies or Intolerances (Optional)</label>
+                            <input type="text" 
+                                   id="allergies" 
+                                   name="allergies" 
+                                   placeholder="e.g., Peanuts, Shellfish, Dairy, Soy"
+                                   maxlength="200"
+                                   value="<?php echo htmlspecialchars($form_data['allergies'] ?? ''); ?>"
+                                   aria-describedby="allergies_help">
+                            <small id="allergies_help">Separate multiple allergies with commas. This helps us recommend safe meals for you</small>
+                        </div>
+                    </fieldset>
+
+                    <!-- Terms and Conditions -->
+                    <div class="terms-checkbox">
+                        <input type="checkbox" 
+                               id="terms_accepted" 
+                               name="terms_accepted" 
+                               required 
+                               aria-describedby="terms_description"
+                               <?php echo ($form_data['terms_accepted'] ?? false) ? 'checked' : ''; ?>>
+                        <div class="terms-text" id="terms_description">
+                            <strong>I agree to the following:</strong><br>
+                            • <a href="terms.php" target="_blank" rel="noopener">Terms and Conditions</a> and 
+                            <a href="privacy.php" target="_blank" rel="noopener">Privacy Policy</a><br>
+                            • Receiving email notifications about my orders, account updates, and promotions from Somdul Table<br>
+                            • Age confirmation: I am at least 13 years old<br>
+                            • Accuracy: The information I provided is accurate and complete
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" class="btn-primary" id="submitBtn" aria-describedby="submit_help">
+                        <span id="submit_text">Create My Account</span>
+                    </button>
+                    <small id="submit_help" style="display: block; text-align: center; margin-top: 0.5rem; color: var(--text-gray);">
+                        By clicking this button, you agree to create your Somdul Table account
+                    </small>
+                </form>
+
+                <?php endif; ?>
+
+                <div class="divider">
+                    <span>Already have an account?</span>
                 </div>
-                <span class="logo-text">Krua Thai</span>
-            </a>
-            <p class="welcome-text">Welcome to healthy Thai cuisine</p>
-            <h1 class="tagline">Authentic Meals, Made Healthy</h1>
-        </div>
 
-        <div class="form-container">
-            <h2 class="form-title">Join Krua Thai</h2>
-            <p class="form-subtitle">Start your healthy Thai meal journey today</p>
-
-            <?php if (!empty($errors)): ?>
-                <div class="alert alert-error" role="alert" aria-live="polite">
-                    <strong>Please correct the following errors:</strong>
-                    <ul>
-                        <?php foreach ($errors as $error): ?>
-                            <li><?php echo htmlspecialchars($error); ?></li>
-                        <?php endforeach; ?>
-                    </ul>
+                <div style="text-align: center;">
+                    <a href="login.php" class="btn-secondary">Sign In</a>
                 </div>
-            <?php endif; ?>
 
-            <?php if ($success_message): ?>
-                <div class="alert alert-success" role="alert" aria-live="polite">
-                    <strong>✅ Success!</strong><br>
-                    <?php echo htmlspecialchars($success_message); ?>
-                    <br><br>
-                    <strong>Next steps:</strong>
-                    <ol style="margin: 10px 0 0 20px;">
-                        <li>Check your email inbox (and spam folder)</li>
-                        <li>Click the verification link</li>
-                        <li>Start ordering healthy Thai meals!</li>
-                    </ol>
-                    <p style="margin-top: 15px;">
-                        <a href="login.php" style="color: var(--brown); font-weight: 600;">Already verified? Sign in here →</a>
+                <div class="login-link">
+                    <p>
+                        <a href="home2.php">← Back to Home</a> | 
+                        <a href="help.php">Need Help?</a>
                     </p>
                 </div>
-            <?php else: ?>
-
-            <form method="POST" action="" id="registrationForm" novalidate>
-                <!-- Personal Information -->
-                <fieldset style="border: none; padding: 0; margin: 0;">
-                    <legend style="font-size: 1.1rem; font-weight: 600; color: var(--olive); margin-bottom: 1rem;">Personal Information</legend>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="first_name">First Name <span class="required">*</span></label>
-                            <input type="text" 
-                                   id="first_name" 
-                                   name="first_name" 
-                                   required 
-                                   autocomplete="given-name"
-                                   value="<?php echo htmlspecialchars($form_data['first_name'] ?? ''); ?>"
-                                   aria-describedby="first_name_help">
-                            <small id="first_name_help" style="color: var(--gray); font-size: 0.85rem;">Your first name as you'd like it to appear</small>
-                        </div>
-                        <div class="form-group">
-                            <label for="last_name">Last Name <span class="required">*</span></label>
-                            <input type="text" 
-                                   id="last_name" 
-                                   name="last_name" 
-                                   required 
-                                   autocomplete="family-name"
-                                   value="<?php echo htmlspecialchars($form_data['last_name'] ?? ''); ?>">
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="email">Email Address <span class="required">*</span></label>
-                        <input type="email" 
-                               id="email" 
-                               name="email" 
-                               required 
-                               autocomplete="email"
-                               value="<?php echo htmlspecialchars($form_data['email'] ?? ''); ?>"
-                               aria-describedby="email_help">
-                        <small id="email_help" style="color: var(--gray); font-size: 0.85rem;">We'll send order updates and verification to this email</small>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="phone">Phone Number <span class="required">*</span></label>
-                        <input type="tel" 
-                               id="phone" 
-                               name="phone" 
-                               placeholder="0812345678" 
-                               required 
-                               autocomplete="tel"
-                               value="<?php echo htmlspecialchars($form_data['phone'] ?? ''); ?>"
-                               aria-describedby="phone_help">
-                        <small id="phone_help" style="color: var(--gray); font-size: 0.85rem;">Thai phone number for delivery coordination</small>
-                    </div>
-                </fieldset>
-
-                <!-- Password Section -->
-                <fieldset style="border: none; padding: 0; margin: 2rem 0 0 0;">
-                    <legend style="font-size: 1.1rem; font-weight: 600; color: var(--olive); margin-bottom: 1rem;">Account Security</legend>
-                    
-                    <div class="form-group">
-                        <label for="password">Password <span class="required">*</span></label>
-                        <input type="password" 
-                               id="password" 
-                               name="password" 
-                               required 
-                               autocomplete="new-password"
-                               aria-describedby="password_help">
-                        <div class="password-strength" id="passwordStrength">
-                            <div class="strength-bars">
-                                <div class="strength-bar"></div>
-                                <div class="strength-bar"></div>
-                                <div class="strength-bar"></div>
-                                <div class="strength-bar"></div>
-                            </div>
-                            <div class="strength-text" id="strengthText">Enter a password</div>
-                        </div>
-                        <small id="password_help" style="color: var(--gray); font-size: 0.85rem;">At least 8 characters with uppercase, lowercase, and number</small>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="confirm_password">Confirm Password <span class="required">*</span></label>
-                        <input type="password" 
-                               id="confirm_password" 
-                               name="confirm_password" 
-                               required 
-                               autocomplete="new-password"
-                               aria-describedby="confirm_password_help">
-                        <small id="confirm_password_help" style="color: var(--gray); font-size: 0.85rem;">Repeat your password to confirm</small>
-                    </div>
-                </fieldset>
-
-                <!-- Optional Information -->
-                <fieldset style="border: none; padding: 0; margin: 2rem 0 0 0;">
-                    <legend style="font-size: 1.1rem; font-weight: 600; color: var(--olive); margin-bottom: 1rem;">Additional Information <span style="font-weight: normal; color: var(--gray);">(Optional)</span></legend>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="date_of_birth">Date of Birth</label>
-                            <input type="date" 
-                                   id="date_of_birth" 
-                                   name="date_of_birth" 
-                                   autocomplete="bday"
-                                   value="<?php echo htmlspecialchars($form_data['date_of_birth'] ?? ''); ?>"
-                                   max="<?php echo date('Y-m-d', strtotime('-13 years')); ?>">
-                        </div>
-                        <div class="form-group">
-                            <label for="gender">Gender</label>
-                            <select id="gender" name="gender" autocomplete="sex">
-                                <option value="">Select Gender</option>
-                                <option value="male" <?php echo (($form_data['gender'] ?? '') == 'male') ? 'selected' : ''; ?>>Male</option>
-                                <option value="female" <?php echo (($form_data['gender'] ?? '') == 'female') ? 'selected' : ''; ?>>Female</option>
-                                <option value="other" <?php echo (($form_data['gender'] ?? '') == 'other') ? 'selected' : ''; ?>>Other</option>
-                            </select>
-                        </div>
-                    </div>
-                </fieldset>
-
-                <!-- Delivery Information -->
-                <fieldset style="border: none; padding: 0; margin: 2rem 0 0 0;">
-                    <legend style="font-size: 1.1rem; font-weight: 600; color: var(--olive); margin-bottom: 1rem;">Delivery Information</legend>
-                    
-                    <div class="form-group">
-                        <label for="delivery_address">Delivery Address <span class="required">*</span></label>
-                        <textarea id="delivery_address" 
-                                  name="delivery_address" 
-                                  rows="3" 
-                                  required 
-                                  autocomplete="street-address"
-                                  placeholder="Enter your complete delivery address including building name, room number, and any landmarks"
-                                  aria-describedby="address_help"><?php echo htmlspecialchars($form_data['delivery_address'] ?? ''); ?></textarea>
-                        <small id="address_help" style="color: var(--gray); font-size: 0.85rem;">Please provide a detailed address for accurate delivery</small>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="address_line_2">Address Line 2</label>
-                        <input type="text" 
-                               id="address_line_2" 
-                               name="address_line_2" 
-                               placeholder="Apartment, suite, unit, building, floor, etc."
-                               autocomplete="address-line2"
-                               value="<?php echo htmlspecialchars($form_data['address_line_2'] ?? ''); ?>">
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="city">City</label>
-                            <input type="text" 
-                                   id="city" 
-                                   name="city" 
-                                   autocomplete="address-level2"
-                                   placeholder="e.g., Bangkok"
-                                   value="<?php echo htmlspecialchars($form_data['city'] ?? ''); ?>">
-                        </div>
-                        <div class="form-group">
-                            <label for="state">State/Province</label>
-                            <input type="text" 
-                                   id="state" 
-                                   name="state" 
-                                   autocomplete="address-level1"
-                                   placeholder="e.g., Bangkok"
-                                   value="<?php echo htmlspecialchars($form_data['state'] ?? ''); ?>">
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="zip_code">ZIP Code <span class="required">*</span></label>
-                        <input type="text" 
-                               id="zip_code" 
-                               name="zip_code" 
-                               placeholder="10110" 
-                               required 
-                               autocomplete="postal-code"
-                               maxlength="5"
-                               pattern="\d{5}"
-                               value="<?php echo htmlspecialchars($form_data['zip_code'] ?? ''); ?>"
-                               aria-describedby="zip_help">
-                        <small id="zip_help" style="color: var(--gray); font-size: 0.85rem;">5-digit Thai postal code</small>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="delivery_instructions">Delivery Instructions</label>
-                        <textarea id="delivery_instructions" 
-                                  name="delivery_instructions" 
-                                  rows="2" 
-                                  placeholder="Special delivery instructions, access codes, or notes for the delivery person"
-                                  maxlength="500"><?php echo htmlspecialchars($form_data['delivery_instructions'] ?? ''); ?></textarea>
-                    </div>
-                </fieldset>
-
-                <!-- Food Preferences -->
-                <fieldset style="border: none; padding: 0; margin: 2rem 0 0 0;">
-                    <legend style="font-size: 1.1rem; font-weight: 600; color: var(--olive); margin-bottom: 1rem;">Food Preferences</legend>
-                    
-                    <div class="form-group">
-                        <label for="spice_level">Preferred Spice Level</label>
-                        <select id="spice_level" name="spice_level" aria-describedby="spice_help">
-                            <option value="mild" <?php echo (($form_data['spice_level'] ?? 'medium') == 'mild') ? 'selected' : ''; ?>>Mild 🌶️ - Very gentle heat</option>
-                            <option value="medium" <?php echo (($form_data['spice_level'] ?? 'medium') == 'medium') ? 'selected' : ''; ?>>Medium 🌶️🌶️ - Moderate spice (recommended)</option>
-                            <option value="hot" <?php echo (($form_data['spice_level'] ?? 'medium') == 'hot') ? 'selected' : ''; ?>>Hot 🌶️🌶️🌶️ - Authentic Thai heat</option>
-                            <option value="extra_hot" <?php echo (($form_data['spice_level'] ?? 'medium') == 'extra_hot') ? 'selected' : ''; ?>>Extra Hot 🌶️🌶️🌶️🌶️ - For spice lovers</option>
-                        </select>
-                        <small id="spice_help" style="color: var(--gray); font-size: 0.85rem;">You can always adjust this later in your profile</small>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Dietary Preferences (Optional)</label>
-                        <div class="checkbox-group" role="group" aria-labelledby="dietary_preferences_label">
-                            <?php 
-                            $dietary_options = [
-                                'vegetarian' => 'Vegetarian',
-                                'vegan' => 'Vegan',
-                                'gluten_free' => 'Gluten-Free',
-                                'keto' => 'Keto-Friendly',
-                                'low_sodium' => 'Low Sodium',
-                                'diabetic_friendly' => 'Diabetic-Friendly'
-                            ];
-                            $selected_preferences = $form_data['dietary_preferences'] ?? [];
-                            ?>
-                            <?php foreach ($dietary_options as $value => $label): ?>
-                                <div class="checkbox-item">
-                                    <input type="checkbox" 
-                                           id="diet_<?php echo $value; ?>" 
-                                           name="dietary_preferences[]" 
-                                           value="<?php echo $value; ?>"
-                                           <?php echo in_array($value, $selected_preferences) ? 'checked' : ''; ?>>
-                                    <label for="diet_<?php echo $value; ?>"><?php echo $label; ?></label>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
-                        <small style="color: var(--gray); font-size: 0.85rem;">Select all that apply - we'll recommend meals that match your preferences</small>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="allergies">Food Allergies or Intolerances (Optional)</label>
-                        <input type="text" 
-                               id="allergies" 
-                               name="allergies" 
-                               placeholder="e.g., Peanuts, Shellfish, Dairy, Soy"
-                               maxlength="200"
-                               value="<?php echo htmlspecialchars($form_data['allergies'] ?? ''); ?>"
-                               aria-describedby="allergies_help">
-                        <small id="allergies_help" style="color: var(--gray); font-size: 0.85rem;">Separate multiple allergies with commas. This helps us recommend safe meals for you</small>
-                    </div>
-                </fieldset>
-
-                <!-- Terms and Conditions -->
-                <div class="terms-checkbox">
-                    <input type="checkbox" 
-                           id="terms_accepted" 
-                           name="terms_accepted" 
-                           required 
-                           aria-describedby="terms_description"
-                           <?php echo ($form_data['terms_accepted'] ?? false) ? 'checked' : ''; ?>>
-                    <div class="terms-text" id="terms_description">
-                        <strong>I agree to the following:</strong><br>
-                        • <a href="terms.php" target="_blank" rel="noopener">Terms and Conditions</a> and 
-                        <a href="privacy.php" target="_blank" rel="noopener">Privacy Policy</a><br>
-                        • Receiving email notifications about my orders, account updates, and promotions from Krua Thai<br>
-                        • Age confirmation: I am at least 13 years old<br>
-                        • Accuracy: The information I provided is accurate and complete
-                    </div>
-                </div>
-
-                <!-- Submit Button -->
-                <button type="submit" class="btn-primary" id="submitBtn" aria-describedby="submit_help">
-                    <span id="submit_text">Create My Account</span>
-                </button>
-                <small id="submit_help" style="display: block; text-align: center; margin-top: 0.5rem; color: var(--gray); font-size: 0.85rem;">
-                    By clicking this button, you agree to create your Krua Thai account
-                </small>
-            </form>
-
-            <?php endif; ?>
-
-            <div class="login-link">
-                Already have an account? <a href="login.php">Sign In</a>
             </div>
         </div>
     </div>
@@ -1078,12 +1294,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         // Phone number formatting and validation
         const phoneInput = document.getElementById('phone');
         phoneInput.addEventListener('input', function() {
-            let value = this.value.replace(/\D/g, '');
-            if (value.length > 10) value = value.slice(0, 10);
+            let value = this.value.replace(/[^\d+\-\(\)\s]/g, '');
             this.value = value;
             
-            // Validate format
-            if (value && !/^0[0-9]{8,9}$/.test(value)) {
+            // Basic phone validation
+            if (value && value.length < 10) {
                 this.classList.add('error');
             } else if (value) {
                 this.classList.remove('error');
@@ -1233,6 +1448,37 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         // Initial progress check
         updateFormProgress();
+
+        // Real-time connection status
+        function updateConnectionStatus() {
+            const isOnline = navigator.onLine;
+            const submitBtn = document.getElementById('submitBtn');
+            const submitText = document.getElementById('submit_text');
+            
+            if (!isOnline) {
+                submitBtn.disabled = true;
+                submitText.textContent = 'Offline - Check Connection';
+            } else if (submitText.textContent === 'Offline - Check Connection') {
+                submitBtn.disabled = false;
+                submitText.textContent = 'Create My Account';
+            }
+        }
+
+        window.addEventListener('online', updateConnectionStatus);
+        window.addEventListener('offline', updateConnectionStatus);
+
+        // Initial connection check
+        updateConnectionStatus();
+
+        // Prevent form double submission
+        let formSubmitted = false;
+        document.getElementById('registrationForm').addEventListener('submit', function(e) {
+            if (formSubmitted) {
+                e.preventDefault();
+                return false;
+            }
+            formSubmitted = true;
+        });
     </script>
 </body>
 </html>

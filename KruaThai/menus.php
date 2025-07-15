@@ -1,6 +1,6 @@
 <?php
 /**
- * Krua Thai - Public Menus Page
+ * Somdul Table - Public Menus Page
  * File: menus.php
  * Description: Browse, filter, and search all available menus
  */
@@ -118,24 +118,54 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Menu - Krua Thai | Authentic Thai Food for Health</title>
-    <meta name="description" content="Browse our healthy Thai food menu from Krua Thai with complete nutritional information and pricing">
+    <title>Menu - Somdul Table | Authentic Thai Restaurant Management</title>
+    <meta name="description" content="Browse our healthy Thai food menu from Somdul Table with complete nutritional information and pricing">
     
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    
+    <!-- BaticaSans Font Import -->
+    <link rel="preconnect" href="https://ydpschool.com">
     <style>
+        @font-face {
+            font-family: 'BaticaSans';
+            src: url('https://ydpschool.com/fonts/BaticaSans-Regular.woff2') format('woff2'),
+                 url('https://ydpschool.com/fonts/BaticaSans-Regular.woff') format('woff'),
+                 url('https://ydpschool.com/fonts/BaticaSans-Regular.ttf') format('truetype');
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+        
+        @font-face {
+            font-family: 'BaticaSans';
+            src: url('https://ydpschool.com/fonts/BaticaSans-Bold.woff2') format('woff2'),
+                 url('https://ydpschool.com/fonts/BaticaSans-Bold.woff') format('woff'),
+                 url('https://ydpschool.com/fonts/BaticaSans-Bold.ttf') format('truetype');
+            font-weight: 700;
+            font-style: normal;
+            font-display: swap;
+        }
+        
+        @font-face {
+            font-family: 'BaticaSans';
+            src: url('https://ydpschool.com/fonts/BaticaSans-Medium.woff2') format('woff2'),
+                 url('https://ydpschool.com/fonts/BaticaSans-Medium.woff') format('woff'),
+                 url('https://ydpschool.com/fonts/BaticaSans-Medium.ttf') format('truetype');
+            font-weight: 500;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        /* CSS Custom Properties for Somdul Table Design System */
         :root {
+            --brown: #bd9379;
             --cream: #ece8e1;
             --sage: #adb89d;
-            --brown: #bd9379;
             --curry: #cf723a;
             --white: #ffffff;
             --text-dark: #2c3e50;
             --text-gray: #7f8c8d;
             --border-light: #e8e8e8;
-            --shadow-soft: 0 4px 12px rgba(0,0,0,0.05);
-            --shadow-medium: 0 8px 24px rgba(0,0,0,0.1);
+            --shadow-soft: 0 4px 12px rgba(189, 147, 121, 0.15);
+            --shadow-medium: 0 8px 24px rgba(189, 147, 121, 0.25);
             --radius-sm: 8px;
             --radius-md: 12px;
             --radius-lg: 16px;
@@ -149,58 +179,138 @@ try {
         }
 
         body {
-            font-family: 'Sarabun', sans-serif;
+            font-family: 'BaticaSans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             line-height: 1.6;
             color: var(--text-dark);
             background-color: var(--white);
+            font-weight: 400;
         }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
+        /* Typography using BaticaSans */
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'BaticaSans', sans-serif;
+            font-weight: 700;
+            line-height: 1.2;
+            color: var(--text-dark);
         }
 
-        /* Header */
-        header {
-            background: var(--white);
-            box-shadow: var(--shadow-soft);
-            position: sticky;
+        /* Promotional Banner Styles */
+        .promo-banner {
+            position: fixed;
             top: 0;
-            z-index: 100;
+            left: 0;
+            right: 0;
+            background: linear-gradient(135deg, var(--curry) 0%, #e67e22 100%);
+            color: var(--white);
+            text-align: center;
+            padding: 8px 20px;
+            font-family: 'BaticaSans', sans-serif;
+            font-weight: 700;
+            font-size: 14px;
+            z-index: 1001;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        .promo-banner-content {
+            /* max-width: 1200px; */  /* Remove this line */
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%; /* Add this for full width */
+        }
+
+        .promo-icon {
+            font-size: 16px;
+            animation: bounce 1.5s ease-in-out infinite;
+        }
+
+        .promo-text {
+            letter-spacing: 0.5px;
+        }
+
+        .promo-close {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--white);
+            font-size: 18px;
+            cursor: pointer;
+            opacity: 0.8;
+            transition: opacity 0.3s ease;
+        }
+
+        .promo-close:hover {
+            opacity: 1;
+        }
+
+        @keyframes glow {
+            from {
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            }
+            to {
+                box-shadow: 0 2px 20px rgba(207, 114, 58, 0.3);
+            }
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-3px);
+            }
+            60% {
+                transform: translateY(-2px);
+            }
+        }
+
+        /* Navigation */
+        .navbar {
+            position: fixed;
+            top: 38px;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            transition: var(--transition);
+            box-shadow: var(--shadow-soft);
         }
 
         nav {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 1rem 0;
+            padding: 1rem 2rem;
+            /* max-width: 1200px; */ /* Remove this line */
+            /* margin: 0 auto; */ /* Remove this line */
+            width: 100%; /* Add this for full width */
         }
 
         .logo {
-            font-size: 1.8rem;
-            font-weight: 800;
-            color: var(--curry);
             display: flex;
             align-items: center;
             gap: 0.8rem;
             text-decoration: none;
+            color: var(--text-dark);
         }
 
-        .logo-icon {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 45px;
-            height: 45px;
-            background: linear-gradient(135deg, var(--curry), var(--brown));
-            border-radius: 50%;
-            color: var(--white);
-            font-size: 1.5rem;
+        .logo-text {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--curry);
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .nav-links {
             display: flex;
+            list-style: none;
             gap: 2rem;
             align-items: center;
         }
@@ -209,6 +319,7 @@ try {
             text-decoration: none;
             color: var(--text-gray);
             font-weight: 500;
+            font-family: 'BaticaSans', sans-serif;
             transition: var(--transition);
         }
 
@@ -216,104 +327,22 @@ try {
             color: var(--curry);
         }
 
-        /* Main Content */
-        .main-content {
-            padding: 2rem 0;
-            min-height: calc(100vh - 200px);
-        }
-
-        .page-header {
-            text-align: center;
-            margin-bottom: 3rem;
-        }
-
-        .page-title {
-            font-size: 2.5rem;
-            font-weight: 800;
-            color: var(--text-dark);
-            margin-bottom: 1rem;
-        }
-
-        .page-subtitle {
-            font-size: 1.2rem;
-            color: var(--text-gray);
-            max-width: 600px;
-            margin: 0 auto;
-        }
-
-        /* Filters */
-        .filters-section {
-            background: var(--white);
-            padding: 2rem;
-            border-radius: var(--radius-lg);
-            margin-bottom: 3rem;
-            box-shadow: var(--shadow-soft);
-            border: 1px solid var(--border-light);
-        }
-
-        .filters-title {
-            font-size: 1.3rem;
-            font-weight: 700;
-            margin-bottom: 1.5rem;
-            color: var(--text-dark);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .filters-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .filter-group {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .filter-label {
-            font-weight: 600;
-            color: var(--text-dark);
-            margin-bottom: 0.5rem;
-            font-size: 0.95rem;
-        }
-
-        .filter-input,
-        .filter-select {
-            padding: 0.8rem 1rem;
-            border: 2px solid var(--border-light);
-            border-radius: var(--radius-sm);
-            font-size: 1rem;
-            font-family: inherit;
-            transition: var(--transition);
-            background: var(--white);
-        }
-
-        .filter-input:focus,
-        .filter-select:focus {
-            outline: none;
-            border-color: var(--curry);
-            box-shadow: 0 0 10px rgba(207, 114, 58, 0.2);
-        }
-
-        .filter-actions {
+        .nav-actions {
             display: flex;
             gap: 1rem;
-            justify-content: center;
-            margin-top: 1rem;
+            align-items: center;
         }
 
         .btn {
-            padding: 0.8rem 2rem;
+            padding: 0.8rem 1.5rem;
             border: none;
             border-radius: 50px;
             font-weight: 600;
+            font-family: 'BaticaSans', sans-serif;
             text-decoration: none;
             cursor: pointer;
             transition: var(--transition);
-            font-size: 1rem;
+            font-size: 0.95rem;
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
@@ -341,6 +370,112 @@ try {
             color: var(--white);
         }
 
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+        }
+
+        /* Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Main Content */
+        .main-content {
+            padding-top: 120px;
+            min-height: calc(100vh - 200px);
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding: 2rem 0;
+        }
+
+        .page-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--text-dark);
+            margin-bottom: 1rem;
+            font-family: 'BaticaSans', sans-serif;
+        }
+
+        .page-subtitle {
+            font-size: 1.2rem;
+            color: var(--text-gray);
+            max-width: 600px;
+            margin: 0 auto;
+            font-family: 'BaticaSans', sans-serif;
+        }
+
+        /* Filters */
+        .filters-section {
+            background: var(--white);
+            padding: 2rem;
+            border-radius: var(--radius-lg);
+            margin-bottom: 3rem;
+            box-shadow: var(--shadow-soft);
+            border: 1px solid var(--border-light);
+        }
+
+        .filters-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: var(--text-dark);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-family: 'BaticaSans', sans-serif;
+        }
+
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .filter-label {
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 0.5rem;
+            font-size: 0.95rem;
+            font-family: 'BaticaSans', sans-serif;
+        }
+
+        .filter-input,
+        .filter-select {
+            padding: 0.8rem 1rem;
+            border: 2px solid var(--border-light);
+            border-radius: var(--radius-sm);
+            font-size: 1rem;
+            font-family: 'BaticaSans', sans-serif;
+            transition: var(--transition);
+            background: var(--white);
+        }
+
+        .filter-input:focus,
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--curry);
+            box-shadow: 0 0 10px rgba(207, 114, 58, 0.2);
+        }
+
+        .filter-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 1rem;
+        }
+
         /* Results Header */
         .results-header {
             display: flex;
@@ -354,6 +489,7 @@ try {
         .results-count {
             font-size: 1.1rem;
             color: var(--text-gray);
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .sort-select {
@@ -361,7 +497,7 @@ try {
             border: 2px solid var(--border-light);
             border-radius: 25px;
             background: var(--white);
-            font-family: inherit;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         /* Menu Grid */
@@ -397,6 +533,7 @@ try {
             color: var(--text-gray);
             font-size: 1rem;
             font-weight: 600;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .menu-image img {
@@ -416,6 +553,7 @@ try {
             font-size: 0.8rem;
             font-weight: 600;
             backdrop-filter: blur(10px);
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .featured-badge {
@@ -428,6 +566,7 @@ try {
             border-radius: 20px;
             font-size: 0.8rem;
             font-weight: 600;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .menu-content {
@@ -441,6 +580,7 @@ try {
             text-transform: uppercase;
             letter-spacing: 0.5px;
             margin-bottom: 0.5rem;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .menu-title {
@@ -449,6 +589,7 @@ try {
             color: var(--text-dark);
             margin-bottom: 0.8rem;
             line-height: 1.3;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .menu-title-en {
@@ -456,6 +597,7 @@ try {
             color: var(--text-gray);
             font-weight: 500;
             margin-bottom: 0.8rem;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .menu-description {
@@ -468,6 +610,7 @@ try {
             line-clamp: 3;
             -webkit-box-orient: vertical;
             overflow: hidden;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .menu-tags {
@@ -484,6 +627,7 @@ try {
             border-radius: 12px;
             font-size: 0.75rem;
             font-weight: 600;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .spice-tag {
@@ -494,6 +638,7 @@ try {
             border-radius: 12px;
             font-size: 0.75rem;
             font-weight: 600;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .spice-mild { background: #e8f5e8; color: #2e7d32; }
@@ -518,12 +663,14 @@ try {
             font-weight: 700;
             color: var(--curry);
             font-size: 0.9rem;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .nutrition-label {
             font-size: 0.8rem;
             color: var(--text-gray);
             margin-top: 0.2rem;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .menu-footer {
@@ -538,16 +685,12 @@ try {
             font-size: 1.3rem;
             font-weight: 800;
             color: var(--curry);
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .menu-actions {
             display: flex;
             gap: 0.5rem;
-        }
-
-        .btn-sm {
-            padding: 0.5rem 1rem;
-            font-size: 0.9rem;
         }
 
         /* Empty State */
@@ -567,6 +710,11 @@ try {
             font-size: 1.5rem;
             margin-bottom: 0.5rem;
             color: var(--text-dark);
+            font-family: 'BaticaSans', sans-serif;
+        }
+
+        .empty-state p {
+            font-family: 'BaticaSans', sans-serif;
         }
 
         /* Modal */
@@ -609,6 +757,7 @@ try {
             font-size: 1.3rem;
             font-weight: 700;
             color: var(--text-dark);
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .modal-close {
@@ -623,10 +772,106 @@ try {
             padding: 1.5rem;
         }
 
-        /* Responsive */
+        /* CTA Section */
+        .cta-section {
+            text-align: center;
+            padding: 3rem 2rem;
+            background: var(--cream);
+            border-radius: var(--radius-lg);
+            margin-top: 3rem;
+        }
+
+        .cta-section h2 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 1rem;
+            font-family: 'BaticaSans', sans-serif;
+        }
+
+        .cta-section p {
+            font-size: 1.1rem;
+            color: var(--text-gray);
+            margin-bottom: 2rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            font-family: 'BaticaSans', sans-serif;
+        }
+
+        /* Footer */
+        footer {
+            background: var(--text-dark);
+            color: var(--white);
+            padding: 2rem 0;
+            text-align: center;
+            margin-top: 4rem;
+        }
+
+        footer .logo-icon {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, var(--curry), var(--brown));
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--white);
+            font-size: 1.5rem;
+            font-family: 'BaticaSans', sans-serif;
+            font-weight: 700;
+        }
+
+        footer p {
+            font-family: 'BaticaSans', sans-serif;
+        }
+
+        /* Responsive Design */
         @media (max-width: 768px) {
+            .promo-banner {
+                font-size: 12px;
+                padding: 6px 15px;
+            }
+            
+            .navbar {
+                top: 32px;
+            }
+            
+            .main-content {
+                padding-top: 100px;
+            }
+            
+            .promo-banner-content {
+                flex-direction: column;
+                gap: 5px;
+            }
+            
+            .promo-close {
+                right: 10px;
+            }
+
             .container {
                 padding: 0 15px;
+            }
+
+            nav {
+                padding: 1rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .nav-actions {
+                gap: 0.5rem;
+            }
+
+            .page-title {
+                font-size: 2rem;
+            }
+
+            .page-subtitle {
+                font-size: 1rem;
             }
 
             .filters-grid {
@@ -659,6 +904,40 @@ try {
             .modal-content {
                 margin: 1rem;
             }
+
+            .cta-section {
+                padding: 2rem 1rem;
+            }
+
+            .cta-section h2 {
+                font-size: 1.5rem;
+            }
+
+            .cta-section p {
+                font-size: 1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .page-title {
+                font-size: 1.8rem;
+            }
+
+            .menu-actions {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .menu-footer {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: flex-start;
+            }
+
+            .btn-sm {
+                width: 100%;
+                justify-content: center;
+            }
         }
 
         /* Loading animation */
@@ -673,6 +952,10 @@ try {
             animation: spin 1s linear infinite;
         }
 
+        .loading p {
+            font-family: 'BaticaSans', sans-serif;
+        }
+
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
@@ -680,29 +963,45 @@ try {
     </style>
 </head>
 <body>
-    <!-- Header -->
-    <header>
-        <nav class="container">
-            <a href="index.php" class="logo">
-                <div class="logo-icon">
-                    <i class="fas fa-utensils"></i>
-                </div>
-                <span>Krua Thai</span>
+    <!-- Promotional Banner -->
+    <div class="promo-banner" id="promoBanner">
+        <div class="promo-banner-content">
+            <span class="promo-icon">🍪</span>
+            <span class="promo-text">50% OFF First Week + Free Cookies for Life</span>
+            <span class="promo-icon">🎉</span>
+        </div>
+        <button class="promo-close" onclick="closePromoBanner()" title="Close">×</button>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem; width: 100%;">
+            <a href="home2.php" class="logo">
+                <img src="./assets/image/LOGO_BG.png" alt="Somdul Table" style="height: 50px; width: auto;">
+            </a>
+            <a href="home2.php" class="logo">
+                <span class="logo-text">Somdul Table</span>
             </a>
             
-            <div class="nav-links">
-                <a href="index.php">Home</a>
-                <a href="menus.php">All Menus</a>
+            <ul class="nav-links">
+                <li><a href="home2.php">Home</a></li>
+                <li><a href="menus.php">Menu</a></li>
+                <li><a href="home2.php#how-it-works">How It Works</a></li>
+                <li><a href="home2.php#about">About</a></li>
+                <li><a href="home2.php#contact">Contact</a></li>
+            </ul>
+            
+            <div class="nav-actions">
                 <?php if ($is_logged_in): ?>
-                    <a href="dashboard.php">My Account</a>
-                    <a href="logout.php">Logout</a>
+                    <a href="dashboard.php" class="btn btn-secondary">My Account</a>
+                    <a href="logout.php" class="btn btn-primary">Logout</a>
                 <?php else: ?>
-                    <a href="login.php">Login</a>
-                    <a href="register.php">Sign Up</a>
+                    <a href="login.php" class="btn btn-secondary">Sign In</a>
+                    <a href="register.php" class="btn btn-primary">Get Started</a>
                 <?php endif; ?>
             </div>
-        </nav>
-    </header>
+        </div>
+    </nav>
 
     <!-- Main Content -->
     <main class="main-content">
@@ -719,8 +1018,7 @@ try {
             <!-- Filters Section -->
             <div class="filters-section">
                 <h2 class="filters-title">
-                    <i class="fas fa-filter"></i>
-                    Search & Filter Menu
+                    🔍 Search & Filter Menu
                 </h2>
                 
                 <form method="GET" action="" id="filterForm">
@@ -785,12 +1083,10 @@ try {
 
                     <div class="filter-actions">
                         <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-search"></i>
-                            Search
+                            🔍 Search
                         </button>
                         <a href="menus.php" class="btn btn-secondary">
-                            <i class="fas fa-undo"></i>
-                            Clear Filters
+                            🔄 Clear Filters
                         </a>
                     </div>
                 </form>
@@ -810,7 +1106,7 @@ try {
             <div class="menus-grid">
                 <?php if (empty($menus)): ?>
                     <div class="empty-state" style="grid-column: 1 / -1;">
-                        <i class="fas fa-utensils"></i>
+                        <i style="font-size: 4rem; margin-bottom: 1rem; opacity: 0.3;">🍽️</i>
                         <h3>No dishes found</h3>
                         <p>Try changing your search terms or filter criteria</p>
                         <a href="menus.php" class="btn btn-primary" style="margin-top: 1rem;">
@@ -849,8 +1145,8 @@ try {
                                          loading="lazy">
                                 <?php else: ?>
                                     <div style="text-align: center;">
-                                        <i class="fas fa-utensils" style="font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.5;"></i>
-                                        <br><?php echo htmlspecialchars($menu['name'] ?: $menu['name_thai']); ?>
+                                        <div style="font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.5;">🍽️</div>
+                                        <?php echo htmlspecialchars($menu['name'] ?: $menu['name_thai']); ?>
                                     </div>
                                 <?php endif; ?>
                                 
@@ -866,7 +1162,7 @@ try {
                                     <div class="menu-category">
                                         <?php echo htmlspecialchars($menu['category_name'] ?: $menu['category_name_thai']); ?>
                                     </div>
-                              <?php endif; ?>
+                                <?php endif; ?>
                                 
                                 <h3 class="menu-title">
                                     <?php echo htmlspecialchars($menu['name'] ?: $menu['name_thai']); ?>
@@ -939,21 +1235,18 @@ try {
                                         <button type="button" 
                                                 class="btn btn-secondary btn-sm"
                                                 onclick="showMenuModal('<?php echo $menu['id']; ?>')">
-                                            <i class="fas fa-info-circle"></i>
-                                            Details
+                                            ℹ️ Details
                                         </button>
                                         
                                         <?php if ($is_logged_in): ?>
                                             <a href="meal-selection.php?single=<?php echo $menu['id']; ?>" 
                                                class="btn btn-primary btn-sm">
-                                                <i class="fas fa-cart-plus"></i>
-                                                Order Now
+                                                🛒 Order Now
                                             </a>
                                         <?php else: ?>
                                             <a href="register.php?menu=<?php echo $menu['id']; ?>" 
                                                class="btn btn-primary btn-sm">
-                                                <i class="fas fa-user-plus"></i>
-                                                Sign Up
+                                                👤 Sign Up
                                             </a>
                                         <?php endif; ?>
                                     </div>
@@ -966,16 +1259,13 @@ try {
 
             <!-- Call-to-Action Section -->
             <?php if (!empty($menus)): ?>
-                <div class="cta-section" style="text-align: center; padding: 3rem 0; background: var(--cream); border-radius: var(--radius-lg); margin-top: 3rem;">
-                    <h2 style="font-size: 1.8rem; font-weight: 700; color: var(--text-dark); margin-bottom: 1rem;">
-                        Ready to start your healthy eating journey?
-                    </h2>
-                    <p style="font-size: 1.1rem; color: var(--text-gray); margin-bottom: 2rem; max-width: 600px; margin-left: auto; margin-right: auto;">
+                <div class="cta-section">
+                    <h2>Ready to start your healthy eating journey?</h2>
+                    <p>
                         Choose the meal plan that's right for you and start taking care of your health with authentic Thai cuisine
                     </p>
-                    <a href="index.php#plans" class="btn btn-primary" style="font-size: 1.1rem; padding: 1rem 2.5rem;">
-                        <i class="fas fa-leaf"></i>
-                        View All Plans
+                    <a href="home2.php#plans" class="btn btn-primary" style="font-size: 1.1rem; padding: 1rem 2.5rem;">
+                        🌿 View All Plans
                     </a>
                 </div>
             <?php endif; ?>
@@ -988,12 +1278,12 @@ try {
             <div class="modal-header">
                 <h3 class="modal-title">Menu Details</h3>
                 <button class="modal-close" onclick="closeMenuModal()">
-                    <i class="fas fa-times"></i>
+                    ×
                 </button>
             </div>
             <div class="modal-body" id="modalBody">
                 <div class="loading">
-                    <i class="fas fa-spinner"></i>
+                    <i>⏳</i>
                     <p>Loading...</p>
                 </div>
             </div>
@@ -1001,24 +1291,38 @@ try {
     </div>
 
     <!-- Footer -->
-    <footer style="background: var(--text-dark); color: var(--white); padding: 2rem 0; text-align: center; margin-top: 4rem;">
+    <footer>
         <div class="container">
             <div style="display: flex; justify-content: center; align-items: center; gap: 1rem; margin-bottom: 1rem;">
-                <div class="logo-icon">
-                    <i class="fas fa-utensils"></i>
-                </div>
-                <span style="font-size: 1.5rem; font-weight: 700;">Krua Thai</span>
+                <img src="./assets/image/LOGO_BG.png" alt="Somdul Table" style="height: 45px; width: auto;">
+                <span style="font-size: 1.5rem; font-weight: 700;">Somdul Table</span>
             </div>
             <p style="color: var(--text-gray); margin-bottom: 0.5rem;">
                 Healthy Thai food delivered to your door
             </p>
             <p style="color: var(--text-gray); font-size: 0.9rem;">
-                © 2025 Krua Thai. All rights reserved.
+                © 2025 Somdul Table. All rights reserved.
             </p>
         </div>
     </footer>
 
     <script>
+        // Close promotional banner function
+        function closePromoBanner() {
+            const promoBanner = document.getElementById('promoBanner');
+            const navbar = document.querySelector('.navbar');
+            const mainContent = document.querySelector('.main-content');
+            
+            promoBanner.style.transform = 'translateY(-100%)';
+            promoBanner.style.opacity = '0';
+            
+            setTimeout(() => {
+                promoBanner.style.display = 'none';
+                navbar.style.top = '0';
+                mainContent.style.paddingTop = '80px';
+            }, 300);
+        }
+
         // Menu Modal Functions
         async function showMenuModal(menuId) {
             const modal = document.getElementById('menuModal');
@@ -1028,7 +1332,7 @@ try {
             modal.classList.add('show');
             modalBody.innerHTML = `
                 <div class="loading">
-                    <i class="fas fa-spinner"></i>
+                    <i>⏳</i>
                     <p>Loading details...</p>
                 </div>
             `;
@@ -1043,7 +1347,7 @@ try {
                 } else {
                     modalBody.innerHTML = `
                         <div class="text-center" style="padding: 2rem; color: var(--text-gray);">
-                            <i class="fas fa-exclamation-circle" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                            <i style="font-size: 2rem; margin-bottom: 1rem;">⚠️</i>
                             <h4>Unable to load data</h4>
                             <p>Please try again</p>
                         </div>
@@ -1053,7 +1357,7 @@ try {
                 console.error('Error loading menu details:', error);
                 modalBody.innerHTML = `
                     <div class="text-center" style="padding: 2rem; color: var(--text-gray);">
-                        <i class="fas fa-wifi" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                        <i style="font-size: 2rem; margin-bottom: 1rem;">📶</i>
                         <h4>Connection Error</h4>
                         <p>Check your internet connection</p>
                     </div>
@@ -1077,7 +1381,7 @@ try {
                     ${menu.main_image_url ? 
                         `<img src="${menu.main_image_url}" alt="${menu.name}" style="width: 100%; max-width: 400px; height: 200px; object-fit: cover; border-radius: 12px; margin-bottom: 1rem;">` :
                         `<div style="width: 100%; height: 200px; background: var(--cream); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 1rem; color: var(--text-gray);">
-                            <i class="fas fa-utensils" style="font-size: 3rem;"></i>
+                            <div style="font-size: 3rem;">🍽️</div>
                         </div>`
                     }
                     <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--text-dark); margin-bottom: 0.5rem;">
@@ -1184,13 +1488,11 @@ try {
                 <div style="text-align: center; margin-top: 2rem;">
                     ${menu.is_logged_in ? `
                         <a href="meal-selection.php?single=${menu.id}" class="btn btn-primary" style="font-size: 1.1rem; padding: 0.8rem 2rem;">
-                            <i class="fas fa-cart-plus"></i>
-                            Order This Dish
+                            🛒 Order This Dish
                         </a>
                     ` : `
                         <a href="register.php?menu=${menu.id}" class="btn btn-primary" style="font-size: 1.1rem; padding: 0.8rem 2rem;">
-                            <i class="fas fa-user-plus"></i>
-                            Sign Up to Order
+                            👤 Sign Up to Order
                         </a>
                     `}
                 </div>
@@ -1232,6 +1534,16 @@ try {
                 }, 1000); // Submit after 1 second of no typing
             });
         }
+
+        // Navbar background on scroll
+        window.addEventListener('scroll', function() {
+            const navbar = document.querySelector('.navbar');
+            if (window.scrollY > 100) {
+                navbar.style.background = 'rgba(255, 255, 255, 0.98)';
+            } else {
+                navbar.style.background = 'rgba(255, 255, 255, 0.95)';
+            }
+        });
     </script>
 </body>
 </html>
