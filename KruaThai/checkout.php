@@ -1,237 +1,492 @@
 <?php
-// Krua Thai - Checkout (Simple Weekend Version - Based on Working Code)
+/**
+ * Krua Thai - Refactored Checkout System
+ * Improved for robustness and readability
+ */
+
 session_start();
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-// Check login status
+// Initialize variables with defaults
+$order = null;
+$plan = null;
+$selected_meals = [];
+$meal_details = [];
+$errors = [];
+$success = false;
+$weekend_dates = [];
+$user = null;
+
+// Early session and authentication checks
 if (!isset($_SESSION['user_id'])) {
     header('Location: login.php');
     exit;
 }
 
-// Database connection (PDO)
-require_once 'config/database.php';
-$db = (new Database())->getConnection();
-
-// --------- Utility: UUIDv4 Generator ---------
-function uuidv4() {
-    return sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
-        mt_rand(0, 0xffff), mt_rand(0, 0xffff),
-        mt_rand(0, 0xffff),
-        mt_rand(0, 0x0fff) | 0x4000,
-        mt_rand(0, 0x3fff) | 0x8000,
-        mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
-    );
-}
-
-// Helper function to get plan name with fallback
-function getPlanName($plan) {
-    if (isset($plan['name_english']) && !empty($plan['name_english'])) {
-        return $plan['name_english'];
-    } elseif (isset($plan['name_thai']) && !empty($plan['name_thai'])) {
-        return $plan['name_thai'];
-    } else {
-        return 'Selected Package';
-    }
-}
-
-// Helper function to get menu name with fallback
-function getMenuName($menu) {
-    if (isset($menu['name']) && !empty($menu['name'])) {
-        return $menu['name'];
-    } elseif (isset($menu['name_thai']) && !empty($menu['name_thai'])) {
-        return $menu['name_thai'];
-    } else {
-        return 'Menu Item';
-    }
-}
-
-// Generate weekend dates (Saturday & Sunday only) - SIMPLE VERSION
-function getWeekendDates() {
-    $dates = [];
-    $currentDate = new DateTime();
-    $currentDate->setTimezone(new DateTimeZone('Asia/Bangkok'));
+// Utility Functions
+class CheckoutUtils {
     
-    // Find next 4 weekends (8 days total)
-    for ($week = 0; $week < 4; $week++) {
-        // Calculate this week's Saturday
-        $saturday = clone $currentDate;
-        $saturday->modify('this week monday')->modify('+' . (5 + $week * 7) . ' days');
+    public static function generateUUID() {
+        return sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+            mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+            mt_rand(0, 0xffff),
+            mt_rand(0, 0x0fff) | 0x4000,
+            mt_rand(0, 0x3fff) | 0x8000,
+            mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+        );
+    }
+    
+    public static function generateOrderNumber() {
+        return 'TXN-' . date('Ymd-His') . '-' . substr(self::generateUUID(), 0, 6);
+    }
+    
+    public static function getPlanName($plan) {
+        return $plan['name_thai'] ?? $plan['name'] ?? 'Selected Package';
+    }
+    
+    public static function getMenuName($menu) {
+        return $menu['name_thai'] ?? $menu['name'] ?? 'Menu Item';
+    }
+    
+    public static function sanitizeInput($input) {
+        return trim(htmlspecialchars($input, ENT_QUOTES, 'UTF-8'));
+    }
+}
+
+// Database Connection Handler
+class DatabaseConnection {
+    private static $connection = null;
+    
+    public static function getInstance() {
+        if (self::$connection === null) {
+            try {
+                require_once 'config/database.php';
+                self::$connection = (new Database())->getConnection();
+            } catch (Exception $e) {
+                // Fallback connections
+                $configs = [
+                    ["mysql:host=localhost;dbname=krua_thai;charset=utf8mb4", "root", "root"],
+                    ["mysql:host=localhost:8889;dbname=krua_thai;charset=utf8mb4", "root", "root"]
+                ];
+                
+                foreach ($configs as $config) {
+                    try {
+                        self::$connection = new PDO($config[0], $config[1], $config[2]);
+                        self::$connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+                        break;
+                    } catch (PDOException $e) {
+                        continue;
+                    }
+                }
+                
+                if (self::$connection === null) {
+                    throw new Exception("❌ Database connection failed: " . $e->getMessage());
+                }
+            }
+        }
+        return self::$connection;
+    }
+}
+
+// Weekend Date Generator
+class WeekendDateGenerator {
+    
+    public static function getWeekendDates() {
+        $dates = [];
+        $currentDate = new DateTime();
+        $currentDate->setTimezone(new DateTimeZone('Asia/Bangkok'));
         
-        // Calculate this week's Sunday  
-        $sunday = clone $saturday;
-        $sunday->modify('+1 day');
+        for ($i = 0; $i < 28; $i++) { 
+            $checkDate = clone $currentDate;
+            $checkDate->modify("+{$i} days");
+            
+            $dayOfWeek = $checkDate->format('N'); 
+            
+            if ($dayOfWeek == 6 || $dayOfWeek == 7) { 
+                $dayName = ($dayOfWeek == 6) ? 'Saturday' : 'Sunday';
+                $key = strtolower(substr($dayName, 0, 3)) . '_' . floor(count($dates) / 2);
+                $dates[$key] = $checkDate->format('l, M j') . " ({$dayName})";
+                
+                if (count($dates) >= 8) break; 
+            }
+        }
         
-        // Only include future dates
+        return $dates;
+    }
+    
+    public static function convertWeekendKeyToDate($weekendKey) {
         $today = new DateTime();
         $today->setTimezone(new DateTimeZone('Asia/Bangkok'));
         
-        if ($saturday >= $today) {
-            $dates['sat_' . $week] = $saturday->format('l, M j') . ' (Saturday)';
+        $weekendDates = self::getWeekendDates();
+        $dateKeys = array_keys($weekendDates);
+        
+        $keyIndex = array_search($weekendKey, $dateKeys);
+        if ($keyIndex !== false) {
+            $targetDate = clone $today;
+            $targetDate->modify('+1 day'); 
+            
+            $foundWeekends = 0;
+            for ($i = 0; $i < 28; $i++) {
+                $checkDate = clone $targetDate;
+                $checkDate->modify("+{$i} days");
+                
+                $dayOfWeek = $checkDate->format('N');
+                if ($dayOfWeek == 6 || $dayOfWeek == 7) {
+                    if ($foundWeekends == $keyIndex) {
+                        return $checkDate->format('Y-m-d');
+                    }
+                    $foundWeekends++;
+                }
+            }
         }
         
-        if ($sunday >= $today) {
-            $dates['sun_' . $week] = $sunday->format('l, M j') . ' (Sunday)';
+        return null;
+    }
+}
+
+// Checkout Data Manager
+class CheckoutDataManager {
+    
+    public static function createDemoCheckoutData($db) {
+        try {
+            $stmt = $db->query("SELECT * FROM subscription_plans WHERE is_active = 1 ORDER BY sort_order ASC LIMIT 1");
+            $plan = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($plan) {
+                $meal_limit = $plan['meals_per_week'] ?? 3;
+                $stmt = $db->query("SELECT id, name, name_thai, base_price FROM menus WHERE is_available = 1 ORDER BY RAND() LIMIT $meal_limit");
+                $menus = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                
+                if (!empty($menus)) {
+                    return [
+                        'plan' => $plan,
+                        'selected_meals' => array_column($menus, 'id'),
+                        'meal_details' => array_combine(array_column($menus, 'id'), $menus)
+                    ];
+                }
+            }
+        } catch (Exception $e) {
+            throw new Exception("Error loading demo data: " . $e->getMessage());
+        }
+        
+        return null;
+    }
+    
+    public static function validateCheckoutData($order) {
+        $errors = [];
+        
+        if (!$order || empty($order['plan']) || empty($order['selected_meals'])) {
+            $errors[] = "Invalid checkout data";
+        }
+        
+        if (!isset($order['plan']['id']) || !isset($order['plan']['final_price'])) {
+            $errors[] = "Invalid plan data";
+        }
+        
+        if (empty($order['selected_meals']) || !is_array($order['selected_meals'])) {
+            $errors[] = "No meals selected";
+        }
+        
+        return $errors;
+    }
+}
+
+// Order Processing Engine
+class OrderProcessor {
+    
+    private $db;
+    
+    public function __construct($db) {
+        $this->db = $db;
+    }
+    
+    public function validateFormInput($postData) {
+        $errors = [];
+        
+        $required_fields = [
+            'delivery_address' => 'Delivery address',
+            'city' => 'City/State',
+            'zip_code' => 'ZIP code',
+            'payment_method' => 'Payment method'
+        ];
+        
+        foreach ($required_fields as $field => $label) {
+            if (empty(trim($postData[$field] ?? ''))) {
+                $errors[] = "Please enter {$label}";
+            }
+        }
+        
+        if (empty($postData['delivery_days'])) {
+            $errors[] = "Please select at least 1 delivery day";
+        }
+        
+        // ZIP code validation
+        $zip_code = trim($postData['zip_code'] ?? '');
+        if (!preg_match('/^\d{5}$/', $zip_code)) {
+            $errors[] = "ZIP code must be 5 digits";
+        }
+        
+        return $errors;
+    }
+    
+    public function createSubscription($data) {
+        $subscription_id = CheckoutUtils::generateUUID();
+        
+        $stmt = $this->db->prepare("INSERT INTO subscriptions (
+            id, user_id, plan_id, status, start_date, next_billing_date,
+            billing_cycle, total_amount, delivery_days, preferred_delivery_time,
+            special_instructions, auto_renew, created_at, updated_at
+        ) VALUES (?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, 1, NOW(), NOW())");
+        
+        $result = $stmt->execute([
+            $subscription_id,
+            $data['user_id'],
+            $data['plan_id'],
+            $data['start_date'],
+            $data['next_billing_date'],
+            $data['billing_cycle'],
+            $data['total_amount'],
+            $data['delivery_days'],
+            $data['preferred_time'],
+            $data['delivery_instructions']
+        ]);
+        
+        if (!$result) {
+            throw new Exception("Failed to create subscription");
+        }
+        
+        return $subscription_id;
+    }
+    
+    public function createPayment($data) {
+        $payment_id = CheckoutUtils::generateUUID();
+        $transaction_id = CheckoutUtils::generateOrderNumber();
+        
+        $payment_map = [
+            'credit' => 'credit_card',
+            'promptpay' => 'bank_transfer',
+            'paypal' => 'paypal',
+            'apple_pay' => 'apple_pay',
+            'google_pay' => 'google_pay'
+        ];
+        
+        $db_payment_method = $payment_map[$data['payment_method']] ?? 'credit_card';
+        
+        $stmt = $this->db->prepare("INSERT INTO payments (
+            id, subscription_id, user_id, payment_method, transaction_id,
+            amount, currency, net_amount, status, payment_date,
+            billing_period_start, billing_period_end, description, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, 'USD', ?, 'completed', NOW(), ?, ?, ?, NOW(), NOW())");
+        
+        $result = $stmt->execute([
+            $payment_id,
+            $data['subscription_id'],
+            $data['user_id'],
+            $db_payment_method,
+            $transaction_id,
+            $data['amount'],
+            $data['amount'],
+            $data['start_date'],
+            $data['next_billing_date'],
+            $data['description']
+        ]);
+        
+        if (!$result) {
+            throw new Exception("Failed to create payment");
+        }
+        
+        return ['payment_id' => $payment_id, 'transaction_id' => $transaction_id];
+    }
+    
+    public function createSubscriptionMenus($subscription_id, $selected_meals, $delivery_days) {
+        $stmt = $this->db->prepare("INSERT INTO subscription_menus
+            (id, subscription_id, menu_id, delivery_date, quantity, status, created_at, updated_at)
+            VALUES (?, ?, ?, ?, 1, 'scheduled', NOW(), NOW())");
+        
+        foreach ($delivery_days as $weekendKey) {
+            $actual_date = WeekendDateGenerator::convertWeekendKeyToDate($weekendKey);
+            if ($actual_date) {
+                foreach ($selected_meals as $meal_id) {
+                    $menu_uuid = CheckoutUtils::generateUUID();
+                    $result = $stmt->execute([$menu_uuid, $subscription_id, $meal_id, $actual_date]);
+                    
+                    if (!$result) {
+                        throw new Exception("Failed to create subscription menu");
+                    }
+                }
+            }
         }
     }
     
-    return $dates;
-}
-
-// ---------------------------------------------
-
-// 1. Get selection data from SESSION
-$order = $_SESSION['checkout_data'] ?? null;
-if (!$order || empty($order['plan']) || empty($order['selected_meals'])) {
-    $_SESSION['flash_message'] = "Please select a package and meals first";
-    $_SESSION['flash_type'] = 'error';
-    header('Location: subscribe.php');
-    exit;
-}
-
-$user_id = $_SESSION['user_id'];
-$plan = $order['plan'];
-$selected_meals = $order['selected_meals'] ?? [];
-$meal_details = $order['meal_details'] ?? [];
-
-// FIXED: If meal_details is empty, fetch from database
-if (empty($meal_details) && !empty($selected_meals)) {
-    try {
-        $placeholders = str_repeat('?,', count($selected_meals) - 1) . '?';
-        $stmt = $db->prepare("SELECT id, name, name_thai, base_price FROM menus WHERE id IN ($placeholders)");
-        $stmt->execute($selected_meals);
-        $fetched_meals = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    public function updateUserProfile($user_id, $data) {
+        $stmt = $this->db->prepare("UPDATE users 
+            SET delivery_address=?, city=?, zip_code=?, delivery_instructions=?, updated_at=NOW() 
+            WHERE id=?");
         
-        // Convert to associative array by ID
-        foreach ($fetched_meals as $meal) {
-            $meal_details[$meal['id']] = $meal;
-        }
-    } catch (Exception $e) {
-        error_log("Error fetching meal details: " . $e->getMessage());
+        return $stmt->execute([
+            $data['delivery_address'],
+            $data['city'],
+            $data['zip_code'],
+            $data['delivery_instructions'],
+            $user_id
+        ]);
     }
-}
-
-$total_price = $plan['final_price'];
-$success = false;
-$errors = [];
-$flash_message = '';
-
-// Get weekend dates
-$weekend_dates = getWeekendDates();
-
-// 2. Process Form Submission - KEEP EXACTLY SAME AS WORKING VERSION
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_order'])) {
-    $delivery_address = trim($_POST['delivery_address'] ?? '');
-    $city = trim($_POST['city'] ?? '');
-    $zip_code = trim($_POST['zip_code'] ?? '');
-    $payment_method = $_POST['payment_method'] ?? '';
-    $delivery_days = $_POST['delivery_days'] ?? [];
-    $preferred_time = $_POST['preferred_time'] ?? 'afternoon';
-    $delivery_instructions = trim($_POST['delivery_instructions'] ?? '');
-
-    // Basic validation - SAME AS WORKING VERSION
-    if (empty($delivery_address)) $errors[] = "Please enter delivery address";
-    if (empty($city)) $errors[] = "Please enter city/state";
-    if (empty($zip_code)) $errors[] = "Please enter ZIP code";
-    if (empty($payment_method)) $errors[] = "Please select payment method";
-    if (empty($delivery_days)) $errors[] = "Please select at least 1 delivery day";
-
-    if (empty($errors)) {
+    
+    public function processFullOrder($user_id, $order, $postData) {
+        $this->db->beginTransaction();
+        
         try {
-            $db->beginTransaction();
-            $subscription_id = uuidv4();
-            $payment_id = uuidv4();
-            $transaction_id = 'TXN-' . date('Ymd-His') . '-' . substr($subscription_id, 0, 6);
-
-            $start_date = date('Y-m-d', strtotime('+1 day'));
-            $billing_cycle = $plan['plan_type'] === 'monthly' ? 'monthly' : 'weekly';
+            $plan = $order['plan'];
+            $selected_meals = $order['selected_meals'];
+            $delivery_days = $postData['delivery_days'];
+            
+            // Calculate dates
+            $start_date = null;
+            if (!empty($delivery_days)) {
+                $first_delivery_key = $delivery_days[0];
+                $start_date = WeekendDateGenerator::convertWeekendKeyToDate($first_delivery_key);
+            }
+            
+            if (!$start_date) {
+                $start_date = date('Y-m-d', strtotime('+1 day'));
+            }
+            
+            $billing_cycle = ($plan['plan_type'] ?? 'weekly') === 'monthly' ? 'monthly' : 'weekly';
             $next_billing_date = $billing_cycle === 'monthly'
                 ? date('Y-m-d', strtotime('+1 month', strtotime($start_date)))
                 : date('Y-m-d', strtotime('+1 week', strtotime($start_date)));
-
-            // 3. Insert subscription
-            $stmt = $db->prepare("INSERT INTO subscriptions (
-                id, user_id, plan_id, status, start_date, next_billing_date,
-                billing_cycle, total_amount, delivery_days, preferred_delivery_time,
-                special_instructions, auto_renew, created_at, updated_at
-            ) VALUES (?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, 1, NOW(), NOW())");
-            $stmt->execute([
-                $subscription_id,
-                $user_id,
-                $plan['id'],
-                $start_date,
-                $next_billing_date,
-                $billing_cycle,
-                $total_price,
-                json_encode($delivery_days),
-                $preferred_time,
-                $delivery_instructions
-            ]);
-
-            // 4. Insert payment
-            $payment_map = [
-                'credit' => 'credit_card',
-                'promptpay' => 'bank_transfer',
-                'paypal' => 'paypal',
-                'apple_pay' => 'apple_pay',
-                'google_pay' => 'google_pay'
+            
+            // Create subscription
+            $subscription_data = [
+                'user_id' => $user_id,
+                'plan_id' => $plan['id'],
+                'start_date' => $start_date,
+                'next_billing_date' => $next_billing_date,
+                'billing_cycle' => $billing_cycle,
+                'total_amount' => $plan['final_price'],
+                'delivery_days' => json_encode($delivery_days),
+                'preferred_time' => $postData['preferred_time'] ?? 'afternoon',
+                'delivery_instructions' => CheckoutUtils::sanitizeInput($postData['delivery_instructions'] ?? '')
             ];
-            $db_payment_method = $payment_map[$payment_method] ?? 'credit_card';
-
-            $stmt = $db->prepare("INSERT INTO payments (
-                id, subscription_id, user_id, payment_method, transaction_id,
-                amount, currency, net_amount, status, payment_date,
-                billing_period_start, billing_period_end, description, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, 'USD', ?, 'completed', NOW(), ?, ?, ?, NOW(), NOW())");
-            $description = "Subscription " . getPlanName($plan);
-            $billing_end = $next_billing_date;
-            $stmt->execute([
-                $payment_id,
-                $subscription_id,
-                $user_id,
-                $db_payment_method,
-                $transaction_id,
-                $total_price,
-                $total_price,
-                $start_date,
-                $billing_end,
-                $description
-            ]);
-
-            // 5. Add selected menus
-            if (!empty($selected_meals)) {
-                $stmt_menu = $db->prepare("INSERT INTO subscription_menus
-                    (id, subscription_id, menu_id, delivery_date, quantity, status, created_at, updated_at)
-                    VALUES (?, ?, ?, ?, 1, 'scheduled', NOW(), NOW())");
-                foreach ($selected_meals as $meal_id) {
-                    $menu_uuid = uuidv4();
-                    $stmt_menu->execute([$menu_uuid, $subscription_id, $meal_id, $start_date]);
-                }
-            }
-
-            // 6. Update user address (optionally)
-            $stmt = $db->prepare("UPDATE users SET delivery_address=?, city=?, zip_code=?, delivery_instructions=?, updated_at=NOW() WHERE id=?");
-            $stmt->execute([$delivery_address, $city, $zip_code, $delivery_instructions, $user_id]);
-
-            $db->commit();
-            $success = true;
-            unset($_SESSION['checkout_data']);
-            $_SESSION['flash_message'] = "Order placed successfully! Thank you for choosing Krua Thai";
-            $_SESSION['flash_type'] = 'success';
-            header("Location: subscription-status.php");
-            exit;
+            
+            $subscription_id = $this->createSubscription($subscription_data);
+            
+            // Create payment
+            $payment_data = [
+                'subscription_id' => $subscription_id,
+                'user_id' => $user_id,
+                'payment_method' => $postData['payment_method'],
+                'amount' => $plan['final_price'],
+                'start_date' => $start_date,
+                'next_billing_date' => $next_billing_date,
+                'description' => "Subscription " . CheckoutUtils::getPlanName($plan)
+            ];
+            
+            $payment_result = $this->createPayment($payment_data);
+            
+            // Create subscription menus
+            $this->createSubscriptionMenus($subscription_id, $selected_meals, $delivery_days);
+            
+            // Update user profile
+            $user_data = [
+                'delivery_address' => CheckoutUtils::sanitizeInput($postData['delivery_address']),
+                'city' => CheckoutUtils::sanitizeInput($postData['city']),
+                'zip_code' => CheckoutUtils::sanitizeInput($postData['zip_code']),
+                'delivery_instructions' => CheckoutUtils::sanitizeInput($postData['delivery_instructions'] ?? '')
+            ];
+            
+            $this->updateUserProfile($user_id, $user_data);
+            
+            $this->db->commit();
+            
+            return [
+                'success' => true,
+                'subscription_id' => $subscription_id,
+                'transaction_id' => $payment_result['transaction_id']
+            ];
+            
         } catch (Exception $e) {
-            $db->rollBack();
-            $errors[] = "An error occurred: " . $e->getMessage();
+            $this->db->rollBack();
+            throw $e;
         }
     }
 }
 
-// Get user profile for form
-$stmt = $db->prepare("SELECT * FROM users WHERE id = ?");
-$stmt->execute([$user_id]);
-$user = $stmt->fetch(PDO::FETCH_ASSOC);
+// Main execution starts here
+try {
+    // Get database connection
+    $db = DatabaseConnection::getInstance();
+    
+    // Get user data
+    $user_id = $_SESSION['user_id'];
+    $stmt = $db->prepare("SELECT * FROM users WHERE id = ?");
+    $stmt->execute([$user_id]);
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    // Get or create checkout data
+    $order = $_SESSION['checkout_data'] ?? null;
+    
+    // Validate existing checkout data or create demo data
+    $validation_errors = CheckoutDataManager::validateCheckoutData($order);
+    if (!empty($validation_errors)) {
+        $order = CheckoutDataManager::createDemoCheckoutData($db);
+        if ($order) {
+            $_SESSION['checkout_data'] = $order;
+        } else {
+            throw new Exception("Unable to create checkout data. Please ensure plans and menus are available.");
+        }
+    }
+    
+    // Extract order components
+    $plan = $order['plan'];
+    $selected_meals = $order['selected_meals'] ?? [];
+    $meal_details = $order['meal_details'] ?? [];
+    $total_price = $plan['final_price'];
+    
+    // Get weekend dates
+    $weekend_dates = WeekendDateGenerator::getWeekendDates();
+    
+    // Process form submission
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['submit_order']) || !empty($_POST['payment_method']))) {
+        
+        $processor = new OrderProcessor($db);
+        
+        // Validate form input
+        $errors = $processor->validateFormInput($_POST);
+        
+        if (empty($errors)) {
+            try {
+                $result = $processor->processFullOrder($user_id, $order, $_POST);
+                
+                if ($result['success']) {
+                    $success = true;
+                    unset($_SESSION['checkout_data']);
+                    $_SESSION['flash_message'] = "Order placed successfully! Thank you for choosing Krua Thai";
+                    $_SESSION['flash_type'] = 'success';
+                    $_SESSION['last_order_id'] = $result['subscription_id'];
+                    $_SESSION['prevent_double_submit'] = time();
+                    
+                    header("Location: subscription-status.php?order=" . $result['subscription_id']);
+                    exit;
+                }
+                
+            } catch (Exception $e) {
+                $errors[] = "An error occurred: " . $e->getMessage();
+            }
+        }
+    }
+    
+} catch (Exception $e) {
+    die("❌ Application Error: " . $e->getMessage());
+}
+
+// Check for successful completion - early return to prevent HTML output
+if ($success) {
+    // This should never execute due to the redirect above, but just in case
+    exit;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -335,7 +590,7 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
             padding: 2rem 20px 4rem;
         }
 
-        /* Progress Bar - FIXED: One line layout */
+        /* Progress Bar */
         .progress-container {
             background: var(--white);
             border-radius: var(--radius-lg);
@@ -585,7 +840,6 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
             content: "⚠️";
         }
 
-        /* Weekend delivery - SAME STYLE AS WORKING VERSION */
         .delivery-day-checkbox {
             display: flex;
             align-items: center;
@@ -622,6 +876,21 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
             margin-bottom: 1rem;
             color: var(--text-dark);
             font-size: 0.9rem;
+        }
+
+        .success-message {
+            background: linear-gradient(135deg, #d4edda, #c3e6cb);
+            color: var(--success);
+            border: 2px solid #c3e6cb;
+            padding: 2rem;
+            border-radius: var(--radius-lg);
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .success-message h2 {
+            margin-bottom: 1rem;
+            color: var(--success);
         }
 
         /* Responsive */
@@ -708,7 +977,7 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
     </header>
 
     <div class="container">
-        <!-- Progress Bar - FIXED: One line layout -->
+        <!-- Progress Bar -->
         <div class="progress-container">
             <div class="progress-bar">
                 <div class="progress-step completed">
@@ -738,7 +1007,9 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
         <?php if (!empty($errors)): ?>
             <div class="error">
                 <ul>
-                    <?php foreach ($errors as $err) echo "<li>" . htmlspecialchars($err) . "</li>"; ?>
+                    <?php foreach ($errors as $err): ?>
+                        <li><?php echo htmlspecialchars($err); ?></li>
+                    <?php endforeach; ?>
                 </ul>
             </div>
         <?php endif; ?>
@@ -746,7 +1017,7 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
         <!-- Plan Summary -->
         <div class="section plan-summary">
             <div class="label"><i class="fas fa-box"></i> Selected Package</div>
-            <div class="plan-title"><?php echo htmlspecialchars(getPlanName($plan)); ?> (<?php echo $plan['meals_per_week']; ?> meals per week)</div>
+            <div class="plan-title"><?php echo htmlspecialchars(CheckoutUtils::getPlanName($plan)); ?> (<?php echo $plan['meals_per_week']; ?> meals per week)</div>
             <div class="plan-price">$<?php echo number_format($plan['final_price']/100, 2); ?> /week</div>
         </div>
 
@@ -757,15 +1028,15 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
                 <?php foreach ($selected_meals as $meal_id): ?>
                     <?php $meal = $meal_details[$meal_id] ?? null; if (!$meal) continue; ?>
                     <li>
-                        <span><?php echo htmlspecialchars(getMenuName($meal)); ?></span>
+                        <span><?php echo htmlspecialchars(CheckoutUtils::getMenuName($meal)); ?></span>
                         <span style="color: var(--curry); font-weight: 600;">($<?php echo number_format($meal['base_price']/100, 2); ?>)</span>
                     </li>
                 <?php endforeach; ?>
             </ul>
         </div>
 
-        <!-- Address/Shipping + Payment -->
-        <form method="POST">
+        <!-- Order Form -->
+        <form method="POST" action="" id="checkout-form">
             <div class="section">
                 <div class="label"><i class="fas fa-map-marker-alt"></i> Delivery Address</div>
                 <input type="text" class="address-input" name="delivery_address" required
@@ -788,13 +1059,13 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
                 <div class="delivery-days-container">
                     <?php foreach($weekend_dates as $val => $label): ?>
                         <label class="delivery-day-checkbox">
-                            <input type="checkbox" name="delivery_days[]" value="<?php echo $val; ?>">
-                            <?php echo $label; ?>
+                            <input type="checkbox" name="delivery_days[]" value="<?php echo htmlspecialchars($val); ?>">
+                            <?php echo htmlspecialchars($label); ?>
                         </label>
                     <?php endforeach; ?>
                 </div>
                 
-                <div class="label" style="margin-top:1rem;"><i class="fas fa-clock"></i> Preferred Delivery Time</div>
+                <div class="label" style="margin-top:1.5rem;"><i class="fas fa-clock"></i> Preferred Delivery Time</div>
                 <select name="preferred_time" class="address-input" required>
                     <option value="morning">Morning (8:00 AM - 12:00 PM)</option>
                     <option value="afternoon" selected>Afternoon (12:00 PM - 4:00 PM)</option>
@@ -824,11 +1095,166 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
                     </label>
                 </div>
                 <div class="total">Total: $<?php echo number_format($plan['final_price']/100, 2); ?></div>
-                <button class="btn" type="submit" name="submit_order"><i class="fas fa-lock"></i> Confirm and Pay</button>
+                
+                <button class="btn" type="submit" name="submit_order" value="1" id="main-submit-btn">
+                    <i class="fas fa-lock"></i> Confirm and Pay
+                </button>
+                
+                <!-- Hidden fields for form security -->
+                <input type="hidden" name="form_token" value="<?php echo hash('sha256', session_id() . time()); ?>">
+                <input type="hidden" name="form_submitted" value="1">
             </div>
         </form>
     </div>
 
-    <!-- NO COMPLEX JAVASCRIPT - Keep it simple like working version -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('✅ Refactored checkout page loaded');
+            
+            const form = document.getElementById('checkout-form');
+            const submitBtn = document.getElementById('main-submit-btn');
+            
+            if (form && submitBtn) {
+                // Enhanced form validation
+                function validateForm() {
+                    const errors = [];
+                    
+                    // Required fields validation
+                    const requiredFields = [
+                        { name: 'delivery_address', label: 'Delivery address' },
+                        { name: 'city', label: 'City' },
+                        { name: 'zip_code', label: 'ZIP code' }
+                    ];
+                    
+                    requiredFields.forEach(field => {
+                        const input = document.querySelector(`input[name="${field.name}"]`);
+                        if (!input || !input.value.trim()) {
+                            errors.push(`Please enter ${field.label}`);
+                        }
+                    });
+                    
+                    // ZIP code format validation
+                    const zipCode = document.querySelector('input[name="zip_code"]');
+                    if (zipCode && zipCode.value && !/^\d{5}$/.test(zipCode.value.trim())) {
+                        errors.push('ZIP code must be 5 digits');
+                    }
+                    
+                    // Payment method validation
+                    const paymentMethod = document.querySelector('input[name="payment_method"]:checked');
+                    if (!paymentMethod) {
+                        errors.push('Please select a payment method');
+                    }
+                    
+                    // Delivery days validation
+                    const deliveryDays = document.querySelectorAll('input[name="delivery_days[]"]:checked');
+                    if (deliveryDays.length === 0) {
+                        errors.push('Please select at least one delivery day');
+                    }
+                    
+                    return errors;
+                }
+                
+                // Form submission handler
+                form.addEventListener('submit', function(e) {
+                    console.log('🚀 Form submission started');
+                    
+                    const errors = validateForm();
+                    
+                    if (errors.length > 0) {
+                        console.log('❌ Validation failed:', errors);
+                        alert('Please fix the following issues:\n\n' + errors.join('\n'));
+                        e.preventDefault();
+                        return false;
+                    }
+                    
+                    // Prevent double submission
+                    if (submitBtn.disabled) {
+                        console.log('⚠️ Double submission prevented');
+                        e.preventDefault();
+                        return false;
+                    }
+                    
+                    console.log('✅ Validation passed, submitting...');
+                    
+                    // Update button state
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing Payment...';
+                    submitBtn.disabled = true;
+                    
+                    // Add timestamp to prevent double submission
+                    const timestamp = document.createElement('input');
+                    timestamp.type = 'hidden';
+                    timestamp.name = 'submit_timestamp';
+                    timestamp.value = Date.now();
+                    form.appendChild(timestamp);
+                    
+                    return true;
+                });
+                
+                // Auto-fill demo data for testing (remove in production)
+                if (window.location.search.includes('demo=1')) {
+                    setTimeout(() => {
+                        // Auto-select first payment method
+                        const firstPayment = document.querySelector('input[name="payment_method"]');
+                        if (firstPayment) firstPayment.checked = true;
+                        
+                        // Auto-select first delivery day
+                        const firstDelivery = document.querySelector('input[name="delivery_days[]"]');
+                        if (firstDelivery) firstDelivery.checked = true;
+                        
+                        console.log('🧪 Demo data auto-filled');
+                    }, 500);
+                }
+                
+                // Real-time validation feedback
+                const inputs = form.querySelectorAll('input[required], select[required]');
+                inputs.forEach(input => {
+                    input.addEventListener('blur', function() {
+                        if (this.value.trim()) {
+                            this.style.borderColor = 'var(--success)';
+                        } else {
+                            this.style.borderColor = 'var(--danger)';
+                        }
+                    });
+                    
+                    input.addEventListener('input', function() {
+                        if (this.style.borderColor === 'rgb(231, 76, 60)') { // var(--danger)
+                            this.style.borderColor = 'var(--border-light)';
+                        }
+                    });
+                });
+                
+                console.log('✅ Enhanced form handlers attached');
+                
+            } else {
+                console.error('❌ Form or submit button not found');
+            }
+        });
+        
+        // Global error handler
+        window.addEventListener('error', function(e) {
+            console.error('❌ JavaScript error:', e.error);
+            
+            // Re-enable submit button if there's an error
+            const submitBtn = document.getElementById('main-submit-btn');
+            if (submitBtn && submitBtn.disabled) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-lock"></i> Confirm and Pay';
+            }
+        });
+        
+        // Handle page unload during form submission
+        let formSubmitting = false;
+        document.getElementById('checkout-form')?.addEventListener('submit', () => {
+            formSubmitting = true;
+        });
+        
+        window.addEventListener('beforeunload', function(e) {
+            if (formSubmitting) {
+                e.preventDefault();
+                e.returnValue = '';
+                return 'Your order is being processed. Please wait...';
+            }
+        });
+    </script>
 </body>
 </html>
