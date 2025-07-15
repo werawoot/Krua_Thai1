@@ -1,3 +1,61 @@
+<?php
+/**
+ * Somdul Table - Home Page with Database Integration
+ * File: home2.php
+ */
+
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+session_start();
+
+require_once 'config/database.php';
+
+try {
+    // Fetch categories for navigation
+    $categories = [];
+    $stmt = $pdo->prepare("
+        SELECT id, name, name_thai 
+        FROM menu_categories 
+        WHERE is_active = 1 
+        ORDER BY sort_order ASC
+    ");
+    $stmt->execute();
+    $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Fetch featured menus for display (limit to 6 for carousel)
+    $stmt = $pdo->prepare("
+        SELECT m.*, c.name AS category_name, c.name_thai AS category_name_thai
+        FROM menus m 
+        LEFT JOIN menu_categories c ON m.category_id = c.id 
+        WHERE m.is_available = 1 
+        ORDER BY m.is_featured DESC, m.updated_at DESC 
+        LIMIT 6
+    ");
+    $stmt->execute();
+    $featured_menus = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+} catch (Exception $e) {
+    error_log("Home page database error: " . $e->getMessage());
+    $categories = [];
+    $featured_menus = [];
+}
+
+// Category icons mapping
+$category_icons = [
+    'Rice Bowls' => '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-2V4c0-1.1-.9-2-2-2zm0 2v2h-2V4h2zm-4 4h8v2h-8V8zm0 4h8v6H8v-6z"/>',
+    'Thai Curries' => '<path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>',
+    'Noodle Dishes' => '<path d="M22 2v20H2V2h20zm-2 2H4v16h16V4zM6 8h12v2H6V8zm0 4h12v2H6v-2zm0 4h8v2H6v-2z"/>',
+    'Stir Fry' => '<path d="M12.5 3.5c0 .83-.67 1.5-1.5 1.5s-1.5-.67-1.5-1.5S10.17 2 11 2s1.5.67 1.5 1.5zM20 8H4c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2v-8c0-1.1-.9-2-2-2zm0 10H4v-8h16v8zm-8-6c1.38 0 2.5 1.12 2.5 2.5S13.38 17 12 17s-2.5-1.12-2.5-2.5S10.62 12 12 12z"/>',
+    'Rice Dishes' => '<path d="M18 3H6c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H6V5h12v14zM8 7h8v2H8V7zm0 4h8v2H8v-2zm0 4h6v2H8v-2z"/>',
+    'Soups' => '<path d="M4 18h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2zm0-10h16v8H4V8zm8-4c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z"/>',
+    'Salads' => '<path d="M7 10c0-1.1.9-2 2-2s2 .9 2 2-.9 2-2 2-2-.9-2-2zm8 0c0-1.1.9-2 2-2s2 .9 2 2-.9 2-2 2-2-.9-2-2zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8 0-1.12.23-2.18.65-3.15C6.53 8.51 8 8 9.64 8c.93 0 1.83.22 2.64.61.81-.39 1.71-.61 2.64-.61 1.64 0 3.11.51 4.35.85.42.97.65 2.03.65 3.15 0 4.41-3.59 8-8 8z"/>',
+    'Desserts' => '<path d="M12 3L8 6.5h8L12 3zm0 18c4.97 0 9-4.03 9-9H3c0 4.97 4.03 9 9 9zm0-16L8.5 8h7L12 5z"/>',
+    'Beverages' => '<path d="M5 4v3h5.5v12h3V7H19V4H5z"/>'
+];
+
+// Default icon for categories not in mapping
+$default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-2V4c0-1.1-.9-2-2-2zm0 2v2h-2V4h2zm-4 4h8v2h-8V8zm0 4h8v6H8v-6z"/>';
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,85 +67,131 @@
     <!-- BaticaSans Font Import -->
     <link rel="preconnect" href="https://ydpschool.com">
     <style>
+    /* How It Works Section - Updated Styles */
+    .hiw-items {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 2rem;
+        margin-top: 3rem;
+    }
+
+    .hiw-step {
+        position: relative; /* Add relative positioning */
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 0; /* Remove padding since image will fill */
+        background: var(--white);
+        border-radius: 15px;
+        box-shadow: var(--shadow-soft);
+        transition: var(--transition);
+        overflow: hidden; /* Ensure image doesn't overflow rounded corners */
+        height: 400px; /* Set fixed height for consistency */
+    }
+
+    .hiw-step--with-border {
+        border: 2px solid var(--cream);
+    }
+
+    .hiw-step:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-medium);
+    }
+
+    .hiw-step-image {
+        position: absolute; /* Position image absolutely to fill entire card */
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 15px; /* Match parent border radius */
+        z-index: 1; /* Behind text content */
+    }
+
+    .hiw-step-text {
+        position: absolute; /* Position text absolutely over image */
+        bottom: 0;
+        left: 0;
+        right: 0;
+        text-align: center;
+        padding: 1.2rem; /* Reduced padding for smaller text area */
+        background: rgba(255, 255, 255, 0.9); /* Semi-transparent white background */
+        backdrop-filter: blur(10px); /* Add blur effect for better readability */
+        border-radius: 0 0 15px 15px; /* Rounded bottom corners */
+        z-index: 2; /* Above image */
+        min-height: 120px; /* Fixed minimum height for consistency */
+        display: flex;
+        flex-direction: column;
+        justify-content: center; /* Center content vertically */
+    }
+
+    .hiw-step-text .font-bold {
+        font-size: 1.1rem; /* Reduced from 1.3rem */
+        font-weight: 700;
+        color: var(--text-dark);
+        margin-bottom: 0.6rem; /* Reduced margin */
+        font-family: 'BaticaSans', sans-serif;
+    }
+
+    .step-text {
+        color: var(--text-dark); /* Changed from gray to dark for better contrast */
+        line-height: 1.4; /* Reduced line height */
+        font-family: 'BaticaSans', sans-serif;
+        font-weight: 500; /* Slightly bolder for better readability */
+        font-size: 0.9rem; /* Smaller text size */
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
         .hiw-items {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 2rem;
-            margin-top: 3rem;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
         }
-
+        
         .hiw-step {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            padding: 2rem;
-            background: var(--white);
-            border-radius: 15px;
-            box-shadow: var(--shadow-soft);
-            transition: var(--transition);
+            height: 300px; /* Smaller height for mobile */
         }
-
-        .hiw-step--with-border {
-            border: 2px solid var(--cream);
-        }
-
-        .hiw-step:hover {
-            transform: translateY(-5px);
-            box-shadow: var(--shadow-medium);
-        }
-
-        .hiw-step-image {
-            width: 100%;
-            height: 200px;
-            object-fit: cover;
-            border-radius: 10px;
-            margin-bottom: 1.5rem;
-        }
-
+        
         .hiw-step-text {
-            text-align: center;
+            padding: 1rem; /* Reduced padding */
+            min-height: 100px; /* Consistent height for mobile */
         }
-
+        
         .hiw-step-text .font-bold {
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: var(--text-dark);
-            margin-bottom: 1rem;
-            font-family: 'BaticaSans', sans-serif;
+            font-size: 1rem; /* Smaller title */
+            margin-bottom: 0.5rem;
         }
-
+        
         .step-text {
-            color: var(--text-gray);
-            line-height: 1.6;
-            font-family: 'BaticaSans', sans-serif;
+            font-size: 0.8rem; /* Smaller text */
+            line-height: 1.3;
         }
+    }
 
-        /* Responsive adjustments */
-        @media (max-width: 768px) {
-            .hiw-items {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 1.5rem;
-            }
-            
-            .hiw-step {
-                padding: 1.5rem;
-            }
-            
-            .hiw-step-image {
-                height: 150px;
-            }
+    @media (max-width: 480px) {
+        .hiw-items {
+            grid-template-columns: 1fr;
         }
-
-        @media (max-width: 480px) {
-            .hiw-items {
-                grid-template-columns: 1fr;
-            }
-            
-            .hiw-step-image {
-                height: 180px;
-            }
+        
+        .hiw-step {
+            height: 350px; /* Adjust height for single column */
         }
+        
+        .hiw-step-text {
+            padding: 1rem; /* Consistent padding */
+            min-height: 110px; /* Consistent height for single column */
+        }
+        
+        .hiw-step-text .font-bold {
+            font-size: 1rem;
+        }
+        
+        .step-text {
+            font-size: 0.85rem;
+        }
+    }
         @font-face {
             font-family: 'BaticaSans';
             src: url('https://ydpschool.com/fonts/BaticaSans-Regular.woff2') format('woff2'),
@@ -435,7 +539,9 @@
 
         .video-container {
             position: relative;
-            min-height: 300px;
+            width: 100%;
+            height: 200px; /* Fixed height instead of min-height */
+            max-width: 200px; /* Adjust based on your layout needs */
             overflow: hidden;
             border-radius: 12px;
             background: linear-gradient(45deg, var(--curry), var(--brown));
@@ -449,10 +555,19 @@
             clip-path: inset(0);
         }
 
+        .video-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center center;
+            border-radius: 12px;
+        }
+
         .video-container video {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            object-position: center center;
             border-radius: 12px;
         }
 
@@ -988,22 +1103,37 @@
                 <div class="image-column" data-testid="image-column">
                     <div class="image-slider-reverse">
                         <div class="video-container">
-                            <span>Pad Thai</span>
+                            <div class="video-container">
+                                <video autoplay muted loop>
+                                    <source src="assets/videos/video1.mp4" type="video/mp4">
+                                    Your browser does not support the video tag.
+                                </video>
+                            </div>
                         </div>
                         <div class="video-container">
-                            <span>Green Curry</span>
+                            <img src="assets/image/image1.jpg" alt="Pad Thai">
                         </div>
                         <div class="video-container">
-                            <span>Tom Yum</span>
+                            <div class="video-container">
+                                <video autoplay muted loop>
+                                    <source src="assets/videos/video7.mp4" type="video/mp4">
+                                    Your browser does not support the video tag.
+                                </video>
+                            </div>
                         </div>
                         <div class="video-container">
-                            <span>Massaman</span>
+                            <img src="assets/image/image2.jpg" alt="Pad Thai">
                         </div>
                         <div class="video-container">
-                            <span>Som Tam</span>
+                            <div class="video-container">
+                                <video autoplay muted loop>
+                                    <source src="assets/videos/video2.mp4" type="video/mp4">
+                                    Your browser does not support the video tag.
+                                </video>
+                            </div>
                         </div>
                         <div class="video-container">
-                            <span>Mango Rice</span>
+                            <img src="assets/image/image3.jpg" alt="Pad Thai">
                         </div>
                     </div>
                 </div>
@@ -1012,22 +1142,37 @@
                 <div class="image-column" data-testid="image-column">
                     <div class="image-slider">
                         <div class="video-container">
-                            <span>Larb</span>
+                            <div class="video-container">
+                                <video autoplay muted loop>
+                                    <source src="assets/videos/video8.mp4" type="video/mp4">
+                                    Your browser does not support the video tag.
+                                </video>
+                            </div>
                         </div>
                         <div class="video-container">
-                            <span>Satay</span>
+                            <img src="assets/image/image4.jpg" alt="Pad Thai">
                         </div>
                         <div class="video-container">
-                            <span>Panang</span>
+                            <div class="video-container">
+                                <video autoplay muted loop>
+                                    <source src="assets/videos/video3.mp4" type="video/mp4">
+                                    Your browser does not support the video tag.
+                                </video>
+                            </div>
                         </div>
                         <div class="video-container">
-                            <span>Khao Pad</span>
+                            <img src="assets/image/image5.jpg" alt="Pad Thai">
                         </div>
                         <div class="video-container">
-                            <span>Sticky Rice</span>
+                            <div class="video-container">
+                                <video autoplay muted loop>
+                                    <source src="assets/videos/video6.mp4" type="video/mp4">
+                                    Your browser does not support the video tag.
+                                </video>
+                            </div>
                         </div>
                         <div class="video-container">
-                            <span>Thai Basil</span>
+                            <img src="assets/image/image6.jpg" alt="Pad Thai">
                         </div>
                     </div>
                 </div>
@@ -1036,22 +1181,37 @@
                 <div class="image-column" data-testid="image-column">
                     <div class="image-slider-reverse">
                         <div class="video-container">
-                            <span>Red Curry</span>
+                            <div class="video-container">
+                                <video autoplay muted loop>
+                                    <source src="assets/videos/video9.mp4" type="video/mp4">
+                                    Your browser does not support the video tag.
+                                </video>
+                            </div>
                         </div>
                         <div class="video-container">
-                            <span>Drunken Noodles</span>
+                            <img src="assets/image/image7.jpg" alt="Pad Thai">
                         </div>
                         <div class="video-container">
-                            <span>Thai Fried Rice</span>
+                            <div class="video-container">
+                                <video autoplay muted loop>
+                                    <source src="assets/videos/video5.mp4" type="video/mp4">
+                                    Your browser does not support the video tag.
+                                </video>
+                            </div>
                         </div>
                         <div class="video-container">
-                            <span>Coconut Soup</span>
+                            <img src="assets/image/image8.jpg" alt="Pad Thai">
                         </div>
                         <div class="video-container">
-                            <span>Spring Rolls</span>
+                            <div class="video-container">
+                                <video autoplay muted loop>
+                                    <source src="assets/videos/video4.mp4" type="video/mp4">
+                                    Your browser does not support the video tag.
+                                </video>
+                            </div>
                         </div>
                         <div class="video-container">
-                            <span>Thai Tea</span>
+                            <img src="assets/image/image9.jpg" alt="Pad Thai">
                         </div>
                     </div>
                 </div>
@@ -1065,169 +1225,127 @@
             <div class="menu-nav-container">
                 <div class="menu-nav-wrapper">
                     <div class="menu-nav-list">
-                        <button class="menu-nav-item active" data-category="appetizers">
-                            <span class="menu-nav-icon">
-                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-2V4c0-1.1-.9-2-2-2zm0 2v2h-2V4h2zm-4 4h8v2h-8V8zm0 4h8v6H8v-6z"/>
-                                </svg>
-                            </span>
-                            <span class="menu-nav-text">Appetizers</span>
-                        </button>
-                        
-                        <button class="menu-nav-item" data-category="curries">
-                            <span class="menu-nav-icon">
-                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
-                                </svg>
-                            </span>
-                            <span class="menu-nav-text">Curries</span>
-                        </button>
-                        
-                        <button class="menu-nav-item" data-category="stir-fry">
-                            <span class="menu-nav-icon">
-                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M12.5 3.5c0 .83-.67 1.5-1.5 1.5s-1.5-.67-1.5-1.5S10.17 2 11 2s1.5.67 1.5 1.5zM20 8H4c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2v-8c0-1.1-.9-2-2-2zm0 10H4v-8h16v8zm-8-6c1.38 0 2.5 1.12 2.5 2.5S13.38 17 12 17s-2.5-1.12-2.5-2.5S10.62 12 12 12z"/>
-                                </svg>
-                            </span>
-                            <span class="menu-nav-text">Stir Fry</span>
-                        </button>
-                        
-                        <button class="menu-nav-item" data-category="noodles">
-                            <span class="menu-nav-icon">
-                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M22 2v20H2V2h20zm-2 2H4v16h16V4zM6 8h12v2H6V8zm0 4h12v2H6v-2zm0 4h8v2H6v-2z"/>
-                                </svg>
-                            </span>
-                            <span class="menu-nav-text">Noodles</span>
-                        </button>
-                        
-                        <button class="menu-nav-item" data-category="rice">
-                            <span class="menu-nav-icon">
-                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M18 3H6c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H6V5h12v14zM8 7h8v2H8V7zm0 4h8v2H8v-2zm0 4h6v2H8v-2z"/>
-                                </svg>
-                            </span>
-                            <span class="menu-nav-text">Rice Dishes</span>
-                        </button>
-                        
-                        <button class="menu-nav-item" data-category="soups">
-                            <span class="menu-nav-icon">
-                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M4 18h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2zm0-10h16v8H4V8zm8-4c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z"/>
-                                </svg>
-                            </span>
-                            <span class="menu-nav-text">Soups</span>
-                        </button>
-                        
-                        <button class="menu-nav-item" data-category="salads">
-                            <span class="menu-nav-icon">
-                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M7 10c0-1.1.9-2 2-2s2 .9 2 2-.9 2-2 2-2-.9-2-2zm8 0c0-1.1.9-2 2-2s2 .9 2 2-.9 2-2 2-2-.9-2-2zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8 0-1.12.23-2.18.65-3.15C6.53 8.51 8 8 9.64 8c.93 0 1.83.22 2.64.61.81-.39 1.71-.61 2.64-.61 1.64 0 3.11.51 4.35.85.42.97.65 2.03.65 3.15 0 4.41-3.59 8-8 8z"/>
-                                </svg>
-                            </span>
-                            <span class="menu-nav-text">Salads</span>
-                        </button>
-                        
-                        <button class="menu-nav-item" data-category="desserts">
-                            <span class="menu-nav-icon">
-                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M12 3L8 6.5h8L12 3zm0 18c4.97 0 9-4.03 9-9H3c0 4.97 4.03 9 9 9zm0-16L8.5 8h7L12 5z"/>
-                                </svg>
-                            </span>
-                            <span class="menu-nav-text">Desserts</span>
-                        </button>
-                        
-                        <button class="menu-nav-item" data-category="beverages">
-                            <span class="menu-nav-icon">
-                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M5 4v3h5.5v12h3V7H19V4H5z"/>
-                                </svg>
-                            </span>
-                            <span class="menu-nav-text">Beverages</span>
-                        </button>
+                        <?php if (empty($categories)): ?>
+                            <!-- Fallback categories if database is empty -->
+                            <button class="menu-nav-item active" data-category="all">
+                                <span class="menu-nav-icon">
+                                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <?php echo $default_icon; ?>
+                                    </svg>
+                                </span>
+                                <span class="menu-nav-text">All Items</span>
+                            </button>
+                        <?php else: ?>
+                            <!-- All items button -->
+                            <button class="menu-nav-item active" data-category="all">
+                                <span class="menu-nav-icon">
+                                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/>
+                                    </svg>
+                                </span>
+                                <span class="menu-nav-text">All Items</span>
+                            </button>
+                            
+                            <!-- Dynamic categories from database -->
+                            <?php foreach ($categories as $index => $category): ?>
+                                <?php 
+                                $category_name = $category['name'] ?: $category['name_thai'];
+                                $icon_path = $category_icons[$category_name] ?? $default_icon;
+                                ?>
+                                <button class="menu-nav-item" data-category="<?php echo htmlspecialchars($category['id']); ?>">
+                                    <span class="menu-nav-icon">
+                                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <?php echo $icon_path; ?>
+                                        </svg>
+                                    </span>
+                                    <span class="menu-nav-text">
+                                        <?php echo htmlspecialchars($category_name); ?>
+                                    </span>
+                                </button>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
 
             <div class="meal-cards-container">
                 <div class="meal-cards-track" id="mealCardsTrack">
-                    <div class="meal-card" style="background-image: url('https://images.unsplash.com/photo-1559847844-d678f3c83db2?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80');">
-                        <div class="meal-card-content">
-                            <h3 class="meal-card-title">Thai Green Curry</h3>
-                            <p class="meal-card-description">Aromatic green curry with Thai basil and coconut milk</p>
-                            <div class="meal-card-chef">
-                                <img src="https://images.unsplash.com/photo-1607631568010-a87245c0daf8?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=100&q=80" alt="Chef" class="chef-image">
-                                <div class="chef-info">
-                                    <span>by</span> Chef Siriporn
+                    <?php if (empty($featured_menus)): ?>
+                        <!-- Fallback content if no menus in database -->
+                        <div class="meal-card" style="background: linear-gradient(45deg, var(--curry), var(--brown));">
+                            <div class="meal-card-content">
+                                <h3 class="meal-card-title">Thai Green Curry</h3>
+                                <p class="meal-card-description">Aromatic green curry with Thai basil and coconut milk</p>
+                                <div class="meal-card-chef">
+                                    <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--white); display: flex; align-items: center; justify-content: center; color: var(--curry); font-weight: bold;">👨‍🍳</div>
+                                    <div class="chef-info">
+                                        <span>by</span> Chef Siriporn
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-
-                    <div class="meal-card" style="background-image: url('https://images.unsplash.com/photo-1576352187195-4849a0d02d18?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80');">
-                        <div class="meal-card-content">
-                            <h3 class="meal-card-title">Pad Thai Classic</h3>
-                            <p class="meal-card-description">Traditional stir-fried rice noodles with tamarind sauce</p>
-                            <div class="meal-card-chef">
-                                <img src="https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=100&q=80" alt="Chef" class="chef-image">
-                                <div class="chef-info">
-                                    <span>by</span> Chef Narong
+                        
+                        <div class="meal-card" style="background: linear-gradient(45deg, var(--brown), var(--sage));">
+                            <div class="meal-card-content">
+                                <h3 class="meal-card-title">Pad Thai Classic</h3>
+                                <p class="meal-card-description">Traditional stir-fried rice noodles with tamarind sauce</p>
+                                <div class="meal-card-chef">
+                                    <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--white); display: flex; align-items: center; justify-content: center; color: var(--curry); font-weight: bold;">👨‍🍳</div>
+                                    <div class="chef-info">
+                                        <span>by</span> Chef Narong
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-
-                    <div class="meal-card" style="background-image: url('https://images.unsplash.com/photo-1594843318816-eca2593ecf74?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80');">
-                        <div class="meal-card-content">
-                            <h3 class="meal-card-title">Tom Yum Goong</h3>
-                            <p class="meal-card-description">Spicy and sour soup with fresh shrimp</p>
-                            <div class="meal-card-chef">
-                                <img src="https://images.unsplash.com/photo-1559847844-d678f3c83db2?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=100&q=80" alt="Chef" class="chef-image">
-                                <div class="chef-info">
-                                    <span>by</span> Chef Malee
+                    <?php else: ?>
+                        <!-- Dynamic menus from database -->
+                        <?php foreach ($featured_menus as $menu): ?>
+                            <?php
+                            $menu_name = $menu['name'] ?: $menu['name_thai'];
+                            $category_name = $menu['category_name'] ?: $menu['category_name_thai'];
+                            $description = $menu['description'] ?: 'Authentic Thai cuisine made healthy';
+                            
+                            // Determine background image or fallback
+                            $background_style = '';
+                            if ($menu['main_image_url'] && file_exists($menu['main_image_url'])) {
+                                $background_style = "background-image: url('" . htmlspecialchars($menu['main_image_url']) . "');";
+                            } else {
+                                // Fallback gradient based on category
+                                $gradients = [
+                                    'Rice Bowls' => 'linear-gradient(45deg, var(--curry), var(--brown))',
+                                    'Thai Curries' => 'linear-gradient(45deg, var(--brown), var(--sage))',
+                                    'Noodle Dishes' => 'linear-gradient(45deg, var(--sage), var(--cream))',
+                                    'default' => 'linear-gradient(45deg, var(--curry), var(--brown))'
+                                ];
+                                $gradient = $gradients[$category_name] ?? $gradients['default'];
+                                $background_style = "background: $gradient;";
+                            }
+                            ?>
+                            <div class="meal-card" style="<?php echo $background_style; ?>">
+                                <div class="meal-card-content">
+                                    <h3 class="meal-card-title">
+                                        <?php echo htmlspecialchars($menu_name); ?>
+                                    </h3>
+                                    <p class="meal-card-description">
+                                        <?php echo htmlspecialchars($description); ?>
+                                    </p>
+                                    <div class="meal-card-chef">
+                                        <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--white); display: flex; align-items: center; justify-content: center; color: var(--curry); font-weight: bold;">
+                                            👨‍🍳
+                                        </div>
+                                        <div class="chef-info">
+                                            <span>by</span> Somdul Chef
+                                            <?php if ($menu['base_price']): ?>
+                                                <div style="font-weight: 600; color: var(--white); margin-top: 4px;">
+                                                    $<?php echo number_format($menu['base_price'], 2); ?>
+                                                </div>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-
-                    <div class="meal-card" style="background-image: url('https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80');">
-                        <div class="meal-card-content">
-                            <h3 class="meal-card-title">Massaman Beef</h3>
-                            <p class="meal-card-description">Rich and mild curry with tender beef and potatoes</p>
-                            <div class="meal-card-chef">
-                                <img src="https://images.unsplash.com/photo-1607631568010-a87245c0daf8?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=100&q=80" alt="Chef" class="chef-image">
-                                <div class="chef-info">
-                                    <span>by</span> Chef Somchai
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="meal-card" style="background-image: url('https://images.unsplash.com/photo-1559847844-d678f3c83db2?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80');">
-                        <div class="meal-card-content">
-                            <h3 class="meal-card-title">Papaya Salad</h3>
-                            <p class="meal-card-description">Fresh green papaya salad with lime dressing</p>
-                            <div class="meal-card-chef">
-                                <img src="https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=100&q=80" alt="Chef" class="chef-image">
-                                <div class="chef-info">
-                                    <span>by</span> Chef Wipada
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="meal-card" style="background-image: url('https://images.unsplash.com/photo-1574653525595-5c8c7df3e6c9?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80');">
-                        <div class="meal-card-content">
-                            <h3 class="meal-card-title">Mango Sticky Rice</h3>
-                            <p class="meal-card-description">Sweet coconut sticky rice with fresh mango</p>
-                            <div class="meal-card-chef">
-                                <img src="https://images.unsplash.com/photo-1559847844-d678f3c83db2?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=100&q=80" alt="Chef" class="chef-image">
-                                <div class="chef-info">
-                                    <span>by</span> Chef Panida
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
                 </div>
             </div>
 
@@ -1244,28 +1362,28 @@
             <h2 class="steps-title">How It Works</h2>
             <div data-testid="hiw-items" class="hiw-items">
                 <div data-testid="hiw-step" class="hiw-step hiw-step--with-border">
-                    <img src="assets/images/how-it-works/HIW_1.jpg" alt="Pick your weekly plan" class="hiw-step-image">
+                    <img src="assets/image/weeklyplan.jpg" alt="Pick your weekly plan" class="hiw-step-image">
                     <div data-testid="hiw-step-text" class="hiw-step-text">
                         <p class="font-bold">Pick your weekly plan</p>
                         <p data-testid="step-text" class="step-text">Choose from 4 to 16 meals per week – you can pause, skip, or cancel deliveries at any time.</p>
                     </div>
                 </div>
                 <div data-testid="hiw-step" class="hiw-step hiw-step--with-border">
-                    <img src="assets/images/how-it-works/HIW_2.jpg" alt="Select your meals" class="hiw-step-image">
+                    <img src="assets/image/selectingmeal.jpeg" alt="Pick your weekly plan" class="hiw-step-image">
                     <div data-testid="hiw-step-text" class="hiw-step-text">
                         <p class="font-bold">Select your meals</p>
-                        <p data-testid="step-text" class="step-text">Browse our menu and select your meals – new menus drop every week with exciting new offerings added all the time.</p>
+                        <p data-testid="step-text" class="step-text">Browse our menu and select your meals – new offerings added weekly.</p>
                     </div>
                 </div>
                 <div data-testid="hiw-step" class="hiw-step hiw-step--with-border">
-                    <img src="assets/images/how-it-works/HIW_3.jpg" alt="Let chefs work their magic" class="hiw-step-image">
+                    <img src="assets/image/chefcooking.jpg" alt="Pick your weekly plan" class="hiw-step-image">
                     <div data-testid="hiw-step-text" class="hiw-step-text">
                         <p class="font-bold">Let chefs work their magic</p>
                         <p data-testid="step-text" class="step-text">Every meal is made to order in small batches with the craft and artistry offered only by top-tier chefs.</p>
                     </div>
                 </div>
                 <div data-testid="hiw-step" class="hiw-step hiw-step--with-border">
-                    <img src="assets/images/how-it-works/HIW_4.jpg" alt="Sit back and enjoy" class="hiw-step-image">
+                    <img src="assets/image/streetfood.jpg" alt="Pick your weekly plan" class="hiw-step-image">
                     <div data-testid="hiw-step-text" class="hiw-step-text">
                         <p class="font-bold">Sit back and enjoy</p>
                         <p data-testid="step-text" class="step-text">Delivered fresh every week, enjoy chef-crafted meals in minutes with no prep or cleanup.</p>
@@ -1291,11 +1409,25 @@
                 const category = this.getAttribute('data-category');
                 console.log('Selected category:', category);
                 
-                // Add your PHP/AJAX filtering logic here
-                // Example: filterMenuItems(category);
+                // Here you can add AJAX functionality to filter menus by category
+                filterMenusByCategory(category);
             });
         });
+        
+        // Function to filter menus by category (placeholder for future AJAX implementation)
+        function filterMenusByCategory(categoryId) {
+            // This is where you would implement AJAX call to filter menus
+            // For now, just log the category selection
+            console.log('Filtering by category:', categoryId);
+            
+            // You can implement this later to dynamically load menus via AJAX
+            // Example:
+            // fetch(`ajax/filter_menus.php?category=${categoryId}`)
+            //     .then(response => response.json())
+            //     .then(data => updateMenuCards(data.menus));
+        }
     });
+    
     function closePromoBanner() {
         const promoBanner = document.getElementById('promoBanner');
         const navbar = document.querySelector('.navbar');
@@ -1311,50 +1443,50 @@
         }, 300);
     }
 
-// Your existing JavaScript continues here...
-        // Menu navigation functionality
-        document.addEventListener('DOMContentLoaded', function() {
-            const menuButtons = document.querySelectorAll('.menu-nav button');
-            
-            menuButtons.forEach(button => {
-                button.addEventListener('click', function() {
-                    // Remove active class from all buttons
-                    menuButtons.forEach(btn => btn.classList.remove('active'));
-                    // Add active class to clicked button
-                    this.classList.add('active');
-                });
+    // Menu navigation functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        const menuButtons = document.querySelectorAll('.menu-nav button');
+        
+        menuButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // Remove active class from all buttons
+                menuButtons.forEach(btn => btn.classList.remove('active'));
+                // Add active class to clicked button
+                this.classList.add('active');
             });
         });
+    });
 
-        // Smooth scrolling for navigation links
-        document.addEventListener('DOMContentLoaded', function() {
-            const navLinks = document.querySelectorAll('a[href^="#"]');
-            
-            navLinks.forEach(link => {
-                link.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const targetId = this.getAttribute('href');
-                    const targetSection = document.querySelector(targetId);
-                    
-                    if (targetSection) {
-                        targetSection.scrollIntoView({
-                            behavior: 'smooth',
-                            block: 'start'
-                        });
-                    }
-                });
+    // Smooth scrolling for navigation links
+    document.addEventListener('DOMContentLoaded', function() {
+        const navLinks = document.querySelectorAll('a[href^="#"]');
+        
+        navLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href');
+                const targetSection = document.querySelector(targetId);
+                
+                if (targetSection) {
+                    targetSection.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
             });
         });
+    });
 
-        // Navbar background on scroll
-        window.addEventListener('scroll', function() {
-            const navbar = document.querySelector('.navbar');
-            if (window.scrollY > 100) {
-                navbar.style.background = 'rgba(255, 255, 255, 0.98)';
-            } else {
-                navbar.style.background = 'rgba(255, 255, 255, 0.95)';
-            }
-        });
+    // Navbar background on scroll
+    window.addEventListener('scroll', function() {
+        const navbar = document.querySelector('.navbar');
+        if (window.scrollY > 100) {
+            navbar.style.background = 'rgba(255, 255, 255, 0.98)';
+        } else {
+            navbar.style.background = 'rgba(255, 255, 255, 0.95)';
+        }
+    });
+
 // Meal cards scrolling functionality
 const track = document.getElementById('mealCardsTrack');
 const scrollLeftBtn = document.getElementById('scrollLeft');
