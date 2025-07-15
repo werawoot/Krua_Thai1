@@ -1,7 +1,7 @@
 <?php
 /**
- * Krua Thai - Refactored Checkout System
- * Improved for robustness and readability
+ * Krua Thai - Improved Checkout System
+ * Updated for single date selection and better UI
  */
 
 session_start();
@@ -89,7 +89,7 @@ class DatabaseConnection {
     }
 }
 
-// Weekend Date Generator
+// Weekend Date Generator (Updated for single selection)
 class WeekendDateGenerator {
     
     public static function getWeekendDates() {
@@ -106,7 +106,12 @@ class WeekendDateGenerator {
             if ($dayOfWeek == 6 || $dayOfWeek == 7) { 
                 $dayName = ($dayOfWeek == 6) ? 'Saturday' : 'Sunday';
                 $key = strtolower(substr($dayName, 0, 3)) . '_' . floor(count($dates) / 2);
-                $dates[$key] = $checkDate->format('l, M j') . " ({$dayName})";
+                $dates[$key] = [
+                    'label' => $checkDate->format('l, M j'),
+                    'day' => $dayName,
+                    'date' => $checkDate->format('Y-m-d'),
+                    'formatted' => $checkDate->format('d/m/Y')
+                ];
                 
                 if (count($dates) >= 8) break; 
             }
@@ -116,33 +121,8 @@ class WeekendDateGenerator {
     }
     
     public static function convertWeekendKeyToDate($weekendKey) {
-        $today = new DateTime();
-        $today->setTimezone(new DateTimeZone('Asia/Bangkok'));
-        
         $weekendDates = self::getWeekendDates();
-        $dateKeys = array_keys($weekendDates);
-        
-        $keyIndex = array_search($weekendKey, $dateKeys);
-        if ($keyIndex !== false) {
-            $targetDate = clone $today;
-            $targetDate->modify('+1 day'); 
-            
-            $foundWeekends = 0;
-            for ($i = 0; $i < 28; $i++) {
-                $checkDate = clone $targetDate;
-                $checkDate->modify("+{$i} days");
-                
-                $dayOfWeek = $checkDate->format('N');
-                if ($dayOfWeek == 6 || $dayOfWeek == 7) {
-                    if ($foundWeekends == $keyIndex) {
-                        return $checkDate->format('Y-m-d');
-                    }
-                    $foundWeekends++;
-                }
-            }
-        }
-        
-        return null;
+        return isset($weekendDates[$weekendKey]) ? $weekendDates[$weekendKey]['date'] : null;
     }
 }
 
@@ -193,7 +173,7 @@ class CheckoutDataManager {
     }
 }
 
-// Order Processing Engine
+// Order Processing Engine (Updated for single delivery day)
 class OrderProcessor {
     
     private $db;
@@ -218,8 +198,9 @@ class OrderProcessor {
             }
         }
         
-        if (empty($postData['delivery_days'])) {
-            $errors[] = "Please select at least 1 delivery day";
+        // Updated validation for single delivery day
+        if (empty($postData['delivery_day'])) {
+            $errors[] = "Please select a delivery day";
         }
         
         // ZIP code validation
@@ -300,22 +281,17 @@ class OrderProcessor {
         return ['payment_id' => $payment_id, 'transaction_id' => $transaction_id];
     }
     
-    public function createSubscriptionMenus($subscription_id, $selected_meals, $delivery_days) {
+    public function createSubscriptionMenus($subscription_id, $selected_meals, $delivery_date) {
         $stmt = $this->db->prepare("INSERT INTO subscription_menus
             (id, subscription_id, menu_id, delivery_date, quantity, status, created_at, updated_at)
             VALUES (?, ?, ?, ?, 1, 'scheduled', NOW(), NOW())");
         
-        foreach ($delivery_days as $weekendKey) {
-            $actual_date = WeekendDateGenerator::convertWeekendKeyToDate($weekendKey);
-            if ($actual_date) {
-                foreach ($selected_meals as $meal_id) {
-                    $menu_uuid = CheckoutUtils::generateUUID();
-                    $result = $stmt->execute([$menu_uuid, $subscription_id, $meal_id, $actual_date]);
-                    
-                    if (!$result) {
-                        throw new Exception("Failed to create subscription menu");
-                    }
-                }
+        foreach ($selected_meals as $meal_id) {
+            $menu_uuid = CheckoutUtils::generateUUID();
+            $result = $stmt->execute([$menu_uuid, $subscription_id, $meal_id, $delivery_date]);
+            
+            if (!$result) {
+                throw new Exception("Failed to create subscription menu");
             }
         }
     }
@@ -340,14 +316,10 @@ class OrderProcessor {
         try {
             $plan = $order['plan'];
             $selected_meals = $order['selected_meals'];
-            $delivery_days = $postData['delivery_days'];
+            $delivery_day = $postData['delivery_day']; // Single delivery day
             
             // Calculate dates
-            $start_date = null;
-            if (!empty($delivery_days)) {
-                $first_delivery_key = $delivery_days[0];
-                $start_date = WeekendDateGenerator::convertWeekendKeyToDate($first_delivery_key);
-            }
+            $start_date = WeekendDateGenerator::convertWeekendKeyToDate($delivery_day);
             
             if (!$start_date) {
                 $start_date = date('Y-m-d', strtotime('+1 day'));
@@ -366,7 +338,7 @@ class OrderProcessor {
                 'next_billing_date' => $next_billing_date,
                 'billing_cycle' => $billing_cycle,
                 'total_amount' => $plan['final_price'],
-                'delivery_days' => json_encode($delivery_days),
+                'delivery_days' => json_encode([$delivery_day]), // Array with single day
                 'preferred_time' => $postData['preferred_time'] ?? 'afternoon',
                 'delivery_instructions' => CheckoutUtils::sanitizeInput($postData['delivery_instructions'] ?? '')
             ];
@@ -386,8 +358,8 @@ class OrderProcessor {
             
             $payment_result = $this->createPayment($payment_data);
             
-            // Create subscription menus
-            $this->createSubscriptionMenus($subscription_id, $selected_meals, $delivery_days);
+            // Create subscription menus for single delivery date
+            $this->createSubscriptionMenus($subscription_id, $selected_meals, $start_date);
             
             // Update user profile
             $user_data = [
@@ -484,7 +456,6 @@ try {
 
 // Check for successful completion - early return to prevent HTML output
 if ($success) {
-    // This should never execute due to the redirect above, but just in case
     exit;
 }
 ?>
@@ -782,23 +753,48 @@ if ($success) {
             box-shadow: 0 6px 20px rgba(207, 114, 58, 0.4);
         }
 
+        .payment-methods {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
         .payment-methods label {
             display: flex;
             align-items: center;
             gap: 1rem;
-            margin-bottom: 1.1rem;
             cursor: pointer;
-            padding: 1rem;
+            padding: 1.2rem;
             border: 2px solid var(--border-light);
             border-radius: var(--radius-lg);
             transition: var(--transition);
             background: var(--white);
             font-weight: 600;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .payment-methods label::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(207, 114, 58, 0.05), rgba(189, 147, 121, 0.05));
+            opacity: 0;
+            transition: var(--transition);
+        }
+
+        .payment-methods label:hover::before {
+            opacity: 1;
         }
 
         .payment-methods label:hover {
-            border-color: var(--sage);
-            background: var(--cream);
+            border-color: var(--curry);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(207, 114, 58, 0.2);
         }
 
         .payment-methods input:checked + i {
@@ -807,11 +803,120 @@ if ($success) {
 
         .payment-methods input {
             accent-color: var(--curry);
+            margin-right: 0.5rem;
         }
 
         .payment-methods i {
             font-size: 1.3rem;
             color: var(--curry);
+            z-index: 1;
+        }
+
+        .payment-methods span {
+            z-index: 1;
+        }
+
+        /* Delivery Day Selection (Improved for single selection) */
+        .delivery-days-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .delivery-day-option {
+            position: relative;
+            cursor: pointer;
+        }
+
+        .delivery-day-option input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .delivery-day-card {
+            padding: 1.5rem;
+            border: 2px solid var(--border-light);
+            border-radius: var(--radius-lg);
+            transition: var(--transition);
+            background: var(--white);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .delivery-day-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(207, 114, 58, 0.1), rgba(189, 147, 121, 0.1));
+            opacity: 0;
+            transition: var(--transition);
+        }
+
+        .delivery-day-option:hover .delivery-day-card {
+            border-color: var(--curry);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(207, 114, 58, 0.2);
+        }
+
+        .delivery-day-option:hover .delivery-day-card::before {
+            opacity: 1;
+        }
+
+        .delivery-day-option input[type="radio"]:checked + .delivery-day-card {
+            border-color: var(--curry);
+            background: linear-gradient(135deg, rgba(207, 114, 58, 0.1), rgba(189, 147, 121, 0.1));
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(207, 114, 58, 0.3);
+        }
+
+        .delivery-day-option input[type="radio"]:checked + .delivery-day-card::after {
+            content: '✓';
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: var(--curry);
+            color: var(--white);
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .delivery-day-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 0.5rem;
+            z-index: 1;
+            position: relative;
+        }
+
+        .delivery-day-date {
+            color: var(--curry);
+            font-weight: 600;
+            font-size: 0.9rem;
+            z-index: 1;
+            position: relative;
+        }
+
+        .delivery-day-info {
+            color: var(--text-gray);
+            font-size: 0.8rem;
+            margin-top: 0.3rem;
+            z-index: 1;
+            position: relative;
         }
 
         .error {
@@ -840,42 +945,31 @@ if ($success) {
             content: "⚠️";
         }
 
-        .delivery-day-checkbox {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.8rem;
-            background: var(--cream);
-            border-radius: var(--radius-md);
-            cursor: pointer;
-            border: 2px solid transparent;
-            font-weight: 600;
-            transition: var(--transition);
-        }
-
-        .delivery-day-checkbox:hover {
-            border-color: var(--curry);
-            background: var(--white);
-        }
-
-        .delivery-day-checkbox input:checked {
-            accent-color: var(--curry);
-        }
-
-        .delivery-days-container {
-            display: flex;
-            gap: 0.7rem;
-            flex-wrap: wrap;
-        }
-
         .weekend-info {
             background: linear-gradient(135deg, #e8f5e8, #f0f8f0);
-            border: 1px solid var(--sage);
-            border-radius: var(--radius-md);
-            padding: 1rem;
-            margin-bottom: 1rem;
+            border: 2px solid var(--sage);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
             color: var(--text-dark);
-            font-size: 0.9rem;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .weekend-info i {
+            color: var(--sage);
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .weekend-info-content {
+            flex: 1;
+        }
+
+        .weekend-info strong {
+            color: var(--curry);
         }
 
         .success-message {
@@ -919,12 +1013,12 @@ if ($success) {
                 font-size: 1rem;
             }
 
-            .delivery-days-container {
-                flex-direction: column;
+            .delivery-days-grid {
+                grid-template-columns: 1fr;
             }
 
-            .delivery-day-checkbox {
-                justify-content: flex-start;
+            .payment-methods {
+                grid-template-columns: 1fr;
             }
         }
 
@@ -951,6 +1045,14 @@ if ($success) {
                 flex-direction: column;
                 align-items: flex-start;
                 gap: 0.5rem;
+            }
+
+            .delivery-days-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .delivery-day-card {
+                padding: 1rem;
             }
         }
     </style>
@@ -1049,23 +1151,29 @@ if ($success) {
             </div>
 
             <div class="section">
-                <div class="label"><i class="fas fa-calendar-weekend"></i> Select Weekend Delivery Days</div>
+                <div class="label"><i class="fas fa-calendar-weekend"></i> Select Your Delivery Day</div>
                 
                 <div class="weekend-info">
-                    <i class="fas fa-info-circle" style="color: var(--sage); margin-right: 0.5rem;"></i>
-                    <strong>Weekend Delivery Only:</strong> We deliver on Saturdays and Sundays only. Choose from the next 4 weekends.
+                    <i class="fas fa-info-circle"></i>
+                    <div class="weekend-info-content">
+                        <strong>Weekend Delivery Only:</strong> Choose one delivery day from the available weekends. We deliver fresh Thai meals on Saturdays and Sundays only.
+                    </div>
                 </div>
                 
-                <div class="delivery-days-container">
-                    <?php foreach($weekend_dates as $val => $label): ?>
-                        <label class="delivery-day-checkbox">
-                            <input type="checkbox" name="delivery_days[]" value="<?php echo htmlspecialchars($val); ?>">
-                            <?php echo htmlspecialchars($label); ?>
-                        </label>
+                <div class="delivery-days-grid">
+                    <?php foreach($weekend_dates as $val => $dateInfo): ?>
+                        <div class="delivery-day-option">
+                            <input type="radio" name="delivery_day" value="<?php echo htmlspecialchars($val); ?>" id="delivery_<?php echo htmlspecialchars($val); ?>" required>
+                            <div class="delivery-day-card">
+                                <div class="delivery-day-title"><?php echo htmlspecialchars($dateInfo['day']); ?></div>
+                                <div class="delivery-day-date"><?php echo htmlspecialchars($dateInfo['label']); ?></div>
+                                <div class="delivery-day-info"><?php echo htmlspecialchars($dateInfo['formatted']); ?></div>
+                            </div>
+                        </div>
                     <?php endforeach; ?>
                 </div>
                 
-                <div class="label" style="margin-top:1.5rem;"><i class="fas fa-clock"></i> Preferred Delivery Time</div>
+                <div class="label" style="margin-top:2rem;"><i class="fas fa-clock"></i> Preferred Delivery Time</div>
                 <select name="preferred_time" class="address-input" required>
                     <option value="morning">Morning (8:00 AM - 12:00 PM)</option>
                     <option value="afternoon" selected>Afternoon (12:00 PM - 4:00 PM)</option>
@@ -1079,21 +1187,32 @@ if ($success) {
                 <div class="label"><i class="fas fa-credit-card"></i> Choose Payment Method</div>
                 <div class="payment-methods">
                     <label>
-                        <input type="radio" name="payment_method" value="credit" required> <i class="fas fa-credit-card"></i> Credit/Debit Card
+                        <input type="radio" name="payment_method" value="credit" required>
+                        <i class="fas fa-credit-card"></i>
+                        <span>Credit/Debit Card</span>
                     </label>
                     <label>
-                        <input type="radio" name="payment_method" value="paypal"> <i class="fab fa-paypal"></i> PayPal
+                        <input type="radio" name="payment_method" value="paypal">
+                        <i class="fab fa-paypal"></i>
+                        <span>PayPal</span>
                     </label>
                     <label>
-                        <input type="radio" name="payment_method" value="apple_pay"> <i class="fab fa-apple-pay"></i> Apple Pay
+                        <input type="radio" name="payment_method" value="apple_pay">
+                        <i class="fab fa-apple-pay"></i>
+                        <span>Apple Pay</span>
                     </label>
                     <label>
-                        <input type="radio" name="payment_method" value="google_pay"> <i class="fab fa-google-pay"></i> Google Pay
+                        <input type="radio" name="payment_method" value="google_pay">
+                        <i class="fab fa-google-pay"></i>
+                        <span>Google Pay</span>
                     </label>
                     <label>
-                        <input type="radio" name="payment_method" value="promptpay"> <i class="fas fa-university"></i> Bank Transfer
+                        <input type="radio" name="payment_method" value="promptpay">
+                        <i class="fas fa-university"></i>
+                        <span>Bank Transfer</span>
                     </label>
                 </div>
+                
                 <div class="total">Total: $<?php echo number_format($plan['final_price']/100, 2); ?></div>
                 
                 <button class="btn" type="submit" name="submit_order" value="1" id="main-submit-btn">
@@ -1109,7 +1228,7 @@ if ($success) {
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('✅ Refactored checkout page loaded');
+            console.log('✅ Improved checkout page loaded');
             
             const form = document.getElementById('checkout-form');
             const submitBtn = document.getElementById('main-submit-btn');
@@ -1145,10 +1264,10 @@ if ($success) {
                         errors.push('Please select a payment method');
                     }
                     
-                    // Delivery days validation
-                    const deliveryDays = document.querySelectorAll('input[name="delivery_days[]"]:checked');
-                    if (deliveryDays.length === 0) {
-                        errors.push('Please select at least one delivery day');
+                    // Delivery day validation (single selection)
+                    const deliveryDay = document.querySelector('input[name="delivery_day"]:checked');
+                    if (!deliveryDay) {
+                        errors.push('Please select a delivery day');
                     }
                     
                     return errors;
@@ -1190,6 +1309,37 @@ if ($success) {
                     return true;
                 });
                 
+                // Delivery day selection enhancement
+                const deliveryDayOptions = document.querySelectorAll('.delivery-day-option');
+                deliveryDayOptions.forEach(option => {
+                    const radio = option.querySelector('input[type="radio"]');
+                    const card = option.querySelector('.delivery-day-card');
+                    
+                    option.addEventListener('click', function() {
+                        // Remove selection from all other options
+                        deliveryDayOptions.forEach(opt => {
+                            opt.querySelector('input[type="radio"]').checked = false;
+                        });
+                        
+                        // Select this option
+                        radio.checked = true;
+                        
+                        // Trigger change event for validation
+                        radio.dispatchEvent(new Event('change'));
+                        
+                        console.log('📅 Delivery day selected:', radio.value);
+                    });
+                });
+                
+                // Payment method selection enhancement
+                const paymentOptions = document.querySelectorAll('.payment-methods label');
+                paymentOptions.forEach(label => {
+                    label.addEventListener('click', function() {
+                        const radio = this.querySelector('input[type="radio"]');
+                        console.log('💳 Payment method selected:', radio.value);
+                    });
+                });
+                
                 // Auto-fill demo data for testing (remove in production)
                 if (window.location.search.includes('demo=1')) {
                     setTimeout(() => {
@@ -1198,7 +1348,7 @@ if ($success) {
                         if (firstPayment) firstPayment.checked = true;
                         
                         // Auto-select first delivery day
-                        const firstDelivery = document.querySelector('input[name="delivery_days[]"]');
+                        const firstDelivery = document.querySelector('input[name="delivery_day"]');
                         if (firstDelivery) firstDelivery.checked = true;
                         
                         console.log('🧪 Demo data auto-filled');

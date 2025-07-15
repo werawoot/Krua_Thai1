@@ -629,6 +629,10 @@ $page_title = "Dashboard";
                                 <span class="action-icon">💵</span>
                                 <span class="action-text">Paymentstatus</span>
                             </a>
+                            <a href="subscription-status.php" class="action-button">
+                                <span class="action-icon">🍱</span>
+                                <span class="action-text">My order</span>
+                            </a>
                         </div>
                         
                         <div class="logout-section">
