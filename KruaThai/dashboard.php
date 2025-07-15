@@ -998,6 +998,10 @@ $page_title = "Dashboard";
                                 </span>
                                 <span class="action-text">Payment Status</span>
                             </a>
+                            <a href="subscription-status.php" class="action-button">
+                                <span class="action-icon">🍱</span>
+                                <span class="action-text">My order</span>
+                            </a>
                         </div>
                     </div>
 
