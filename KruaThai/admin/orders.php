@@ -1,6 +1,6 @@
 <?php
 /**
- * Krua Thai - Orders Management (Production-Ready, Final Version)
+ * Krua Thai - Orders Management (Production-Ready, Original Theme)
  * File: admin/orders.php
  * Description: Secure, feature-rich, and styled order management system.
  */
@@ -70,8 +70,8 @@ function updateOrderStatus($pdo, $orderId, $status) {
     try {
         $stmt = $pdo->prepare("UPDATE orders SET status = ?, updated_at = NOW() WHERE id = ?");
         $stmt->execute([$status, $orderId]);
-        if ($stmt->rowCount() > 0) return ['success' => true, 'message' => 'Order status updated.'];
-        return ['success' => false, 'message' => 'No changes made.'];
+        if ($stmt->rowCount() > 0) return ['success' => true, 'message' => 'อัปเดตสถานะออเดอร์แล้ว'];
+        return ['success' => false, 'message' => 'ไม่พบออเดอร์ หรือสถานะเหมือนเดิม'];
     } catch (PDOException $e) { return ['success' => false, 'message' => 'Database error.']; }
 }
 
@@ -80,8 +80,8 @@ function assignRider($pdo, $orderId, $riderId) {
     try {
         $stmt = $pdo->prepare("UPDATE orders SET assigned_rider_id = ?, status = 'out_for_delivery', updated_at = NOW() WHERE id = ? AND status NOT IN ('delivered', 'cancelled')");
         $stmt->execute([$riderId, $orderId]);
-        if ($stmt->rowCount() > 0) return ['success' => true, 'message' => 'Rider assigned.'];
-        return ['success' => false, 'message' => 'Cannot assign rider.'];
+        if ($stmt->rowCount() > 0) return ['success' => true, 'message' => 'มอบหมาย Rider เรียบร้อย'];
+        return ['success' => false, 'message' => 'ไม่สามารถมอบหมาย Rider ได้'];
     } catch (PDOException $e) { return ['success' => false, 'message' => 'Database error.']; }
 }
 
@@ -109,7 +109,7 @@ function bulkUpdateStatus($pdo, $orderIds, $status) {
         $placeholders = implode(',', array_fill(0, count($orderIds), '?'));
         $stmt = $pdo->prepare("UPDATE orders SET status = ?, updated_at = NOW() WHERE id IN ($placeholders)");
         $stmt->execute(array_merge([$status], $orderIds));
-        return ['success' => true, 'message' => $stmt->rowCount() . ' orders updated.'];
+        return ['success' => true, 'message' => 'อัปเดต ' . $stmt->rowCount() . ' ออเดอร์เรียบร้อย'];
     } catch (PDOException $e) { return ['success' => false, 'message' => 'Database error.']; }
 }
 
@@ -123,7 +123,6 @@ try {
     $page = max(1, (int)($_GET['page'] ?? 1));
     $offset = ($page - 1) * $limit;
 
-    // ✅ แก้ไข Error "Undefined index" และเพิ่มความปลอดภัย
     $sort_by_input = $_GET['sort'] ?? 'delivery_date'; 
     $sort_by_allowed = ['delivery_date', 'created_at', 'status'];
     $sort_by = in_array($sort_by_input, $sort_by_allowed) ? $sort_by_input : 'delivery_date';
@@ -165,10 +164,17 @@ try {
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         :root {
-            --cream: #ece8e1; --sage: #adb89d; --brown: #bd9379; --curry: #cf723a;
-            --white: #ffffff; --text-dark: #2c3e50; --text-gray: #7f8c8d;
-            --border-light: #e8e8e8; --shadow-soft: 0 4px 12px rgba(0,0,0,0.05);
-            --shadow-medium: 0 8px 24px rgba(0,0,0,0.1); --radius-md: 12px;
+            --cream: #ece8e1;
+            --sage: #adb89d;
+            --brown: #bd9379;
+            --curry: #cf723a;
+            --white: #ffffff;
+            --text-dark: #2c3e50;
+            --text-gray: #7f8c8d;
+            --border-light: #e8e8e8;
+            --shadow-soft: 0 4px 12px rgba(0,0,0,0.05);
+            --shadow-medium: 0 8px 24px rgba(0,0,0,0.1);
+            --radius-md: 12px;
             --transition: all 0.3s ease;
         }
         body { font-family: 'Sarabun', sans-serif; background-color: #f8f5f2; margin: 0; }
@@ -187,7 +193,7 @@ try {
         .form-control { width: 100%; padding: 0.75rem; border: 1px solid var(--border-light); border-radius: 8px; font-family: inherit; }
         .btn { padding: 0.75rem 1.5rem; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem; transition: var(--transition); }
         .btn-primary { background-color: var(--curry); color: white; }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .btn-primary:hover { background-color: #a55d2e; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
         .table-container { background: white; border-radius: var(--radius-md); box-shadow: var(--shadow-soft); overflow: hidden; }
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: 1rem; text-align: left; border-bottom: 1px solid var(--border-light); vertical-align: middle; }
@@ -207,7 +213,6 @@ try {
             <a href="dashboard.php" class="nav-item"><i class="fas fa-tachometer-alt"></i><span>Dashboard</span></a>
             <a href="orders.php" class="nav-item active"><i class="fas fa-shopping-cart"></i><span>Orders</span></a>
             <a href="subscriptions.php" class="nav-item"><i class="fas fa-sync-alt"></i><span>Subscriptions</span></a>
-            <a href="payments.php" class="nav-item"><i class="fas fa-credit-card"></i><span>Payments</span></a>
         </nav>
     </aside>
 
@@ -218,7 +223,7 @@ try {
                 <p>ตรวจสอบและจัดการสถานะออเดอร์ของลูกค้าทั้งหมด</p>
             </div>
             <a href="generate_orders.php" class="btn btn-primary">
-                <i class="fas fa-plus-circle"></i> สร้างออเดอร์สำหรับวันนี้
+                <i class="fas fa-calendar-week"></i> สร้างออเดอร์สุดสัปดาห์
             </a>
         </header>
 
@@ -268,7 +273,7 @@ try {
                     <?php elseif (empty($orders)): ?>
                         <tr><td colspan="7" style="text-align:center; padding: 3rem;">
                             <h4>ไม่พบข้อมูลออเดอร์</h4>
-                            <p style="color: #777; font-size: 0.9rem;">อาจยังไม่มีออเดอร์สำหรับวันนี้ ลองกดปุ่ม "สร้างออเดอร์สำหรับวันนี้"</p>
+                            <p style="color: #777; font-size: 0.9rem;">อาจยังไม่มีออเดอร์สำหรับวันนี้ ลองกดปุ่ม "สร้างออเดอร์สุดสัปดาห์"</p>
                         </td></tr>
                     <?php else: ?>
                         <?php foreach ($orders as $order): ?>
@@ -307,9 +312,7 @@ try {
 
 <script>
     const CSRF_TOKEN = '<?php echo $_SESSION['csrf_token']; ?>';
-    
-    // JS functions (updateOrderStatus, applyBulkUpdate, etc.)
-    // ...
+    // JavaScript functions (updateOrderStatus, applyBulkUpdate, etc.)
 </script>
 
 </body>
