@@ -1,6 +1,6 @@
 <?php
 /**
- * Krua Thai - Meal Selection Page
+ * Somdul Table - Meal Selection Page
  * File: meal-selection.php
  * Description: Select meals according to package amount (Step 2)
  */
@@ -16,11 +16,11 @@ try {
 } catch (Exception $e) {
     try {
         // Fallback connection for MAMP/XAMPP
-        $pdo = new PDO("mysql:host=localhost;dbname=krua_thai;charset=utf8mb4", "root", "root");
+        $pdo = new PDO("mysql:host=localhost;dbname=somdul_table;charset=utf8mb4", "root", "root");
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     } catch (PDOException $e) {
         try {
-            $pdo = new PDO("mysql:host=localhost:8889;dbname=krua_thai;charset=utf8mb4", "root", "root");
+            $pdo = new PDO("mysql:host=localhost:8889;dbname=somdul_table;charset=utf8mb4", "root", "root");
             $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         } catch (PDOException $e) {
             die("Database connection failed: " . $e->getMessage());
@@ -177,23 +177,58 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Select Your Meals | Krua Thai</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <title>Select Your Meals | Somdul Table</title>
+    <meta name="description" content="Select your perfect meals from authentic Thai cuisine - Somdul Table delivers fresh, healthy meals to your door">
+    
+    <!-- BaticaSans Font Import -->
+    <link rel="preconnect" href="https://ydpschool.com">
     <style>
+        @font-face {
+            font-family: 'BaticaSans';
+            src: url('https://ydpschool.com/fonts/BaticaSans-Regular.woff2') format('woff2'),
+                 url('https://ydpschool.com/fonts/BaticaSans-Regular.woff') format('woff'),
+                 url('https://ydpschool.com/fonts/BaticaSans-Regular.ttf') format('truetype');
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+        
+        @font-face {
+            font-family: 'BaticaSans';
+            src: url('https://ydpschool.com/fonts/BaticaSans-Bold.woff2') format('woff2'),
+                 url('https://ydpschool.com/fonts/BaticaSans-Bold.woff') format('woff'),
+                 url('https://ydpschool.com/fonts/BaticaSans-Bold.ttf') format('truetype');
+            font-weight: 700;
+            font-style: normal;
+            font-display: swap;
+        }
+        
+        @font-face {
+            font-family: 'BaticaSans';
+            src: url('https://ydpschool.com/fonts/BaticaSans-Medium.woff2') format('woff2'),
+                 url('https://ydpschool.com/fonts/BaticaSans-Medium.woff') format('woff'),
+                 url('https://ydpschool.com/fonts/BaticaSans-Medium.ttf') format('truetype');
+            font-weight: 500;
+            font-style: normal;
+            font-display: swap;
+        }
+    </style>
+    
+    <style>
+        /* CSS Custom Properties for Somdul Table Design System */
         :root {
+            --brown: #bd9379;
             --cream: #ece8e1;
             --sage: #adb89d;
-            --brown: #bd9379;
             --curry: #cf723a;
             --white: #ffffff;
             --text-dark: #2c3e50;
             --text-gray: #7f8c8d;
             --border-light: #e8e8e8;
-            --shadow-soft: 0 4px 12px rgba(0,0,0,0.05);
-            --shadow-medium: 0 8px 24px rgba(0,0,0,0.1);
-            --shadow-large: 0 16px 48px rgba(0,0,0,0.15);
+            --shadow-soft: 0 4px 12px rgba(189, 147, 121, 0.15);
+            --shadow-medium: 0 8px 24px rgba(189, 147, 121, 0.25);
+            --shadow-large: 0 16px 48px rgba(189, 147, 121, 0.3);
             --radius-sm: 8px;
             --radius-md: 12px;
             --radius-lg: 16px;
@@ -212,70 +247,202 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         }
 
         body {
-            font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, var(--cream) 0%, #f8f6f3 100%);
+            font-family: 'BaticaSans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, var(--cream) 0%, #f8f9fa 100%);
             color: var(--text-dark);
             line-height: 1.6;
             min-height: 100vh;
+            font-weight: 400;
         }
 
-        /* Header */
-        .header {
-            background: var(--white);
-            box-shadow: var(--shadow-soft);
-            position: sticky;
+        /* Typography using BaticaSans */
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'BaticaSans', sans-serif;
+            font-weight: 700;
+            line-height: 1.2;
+            color: var(--text-dark);
+        }
+
+        /* Promotional Banner */
+        .promo-banner {
+            position: fixed;
             top: 0;
-            z-index: 100;
+            left: 0;
+            right: 0;
+            background: linear-gradient(135deg, var(--curry) 0%, #e67e22 100%);
+            color: var(--white);
+            text-align: center;
+            padding: 8px 20px;
+            font-family: 'BaticaSans', sans-serif;
+            font-weight: 700;
+            font-size: 14px;
+            z-index: 1001;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            animation: glow 2s ease-in-out infinite alternate;
         }
 
-        .header-container {
+        .promo-banner-content {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .promo-icon {
+            font-size: 16px;
+            animation: bounce 1.5s ease-in-out infinite;
+        }
+
+        .promo-text {
+            letter-spacing: 0.5px;
+        }
+
+        .promo-close {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--white);
+            font-size: 18px;
+            cursor: pointer;
+            opacity: 0.8;
+            transition: opacity 0.3s ease;
+        }
+
+        .promo-close:hover {
+            opacity: 1;
+        }
+
+        @keyframes glow {
+            from {
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            }
+            to {
+                box-shadow: 0 2px 20px rgba(207, 114, 58, 0.3);
+            }
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-3px);
+            }
+            60% {
+                transform: translateY(-2px);
+            }
+        }
+
+        /* Navigation */
+        .navbar {
+            position: fixed;
+            top: 38px;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            transition: var(--transition);
+            box-shadow: var(--shadow-soft);
+        }
+
+        nav {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            padding: 1rem 2rem;
+            /* max-width: 1200px; */ /* Remove this line */
+            /* margin: 0 auto; */ /* Remove this line */
+            width: 100%; /* Add this for full width */
         }
 
         .logo {
             display: flex;
             align-items: center;
-            gap: 1rem;
+            gap: 0.8rem;
             text-decoration: none;
-            color: inherit;
+            color: var(--text-dark);
         }
 
         .logo-text {
             font-size: 1.8rem;
-            font-weight: 700;
+            font-weight: 800;
             color: var(--curry);
+            font-family: 'BaticaSans', sans-serif;
         }
 
-        .header-nav {
+        .nav-links {
             display: flex;
-            align-items: center;
+            list-style: none;
             gap: 2rem;
+            align-items: center;
         }
 
-        .nav-link {
+        .nav-links a {
             text-decoration: none;
-            color: var(--text-dark);
+            color: var(--text-gray);
             font-weight: 500;
+            font-family: 'BaticaSans', sans-serif;
             transition: var(--transition);
-            padding: 0.5rem 1rem;
-            border-radius: var(--radius-sm);
         }
 
-        .nav-link:hover {
-            background: var(--cream);
+        .nav-links a:hover {
             color: var(--curry);
+        }
+
+        .nav-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 50px;
+            font-weight: 600;
+            font-family: 'BaticaSans', sans-serif;
+            text-decoration: none;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.95rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--curry), var(--brown));
+            color: var(--white);
+            box-shadow: var(--shadow-soft);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--curry);
+            border: 2px solid var(--curry);
+        }
+
+        .btn-secondary:hover {
+            background: var(--curry);
+            color: var(--white);
         }
 
         /* Main Container */
         .container {
-            max-width: 1000px;
+            max-width: 1200px;
             margin: 0 auto;
-            padding: 2rem 2rem 4rem;
+            padding: 120px 2rem 4rem;
         }
 
         /* Progress Bar */
@@ -303,6 +470,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             border-radius: var(--radius-xl);
             font-weight: 600;
             font-size: 0.95rem;
+            font-family: 'BaticaSans', sans-serif;
             background: var(--cream);
             color: var(--text-gray);
             border: 2px solid var(--cream);
@@ -340,7 +508,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             justify-content: space-between;
             align-items: center;
             position: sticky;
-            top: 100px;
+            top: 120px;
             z-index: 50;
             box-shadow: var(--shadow-soft);
         }
@@ -348,6 +516,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         .counter-text {
             font-size: 1.1rem;
             font-weight: 600;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .counter-number {
@@ -375,6 +544,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             font-weight: 700;
             margin-bottom: 1rem;
             color: var(--text-dark);
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .filters-row {
@@ -396,7 +566,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             border: 2px solid var(--border-light);
             border-radius: var(--radius-xl);
             font-size: 1rem;
-            font-family: inherit;
+            font-family: 'BaticaSans', sans-serif;
             transition: var(--transition);
         }
 
@@ -432,6 +602,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             font-size: 0.9rem;
             font-weight: 600;
             white-space: nowrap;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .category-filter:hover,
@@ -442,11 +613,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             transform: translateY(-1px);
         }
 
-        /* Menu Grid */
+        /* Menu Grid - 5 columns on desktop */
         .meals-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 1.5rem;
             margin-bottom: 3rem;
         }
 
@@ -474,7 +645,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
         .meal-image {
             position: relative;
-            height: 180px;
+            height: 160px;
             overflow: hidden;
             background: var(--cream);
             display: flex;
@@ -497,30 +668,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
         .meal-badge {
             position: absolute;
-            top: 1rem;
-            left: 1rem;
+            top: 0.8rem;
+            left: 0.8rem;
             background: rgba(255, 255, 255, 0.95);
             color: var(--curry);
-            padding: 0.4rem 0.8rem;
-            border-radius: 15px;
-            font-size: 0.75rem;
+            padding: 0.3rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.7rem;
             font-weight: 600;
             backdrop-filter: blur(10px);
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .selection-badge {
             position: absolute;
-            top: 1rem;
-            right: 1rem;
+            top: 0.8rem;
+            right: 0.8rem;
             background: var(--curry);
             color: var(--white);
-            width: 28px;
-            height: 28px;
+            width: 24px;
+            height: 24px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1rem;
+            font-size: 0.8rem;
             opacity: 0;
             transform: scale(0.5);
             transition: var(--transition);
@@ -532,56 +704,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         }
 
         .meal-content {
-            padding: 1.5rem;
+            padding: 1.2rem;
         }
 
         .meal-title {
-            font-size: 1.2rem;
+            font-size: 1rem;
             font-weight: 700;
             color: var(--text-dark);
-            margin-bottom: 0.8rem;
+            margin-bottom: 0.6rem;
             line-height: 1.3;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .meal-description {
             color: var(--text-gray);
-            font-size: 0.9rem;
+            font-size: 0.8rem;
             line-height: 1.4;
-            margin-bottom: 1.2rem;
+            margin-bottom: 1rem;
             display: -webkit-box;
             -webkit-line-clamp: 2;
             line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .meal-footer {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding-top: 1rem;
+            padding-top: 0.8rem;
             border-top: 1px solid var(--border-light);
         }
 
         .meal-price {
-            font-size: 1.1rem;
+            font-size: 1rem;
             font-weight: 800;
             color: var(--curry);
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .add-meal-btn {
             background: var(--curry);
             color: var(--white);
             border: none;
-            padding: 0.7rem 1.2rem;
+            padding: 0.5rem 0.8rem;
             border-radius: var(--radius-xl);
             font-weight: 600;
             cursor: pointer;
             transition: var(--transition);
-            font-size: 0.85rem;
+            font-size: 0.75rem;
             display: flex;
             align-items: center;
-            gap: 0.4rem;
+            gap: 0.3rem;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .add-meal-btn:hover {
@@ -621,7 +797,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             font-weight: 700;
             cursor: pointer;
             transition: var(--transition);
-            font-family: inherit;
+            font-family: 'BaticaSans', sans-serif;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -661,6 +837,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             font-size: 1.3rem;
             margin-bottom: 0.5rem;
             color: var(--text-dark);
+            font-family: 'BaticaSans', sans-serif;
         }
 
         /* Loading States */
@@ -692,6 +869,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             transform: translateX(100%);
             transition: transform 0.3s ease;
             z-index: 2000;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .toast.show {
@@ -722,9 +900,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         }
 
         /* Responsive Design */
+        @media (max-width: 1200px) {
+            .meals-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        @media (max-width: 968px) {
+            .meals-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
         @media (max-width: 768px) {
+            .promo-banner {
+                font-size: 12px;
+                padding: 6px 15px;
+            }
+            
+            .navbar {
+                top: 32px;
+            }
+            
             .container {
-                padding: 1rem 1rem 3rem;
+                padding: 100px 1rem 3rem;
+            }
+            
+            .promo-banner-content {
+                flex-direction: column;
+                gap: 5px;
+            }
+            
+            .promo-close {
+                right: 10px;
             }
 
             .filters-row {
@@ -737,7 +945,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             }
 
             .meals-grid {
-                grid-template-columns: 1fr;
+                grid-template-columns: repeat(2, 1fr);
                 gap: 1.5rem;
             }
 
@@ -760,11 +968,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 gap: 0.5rem;
                 text-align: center;
             }
+
+            .nav-links {
+                display: none;
+            }
         }
 
         @media (max-width: 480px) {
-            .header-container {
-                padding: 1rem;
+            .nav-actions {
+                gap: 0.5rem;
             }
 
             .logo-text {
@@ -774,6 +986,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             .progress-step {
                 font-size: 0.7rem;
                 padding: 0.5rem 0.8rem;
+            }
+
+            .meals-grid {
+                grid-template-columns: 1fr;
             }
 
             .meal-content {
@@ -794,25 +1010,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     </style>
 </head>
 <body>
-    <!-- Header -->
-    <header class="header">
-        <div class="header-container">
-            <a href="index.php" class="logo">
-                <div class="logo-text">Krua Thai</div>
-            </a>
-            <nav class="header-nav">
-                <a href="menu.php" class="nav-link">Menu</a>
-                <a href="about.php" class="nav-link">About Us</a>
-                <a href="contact.php" class="nav-link">Contact</a>
-                <?php if (isset($_SESSION['user_id'])): ?>
-                    <a href="dashboard.php" class="nav-link">Dashboard</a>
-                    <a href="logout.php" class="nav-link">Logout</a>
-                <?php else: ?>
-                    <a href="login.php" class="nav-link">Login</a>
-                <?php endif; ?>
-            </nav>
+    <!-- Promotional Banner -->
+    <div class="promo-banner" id="promoBanner">
+        <div class="promo-banner-content">
+            <span class="promo-icon">🍪</span>
+            <span class="promo-text">50% OFF First Week + Free Cookies for Life</span>
+            <span class="promo-icon">🎉</span>
         </div>
-    </header>
+        <button class="promo-close" onclick="closePromoBanner()" title="Close">×</button>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem; max-width: 1200px; margin: 0 auto; width: 100%;">
+            <a href="home2.php" class="logo">
+                <img src="./assets/image/LOGO_BG.png" alt="Somdul Table" style="height: 50px; width: auto;">
+            </a>
+            <a href="home2.php" class="logo">
+                <span class="logo-text">Somdul Table</span>
+            </a>
+            
+            <ul class="nav-links">
+                <li><a href="./menus.php">Menu</a></li>
+                <li><a href="home2.php#how-it-works">How It Works</a></li>
+                <li><a href="#about">About</a></li>
+                <li><a href="#contact">Contact</a></li>
+            </ul>
+            
+            <div class="nav-actions">
+                <?php if (isset($_SESSION['user_id'])): ?>
+                    <a href="dashboard.php" class="btn btn-secondary">Dashboard</a>
+                    <a href="logout.php" class="btn btn-primary">Logout</a>
+                <?php else: ?>
+                    <a href="login.php" class="btn btn-secondary">Sign In</a>
+                    <a href="register.php" class="btn btn-primary">Get Started</a>
+                <?php endif; ?>
+            </div>
+        </div>
+    </nav>
 
     <div class="container">
         <!-- Progress Bar -->
@@ -892,8 +1127,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                                      loading="lazy">
                             <?php else: ?>
                                 <div style="text-align: center;">
-                                    <i class="fas fa-utensils" style="font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.5;"></i>
-                                    <br><?php echo htmlspecialchars(getMenuName($menu)); ?>
+                                    <i class="fas fa-utensils" style="font-size: 1.5rem; margin-bottom: 0.5rem; opacity: 0.5;"></i>
+                                    <br><span style="font-size: 0.8rem;"><?php echo htmlspecialchars(getMenuName($menu)); ?></span>
                                 </div>
                             <?php endif; ?>
                             
@@ -950,7 +1185,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         </div>
     </div>
 
+    <!-- Font Awesome for icons -->
+    <script src="https://kit.fontawesome.com/your-fontawesome-kit.js" crossorigin="anonymous"></script>
+
     <script>
+        function closePromoBanner() {
+            const promoBanner = document.getElementById('promoBanner');
+            const navbar = document.querySelector('.navbar');
+            const container = document.querySelector('.container');
+            
+            promoBanner.style.transform = 'translateY(-100%)';
+            promoBanner.style.opacity = '0';
+            
+            setTimeout(() => {
+                promoBanner.style.display = 'none';
+                navbar.style.top = '0';
+                container.style.paddingTop = '100px';
+            }, 300);
+        }
+
+        // Navbar background on scroll
+        window.addEventListener('scroll', function() {
+            const navbar = document.querySelector('.navbar');
+            if (window.scrollY > 100) {
+                navbar.style.background = 'rgba(255, 255, 255, 0.98)';
+            } else {
+                navbar.style.background = 'rgba(255, 255, 255, 0.95)';
+            }
+        });
+
         // Global variables
         const maxMeals = <?php echo $plan['meals_per_week']; ?>;
         let selectedMeals = [];
@@ -1079,7 +1342,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             continueBtn.disabled = selectedCount !== maxMeals;
             
             // Update page title
-            document.title = `Select Meals (${selectedCount}/${maxMeals}) - ${<?php echo json_encode(getPlanName($plan)); ?>} | Krua Thai`;
+            document.title = `Select Meals (${selectedCount}/${maxMeals}) - ${<?php echo json_encode(getPlanName($plan)); ?>} | Somdul Table`;
         }
 
         function filterMeals() {

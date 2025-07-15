@@ -1,6 +1,6 @@
 <?php
 /**
- * Krua Thai - User Login Page
+ * Somdul Table - User Login Page
  * File: login.php
  * Description: Secure login with brute-force protection and session management
  */
@@ -139,7 +139,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             // Special handling for just verified users
             if (isset($_SESSION['just_verified'])) {
                 unset($_SESSION['just_verified']);
-                $_SESSION['flash_message'] = "Welcome to Krua Thai! Your account is now active.";
+                $_SESSION['flash_message'] = "Welcome to Somdul Table! Your account is now active.";
                 $_SESSION['flash_type'] = 'success';
             }
             
@@ -200,49 +200,98 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['resend_verification'])
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign In - Krua Thai</title>
-    <meta name="description" content="Sign in to your Krua Thai account to order healthy Thai meals and manage your subscriptions">
-    <meta name="keywords" content="login, sign in, Krua Thai, Thai food delivery">
+    <title>Sign In - Somdul Table</title>
+    <meta name="description" content="Sign in to your Somdul Table account to order healthy Thai meals and manage your subscriptions">
+    <meta name="keywords" content="login, sign in, Somdul Table, Thai food delivery">
+    
+    <!-- BaticaSans Font Import -->
+    <link rel="preconnect" href="https://ydpschool.com">
     <style>
+        /* BaticaSans Font Family */
+        @font-face {
+            font-family: 'BaticaSans';
+            src: url('https://ydpschool.com/fonts/BaticaSans-Regular.woff2') format('woff2'),
+                 url('https://ydpschool.com/fonts/BaticaSans-Regular.woff') format('woff'),
+                 url('https://ydpschool.com/fonts/BaticaSans-Regular.ttf') format('truetype');
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+        
+        @font-face {
+            font-family: 'BaticaSans';
+            src: url('https://ydpschool.com/fonts/BaticaSans-Bold.woff2') format('woff2'),
+                 url('https://ydpschool.com/fonts/BaticaSans-Bold.woff') format('woff'),
+                 url('https://ydpschool.com/fonts/BaticaSans-Bold.ttf') format('truetype');
+            font-weight: 700;
+            font-style: normal;
+            font-display: swap;
+        }
+        
+        @font-face {
+            font-family: 'BaticaSans';
+            src: url('https://ydpschool.com/fonts/BaticaSans-Medium.woff2') format('woff2'),
+                 url('https://ydpschool.com/fonts/BaticaSans-Medium.woff') format('woff'),
+                 url('https://ydpschool.com/fonts/BaticaSans-Medium.ttf') format('truetype');
+            font-weight: 500;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        /* CSS Custom Properties - Matching Somdul Table Design System */
+        :root {
+            --brown: #bd9379;
+            --cream: #ece8e1;
+            --sage: #adb89d;
+            --curry: #cf723a;
+            --white: #ffffff;
+            --text-dark: #2c3e50;
+            --text-gray: #7f8c8d;
+            --border-light: #e8e8e8;
+            --shadow-soft: 0 4px 12px rgba(189, 147, 121, 0.15);
+            --shadow-medium: 0 8px 24px rgba(189, 147, 121, 0.25);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --success: #28a745;
+            --warning: #ffc107;
+            --danger: #dc3545;
+            --info: #17a2b8;
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
-        :root {
-            --olive: #3d4028;
-            --matcha: #4e4f22;
-            --brown: #866028;
-            --cream: #d1b990;
-            --light-cream: #f5ede4;
-            --white: #ffffff;
-            --gray: #6c757d;
-            --light-gray: #f8f9fa;
-            --success: #28a745;
-            --warning: #ffc107;
-            --danger: #dc3545;
-            --info: #17a2b8;
-            --shadow: rgba(61, 64, 40, 0.1);
-        }
-
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif;
+            font-family: 'BaticaSans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             line-height: 1.6;
-            color: var(--olive);
-            background: linear-gradient(135deg, var(--light-cream) 0%, #f9f5ed 100%);
+            color: var(--text-dark);
+            background: linear-gradient(135deg, var(--cream) 0%, #f8f9fa 100%);
             min-height: 100vh;
             font-size: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 20px;
+            font-weight: 400;
+        }
+
+        /* Typography using BaticaSans */
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'BaticaSans', sans-serif;
+            font-weight: 700;
+            line-height: 1.2;
+            color: var(--text-dark);
         }
 
         .login-container {
             background: var(--white);
             border-radius: 20px;
-            box-shadow: 0 8px 30px var(--shadow);
+            box-shadow: var(--shadow-medium);
             border: 1px solid rgba(255, 255, 255, 0.8);
             width: 100%;
             max-width: 450px;
@@ -250,7 +299,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['resend_verification'])
         }
 
         .login-header {
-            background: linear-gradient(135deg, var(--olive) 0%, var(--matcha) 100%);
+            background: linear-gradient(135deg, var(--curry) 0%, var(--brown) 100%);
             padding: 2.5rem 2rem 2rem;
             text-align: center;
             color: var(--white);
@@ -276,6 +325,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['resend_verification'])
             margin-bottom: 1rem;
             position: relative;
             z-index: 1;
+            text-decoration: none;
+            color: inherit;
+            transition: var(--transition);
+            cursor: pointer;
+        }
+
+        .logo:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.1);
         }
 
         .logo-icon {
@@ -290,19 +348,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['resend_verification'])
             border: 2px solid rgba(255, 255, 255, 0.8);
         }
 
-        .rice-grain {
-            width: 12px;
-            height: 20px;
-            background: linear-gradient(180deg, var(--olive), var(--matcha));
-            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
-            transform: rotate(-3deg);
-            box-shadow: inset 1px 0 2px rgba(255, 255, 255, 0.3);
-        }
-
         .logo-text {
             font-size: 2rem;
             font-weight: 700;
             letter-spacing: -0.5px;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .login-subtitle {
@@ -311,6 +361,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['resend_verification'])
             font-weight: 400;
             position: relative;
             z-index: 1;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .login-form {
@@ -320,25 +371,28 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['resend_verification'])
         .form-title {
             font-size: 1.5rem;
             font-weight: 700;
-            color: var(--olive);
+            color: var(--text-dark);
             margin-bottom: 0.5rem;
             text-align: center;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .form-subtitle {
-            color: var(--gray);
+            color: var(--text-gray);
             text-align: center;
             margin-bottom: 2rem;
             font-size: 0.95rem;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         /* Alerts */
         .alert {
             padding: 1rem;
-            border-radius: 12px;
+            border-radius: var(--radius-md);
             margin-bottom: 1.5rem;
             font-weight: 500;
             border: 2px solid;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .alert-success {
@@ -371,8 +425,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['resend_verification'])
             display: block;
             margin-bottom: 0.5rem;
             font-weight: 600;
-            color: var(--olive);
+            color: var(--text-dark);
             font-size: 0.95rem;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .required {
@@ -383,19 +438,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['resend_verification'])
         input[type="password"] {
             width: 100%;
             padding: 1rem 1.2rem;
-            border: 2px solid #e9ecef;
-            border-radius: 12px;
+            border: 2px solid var(--border-light);
+            border-radius: var(--radius-md);
             font-size: 1rem;
-            transition: all 0.3s ease;
+            transition: var(--transition);
             background: var(--white);
-            color: var(--olive);
-            font-family: inherit;
+            color: var(--text-dark);
+            font-family: 'BaticaSans', sans-serif;
         }
 
         input:focus {
             outline: none;
-            border-color: var(--brown);
-            box-shadow: 0 0 0 3px rgba(134, 96, 40, 0.1);
+            border-color: var(--curry);
+            box-shadow: 0 0 0 3px rgba(207, 114, 58, 0.1);
             transform: translateY(-1px);
         }
 
@@ -416,33 +471,34 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['resend_verification'])
             gap: 0.8rem;
             margin: 1.5rem 0;
             padding: 1rem;
-            background: rgba(61, 64, 40, 0.05);
-            border-radius: 12px;
-            transition: all 0.3s ease;
+            background: rgba(189, 147, 121, 0.05);
+            border-radius: var(--radius-md);
+            transition: var(--transition);
         }
 
         .remember-me:hover {
-            background: rgba(61, 64, 40, 0.08);
+            background: rgba(189, 147, 121, 0.08);
         }
 
         .remember-me input[type="checkbox"] {
             width: auto;
             margin: 0;
             transform: scale(1.2);
-            accent-color: var(--brown);
+            accent-color: var(--curry);
         }
 
         .remember-me label {
             margin: 0;
             font-size: 0.9rem;
             font-weight: 500;
-            color: var(--gray);
+            color: var(--text-gray);
             cursor: pointer;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         /* Buttons */
         .btn-primary {
-            background: linear-gradient(45deg, var(--brown), #a67c00);
+            background: linear-gradient(135deg, var(--curry), var(--brown));
             color: var(--white);
             padding: 1.2rem 2rem;
             border: none;
@@ -451,19 +507,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['resend_verification'])
             font-weight: 700;
             font-size: 1.1rem;
             width: 100%;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(134, 96, 40, 0.3);
+            transition: var(--transition);
+            box-shadow: var(--shadow-soft);
             margin-top: 1rem;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .btn-primary:hover:not(:disabled) {
-            background: linear-gradient(45deg, #a67c00, var(--brown));
+            background: linear-gradient(135deg, var(--brown), var(--curry));
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(134, 96, 40, 0.4);
+            box-shadow: var(--shadow-medium);
         }
 
         .btn-primary:disabled {
-            background: var(--gray);
+            background: var(--text-gray);
             cursor: not-allowed;
             transform: none;
             box-shadow: none;
@@ -472,23 +529,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['resend_verification'])
 
         .btn-secondary {
             background: transparent;
-            color: var(--brown);
+            color: var(--curry);
             padding: 0.8rem 1.5rem;
-            border: 2px solid var(--brown);
+            border: 2px solid var(--curry);
             border-radius: 25px;
             cursor: pointer;
             font-weight: 600;
             text-decoration: none;
             display: inline-block;
-            transition: all 0.3s ease;
+            transition: var(--transition);
             font-size: 0.9rem;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .btn-secondary:hover {
-            background: var(--brown);
+            background: var(--curry);
             color: var(--white);
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(134, 96, 40, 0.3);
+            box-shadow: var(--shadow-soft);
         }
 
         /* Forgot Password Link */
@@ -498,16 +556,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['resend_verification'])
         }
 
         .forgot-password a {
-            color: var(--brown);
+            color: var(--curry);
             text-decoration: none;
             font-weight: 600;
             font-size: 0.95rem;
             border-bottom: 1px solid transparent;
             transition: border-bottom-color 0.3s;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .forgot-password a:hover {
-            border-bottom-color: var(--brown);
+            border-bottom-color: var(--curry);
         }
 
         /* Verification Resend Section */
@@ -523,12 +582,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['resend_verification'])
             color: #856404;
             margin-bottom: 1rem;
             font-size: 1.1rem;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .verification-section p {
             color: #856404;
             margin-bottom: 1rem;
             font-size: 0.9rem;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .verification-form {
@@ -551,7 +612,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['resend_verification'])
             border-radius: 25px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: var(--transition);
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .verification-form button:hover {
@@ -564,12 +626,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['resend_verification'])
             text-align: center;
             margin-top: 2rem;
             padding-top: 2rem;
-            border-top: 1px solid #e9ecef;
-            color: var(--gray);
+            border-top: 1px solid var(--border-light);
+            color: var(--text-gray);
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .login-footer a {
-            color: var(--brown);
+            color: var(--curry);
             text-decoration: none;
             font-weight: 600;
             border-bottom: 1px solid transparent;
@@ -577,15 +640,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['resend_verification'])
         }
 
         .login-footer a:hover {
-            border-bottom-color: var(--brown);
+            border-bottom-color: var(--curry);
         }
 
         .divider {
             display: flex;
             align-items: center;
             margin: 2rem 0;
-            color: var(--gray);
+            color: var(--text-gray);
             font-size: 0.9rem;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .divider::before,
@@ -593,7 +657,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['resend_verification'])
             content: '';
             flex: 1;
             height: 1px;
-            background: #e9ecef;
+            background: var(--border-light);
         }
 
         .divider span {
@@ -658,12 +722,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['resend_verification'])
 
         /* High contrast mode support */
         @media (prefers-contrast: high) {
-            :root {
-                --shadow: rgba(0, 0, 0, 0.3);
-            }
-            
             .login-container {
-                border: 2px solid var(--olive);
+                border: 2px solid var(--text-dark);
             }
         }
 
@@ -682,22 +742,71 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['resend_verification'])
         input:focus-visible,
         button:focus-visible,
         a:focus-visible {
-            outline: 2px solid var(--brown);
+            outline: 2px solid var(--curry);
             outline-offset: 2px;
+        }
+
+        /* Back to Home Link */
+        .back-to-home {
+            position: fixed;
+            top: 2rem;
+            left: 2rem;
+            z-index: 1000;
+        }
+
+        .back-to-home a {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--curry);
+            text-decoration: none;
+            font-weight: 600;
+            font-family: 'BaticaSans', sans-serif;
+            background: var(--white);
+            padding: 0.8rem 1.2rem;
+            border-radius: 50px;
+            box-shadow: var(--shadow-soft);
+            transition: var(--transition);
+            border: 2px solid var(--curry);
+        }
+
+        .back-to-home a:hover {
+            background: var(--curry);
+            color: var(--white);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-medium);
+        }
+
+        @media (max-width: 768px) {
+            .back-to-home {
+                top: 1rem;
+                left: 1rem;
+            }
+            
+            .back-to-home a {
+                padding: 0.6rem 1rem;
+                font-size: 0.9rem;
+            }
         }
     </style>
 </head>
 <body>
+    <!-- Back to Home Link -->
+    <div class="back-to-home">
+        <a href="home2.php">
+            <span>←</span>
+            <span>Back to Home</span>
+        </a>
+    </div>
+
     <div class="login-container">
         <!-- Header -->
         <div class="login-header">
-            <div class="logo">
-                <div class="logo-icon">
-                    <div class="rice-grain"></div>
-                </div>
-                <span class="logo-text">Krua Thai</span>
-            </div>
-            <p class="login-subtitle">Welcome back to healthy Thai cuisine</p>
+            <a href="home2.php" class="logo">
+                <img src="./assets/image/LOGO_BG.png" alt="Somdul Table" style="height: 50px; width: auto; border-radius: 50%;">
+                <span class="logo-text">Somdul Table</span>
+            </a>
+            <p class="login-subtitle">Welcome back to authentic Thai cuisine</p>
         </div>
 
         <!-- Form -->
@@ -737,7 +846,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['resend_verification'])
                            value="<?php echo htmlspecialchars($email_value); ?>"
                            aria-describedby="email_help"
                            autofocus>
-                    <small id="email_help" style="color: var(--gray); font-size: 0.85rem;">The email address you used to register</small>
+                    <small id="email_help" style="color: var(--text-gray); font-size: 0.85rem; font-family: 'BaticaSans', sans-serif;">The email address you used to register</small>
                 </div>
 
                 <div class="form-group">
@@ -748,7 +857,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['resend_verification'])
                            required 
                            autocomplete="current-password"
                            aria-describedby="password_help">
-                    <small id="password_help" style="color: var(--gray); font-size: 0.85rem;">Your account password</small>
+                    <small id="password_help" style="color: var(--text-gray); font-size: 0.85rem; font-family: 'BaticaSans', sans-serif;">Your account password</small>
                 </div>
 
                 <div class="remember-me">
@@ -788,7 +897,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['resend_verification'])
             </div>
 
             <div class="divider">
-                <span>New to Krua Thai?</span>
+                <span>New to Somdul Table?</span>
             </div>
 
             <div style="text-align: center;">
@@ -798,7 +907,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['resend_verification'])
             <div class="login-footer">
                 <p>By signing in, you agree to our <a href="terms.php">Terms of Service</a> and <a href="privacy.php">Privacy Policy</a></p>
                 <p style="margin-top: 1rem;">
-                    <a href="index.php">← Back to Home</a> | 
+                    <a href="home2.php">← Back to Home</a> | 
                     <a href="help.php">Need Help?</a>
                 </p>
             </div>
@@ -953,79 +1062,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['resend_verification'])
             });
         }
 
-        // Form analytics (if you have analytics)
-        function trackFormInteraction(action, element) {
-            if (typeof gtag !== 'undefined') {
-                gtag('event', action, {
-                    'event_category': 'login_form',
-                    'event_label': element
-                });
-            }
-        }
-
-        // Track form interactions
-        emailInput.addEventListener('focus', () => trackFormInteraction('focus', 'email'));
-        passwordInput.addEventListener('focus', () => trackFormInteraction('focus', 'password'));
-        rememberCheckbox.addEventListener('change', () => trackFormInteraction('toggle', 'remember_me'));
-
-        // Prevent form double submission
-        let formSubmitted = false;
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
-            if (formSubmitted) {
-                e.preventDefault();
-                return false;
-            }
-            formSubmitted = true;
-        });
-
-        // Security: Clear password on page unload (if not remembering)
-        window.addEventListener('beforeunload', function() {
-            if (!rememberCheckbox.checked) {
-                passwordInput.value = '';
-            }
-        });
-
-        // Check for browser password manager
-        setTimeout(function() {
-            if (emailInput.value && passwordInput.value) {
-                emailInput.dispatchEvent(new Event('blur'));
-                passwordInput.dispatchEvent(new Event('input'));
-            }
-        }, 100);
-
-        // Accessibility improvements
-        emailInput.addEventListener('invalid', function(e) {
-            e.preventDefault();
-            this.classList.add('error');
-            this.focus();
-        });
-
-        passwordInput.addEventListener('invalid', function(e) {
-            e.preventDefault();
-            this.classList.add('error');
-            this.focus();
-        });
-
-        // Dynamic help text based on errors
-        <?php if (!empty($errors) && in_array('Invalid email or password', $errors)): ?>
-            // Show additional help for failed login
-            setTimeout(function() {
-                const helpDiv = document.createElement('div');
-                helpDiv.style.cssText = 'background: rgba(255,193,7,0.1); padding: 1rem; border-radius: 8px; margin-top: 1rem; font-size: 0.9rem; color: #856404;';
-                helpDiv.innerHTML = '<strong>Login Help:</strong><br>• Make sure your email is spelled correctly<br>• Check if Caps Lock is on<br>• Try resetting your password if you\'re sure the email is correct<br>• Contact support if you continue having issues';
-                
-                const form = document.getElementById('loginForm');
-                form.appendChild(helpDiv);
-            }, 1000);
-        <?php endif; ?>
-
         // Progressive enhancement for password visibility toggle
         function addPasswordToggle() {
             const passwordGroup = passwordInput.parentElement;
             const toggleButton = document.createElement('button');
             toggleButton.type = 'button';
             toggleButton.innerHTML = '👁️';
-            toggleButton.style.cssText = 'position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 1.2rem; color: var(--gray);';
+            toggleButton.style.cssText = 'position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 1.2rem; color: var(--text-gray);';
             toggleButton.setAttribute('aria-label', 'Toggle password visibility');
             
             passwordGroup.style.position = 'relative';
@@ -1048,64 +1091,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['resend_verification'])
         // Add password toggle after DOM load
         document.addEventListener('DOMContentLoaded', addPasswordToggle);
 
-        // Service Worker registration (for offline functionality)
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-                navigator.serviceWorker.register('/sw.js').then(function(registration) {
-                    console.log('SW registered: ', registration);
-                }).catch(function(registrationError) {
-                    console.log('SW registration failed: ', registrationError);
-                });
-            });
-        }
-
-        // Handle network connectivity
-        window.addEventListener('online', function() {
-            const offlineMsg = document.getElementById('offline-message');
-            if (offlineMsg) {
-                offlineMsg.remove();
-            }
-        });
-
-        window.addEventListener('offline', function() {
-            const offlineMsg = document.createElement('div');
-            offlineMsg.id = 'offline-message';
-            offlineMsg.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; background: #dc3545; color: white; text-align: center; padding: 0.5rem; z-index: 9999; font-size: 0.9rem;';
-            offlineMsg.textContent = '📡 You appear to be offline. Login functionality may be limited.';
-            document.body.prepend(offlineMsg);
-        });
-
         // Form auto-save (for email only)
         emailInput.addEventListener('input', function() {
             if (this.value && isValidEmail(this.value)) {
-                localStorage.setItem('krua_thai_login_email', this.value);
+                localStorage.setItem('somdul_table_login_email', this.value);
             }
         });
 
         // Restore saved email on page load
         document.addEventListener('DOMContentLoaded', function() {
-            const savedEmail = localStorage.getItem('krua_thai_login_email');
+            const savedEmail = localStorage.getItem('somdul_table_login_email');
             if (savedEmail && !emailInput.value) {
                 emailInput.value = savedEmail;
                 emailInput.dispatchEvent(new Event('blur'));
                 passwordInput.focus();
-            }
-        });
-
-        // Clear saved email on successful login (would be handled by redirect)
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
-            // Email will be cleared on successful redirect
-            // localStorage.removeItem('krua_thai_login_email');
-        });
-
-        // Handle browser back/forward buttons
-        window.addEventListener('pageshow', function(event) {
-            if (event.persisted) {
-                // Page was loaded from cache, reset form state
-                loginBtn.disabled = false;
-                loginBtn.classList.remove('loading');
-                loginText.textContent = 'Sign In';
-                formSubmitted = false;
             }
         });
 
@@ -1127,11 +1126,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['resend_verification'])
         // Initial connection check
         updateConnectionStatus();
 
-        // Prevent autocomplete="off" override (some browsers ignore it)
-        setTimeout(function() {
-            emailInput.setAttribute('autocomplete', 'email');
-            passwordInput.setAttribute('autocomplete', 'current-password');
-        }, 50);
+        // Prevent form double submission
+        let formSubmitted = false;
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            if (formSubmitted) {
+                e.preventDefault();
+                return false;
+            }
+            formSubmitted = true;
+        });
     </script>
 </body>
 </html>
