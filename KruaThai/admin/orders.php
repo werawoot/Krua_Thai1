@@ -1,8 +1,8 @@
 <?php
 /**
- * Krua Thai - Enhanced Orders Management (Production-Ready)
+ * Krua Thai - Complete Working Admin Orders Management
  * File: admin/orders.php
- * Description: Comprehensive order management with modern UI matching dashboard theme
+ * Description: Fully functional with contact customer feature
  */
 
 // --- 1. การตั้งค่าพื้นฐานและ Session ---
@@ -28,13 +28,22 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
 
 // --- 5. จัดการ AJAX Requests ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
-    header('Content-Type: application/json');
+    // ล้าง output buffer
+    while (ob_get_level()) {
+        ob_end_clean();
+    }
+    
+    header('Content-Type: application/json; charset=utf-8');
+    
     if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
         echo json_encode(['success' => false, 'message' => 'Invalid CSRF Token.']);
         exit;
     }
 
     try {
+        $database = new Database();
+        $pdo = $database->getConnection();
+        
         switch ($_POST['action']) {
             case 'update_status':
                 $orderId = $_POST['order_id'] ?? null;
@@ -69,74 +78,59 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 exit;
 
             case 'get_details':
-                // Remove output buffering that might interfere
-                if (ob_get_level()) {
-                    ob_end_clean();
-                }
-                
                 $orderId = $_POST['order_id'] ?? null;
                 if (!$orderId) {
                     echo json_encode(['success' => false, 'message' => 'Order ID is missing.']);
                     exit;
                 }
                 
-                try {
-                    // ดึงข้อมูลหลักของ Order (Subscription)
-                    $stmt = $pdo->prepare("
-                        SELECT s.*, u.first_name, u.last_name, u.email, u.phone, u.delivery_address, u.city,
-                               sp.name_thai as plan_name, sp.meals_per_week
-                        FROM subscriptions s
-                        JOIN users u ON s.user_id = u.id
-                        JOIN subscription_plans sp ON s.plan_id = sp.id
-                        WHERE s.id = ?
-                    ");
-                    $stmt->execute([$orderId]);
-                    $order = $stmt->fetch(PDO::FETCH_ASSOC);
+                // ดึงข้อมูลหลักของ Order (Subscription)
+                $stmt = $pdo->prepare("
+                    SELECT s.*, u.first_name, u.last_name, u.email, u.phone, 
+                           u.delivery_address, u.city, u.zip_code,
+                           sp.name_thai as plan_name, sp.meals_per_week, sp.plan_type
+                    FROM subscriptions s
+                    JOIN users u ON s.user_id = u.id
+                    JOIN subscription_plans sp ON s.plan_id = sp.id
+                    WHERE s.id = ?
+                ");
+                $stmt->execute([$orderId]);
+                $order = $stmt->fetch(PDO::FETCH_ASSOC);
 
-                    if (!$order) {
-                        echo json_encode(['success' => false, 'message' => 'Order not found.']);
-                        exit;
-                    }
-
-                    // ดึงรายการเมนูที่ลูกค้าเลือกไว้
-                    $stmt = $pdo->prepare("
-                        SELECT sm.delivery_date, m.name_thai as menu_name, m.name as menu_name_en, 
-                               sm.quantity, sm.status as menu_status
-                        FROM subscription_menus sm
-                        JOIN menus m ON sm.menu_id = m.id
-                        WHERE sm.subscription_id = ?
-                        ORDER BY sm.delivery_date ASC
-                        LIMIT 50
-                    ");
-                    $stmt->execute([$orderId]);
-                    $order['menus'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-                    // ดึงข้อมูลการชำระเงิน
-                    $stmt = $pdo->prepare("
-                        SELECT payment_method, transaction_id, amount, status, payment_date, created_at
-                        FROM payments 
-                        WHERE subscription_id = ? 
-                        ORDER BY created_at DESC
-                        LIMIT 10
-                    ");
-                    $stmt->execute([$orderId]);
-                    $order['payments'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-                    echo json_encode(['success' => true, 'data' => $order]);
-                    exit;
-                    
-                } catch (Exception $e) {
-                    error_log("Error getting order details: " . $e->getMessage());
-                    echo json_encode(['success' => false, 'message' => 'Database error occurred.']);
+                if (!$order) {
+                    echo json_encode(['success' => false, 'message' => 'Order not found.']);
                     exit;
                 }
+
+                // ดึงรายการเมนูที่ลูกค้าเลือกไว้
+                $stmt = $pdo->prepare("
+                    SELECT sm.delivery_date, m.name_thai as menu_name, m.name as menu_name_en, 
+                           sm.quantity, sm.status as menu_status, m.base_price
+                    FROM subscription_menus sm
+                    JOIN menus m ON sm.menu_id = m.id
+                    WHERE sm.subscription_id = ?
+                    ORDER BY sm.delivery_date ASC
+                    LIMIT 20
+                ");
+                $stmt->execute([$orderId]);
+                $order['menus'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                // ดึงข้อมูลการชำระเงิน
+                $stmt = $pdo->prepare("
+                    SELECT payment_method, transaction_id, amount, status, 
+                           payment_date, created_at, currency
+                    FROM payments 
+                    WHERE subscription_id = ? 
+                    ORDER BY created_at DESC
+                    LIMIT 5
+                ");
+                $stmt->execute([$orderId]);
+                $order['payments'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                echo json_encode(['success' => true, 'data' => $order]);
+                exit;
 
             case 'export_orders':
-                // Remove output buffering that might interfere
-                if (ob_get_level()) {
-                    ob_end_clean();
-                }
-                
                 $format = $_POST['format'] ?? 'csv';
                 $status_filter = $_POST['status_filter'] ?? '';
                 $search = $_POST['search'] ?? '';
@@ -167,7 +161,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     JOIN subscription_plans sp ON s.plan_id = sp.id
                     $whereClause
                     ORDER BY s.created_at DESC
-                    LIMIT 1000
+                    LIMIT 500
                 ";
                 
                 $stmt = $pdo->prepare($sql);
@@ -210,20 +204,77 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     ]);
                 }
                 exit;
+
+            case 'send_email':
+                $orderId = $_POST['order_id'] ?? null;
+                $subject = $_POST['subject'] ?? '';
+                $message = $_POST['message'] ?? '';
+                
+                if (!$orderId || !$subject || !$message) {
+                    echo json_encode(['success' => false, 'message' => 'Missing required fields.']);
+                    exit;
+                }
+                
+                // ดึงข้อมูลลูกค้า
+                $stmt = $pdo->prepare("
+                    SELECT u.email, u.first_name, u.last_name, s.id as subscription_id
+                    FROM subscriptions s
+                    JOIN users u ON s.user_id = u.id
+                    WHERE s.id = ?
+                ");
+                $stmt->execute([$orderId]);
+                $customer = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+                if (!$customer) {
+                    echo json_encode(['success' => false, 'message' => 'Customer not found.']);
+                    exit;
+                }
+                
+                // ส่งอีเมลจริง (ตัวอย่าง - ใช้ mail function หรือ PHPMailer)
+                $to = $customer['email'];
+                $emailSubject = "[Krua Thai] " . $subject;
+                $emailBody = "
+                    <html>
+                    <head><title>$subject</title></head>
+                    <body>
+                        <h2>สวัสดี คุณ{$customer['first_name']} {$customer['last_name']}</h2>
+                        <p>$message</p>
+                        <br>
+                        <p>ขอบคุณที่ใช้บริการ Krua Thai</p>
+                        <p>ทีมงาน Krua Thai</p>
+                    </body>
+                    </html>
+                ";
+                
+                $headers = "MIME-Version: 1.0" . "\r\n";
+                $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
+                $headers .= "From: noreply@kruathai.com" . "\r\n";
+                
+                // ส่งอีเมล (ในตัวอย่างนี้จะ simulate การส่ง)
+                $emailSent = mail($to, $emailSubject, $emailBody, $headers);
+                
+                if ($emailSent) {
+                    echo json_encode(['success' => true, 'message' => 'Email sent successfully to ' . $to]);
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'Failed to send email.']);
+                }
+                exit;
         }
     } catch (Exception $e) {
-        echo json_encode(['success' => false, 'message' => 'An unexpected server error occurred: ' . $e->getMessage()]);
+        echo json_encode(['success' => false, 'message' => 'Server error: ' . $e->getMessage()]);
         exit;
     }
 }
 
 // --- 6. ดึงข้อมูลสำหรับแสดงผลบนหน้าเว็บ ---
-$page_error = null;
 try {
+    $database = new Database();
+    $pdo = $database->getConnection();
+    
     $status_filter = $_GET['status'] ?? '';
     $search = $_GET['search'] ?? '';
     $page = max(1, intval($_GET['page'] ?? 1));
-    $limit = 20; // จำนวนรายการต่อหน้า
+    $limit = 20;
     $offset = ($page - 1) * $limit;
 
     // สร้าง WHERE clause
@@ -347,7 +398,7 @@ try {
             min-height: 100vh;
         }
 
-        /* Sidebar - ใช้สไตล์เดียวกับ dashboard */
+        /* Sidebar */
         .sidebar {
             width: 280px;
             background: linear-gradient(135deg, var(--brown) 0%, var(--curry) 100%);
@@ -503,21 +554,6 @@ try {
             text-decoration: none;
             position: relative;
             overflow: hidden;
-        }
-
-        .btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            transition: left 0.5s;
-        }
-
-        .btn:hover::before {
-            left: 100%;
         }
 
         .btn-primary {
@@ -734,34 +770,6 @@ try {
             background: #fafafa;
         }
 
-        /* Status Badges */
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.25rem 0.75rem;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .status-active {
-            background: rgba(46, 204, 113, 0.1);
-            color: #27ae60;
-        }
-
-        .status-paused {
-            background: rgba(241, 196, 15, 0.1);
-            color: #f39c12;
-        }
-
-        .status-cancelled {
-            background: rgba(231, 76, 60, 0.1);
-            color: #e74c3c;
-        }
-
         /* Action Buttons */
         .action-buttons {
             display: flex;
@@ -790,18 +798,14 @@ try {
             background: var(--curry);
         }
 
-        .action-btn.edit {
+        .action-btn.contact {
             background: #3498db;
-        }
-
-        .action-btn.delete {
-            background: #e74c3c;
         }
 
         /* Pagination */
         .pagination-container {
             display: flex;
-            justify-content: between;
+            justify-content: space-between;
             align-items: center;
             padding: 1.5rem;
             background: var(--white);
@@ -868,7 +872,7 @@ try {
             background: var(--white);
             border-radius: var(--radius-lg);
             box-shadow: var(--shadow-medium);
-            max-width: 600px;
+            max-width: 800px;
             width: 90vw;
             max-height: 80vh;
             overflow-y: auto;
@@ -913,21 +917,93 @@ try {
             gap: 1rem;
         }
 
-        /* Detail Row */
-        .detail-row {
-            display: flex;
+        /* Detail sections */
+        .detail-section {
+            margin-bottom: 2rem;
+        }
+
+        .detail-section h4 {
+            font-size: 1.1rem;
+            font-weight: 600;
             margin-bottom: 1rem;
+            color: var(--curry);
+            border-bottom: 2px solid var(--cream);
+            padding-bottom: 0.5rem;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .detail-item {
+            display: flex;
+            flex-direction: column;
         }
 
         .detail-label {
             font-weight: 600;
             color: var(--text-dark);
-            width: 120px;
-            flex-shrink: 0;
+            font-size: 0.9rem;
+            margin-bottom: 0.25rem;
         }
 
         .detail-value {
             color: var(--text-gray);
+            font-size: 0.95rem;
+        }
+
+        .menu-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-sm);
+            padding: 1rem;
+        }
+
+        .menu-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .menu-item:last-child {
+            border-bottom: none;
+        }
+
+        .payment-list {
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .payment-item {
+            background: #f8f9fa;
+            padding: 0.75rem;
+            border-radius: var(--radius-sm);
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Contact form */
+        .contact-form {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .contact-form .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .contact-form textarea {
+            min-height: 100px;
+            resize: vertical;
         }
 
         /* Toast Notifications */
@@ -960,6 +1036,10 @@ try {
 
         .toast.error {
             border-left-color: #e74c3c;
+        }
+
+        .toast.warning {
+            border-left-color: #f39c12;
         }
 
         /* Loading */
@@ -996,6 +1076,34 @@ try {
             font-size: 1.5rem;
             margin-bottom: 0.5rem;
             color: var(--text-dark);
+        }
+
+        /* Status badges */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-active {
+            background: rgba(46, 204, 113, 0.1);
+            color: #27ae60;
+        }
+
+        .status-paused {
+            background: rgba(241, 196, 15, 0.1);
+            color: #f39c12;
+        }
+
+        .status-cancelled {
+            background: rgba(231, 76, 60, 0.1);
+            color: #e74c3c;
         }
 
         /* Responsive */
@@ -1038,6 +1146,10 @@ try {
             .pagination-container {
                 flex-direction: column;
                 gap: 1rem;
+            }
+
+            .detail-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -1255,7 +1367,7 @@ try {
                     </div>
                 </div>
                 
-                <?php if ($page_error): ?>
+                <?php if (isset($page_error)): ?>
                     <div style="padding: 2rem; text-align: center; color: #e74c3c;">
                         <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 1rem;"></i>
                         <h3>Error Loading Orders</h3>
@@ -1334,9 +1446,16 @@ try {
                                     <td>
                                         <div class="action-buttons">
                                             <button class="action-btn view" 
-                                                    onclick="viewOrderDetails('<?= $order['id'] ?>')"
-                                                    title="View Details">
+                                                    onclick="viewOrderDetails('<?= htmlspecialchars($order['id']) ?>')"
+                                                    title="View Details"
+                                                    type="button">
                                                 <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button class="action-btn contact" 
+                                                    onclick="contactCustomer('<?= htmlspecialchars($order['id']) ?>', '<?= htmlspecialchars($order['email']) ?>')"
+                                                    title="Contact Customer"
+                                                    type="button">
+                                                <i class="fas fa-envelope"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -1407,6 +1526,44 @@ try {
         </div>
     </div>
 
+    <!-- Contact Customer Modal -->
+    <div class="modal-overlay" id="contactModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Contact Customer</h3>
+                <button class="modal-close" onclick="closeModal('contactModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form class="contact-form" id="contactForm">
+                    <input type="hidden" id="contactOrderId" name="order_id">
+                    <div class="form-group">
+                        <label>Customer Email</label>
+                        <input type="email" id="contactEmail" class="form-control" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Subject</label>
+                        <input type="text" id="contactSubject" name="subject" class="form-control" 
+                               placeholder="Enter email subject..." required>
+                    </div>
+                    <div class="form-group">
+                        <label>Message</label>
+                        <textarea id="contactMessage" name="message" class="form-control" 
+                                  placeholder="Enter your message..." required></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('contactModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="sendEmail()">
+                    <i class="fas fa-paper-plane"></i>
+                    Send Email
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Container -->
     <div class="toast-container" id="toastContainer"></div>
 
@@ -1465,20 +1622,343 @@ try {
             })
             .catch(error => {
                 console.error('Error:', error);
-                showToast('An error occurred while updating the order status.', 'error');
-                // Revert dropdown
-                document.querySelector(`select[onchange*="${orderId}"]`).value = currentStatus;
+                document.getElementById('orderModalBody').innerHTML = `
+                    <div style="text-align: center; padding: 2rem;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 2rem; color: #e74c3c; margin-bottom: 1rem;"></i>
+                        <h3>Connection Error</h3>
+                        <p>Failed to load order details. Please try again.</p>
+                        <button class="btn btn-primary" onclick="viewOrderDetails('${orderId}')">
+                            <i class="fas fa-sync-alt"></i> Retry
+                        </button>
+                    </div>
+                `;
             });
         }
 
-        // View order details
-        function viewOrderDetails(orderId) {
-            openModal('orderModal');
+        // Display order details - ENHANCED VERSION
+        function displayOrderDetails(order) {
+            console.log('Displaying order details:', order);
+            
+            // Safely handle null/undefined values
+            const safeGet = (obj, key, defaultValue = 'N/A') => {
+                return obj && obj[key] !== null && obj[key] !== undefined ? obj[key] : defaultValue;
+            };
+            
+            const formatDate = (dateString) => {
+                if (!dateString) return 'No date';
+                try {
+                    return new Date(dateString).toLocaleDateString('th-TH', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+                } catch (e) {
+                    return dateString;
+                }
+            };
+            
+            const formatCurrency = (amount) => {
+                const num = parseFloat(amount || 0);
+                return `₿${num.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+            };
+
+            // Build menus list with better formatting
+            const menusList = order.menus && order.menus.length > 0 ? 
+                order.menus.map((menu, index) => `
+                    <div class="menu-item" style="border-left: 3px solid var(--curry); padding-left: 1rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div style="flex: 1;">
+                                <div style="font-weight: 600; color: var(--text-dark); margin-bottom: 0.25rem;">
+                                    ${index + 1}. ${safeGet(menu, 'menu_name')}
+                                </div>
+                                ${menu.menu_name_en ? `
+                                    <div style="color: var(--text-gray); font-size: 0.9rem; margin-bottom: 0.25rem;">
+                                        ${menu.menu_name_en}
+                                    </div>
+                                ` : ''}
+                                <div style="display: flex; gap: 1rem; font-size: 0.85rem; color: var(--text-gray);">
+                                    <span><i class="fas fa-calendar"></i> ${formatDate(menu.delivery_date)}</span>
+                                    <span><i class="fas fa-utensils"></i> Qty: ${safeGet(menu, 'quantity', 1)}</span>
+                                    <span class="status-badge status-${safeGet(menu, 'menu_status', 'scheduled').toLowerCase()}">
+                                        ${safeGet(menu, 'menu_status', 'scheduled')}
+                                    </span>
+                                </div>
+                            </div>
+                            <div style="text-align: right; margin-left: 1rem;">
+                                <div style="color: var(--curry); font-weight: 600; font-size: 1.1rem;">
+                                    ${formatCurrency(menu.base_price)}
+                                </div>
+                                <div style="font-size: 0.8rem; color: var(--text-gray);">
+                                    per item
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('') : `
+                    <div style="text-align: center; padding: 2rem; color: var(--text-gray);">
+                        <i class="fas fa-utensils" style="font-size: 2rem; opacity: 0.3; margin-bottom: 1rem;"></i>
+                        <p>No menus found for this order</p>
+                    </div>
+                `;
+
+            // Build payments list with better formatting
+            const paymentsList = order.payments && order.payments.length > 0 ? 
+                order.payments.map((payment, index) => {
+                    const statusColor = payment.status === 'completed' ? '#27ae60' : 
+                                      payment.status === 'pending' ? '#f39c12' : '#e74c3c';
+                    const statusIcon = payment.status === 'completed' ? 'check-circle' : 
+                                     payment.status === 'pending' ? 'clock' : 'times-circle';
+                    
+                    return `
+                        <div class="payment-item" style="border-left: 3px solid ${statusColor};">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="flex: 1;">
+                                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                                        <strong style="color: var(--text-dark);">
+                                            ${safeGet(payment, 'payment_method', 'Unknown Method').toUpperCase()}
+                                        </strong>
+                                        <i class="fas fa-${statusIcon}" style="color: ${statusColor};"></i>
+                                    </div>
+                                    ${payment.transaction_id ? `
+                                        <div style="font-family: monospace; font-size: 0.85rem; color: var(--text-gray); margin-bottom: 0.25rem;">
+                                            TXN: ${payment.transaction_id}
+                                        </div>
+                                    ` : ''}
+                                    <div style="font-size: 0.85rem; color: var(--text-gray);">
+                                        <i class="fas fa-calendar"></i> ${formatDate(payment.payment_date || payment.created_at)}
+                                    </div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="color: var(--curry); font-weight: 600; font-size: 1.1rem;">
+                                        ${safeGet(payment, 'currency', '₿')}${formatCurrency(payment.amount).replace('₿', '')}
+                                    </div>
+                                    <div style="font-size: 0.8rem; color: ${statusColor}; font-weight: 500; text-transform: uppercase;">
+                                        ${safeGet(payment, 'status', 'unknown')}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('') : `
+                    <div style="text-align: center; padding: 2rem; color: var(--text-gray);">
+                        <i class="fas fa-credit-card" style="font-size: 2rem; opacity: 0.3; margin-bottom: 1rem;"></i>
+                        <p>No payment records found</p>
+                    </div>
+                `;
+
+            // Get status color for badge
+            const getStatusColor = (status) => {
+                switch(status) {
+                    case 'active': return '#27ae60';
+                    case 'paused': return '#f39c12';
+                    case 'cancelled': return '#e74c3c';
+                    default: return '#7f8c8d';
+                }
+            };
+
+            document.getElementById('orderModalBody').innerHTML = `
+                <div class="detail-section">
+                    <h4><i class="fas fa-user" style="color: var(--curry);"></i> Customer Information</h4>
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <div class="detail-label">Full Name</div>
+                            <div class="detail-value" style="font-weight: 600;">
+                                ${safeGet(order, 'first_name')} ${safeGet(order, 'last_name')}
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Email Address</div>
+                            <div class="detail-value">
+                                <a href="mailto:${safeGet(order, 'email')}" style="color: var(--curry); text-decoration: none;">
+                                    <i class="fas fa-envelope"></i> ${safeGet(order, 'email')}
+                                </a>
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Phone Number</div>
+                            <div class="detail-value">
+                                ${order.phone ? `<i class="fas fa-phone"></i> ${order.phone}` : 'No phone number'}
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Delivery Address</div>
+                            <div class="detail-value" style="line-height: 1.4;">
+                                <i class="fas fa-map-marker-alt" style="color: var(--curry);"></i>
+                                ${safeGet(order, 'delivery_address')}<br>
+                                ${safeGet(order, 'city')} ${safeGet(order, 'zip_code')}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <h4><i class="fas fa-shopping-cart" style="color: var(--curry);"></i> Subscription Details</h4>
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <div class="detail-label">Plan Name</div>
+                            <div class="detail-value" style="font-weight: 600; color: var(--curry);">
+                                ${safeGet(order, 'plan_name')}
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Plan Type</div>
+                            <div class="detail-value">
+                                ${safeGet(order, 'plan_type', '').toUpperCase()}
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Meals per Week</div>
+                            <div class="detail-value">
+                                <i class="fas fa-utensils"></i> ${safeGet(order, 'meals_per_week', 0)} meals
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Current Status</div>
+                            <div class="detail-value">
+                                <span class="status-badge" style="background-color: ${getStatusColor(order.status)}; color: white;">
+                                    <i class="fas fa-circle" style="font-size: 0.6rem;"></i>
+                                    ${safeGet(order, 'status', 'unknown').toUpperCase()}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Total Amount</div>
+                            <div class="detail-value" style="color: var(--curry); font-weight: 700; font-size: 1.2rem;">
+                                ${formatCurrency(order.total_amount)}
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Start Date</div>
+                            <div class="detail-value">
+                                <i class="fas fa-calendar-plus"></i> ${formatDate(order.start_date)}
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Next Billing Date</div>
+                            <div class="detail-value">
+                                <i class="fas fa-calendar-alt"></i> ${formatDate(order.next_billing_date)}
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Created Date</div>
+                            <div class="detail-value">
+                                <i class="fas fa-calendar"></i> ${formatDate(order.created_at)}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <h4>
+                        <i class="fas fa-utensils" style="color: var(--curry);"></i> 
+                        Selected Menus 
+                        <span style="background: var(--curry); color: white; padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.8rem; margin-left: 0.5rem;">
+                            ${order.menus ? order.menus.length : 0} items
+                        </span>
+                    </h4>
+                    <div class="menu-list" style="max-height: 300px; overflow-y: auto; border: 1px solid var(--border-light); border-radius: var(--radius-sm); padding: 1rem;">
+                        ${menusList}
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <h4>
+                        <i class="fas fa-credit-card" style="color: var(--curry);"></i> 
+                        Payment History 
+                        <span style="background: var(--sage); color: white; padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.8rem; margin-left: 0.5rem;">
+                            ${order.payments ? order.payments.length : 0} transactions
+                        </span>
+                    </h4>
+                    <div class="payment-list" style="max-height: 250px; overflow-y: auto;">
+                        ${paymentsList}
+                    </div>
+                </div>
+                
+                <div class="detail-section" style="background: var(--cream); padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
+                    <h4 style="margin-bottom: 0.5rem;"><i class="fas fa-info-circle" style="color: var(--curry);"></i> Order Summary</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; font-size: 0.9rem;">
+                        <div><strong>Order ID:</strong> ${safeGet(order, 'id', '').substring(0, 8)}...</div>
+                        <div><strong>Billing Cycle:</strong> ${safeGet(order, 'billing_cycle', 'weekly')}</div>
+                        <div><strong>Auto Renew:</strong> ${order.auto_renew ? 'Yes' : 'No'}</div>
+                        <div><strong>Last Updated:</strong> ${formatDate(order.updated_at)}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Contact customer
+        function contactCustomer(orderId, customerEmail) {
+            document.getElementById('contactOrderId').value = orderId;
+            document.getElementById('contactEmail').value = customerEmail;
+            document.getElementById('contactSubject').value = '';
+            document.getElementById('contactMessage').value = '';
+            openModal('contactModal');
+        }
+
+        // Send email
+        function sendEmail() {
+            const orderId = document.getElementById('contactOrderId').value;
+            const subject = document.getElementById('contactSubject').value.trim();
+            const message = document.getElementById('contactMessage').value.trim();
+
+            if (!subject || !message) {
+                showToast('Please fill in both subject and message.', 'warning');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('action', 'send_email');
+            formData.append('order_id', orderId);
+            formData.append('subject', subject);
+            formData.append('message', message);
+            formData.append('csrf_token', CSRF_TOKEN);
+
+            // Show loading state
+            const sendBtn = document.querySelector('#contactModal .btn-primary');
+            const originalText = sendBtn.innerHTML;
+            sendBtn.innerHTML = '<span class="loading"></span> Sending...';
+            sendBtn.disabled = true;
+
+            fetch('orders.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(data.message, 'success');
+                    closeModal('contactModal');
+                } else {
+                    showToast(data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Failed to send email. Please try again.', 'error');
+            })
+            .finally(() => {
+                sendBtn.innerHTML = originalText;
+                sendBtn.disabled = false;
+            });
+        }
+
+        // Export orders
+        function exportOrders(format) {
+            const statusFilter = new URLSearchParams(window.location.search).get('status') || '';
+            const search = new URLSearchParams(window.location.search).get('search') || '';
             
             const formData = new FormData();
-            formData.append('action', 'get_details');
-            formData.append('order_id', orderId);
+            formData.append('action', 'export_orders');
+            formData.append('format', format);
+            formData.append('status_filter', statusFilter);
+            formData.append('search', search);
             formData.append('csrf_token', CSRF_TOKEN);
+
+            // Show loading state
+            const exportBtn = event.target;
+            const originalText = exportBtn.innerHTML;
+            exportBtn.innerHTML = '<span class="loading"></span> Exporting...';
+            exportBtn.disabled = true;
 
             fetch('orders.php', {
                 method: 'POST',
@@ -1492,7 +1972,7 @@ try {
                     } else {
                         downloadJSON(data.data, data.filename);
                     }
-                    showToast(`${format.toUpperCase()} export completed successfully!`, 'success');
+                    showToast(`${format.toUpperCase()} export completed! ${data.count} records exported.`, 'success');
                 } else {
                     showToast(`Export failed: ${data.message}`, 'error');
                 }
@@ -1500,6 +1980,10 @@ try {
             .catch(error => {
                 console.error('Export error:', error);
                 showToast('Export failed. Please try again.', 'error');
+            })
+            .finally(() => {
+                exportBtn.innerHTML = originalText;
+                exportBtn.disabled = false;
             });
         }
 
@@ -1507,40 +1991,19 @@ try {
         function downloadCSV(data, filename) {
             let csvContent = '';
             
-            // Check if data is array of arrays (from server) or needs to be converted
             if (Array.isArray(data) && data.length > 0) {
-                if (Array.isArray(data[0])) {
-                    // Data is already in array format
-                    csvContent = data.map(row => 
-                        row.map(field => {
-                            // Handle null/undefined values
-                            if (field === null || field === undefined) {
-                                return '""';
-                            }
-                            // Escape quotes and wrap in quotes
-                            return `"${String(field).replace(/"/g, '""')}"`;
-                        }).join(',')
-                    ).join('\n');
-                } else {
-                    // Data is objects, convert to CSV
-                    const headers = Object.keys(data[0]);
-                    const headerRow = headers.map(h => `"${h}"`).join(',');
-                    const dataRows = data.map(row => 
-                        headers.map(header => {
-                            const value = row[header];
-                            if (value === null || value === undefined) {
-                                return '""';
-                            }
-                            return `"${String(value).replace(/"/g, '""')}"`;
-                        }).join(',')
-                    ).join('\n');
-                    csvContent = headerRow + '\n' + dataRows;
-                }
+                csvContent = data.map(row => 
+                    row.map(field => {
+                        if (field === null || field === undefined) {
+                            return '""';
+                        }
+                        return `"${String(field).replace(/"/g, '""')}"`;
+                    }).join(',')
+                ).join('\n');
             } else {
                 csvContent = '"No data available"';
             }
             
-            // Add BOM for proper UTF-8 encoding in Excel
             const BOM = '\uFEFF';
             const blob = new Blob([BOM + csvContent], { 
                 type: 'text/csv;charset=utf-8;' 
@@ -1555,46 +2018,32 @@ try {
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-                
-                // Clean up the URL object
                 setTimeout(() => URL.revokeObjectURL(url), 100);
-            } else {
-                // Fallback for older browsers
-                showToast('CSV download not supported in this browser', 'error');
             }
         }
 
         // Download JSON file
         function downloadJSON(data, filename) {
-            let jsonContent;
-            
             try {
-                jsonContent = JSON.stringify(data, null, 2);
-            } catch (error) {
-                console.error('JSON stringify error:', error);
-                showToast('Failed to convert data to JSON format', 'error');
-                return;
-            }
-            
-            const blob = new Blob([jsonContent], { 
-                type: 'application/json;charset=utf-8;' 
-            });
-            
-            const link = document.createElement('a');
-            if (link.download !== undefined) {
-                const url = URL.createObjectURL(blob);
-                link.setAttribute('href', url);
-                link.setAttribute('download', filename || 'orders_export.json');
-                link.style.visibility = 'hidden';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
+                const jsonContent = JSON.stringify(data, null, 2);
+                const blob = new Blob([jsonContent], { 
+                    type: 'application/json;charset=utf-8;' 
+                });
                 
-                // Clean up the URL object
-                setTimeout(() => URL.revokeObjectURL(url), 100);
-            } else {
-                // Fallback for older browsers
-                showToast('JSON download not supported in this browser', 'error');
+                const link = document.createElement('a');
+                if (link.download !== undefined) {
+                    const url = URL.createObjectURL(blob);
+                    link.setAttribute('href', url);
+                    link.setAttribute('download', filename || 'orders_export.json');
+                    link.style.visibility = 'hidden';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    setTimeout(() => URL.revokeObjectURL(url), 100);
+                }
+            } catch (error) {
+                console.error('JSON download error:', error);
+                showToast('Failed to download JSON file', 'error');
             }
         }
 
@@ -1695,67 +2144,11 @@ try {
             }
         });
 
-        // Auto-refresh every 5 minutes
-        setInterval(() => {
-            if (confirm('Auto-refresh: Would you like to refresh the orders data?')) {
-                refreshOrders();
-            }
-        }, 300000); // 5 minutes
-
         // Search form auto-submit on Enter
         document.querySelector('input[name="search"]').addEventListener('keydown', function(e) {
             if (e.key === 'Enter') {
                 this.form.submit();
             }
-        });
-
-        // Initialize tooltips
-        document.querySelectorAll('[title]').forEach(element => {
-            element.addEventListener('mouseenter', function() {
-                const tooltip = document.createElement('div');
-                tooltip.className = 'tooltip';
-                tooltip.textContent = this.getAttribute('title');
-                tooltip.style.cssText = `
-                    position: absolute;
-                    background: var(--text-dark);
-                    color: var(--white);
-                    padding: 0.5rem;
-                    border-radius: var(--radius-sm);
-                    font-size: 0.8rem;
-                    z-index: 1000;
-                    pointer-events: none;
-                    white-space: nowrap;
-                `;
-                document.body.appendChild(tooltip);
-                
-                const rect = this.getBoundingClientRect();
-                tooltip.style.left = (rect.left + rect.width / 2 - tooltip.offsetWidth / 2) + 'px';
-                tooltip.style.top = (rect.top - tooltip.offsetHeight - 5) + 'px';
-                
-                this.addEventListener('mouseleave', function() {
-                    tooltip.remove();
-                }, { once: true });
-            });
-        });
-
-        // Performance monitoring
-        window.addEventListener('load', function() {
-            const loadTime = performance.now();
-            console.log(`Orders page loaded in ${Math.round(loadTime)}ms`);
-        });
-
-        // Add loading states to form submissions
-        document.querySelector('.filter-form').addEventListener('submit', function() {
-            const submitBtn = this.querySelector('button[type="submit"]');
-            const originalContent = submitBtn.innerHTML;
-            submitBtn.innerHTML = '<span class="loading"></span> Searching...';
-            submitBtn.disabled = true;
-            
-            // Re-enable after 3 seconds (fallback)
-            setTimeout(() => {
-                submitBtn.innerHTML = originalContent;
-                submitBtn.disabled = false;
-            }, 3000);
         });
 
         // Mobile sidebar toggle
@@ -1793,7 +2186,111 @@ try {
             }
         });
 
-        console.log('Krua Thai Orders Management initialized successfully');
+        // DEBUG: Test functions - ADD THIS FOR TESTING
+        function testModal() {
+            console.log('Testing modal...');
+            openModal('orderModal');
+            document.getElementById('orderModalBody').innerHTML = `
+                <div style="text-align: center; padding: 2rem;">
+                    <h3>✅ Modal is working!</h3>
+                    <p>This is a test modal.</p>
+                    <button class="btn btn-primary" onclick="closeModal('orderModal')">Close Test</button>
+                </div>
+            `;
+        }
+        
+        function testOrderDetails() {
+            console.log('Testing order details...');
+            const testOrderId = '<?= !empty($orders) ? $orders[0]['id'] : 'test-id' ?>';
+            console.log('Test order ID:', testOrderId);
+            viewOrderDetails(testOrderId);
+        }
+        
+        // Make functions globally available for testing
+        window.testModal = testModal;
+        window.testOrderDetails = testOrderDetails;
+        window.viewOrderDetails = viewOrderDetails;
+        window.contactCustomer = contactCustomer;
+        window.openModal = openModal;
+        window.closeModal = closeModal;
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Krua Thai Orders Management initialized successfully');
+            console.log('CSRF Token:', CSRF_TOKEN);
+            
+            // Test if jQuery is loaded (if needed)
+            if (typeof $ !== 'undefined') {
+                console.log('jQuery is available');
+            }
+            
+            // Add click event listeners to action buttons as backup
+            document.addEventListener('click', function(e) {
+                // Handle view button clicks
+                if (e.target.closest('.action-btn.view')) {
+                    e.preventDefault();
+                    const btn = e.target.closest('.action-btn.view');
+                    const orderId = btn.getAttribute('data-order-id') || 
+                                   btn.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
+                    if (orderId) {
+                        console.log('View button clicked for order:', orderId);
+                        viewOrderDetails(orderId);
+                    } else {
+                        console.error('No order ID found');
+                    }
+                }
+                
+                // Handle contact button clicks
+                if (e.target.closest('.action-btn.contact')) {
+                    e.preventDefault();
+                    const btn = e.target.closest('.action-btn.contact');
+                    const onclickAttr = btn.getAttribute('onclick');
+                    if (onclickAttr) {
+                        const matches = onclickAttr.match(/'([^']+)'/g);
+                        if (matches && matches.length >= 2) {
+                            const orderId = matches[0].replace(/'/g, '');
+                            const email = matches[1].replace(/'/g, '');
+                            console.log('Contact button clicked for order:', orderId, 'email:', email);
+                            contactCustomer(orderId, email);
+                        }
+                    }
+                }
+            });
+            
+            // Add loading states to form submissions
+            const filterForm = document.querySelector('.filter-form');
+            if (filterForm) {
+                filterForm.addEventListener('submit', function() {
+                    const submitBtn = this.querySelector('button[type="submit"]');
+                    if (submitBtn) {
+                        const originalContent = submitBtn.innerHTML;
+                        submitBtn.innerHTML = '<span class="loading"></span> Searching...';
+                        submitBtn.disabled = true;
+                        
+                        // Re-enable after 3 seconds (fallback)
+                        setTimeout(() => {
+                            submitBtn.innerHTML = originalContent;
+                            submitBtn.disabled = false;
+                        }, 3000);
+                    }
+                });
+            }
+            
+            // Test modal functionality
+            console.log('Testing modal elements...');
+            const orderModal = document.getElementById('orderModal');
+            const contactModal = document.getElementById('contactModal');
+            console.log('Order modal found:', !!orderModal);
+            console.log('Contact modal found:', !!contactModal);
+            
+            // Add keyboard shortcut info to console
+            console.log('Keyboard shortcuts: Esc (close modal), Ctrl+R (refresh), Ctrl+E (export CSV)');
+        });
+
+        // Performance monitoring
+        window.addEventListener('load', function() {
+            const loadTime = performance.now();
+            console.log(`Orders page loaded in ${Math.round(loadTime)}ms`);
+        });
     </script>
 </body>
-</html> 
+</html>
+             
