@@ -1,12 +1,17 @@
 <?php
 /**
- * Weekend Kitchen Dashboard - Krua Thai (FIXED VERSION)
+ * Weekend Kitchen Dashboard - Krua Thai (COMPLETE FIXED VERSION)
  * File: weekend_kitchen_dashboard.php
  * Role: kitchen, admin only
  * Status: PRODUCTION READY ✅
  * Focus: Weekend delivery preparation (Saturday & Sunday only)
  * Language: Thai/English
  * Timezone: Asia/Bangkok
+ * 
+ * 🔥 FIXED ISSUES:
+ * - Query logic แก้ไขแล้ว - ไม่ใช้ DISTINCT ผิดๆ
+ * - แสดงลูกค้าและเมนูครบถ้วน
+ * - เพิ่ม Debug information
  */
 
 // Start output buffering to prevent header issues
@@ -39,6 +44,14 @@ if (!isset($_SESSION['user_role']) || !in_array($_SESSION['user_role'], ['kitche
 
 require_once '../config/database.php';
 require_once '../includes/functions.php';
+
+// Database connection with PDO
+try {
+    $database = new Database();
+    $pdo = $database->getConnection();
+} catch (Exception $e) {
+    die("❌ Database connection failed: " . $e->getMessage());
+}
 
 // Get next weekends (Saturday & Sunday) for next 4 weeks
 function getNextWeekends() {
@@ -97,17 +110,17 @@ if (!in_array($selected_day, [6, 7])) {
 // Kitchen data arrays
 $weekend_orders = [];
 $meal_summary = [];
-$subscription_summary = [];
 $total_customers = 0;
 $total_meals = 0;
 $error_message = '';
 
 try {
-    // Get weekend deliveries from subscription_menus with PDO
-    $delivery_query = "
-        SELECT DISTINCT
-            sm.delivery_date,
-            sm.subscription_id,
+    // 🔥 FIXED QUERY LOGIC - แยกเป็น 2 ขั้นตอน
+    
+    // ขั้นตอนที่ 1: ดึงลูกค้าทั้งหมดที่มี delivery ในวันที่เลือก
+    $customer_query = "
+        SELECT 
+            s.id as subscription_id,
             s.user_id,
             s.preferred_delivery_time,
             s.special_instructions as subscription_notes,
@@ -120,33 +133,35 @@ try {
             u.allergies,
             u.spice_level,
             sp.name as plan_name,
-            sp.name_thai as plan_name_thai
-        FROM subscription_menus sm
-        JOIN subscriptions s ON sm.subscription_id = s.id
+            sp.name_thai as plan_name_thai,
+            sp.meals_per_week,
+            COUNT(sm.id) as total_meals_today
+        FROM subscriptions s
         JOIN users u ON s.user_id = u.id
         JOIN subscription_plans sp ON s.plan_id = sp.id
+        JOIN subscription_menus sm ON s.id = sm.subscription_id
         WHERE sm.delivery_date = ?
         AND s.status = 'active'
         AND sm.status = 'scheduled'
+        GROUP BY s.id, s.user_id, u.first_name, u.last_name, u.phone, 
+                 u.delivery_address, u.city, u.dietary_preferences, u.allergies, 
+                 u.spice_level, sp.name, sp.name_thai, sp.meals_per_week,
+                 s.preferred_delivery_time, s.special_instructions
         ORDER BY s.preferred_delivery_time ASC, u.last_name ASC
     ";
     
-    $stmt = $pdo->prepare($delivery_query);
+    $stmt = $pdo->prepare($customer_query);
     $stmt->execute([$selected_date]);
-    $deliveries = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $customers_data = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    $customers = [];
-    foreach ($deliveries as $delivery) {
-        $customer_key = $delivery['user_id'];
-        if (!isset($customers[$customer_key])) {
-            $customers[$customer_key] = $delivery;
-            $customers[$customer_key]['meals'] = [];
-            $total_customers++;
-        }
-    }
+    $total_customers = count($customers_data);
     
-    // Get meals for each customer
-    foreach ($customers as $user_id => &$customer) {
+    // ขั้นตอนที่ 2: ดึงเมนูสำหรับแต่ละลูกค้า
+    foreach ($customers_data as $customer_data) {
+        $customer = $customer_data;
+        $customer['meals'] = [];
+        
+        // Query เมนูสำหรับลูกค้าคนนี้
         $meals_query = "
             SELECT 
                 sm.id as subscription_menu_id,
@@ -173,14 +188,14 @@ try {
         ";
         
         $meals_stmt = $pdo->prepare($meals_query);
-        $meals_stmt->execute([$selected_date, $customer['subscription_id']]);
+        $meals_stmt->execute([$selected_date, $customer_data['subscription_id']]);
         $meals = $meals_stmt->fetchAll(PDO::FETCH_ASSOC);
         
         foreach ($meals as $meal) {
             $customer['meals'][] = $meal;
             $total_meals += $meal['quantity'];
             
-            // Build meal summary for kitchen prep
+            // สร้าง meal summary สำหรับครัว
             $meal_key = $meal['menu_name'];
             if (!isset($meal_summary[$meal_key])) {
                 $meal_summary[$meal_key] = [
@@ -223,9 +238,12 @@ try {
                 }
             }
         }
+        
+        // เพิ่มลูกค้าเข้าไปใน array สุดท้าย (เฉพาะที่มีเมนู)
+        if (!empty($customer['meals'])) {
+            $weekend_orders[] = $customer;
+        }
     }
-    
-    $weekend_orders = array_values($customers);
     
     // Sort meal summary by total quantity (highest first)
     uasort($meal_summary, function($a, $b) {
@@ -309,7 +327,7 @@ if ($export_type === 'json') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Weekend Kitchen Dashboard - Krua Thai</title>
+    <title>Weekend Kitchen Dashboard - Krua Thai (Fixed)</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -430,6 +448,8 @@ if ($export_type === 'json') {
             margin: 0 auto;
             padding: 2rem;
         }
+
+        /* Debug Information Styles - ลบออกแล้ว */
 
         .dashboard-controls {
             background: white;
@@ -958,6 +978,8 @@ if ($export_type === 'json') {
     </div>
 
     <div class="main-container">
+        <!-- Debug Information - เอาออกแล้ว -->
+
         <?php if (!empty($error_message)): ?>
             <div class="alert alert-error">
                 <i class="fas fa-exclamation-triangle"></i>
@@ -988,18 +1010,7 @@ if ($export_type === 'json') {
                     <option value="completed" <?php echo ($status_filter === 'completed') ? 'selected' : ''; ?>>Completed</option>
                 </select>
             </div>
-            
-            <div class="control-group">
-                <label class="control-label">Export Data</label>
-                <div style="display: flex; gap: 0.5rem;">
-                    <a href="?date=<?php echo $selected_date; ?>&export=csv" class="btn btn-secondary">
-                        <i class="fas fa-file-csv"></i> CSV
-                    </a>
-                    <a href="?date=<?php echo $selected_date; ?>&export=json" class="btn btn-outline">
-                        <i class="fas fa-file-code"></i> JSON
-                    </a>
-                </div>
-            </div>
+           
             
             <div class="control-group">
                 <label class="control-label">Quick Actions</label>
@@ -1054,9 +1065,7 @@ if ($export_type === 'json') {
                         Delivery Schedule - <?php echo !empty($selected_date) ? date('l, M j', strtotime($selected_date)) : 'Date not selected'; ?>
                     </h2>
                     <div style="display: flex; gap: 1rem;">
-                        <button class="btn btn-secondary" onclick="printCustomerList()">
-                            <i class="fas fa-print"></i> Print List
-                        </button>
+               
                         <button class="btn btn-primary" onclick="markAllCompleted()">
                             <i class="fas fa-check-circle"></i> Mark All Complete
                         </button>
@@ -1081,6 +1090,7 @@ if ($export_type === 'json') {
                                             <div><i class="fas fa-phone"></i> <?php echo htmlspecialchars($customer['phone'] ?? 'No phone provided'); ?></div>
                                             <div><i class="fas fa-map-marker-alt"></i> <?php echo htmlspecialchars(($customer['delivery_address'] ?? 'No address') . ', ' . ($customer['city'] ?? '')); ?></div>
                                             <div><i class="fas fa-tag"></i> Plan: <?php echo htmlspecialchars($customer['plan_name'] ?? 'Standard Plan'); ?></div>
+                                            <div><i class="fas fa-utensils"></i> Total Meals Today: <?php echo count($customer['meals']); ?></div>
                                             <?php if (!empty($customer['dietary_preferences'])): ?>
                                                 <div><i class="fas fa-leaf"></i> Diet: <?php echo htmlspecialchars($customer['dietary_preferences']); ?></div>
                                             <?php endif; ?>
@@ -1218,6 +1228,11 @@ if ($export_type === 'json') {
                     <i class="fas fa-file-code"></i>
                     Export JSON
                 </a>
+                
+                <button class="btn btn-outline" onclick="exportToExcel()">
+                    <i class="fas fa-file-excel"></i>
+                    Export Excel
+                </button>
             </div>
         </div>
     </div>
@@ -1280,11 +1295,71 @@ if ($export_type === 'json') {
 
         function printPrepSheet() {
             const printArea = document.getElementById('prep-print-area');
-            const originalDisplay = printArea.style.display;
-            
-            printArea.style.display = 'block';
-            window.print();
-            printArea.style.display = originalDisplay;
+            if (!printArea) {
+                // If print area doesn't exist, create dynamic content
+                const mealSummary = <?php echo json_encode($meal_summary, JSON_UNESCAPED_UNICODE); ?>;
+                
+                let prepContent = `
+                    <div style="text-align: center; margin-bottom: 2rem;">
+                        <h1 style="color: #8b4513; margin-bottom: 0.5rem;">Krua Thai - Kitchen Prep Sheet</h1>
+                        <h2 style="color: #6c757d;">Delivery Date: <?php echo !empty($selected_date) ? date('l, F j, Y', strtotime($selected_date)) : 'Date not selected'; ?></h2>
+                        <p style="color: #666;">Printed: ${new Date().toLocaleString('th-TH')} (Bangkok Time)</p>
+                    </div>
+                    
+                    <div style="margin-bottom: 2rem;">
+                        <h3 style="background: #f8f6f3; padding: 1rem; border-radius: 8px; color: #8b4513;">
+                            Prep Summary - Total ${Object.keys(mealSummary).length} items / <?php echo $total_meals; ?> portions
+                        </h3>
+                    </div>
+                `;
+                
+                Object.values(mealSummary).forEach(meal => {
+                    prepContent += `
+                        <div style="border: 1px solid #ddd; margin-bottom: 1rem; border-radius: 8px; overflow: hidden;">
+                            <div style="background: #e67e22; color: white; padding: 1rem; font-weight: bold; font-size: 1.2rem;">
+                                ${meal.name} - ${meal.total_quantity} portions
+                            </div>
+                            <div style="padding: 1rem;">
+                                <p><strong>Category:</strong> ${meal.category || 'Not specified'}</p>
+                                <p><strong>Prep Time:</strong> ${meal.prep_time || 'Not specified'} min/portion</p>
+                                <p><strong>Total Time:</strong> ${(meal.prep_time || 0) * meal.total_quantity} minutes</p>
+                                <p><strong>Cooking Method:</strong> ${meal.cooking_method || 'Standard recipe'}</p>
+                                ${meal.ingredients ? `<p><strong>Ingredients:</strong> ${meal.ingredients}</p>` : ''}
+                                ${meal.customizations && meal.customizations.length > 0 ? `<p><strong>Customizations:</strong> ${meal.customizations.join(', ')}</p>` : ''}
+                                ${meal.special_requests && meal.special_requests.length > 0 ? `<p><strong>Special Requests:</strong> ${meal.special_requests.join(', ')}</p>` : ''}
+                                <p><strong>Customers:</strong> ${[...new Set(meal.customers)].join(', ')}</p>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                const printWindow = window.open('', '_blank');
+                printWindow.document.write(`
+                    <html>
+                        <head>
+                            <title>Kitchen Prep Sheet - <?php echo !empty($selected_date) ? date('m/d/Y', strtotime($selected_date)) : 'Date not selected'; ?></title>
+                            <style>
+                                body { font-family: 'Inter', 'Kanit', sans-serif; margin: 20px; }
+                                h1 { margin-bottom: 10px; }
+                                h2 { margin-bottom: 20px; }
+                                @media print {
+                                    body { margin: 0; }
+                                    div { page-break-inside: avoid; }
+                                }
+                            </style>
+                        </head>
+                        <body>${prepContent}</body>
+                    </html>
+                `);
+                printWindow.document.close();
+                printWindow.print();
+            } else {
+                // Use existing print area
+                const originalDisplay = printArea.style.display;
+                printArea.style.display = 'block';
+                window.print();
+                printArea.style.display = originalDisplay;
+            }
         }
 
         function printCustomerList() {
@@ -1314,23 +1389,27 @@ if ($export_type === 'json') {
                     <tbody>
             `;
             
-            <?php foreach ($weekend_orders as $index => $customer): ?>
+            // Build delivery sheet content dynamically
+            const customers = <?php echo json_encode($weekend_orders, JSON_UNESCAPED_UNICODE); ?>;
+            
+            customers.forEach((customer, index) => {
+                let menuItems = '';
+                customer.meals.forEach(meal => {
+                    menuItems += `${meal.menu_name} (${meal.quantity})<br>`;
+                });
+                
                 deliveryContent += `
                     <tr>
-                        <td style="border: 1px solid #ddd; padding: 0.5rem; text-align: center;"><?php echo $index + 1; ?></td>
-                        <td style="border: 1px solid #ddd; padding: 0.5rem;"><?php echo htmlspecialchars($customer['first_name'] . ' ' . $customer['last_name']); ?></td>
-                        <td style="border: 1px solid #ddd; padding: 0.5rem;"><?php echo htmlspecialchars($customer['phone'] ?? ''); ?></td>
-                        <td style="border: 1px solid #ddd; padding: 0.5rem;"><?php echo htmlspecialchars(($customer['delivery_address'] ?? '') . ', ' . ($customer['city'] ?? '')); ?></td>
-                        <td style="border: 1px solid #ddd; padding: 0.5rem;"><?php echo htmlspecialchars($customer['preferred_delivery_time'] ?? '12:00 PM - 3:00 PM'); ?></td>
-                        <td style="border: 1px solid #ddd; padding: 0.5rem;">
-                            <?php foreach ($customer['meals'] as $meal): ?>
-                                <?php echo htmlspecialchars($meal['menu_name']); ?> (<?php echo $meal['quantity']; ?>)<br>
-                            <?php endforeach; ?>
-                        </td>
+                        <td style="border: 1px solid #ddd; padding: 0.5rem; text-align: center;">${index + 1}</td>
+                        <td style="border: 1px solid #ddd; padding: 0.5rem;">${customer.first_name} ${customer.last_name}</td>
+                        <td style="border: 1px solid #ddd; padding: 0.5rem;">${customer.phone || ''}</td>
+                        <td style="border: 1px solid #ddd; padding: 0.5rem;">${(customer.delivery_address || '') + ', ' + (customer.city || '')}</td>
+                        <td style="border: 1px solid #ddd; padding: 0.5rem;">${customer.preferred_delivery_time || '12:00 PM - 3:00 PM'}</td>
+                        <td style="border: 1px solid #ddd; padding: 0.5rem;">${menuItems}</td>
                         <td style="border: 1px solid #ddd; padding: 0.5rem; text-align: center;">☐</td>
                     </tr>
                 `;
-            <?php endforeach; ?>
+            });
             
             deliveryContent += `
                     </tbody>
@@ -1343,10 +1422,12 @@ if ($export_type === 'json') {
                     <head>
                         <title>Delivery Sheet - <?php echo !empty($selected_date) ? date('m/d/Y', strtotime($selected_date)) : 'Date not selected'; ?></title>
                         <style>
-                            body { font-family: 'Inter', 'Kanit', sans-serif; }
+                            body { font-family: 'Inter', 'Kanit', sans-serif; margin: 20px; }
                             table { width: 100%; border-collapse: collapse; }
-                            th, td { border: 1px solid #ddd; padding: 0.5rem; }
-                            th { background: #f5f5f5; }
+                            th, td { border: 1px solid #ddd; padding: 0.5rem; font-size: 12px; }
+                            th { background: #f5f5f5; font-weight: bold; }
+                            h1 { margin-bottom: 10px; }
+                            h2 { margin-bottom: 20px; color: #666; }
                         </style>
                     </head>
                     <body>${deliveryContent}</body>
@@ -1357,13 +1438,15 @@ if ($export_type === 'json') {
         }
 
         function printIngredientsList() {
-            // Create ingredients summary
+            // Create ingredients summary from PHP data
+            const mealSummary = <?php echo json_encode($meal_summary, JSON_UNESCAPED_UNICODE); ?>;
             const ingredients = new Map();
             
-            <?php foreach ($meal_summary as $meal): ?>
-                <?php if (!empty($meal['ingredients'])): ?>
-                    const mealIngredients = "<?php echo addslashes($meal['ingredients']); ?>".split(',');
-                    const quantity = <?php echo $meal['total_quantity']; ?>;
+            // Process each meal to extract ingredients
+            Object.values(mealSummary).forEach(meal => {
+                if (meal.ingredients) {
+                    const mealIngredients = meal.ingredients.split(',');
+                    const quantity = meal.total_quantity;
                     
                     mealIngredients.forEach(ingredient => {
                         const trimmed = ingredient.trim();
@@ -1371,13 +1454,14 @@ if ($export_type === 'json') {
                             ingredients.set(trimmed, (ingredients.get(trimmed) || 0) + quantity);
                         }
                     });
-                <?php endif; ?>
-            <?php endforeach; ?>
+                }
+            });
             
             let ingredientsContent = `
                 <div style="text-align: center; margin-bottom: 2rem;">
                     <h1 style="color: #8b4513;">Krua Thai - Ingredients List</h1>
                     <h2>Delivery Date: <?php echo !empty($selected_date) ? date('l, F j, Y', strtotime($selected_date)) : 'Date not selected'; ?></h2>
+                    <p>Generated: ${new Date().toLocaleString('th-TH')}</p>
                 </div>
                 <table style="width: 100%; border-collapse: collapse;">
                     <thead>
@@ -1390,19 +1474,35 @@ if ($export_type === 'json') {
                     <tbody>
             `;
             
-            for (const [ingredient, count] of ingredients) {
+            if (ingredients.size === 0) {
                 ingredientsContent += `
                     <tr>
-                        <td style="border: 1px solid #ddd; padding: 0.75rem;">${ingredient}</td>
-                        <td style="border: 1px solid #ddd; padding: 0.75rem; text-align: center;">${count} portions</td>
-                        <td style="border: 1px solid #ddd; padding: 0.75rem;"></td>
+                        <td colspan="3" style="border: 1px solid #ddd; padding: 1rem; text-align: center; color: #666;">
+                            No ingredients data available
+                        </td>
                     </tr>
                 `;
+            } else {
+                // Sort ingredients alphabetically
+                const sortedIngredients = Array.from(ingredients.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+                
+                sortedIngredients.forEach(([ingredient, count]) => {
+                    ingredientsContent += `
+                        <tr>
+                            <td style="border: 1px solid #ddd; padding: 0.75rem;">${ingredient}</td>
+                            <td style="border: 1px solid #ddd; padding: 0.75rem; text-align: center;">${count} portions</td>
+                            <td style="border: 1px solid #ddd; padding: 0.75rem;"></td>
+                        </tr>
+                    `;
+                });
             }
             
             ingredientsContent += `
                     </tbody>
                 </table>
+                <div style="margin-top: 2rem; font-size: 0.9rem; color: #666;">
+                    <p><strong>Note:</strong> This list is automatically generated from menu ingredients. Please verify quantities and check inventory before ordering.</p>
+                </div>
             `;
             
             const printWindow = window.open('', '_blank');
@@ -1411,10 +1511,17 @@ if ($export_type === 'json') {
                     <head>
                         <title>Ingredients List - <?php echo !empty($selected_date) ? date('m/d/Y', strtotime($selected_date)) : 'Date not selected'; ?></title>
                         <style>
-                            body { font-family: 'Inter', 'Kanit', sans-serif; }
+                            body { font-family: 'Inter', 'Kanit', sans-serif; margin: 20px; }
                             table { width: 100%; border-collapse: collapse; }
                             th, td { border: 1px solid #ddd; padding: 0.75rem; }
                             th { background: #f5f5f5; font-weight: bold; }
+                            h1 { margin-bottom: 10px; }
+                            h2 { margin-bottom: 20px; color: #666; }
+                            @media print {
+                                body { margin: 0; }
+                                table { page-break-inside: auto; }
+                                tr { page-break-inside: avoid; page-break-after: auto; }
+                            }
                         </style>
                     </head>
                     <body>${ingredientsContent}</body>
@@ -1482,11 +1589,53 @@ if ($export_type === 'json') {
         });
 
         // Log successful load
-        console.log('Weekend Kitchen Dashboard loaded successfully');
-        console.log('Total customers:', <?php echo $total_customers; ?>);
-        console.log('Total meals:', <?php echo $total_meals; ?>);
-        console.log('Selected date:', '<?php echo $selected_date; ?>');
-        console.log('Timezone: Bangkok (Asia/Bangkok)');
+        console.log('✅ Weekend Kitchen Dashboard loaded successfully');
+        console.log('📊 Statistics:');
+        console.log('- Total customers:', <?php echo $total_customers; ?>);
+        console.log('- Total meals:', <?php echo $total_meals; ?>);
+        console.log('- Selected date:', '<?php echo $selected_date; ?>');
+        console.log('- Timezone: Bangkok (Asia/Bangkok)');
+        
+        // Export to Excel function
+        function exportToExcel() {
+            const customers = <?php echo json_encode($weekend_orders, JSON_UNESCAPED_UNICODE); ?>;
+            
+            // Create CSV content
+            let csvContent = '\ufeff'; // UTF-8 BOM for proper Excel display
+            csvContent += 'Date,Customer Name,Phone,Address,Delivery Time,Plan,Menu,Quantity,Customizations,Special Requests,Dietary Preferences,Allergies,Spice Level\n';
+            
+            customers.forEach(customer => {
+                customer.meals.forEach(meal => {
+                    const row = [
+                        '<?php echo $selected_date; ?>',
+                        `"${customer.first_name} ${customer.last_name}"`,
+                        `"${customer.phone || ''}"`,
+                        `"${(customer.delivery_address || '') + ', ' + (customer.city || '')}"`,
+                        `"${customer.preferred_delivery_time || '12:00 PM - 3:00 PM'}"`,
+                        `"${customer.plan_name || 'Standard Plan'}"`,
+                        `"${meal.menu_name}"`,
+                        meal.quantity,
+                        `"${meal.customizations || ''}"`,
+                        `"${meal.special_requests || ''}"`,
+                        `"${customer.dietary_preferences || ''}"`,
+                        `"${customer.allergies || ''}"`,
+                        `"${customer.spice_level || ''}"`
+                    ];
+                    csvContent += row.join(',') + '\n';
+                });
+            });
+            
+            // Create and download file
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `weekend_kitchen_prep_<?php echo $selected_date; ?>.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
     </script>
 </body>
 </html>

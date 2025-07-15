@@ -1,40 +1,39 @@
 <?php
 /**
- * Krua Thai - Generate Weekend Orders Script (Production-Ready)
+ * Krua Thai - Generate Weekend Orders Script (Production-Ready, Original Theme)
  * File: admin/generate_orders.php
- * Description: Automatically finds the next Saturday & Sunday and creates all orders for the upcoming weekend.
+ * Description: Automatically finds the next Sat/Sun and creates all orders for the upcoming weekend.
  */
 
 // --- 1. การตั้งค่าพื้นฐาน ---
 error_reporting(E_ALL);
-ini_set('display_errors', 1);
+ini_set('display_errors', 1); // ใน Production จริงควรตั้งเป็น 0
 session_start();
 
 require_once '../config/database.php';
 require_once '../includes/functions.php';
 
 // --- 2. ตรวจสอบสิทธิ์ Admin ---
-if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
+if (!isset($_SESSION['user_id']) || !isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
     header("Location: ../login.php");
     exit();
 }
 
-// --- 3. ฟังก์ชันหลักในการสร้างออเดอร์สำหรับสุดสัปดาห์ (ฉบับปรับปรุง) ---
+// --- 3. ฟังก์ชันหลักในการสร้างออเดอร์สำหรับสุดสัปดาห์ ---
 function generateOrdersForUpcomingWeekend($pdo) {
     
-    // --- Step 1: คำนวณหาวันเสาร์และอาทิตย์ถัดไป ---
+    // คำนวณหาวันเสาร์และอาทิตย์ถัดไป
     $upcomingSaturday = date('Y-m-d', strtotime('next saturday'));
     $upcomingSunday = date('Y-m-d', strtotime('next sunday'));
     $weekendDates = [$upcomingSaturday, $upcomingSunday];
 
-    $messages = [];
     $generated_count = 0;
     $skipped_count = 0;
 
     try {
         $pdo->beginTransaction();
 
-        // --- Step 2: ดึงรายการทั้งหมดที่ต้องจัดส่งในวันเสาร์และอาทิตย์ที่จะถึงนี้ ---
+        // ดึงรายการทั้งหมดที่ต้องจัดส่งในวันเสาร์และอาทิตย์ที่จะถึงนี้
         $placeholders = implode(',', array_fill(0, count($weekendDates), '?'));
         $stmt = $pdo->prepare("
             SELECT 
@@ -52,18 +51,15 @@ function generateOrdersForUpcomingWeekend($pdo) {
         $all_scheduled_items = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         if (empty($all_scheduled_items)) {
-            return ['success' => true, 'message' => "ไม่พบรายการที่ต้องจัดส่งสำหรับสุดสัปดาห์นี้ (" . implode(', ', $weekendDates) . ")"];
+            return ['success' => true, 'message' => "ไม่พบรายการที่ต้องจัดส่งสำหรับสุดสัปดาห์นี้ (" . implode(' และ ', $weekendDates) . ")"];
         }
 
-        // --- จัดกลุ่มรายการอาหารตามวันและ Subscription ---
+        // จัดกลุ่มรายการอาหารตามวันและ Subscription
         $grouped_by_day_and_sub = [];
         foreach ($all_scheduled_items as $item) {
             $delivery_date = $item['delivery_date'];
             $subscription_id = $item['subscription_id'];
             
-            if (!isset($grouped_by_day_and_sub[$delivery_date])) {
-                $grouped_by_day_and_sub[$delivery_date] = [];
-            }
             if (!isset($grouped_by_day_and_sub[$delivery_date][$subscription_id])) {
                 $grouped_by_day_and_sub[$delivery_date][$subscription_id] = [
                     'details' => [
@@ -77,12 +73,9 @@ function generateOrdersForUpcomingWeekend($pdo) {
             $grouped_by_day_and_sub[$delivery_date][$subscription_id]['items'][] = $item;
         }
         
-        // --- Step 3: วนลูปตามวันและ Subscription เพื่อสร้าง Order ---
+        // วนลูปสร้าง Order
         foreach ($grouped_by_day_and_sub as $delivery_date => $subscriptions) {
             foreach ($subscriptions as $subscription_id => $data) {
-                $details = $data['details'];
-                $items = $data['items'];
-
                 // ตรวจสอบว่าเคยสร้าง Order ของวันนี้ไปแล้วหรือยัง
                 $check_stmt = $pdo->prepare("SELECT COUNT(*) FROM orders WHERE subscription_id = ? AND delivery_date = ?");
                 $check_stmt->execute([$subscription_id, $delivery_date]);
@@ -100,16 +93,13 @@ function generateOrdersForUpcomingWeekend($pdo) {
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'confirmed', 'not_started')
                 ");
                 $order_stmt->execute([
-                    $order_id, $order_number, $subscription_id, $details['user_id'],
-                    $delivery_date, $details['delivery_address'], $details['delivery_instructions'], count($items)
+                    $order_id, $order_number, $subscription_id, $data['details']['user_id'],
+                    $delivery_date, $data['details']['delivery_address'], $data['details']['delivery_instructions'], count($data['items'])
                 ]);
 
                 // เพิ่ม Order Items
-                $item_stmt = $pdo->prepare("
-                    INSERT INTO order_items (id, order_id, menu_id, menu_name, menu_price, quantity, item_status)
-                    VALUES (?, ?, ?, ?, ?, ?, 'pending')
-                ");
-                foreach ($items as $item) {
+                $item_stmt = $pdo->prepare("INSERT INTO order_items (id, order_id, menu_id, menu_name, menu_price, quantity) VALUES (?, ?, ?, ?, ?, ?)");
+                foreach ($data['items'] as $item) {
                     $item_stmt->execute([generateUUID(), $order_id, $item['menu_id'], $item['menu_name'], $item['base_price'], $item['quantity']]);
                 }
                 $generated_count++;
@@ -122,7 +112,6 @@ function generateOrdersForUpcomingWeekend($pdo) {
 
     } catch (PDOException $e) {
         $pdo->rollBack();
-        // logError(...);
         return ['success' => false, 'message' => 'เกิดข้อผิดพลาดร้ายแรง: ' . $e->getMessage()];
     }
 }
@@ -135,9 +124,11 @@ $result = generateOrdersForUpcomingWeekend($pdo);
 <head>
     <meta charset="UTF-8">
     <title>ผลการสร้างออเดอร์สุดสัปดาห์ - Krua Thai Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         :root { --curry: #cf723a; --white: #ffffff; --success: #27ae60; --danger: #e74c3c; }
-        body { font-family: 'Sarabun', sans-serif; background-color: #f8f5f2; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+        body { font-family: 'Sarabun', sans-serif; background-color: #f8f5f2; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin:0; }
         .result-container {
             background: var(--white); padding: 3rem; border-radius: 16px;
             box-shadow: 0 8px 30px rgba(0,0,0,0.1); text-align: center; max-width: 500px;
