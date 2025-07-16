@@ -3,6 +3,7 @@
  * Krua Thai - Complaints Management
  * File: admin/complaints.php
  * Description: Complete complaints management system with tracking and resolution
+ * Updated: Now handles subscription-based complaints instead of order-based
  */
 
 error_reporting(E_ALL);
@@ -104,11 +105,17 @@ function getComplaintDetails($pdo, $complaintId) {
                    CONCAT(u.first_name, ' ', u.last_name) as customer_name,
                    u.email as customer_email,
                    u.phone as customer_phone,
-                   o.order_number,
+                   s.start_date as subscription_start,
+                   s.status as subscription_status,
+                   sp.name as plan_name,
+                   sp.plan_type,
+                   sp.meals_per_week,
+                   sp.final_price,
                    CONCAT(assigned.first_name, ' ', assigned.last_name) as assigned_name
             FROM complaints c
             JOIN users u ON c.user_id = u.id
-            LEFT JOIN orders o ON c.order_id = o.id
+            LEFT JOIN subscriptions s ON c.subscription_id = s.id
+            LEFT JOIN subscription_plans sp ON s.plan_id = sp.id
             LEFT JOIN users assigned ON c.assigned_to = assigned.id
             WHERE c.id = ?
         ");
@@ -154,7 +161,8 @@ try {
     }
     
     if ($search) {
-        $whereConditions[] = '(c.title LIKE ? OR c.description LIKE ? OR CONCAT(u.first_name, " ", u.last_name) LIKE ?)';
+        $whereConditions[] = '(c.title LIKE ? OR c.description LIKE ? OR CONCAT(u.first_name, " ", u.last_name) LIKE ? OR sp.name LIKE ?)';
+        $params[] = "%$search%";
         $params[] = "%$search%";
         $params[] = "%$search%";
         $params[] = "%$search%";
@@ -166,11 +174,15 @@ try {
         SELECT c.*, 
                CONCAT(u.first_name, ' ', u.last_name) as customer_name,
                u.email as customer_email,
-               o.order_number,
+               s.start_date as subscription_start,
+               s.status as subscription_status,
+               sp.name as plan_name,
+               sp.plan_type,
                CONCAT(assigned.first_name, ' ', assigned.last_name) as assigned_name
         FROM complaints c
         JOIN users u ON c.user_id = u.id
-        LEFT JOIN orders o ON c.order_id = o.id
+        LEFT JOIN subscriptions s ON c.subscription_id = s.id
+        LEFT JOIN subscription_plans sp ON s.plan_id = sp.id
         LEFT JOIN users assigned ON c.assigned_to = assigned.id
         WHERE $whereClause
         ORDER BY c.$sortBy DESC
@@ -208,15 +220,44 @@ try {
     $adminUsers = [];
     error_log("Complaints error: " . $e->getMessage());
 }
+
+// Handle CSV Export
+if (isset($_GET['export']) && $_GET['export'] === 'csv') {
+    header('Content-Type: text/csv');
+    header('Content-Disposition: attachment; filename="complaints_export_' . date('Y-m-d') . '.csv"');
+    
+    $output = fopen('php://output', 'w');
+    fputcsv($output, ['Complaint ID', 'Customer Name', 'Email', 'Plan Name', 'Category', 'Priority', 'Status', 'Title', 'Description', 'Created Date', 'Resolution Date', 'Assigned To']);
+    
+    foreach ($complaints as $complaint) {
+        fputcsv($output, [
+            $complaint['complaint_number'],
+            $complaint['customer_name'],
+            $complaint['customer_email'],
+            $complaint['plan_name'] ?? 'N/A',
+            ucfirst(str_replace('_', ' ', $complaint['category'])),
+            ucfirst($complaint['priority']),
+            ucfirst(str_replace('_', ' ', $complaint['status'])),
+            $complaint['title'],
+            $complaint['description'],
+            $complaint['created_at'],
+            $complaint['resolution_date'] ?? '',
+            $complaint['assigned_name'] ?? 'Unassigned'
+        ]);
+    }
+    
+    fclose($output);
+    exit;
+}
 ?>
 
 <!DOCTYPE html>
-<html lang="th">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Complaints Management - Krua Thai Admin</title>
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>Subscription Complaints Management - Somdul Table Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=BaticaSans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         :root {
@@ -243,7 +284,7 @@ try {
         }
 
         body {
-            font-family: 'Sarabun', sans-serif;
+            font-family: 'BaticaSans', Arial, sans-serif;
             background: linear-gradient(135deg, var(--cream) 0%, #f8f6f3 100%);
             color: var(--text-dark);
             line-height: 1.6;
@@ -882,16 +923,15 @@ try {
     </button>
 
     <div class="admin-layout">
-         <!-- Sidebar -->
+        <!-- Sidebar -->
         <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div class="logo">
-                    <img src="../assets/image/LOGO_White Trans.png" 
-                         alt="Krua Thai Logo" 
-                         class="logo-image"
-                         loading="lazy">
+                    <div style="width: 80px; height: 80px; background: linear-gradient(135deg, var(--white), #f0f0f0); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 0.5rem;">
+                        <i class="fas fa-utensils" style="font-size: 2rem; color: var(--curry);"></i>
+                    </div>
                 </div>
-                <div class="sidebar-title">Krua Thai</div>
+                <div class="sidebar-title">Somdul Table</div>
                 <div class="sidebar-subtitle">Admin Panel</div>
             </div>
             
@@ -930,7 +970,7 @@ try {
                         <i class="nav-icon fas fa-map-marked-alt"></i>
                         <span>Delivery Zones</span>
                     </a>
-                    <a href="reviews.php" class="nav-item ">
+                    <a href="reviews.php" class="nav-item">
                         <i class="nav-icon fas fa-star"></i>
                         <span>Reviews</span>
                     </a>
@@ -958,7 +998,7 @@ try {
                         <i class="nav-icon fas fa-cog"></i>
                         <span>Settings</span>
                     </a>
-                    <a href="../logout.php" class="nav-item" onclick="logout()" style="color: rgba(255, 255, 255, 0.9);">
+                    <a href="../logout.php" class="nav-item">
                         <i class="nav-icon fas fa-sign-out-alt"></i>
                         <span>Logout</span>
                     </a>
@@ -972,8 +1012,8 @@ try {
             <div class="page-header">
                 <div class="header-content">
                     <div>
-                        <h1 class="page-title">Complaints Management</h1>
-                        <p class="page-subtitle">Track and resolve customer complaints efficiently</p>
+                        <h1 class="page-title">Subscription Complaints Management</h1>
+                        <p class="page-subtitle">Track and resolve customer complaints for subscriptions efficiently</p>
                     </div>
                     <div class="header-actions">
                         <button type="button" class="btn btn-secondary" onclick="exportComplaints()">
@@ -1060,7 +1100,7 @@ try {
                             <input type="text" 
                                    name="search" 
                                    class="form-control" 
-                                   placeholder="Search complaints, customers..."
+                                   placeholder="Search complaints, customers, plans..."
                                    value="<?php echo htmlspecialchars($search); ?>">
                         </div>
                         
@@ -1141,10 +1181,10 @@ try {
                                         <i class="fas fa-clock"></i>
                                         <?php echo date('d/m/Y H:i', strtotime($complaint['created_at'])); ?>
                                     </div>
-                                    <?php if ($complaint['order_number']): ?>
+                                    <?php if ($complaint['plan_name']): ?>
                                         <div class="complaint-date">
-                                            <i class="fas fa-shopping-cart"></i>
-                                            Order: <?php echo htmlspecialchars($complaint['order_number']); ?>
+                                            <i class="fas fa-utensils"></i>
+                                            Plan: <?php echo htmlspecialchars($complaint['plan_name']); ?>
                                         </div>
                                     <?php endif; ?>
                                 </div>
@@ -1320,7 +1360,11 @@ try {
                                 <p><strong>Customer:</strong> ${complaint.customer_name}</p>
                                 <p><strong>Email:</strong> ${complaint.customer_email}</p>
                                 <p><strong>Phone:</strong> ${complaint.customer_phone || 'N/A'}</p>
-                                <p><strong>Order:</strong> ${complaint.order_number || 'N/A'}</p>
+                                <p><strong>Subscription Plan:</strong> ${complaint.plan_name || 'N/A'}</p>
+                                ${complaint.plan_type ? `<p><strong>Plan Type:</strong> ${complaint.plan_type} (${complaint.meals_per_week} meals/week)</p>` : ''}
+                                ${complaint.final_price ? `<p><strong>Plan Price:</strong> $${parseFloat(complaint.final_price).toFixed(2)}</p>` : ''}
+                                ${complaint.subscription_start ? `<p><strong>Subscription Start:</strong> ${complaint.subscription_start}</p>` : ''}
+                                ${complaint.subscription_status ? `<p><strong>Subscription Status:</strong> ${complaint.subscription_status}</p>` : ''}
                             </div>
                             
                             <div>
@@ -1364,7 +1408,7 @@ try {
                                         ${complaint.resolution.replace(/\n/g, '<br>')}
                                     </div>
                                     <small style="color: var(--text-gray);">
-                                        Resolved on ${new Date(complaint.resolution_date).toLocaleDateString('th-TH')}
+                                        Resolved on ${new Date(complaint.resolution_date).toLocaleDateString()}
                                     </small>
                                 </div>
                             ` : ''}
@@ -1390,7 +1434,7 @@ try {
                                 <select onchange="assignComplaint('${complaint.id}', this.value)" class="form-control" style="width: auto;">
                                     <option value="">Assign To</option>
                                     <?php foreach ($adminUsers as $admin): ?>
-                                        <option value="<?php echo $admin['id']; ?>">${complaint.assigned_to === '<?php echo $admin['id']; ?>' ? 'selected' : ''}><?php echo htmlspecialchars($admin['name']); ?></option>
+                                        <option value="<?php echo $admin['id']; ?>" ${complaint.assigned_to === '<?php echo $admin['id']; ?>' ? 'selected' : ''}><?php echo htmlspecialchars($admin['name']); ?></option>
                                     <?php endforeach; ?>
                                 </select>
                             </div>

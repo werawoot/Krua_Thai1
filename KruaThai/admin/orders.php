@@ -1,34 +1,33 @@
 <?php
 /**
- * Krua Thai - Complete Working Admin Orders Management
+ * Somdul Table - Complete Working Admin Orders Management
  * File: admin/orders.php
  * Description: Fully functional with contact customer feature
  */
 
-// --- 1. การตั้งค่าพื้นฐานและ Session ---
+// --- 1. Basic Setup and Session ---
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 session_start();
-date_default_timezone_set('Asia/Bangkok');
+date_default_timezone_set('America/New_York');
 
-// --- 2. เรียกใช้ไฟล์ที่จำเป็น ---
+// --- 2. Required Files ---
 require_once '../config/database.php';
 require_once '../includes/functions.php';
 
-// --- 3. การป้องกัน CSRF ---
+// --- 3. CSRF Protection ---
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
-// --- 4. ตรวจสอบสิทธิ์ Admin ---
+// --- 4. Admin Access Check ---
 if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
     header("Location: ../login.php");
     exit();
 }
 
-// --- 5. จัดการ AJAX Requests ---
+// --- 5. Handle AJAX Requests ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
-    // ล้าง output buffer
     while (ob_get_level()) {
         ob_end_clean();
     }
@@ -84,7 +83,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     exit;
                 }
                 
-                // ดึงข้อมูลหลักของ Order (Subscription)
                 $stmt = $pdo->prepare("
                     SELECT s.*, u.first_name, u.last_name, u.email, u.phone, 
                            u.delivery_address, u.city, u.zip_code,
@@ -102,7 +100,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     exit;
                 }
 
-                // ดึงรายการเมนูที่ลูกค้าเลือกไว้
                 $stmt = $pdo->prepare("
                     SELECT sm.delivery_date, m.name_thai as menu_name, m.name as menu_name_en, 
                            sm.quantity, sm.status as menu_status, m.base_price
@@ -115,7 +112,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $stmt->execute([$orderId]);
                 $order['menus'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-                // ดึงข้อมูลการชำระเงิน
                 $stmt = $pdo->prepare("
                     SELECT payment_method, transaction_id, amount, status, 
                            payment_date, created_at, currency
@@ -134,6 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $format = $_POST['format'] ?? 'csv';
                 $status_filter = $_POST['status_filter'] ?? '';
                 $search = $_POST['search'] ?? '';
+                $complaint_filter = $_POST['complaint_filter'] ?? '';
                 
                 $whereConditions = [];
                 $params = [];
@@ -147,6 +144,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $searchTerm = "%$search%";
                     array_push($params, $searchTerm, $searchTerm, $searchTerm);
                 }
+                // Check if complaints table exists for export
+                $exportTableExists = true;
+                try {
+                    $pdo->query("SELECT 1 FROM complaints LIMIT 1");
+                } catch (PDOException $e) {
+                    $exportTableExists = false;
+                }
+                
+                if ($complaint_filter === 'with_complaints') {
+                    if ($exportTableExists) {
+                        $whereConditions[] = "COALESCE(c.complaint_count, 0) > 0";
+                    } else {
+                        $whereConditions[] = "1 = 0"; // No results if table doesn't exist
+                    }
+                } elseif ($complaint_filter === 'no_complaints') {
+                    if ($exportTableExists) {
+                        $whereConditions[] = "COALESCE(c.complaint_count, 0) = 0";
+                    }
+                }
+                
+                $exportComplaintsJoin = $exportTableExists ? "
+                    LEFT JOIN (
+                        SELECT subscription_id, COUNT(*) as complaint_count
+                        FROM complaints 
+                        WHERE status IN ('submitted', 'pending', 'in_progress', 'resolved')
+                        GROUP BY subscription_id
+                    ) c ON s.id = c.subscription_id
+                " : "";
+                
+                $exportComplaintsSelect = $exportTableExists ? "
+                    COALESCE(c.complaint_count, 0) as complaint_count
+                " : "0 as complaint_count";
                 
                 $whereClause = empty($whereConditions) ? '' : 'WHERE ' . implode(' AND ', $whereConditions);
 
@@ -155,10 +184,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                            CONCAT(u.first_name, ' ', u.last_name) as customer_name,
                            u.email, u.phone, u.delivery_address, u.city,
                            sp.name_thai as plan_name, sp.meals_per_week,
-                           s.created_at, s.updated_at
+                           s.created_at, s.updated_at,
+                           $exportComplaintsSelect
                     FROM subscriptions s
                     JOIN users u ON s.user_id = u.id
                     JOIN subscription_plans sp ON s.plan_id = sp.id
+                    $exportComplaintsJoin
                     $whereClause
                     ORDER BY s.created_at DESC
                     LIMIT 500
@@ -170,7 +201,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
                 if ($format === 'csv') {
                     $filename = 'orders_export_' . date('Y-m-d_H-i-s') . '.csv';
-                    $data = [['Order ID', 'Customer Name', 'Email', 'Phone', 'Plan', 'Status', 'Start Date', 'Next Bill', 'Amount', 'Address', 'Created At']];
+                    $data = [['Order ID', 'Customer Name', 'Email', 'Phone', 'Plan', 'Status', 'Start Date', 'Next Bill', 'Amount', 'Address', 'Complaints', 'Created At']];
                     
                     foreach ($orders as $order) {
                         $data[] = [
@@ -184,6 +215,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                             $order['next_billing_date'],
                             number_format($order['total_amount'], 0),
                             ($order['delivery_address'] ?? '') . ', ' . ($order['city'] ?? ''),
+                            $order['complaint_count'],
                             $order['created_at']
                         ];
                     }
@@ -215,7 +247,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     exit;
                 }
                 
-                // ดึงข้อมูลลูกค้า
                 $stmt = $pdo->prepare("
                     SELECT u.email, u.first_name, u.last_name, s.id as subscription_id
                     FROM subscriptions s
@@ -230,27 +261,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     exit;
                 }
                 
-                // ส่งอีเมลจริง (ตัวอย่าง - ใช้ mail function หรือ PHPMailer)
                 $to = $customer['email'];
-                $emailSubject = "[Krua Thai] " . $subject;
+                $emailSubject = "[Somdul Table] " . $subject;
                 $emailBody = "
                     <html>
                     <head><title>$subject</title></head>
                     <body>
-                        <h2>สวัสดี คุณ{$customer['first_name']} {$customer['last_name']}</h2>
+                        <h2>Hello {$customer['first_name']} {$customer['last_name']}</h2>
                         <p>$message</p>
                         <br>
-                        <p>ขอบคุณที่ใช้บริการ Krua Thai</p>
-                        <p>ทีมงาน Krua Thai</p>
+                        <p>Thank you for dining with Somdul Table</p>
+                        <p>The Somdul Table Team</p>
                     </body>
                     </html>
                 ";
                 
                 $headers = "MIME-Version: 1.0" . "\r\n";
                 $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
-                $headers .= "From: noreply@kruathai.com" . "\r\n";
+                $headers .= "From: noreply@somdultable.com" . "\r\n";
                 
-                // ส่งอีเมล (ในตัวอย่างนี้จะ simulate การส่ง)
                 $emailSent = mail($to, $emailSubject, $emailBody, $headers);
                 
                 if ($emailSent) {
@@ -266,18 +295,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 }
 
-// --- 6. ดึงข้อมูลสำหรับแสดงผลบนหน้าเว็บ ---
+// --- 6. Fetch Data for Page Display ---
+// Note: Complaints table structure based on subscription-status.php:
+// - id (primary key)
+// - complaint_number (e.g., 'CMP-20250117-A1B2')
+// - user_id (foreign key to users table)
+// - subscription_id (foreign key to subscriptions table - NOT order_id)
+// - category (food_quality, delivery_late, etc.)
+// - priority (low, medium, high, critical)
+// - title (brief description)
+// - description (detailed complaint)
+// - status (submitted -> pending -> in_progress -> resolved)
+// - created_at, updated_at
+//
+// CREATE TABLE IF NOT EXISTS complaints (
+//     id CHAR(36) PRIMARY KEY,
+//     complaint_number VARCHAR(50) UNIQUE NOT NULL,
+//     user_id CHAR(36) NOT NULL,
+//     subscription_id CHAR(36) NOT NULL,
+//     category VARCHAR(50) NOT NULL,
+//     priority ENUM('low', 'medium', 'high', 'critical') DEFAULT 'medium',
+//     title VARCHAR(200) NOT NULL,
+//     description TEXT NOT NULL,
+//     status ENUM('submitted', 'pending', 'in_progress', 'resolved') DEFAULT 'submitted',
+//     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+//     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+//     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+//     FOREIGN KEY (subscription_id) REFERENCES subscriptions(id) ON DELETE CASCADE
+// );
 try {
     $database = new Database();
     $pdo = $database->getConnection();
     
+    // Check if complaints table exists
+    $tableExists = true;
+    try {
+        $pdo->query("SELECT 1 FROM complaints LIMIT 1");
+    } catch (PDOException $e) {
+        $tableExists = false;
+        error_log("Complaints table not found: " . $e->getMessage());
+    }
+    
     $status_filter = $_GET['status'] ?? '';
     $search = $_GET['search'] ?? '';
+    $complaint_filter = $_GET['complaints'] ?? '';
     $page = max(1, intval($_GET['page'] ?? 1));
     $limit = 20;
     $offset = ($page - 1) * $limit;
 
-    // สร้าง WHERE clause
     $whereConditions = [];
     $params = [];
     $countParams = [];
@@ -293,15 +358,35 @@ try {
         array_push($params, $searchTerm, $searchTerm, $searchTerm);
         array_push($countParams, $searchTerm, $searchTerm, $searchTerm);
     }
+    if ($complaint_filter === 'with_complaints') {
+        if ($tableExists) {
+            $whereConditions[] = "COALESCE(c.complaint_count, 0) > 0";
+        } else {
+            // If complaints table doesn't exist, no orders can have complaints
+            $whereConditions[] = "1 = 0"; // This will return no results
+        }
+    } elseif ($complaint_filter === 'no_complaints') {
+        if ($tableExists) {
+            $whereConditions[] = "COALESCE(c.complaint_count, 0) = 0";
+        } else {
+            // If complaints table doesn't exist, all orders have no complaints
+            // No additional condition needed
+        }
+    }
     
     $whereClause = empty($whereConditions) ? '' : 'WHERE ' . implode(' AND ', $whereConditions);
 
-    // นับจำนวนรายการทั้งหมด
     $countSql = "
-        SELECT COUNT(*) as total
+        SELECT COUNT(DISTINCT s.id) as total
         FROM subscriptions s
         JOIN users u ON s.user_id = u.id
         JOIN subscription_plans sp ON s.plan_id = sp.id
+        LEFT JOIN (
+            SELECT subscription_id, COUNT(*) as complaint_count
+            FROM complaints 
+            WHERE status IN ('submitted', 'pending', 'in_progress', 'resolved')
+            GROUP BY subscription_id
+        ) c ON s.id = c.subscription_id
         $whereClause
     ";
     $countStmt = $pdo->prepare($countSql);
@@ -309,7 +394,6 @@ try {
     $totalItems = $countStmt->fetchColumn();
     $totalPages = ceil($totalItems / $limit);
 
-    // ดึงข้อมูลออเดอร์
     $sql = "
         SELECT s.id, s.status, s.start_date, s.next_billing_date, s.total_amount,
                CONCAT(u.first_name, ' ', u.last_name) as customer_name,
@@ -331,42 +415,75 @@ try {
     $stmt->execute($params);
     $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // ดึงสถิติเร็วๆ
-    $statsStmt = $pdo->prepare("
-        SELECT 
-            COUNT(*) as total_orders,
-            SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active_orders,
-            SUM(CASE WHEN status = 'paused' THEN 1 ELSE 0 END) as paused_orders,
-            SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled_orders,
-            SUM(CASE WHEN DATE(created_at) = CURDATE() THEN 1 ELSE 0 END) as today_orders,
-            AVG(total_amount) as avg_order_value
-        FROM subscriptions
-    ");
+    // Get statistics
+    if ($tableExists) {
+        $statsStmt = $pdo->prepare("
+            SELECT 
+                COUNT(DISTINCT s.id) as total_orders,
+                SUM(CASE WHEN s.status = 'active' THEN 1 ELSE 0 END) as active_orders,
+                SUM(CASE WHEN s.status = 'paused' THEN 1 ELSE 0 END) as paused_orders,
+                SUM(CASE WHEN s.status = 'cancelled' THEN 1 ELSE 0 END) as cancelled_orders,
+                SUM(CASE WHEN DATE(s.created_at) = CURDATE() THEN 1 ELSE 0 END) as today_orders,
+                AVG(s.total_amount) as avg_order_value,
+                COUNT(DISTINCT CASE WHEN COALESCE(c.complaint_count, 0) > 0 THEN s.id END) as orders_with_complaints,
+                SUM(COALESCE(c.complaint_count, 0)) as total_complaints
+            FROM subscriptions s
+            LEFT JOIN (
+                SELECT subscription_id, COUNT(*) as complaint_count
+                FROM complaints 
+                WHERE status IN ('submitted', 'pending', 'in_progress', 'resolved')
+                GROUP BY subscription_id
+            ) c ON s.id = c.subscription_id
+        ");
+    } else {
+        $statsStmt = $pdo->prepare("
+            SELECT 
+                COUNT(*) as total_orders,
+                SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active_orders,
+                SUM(CASE WHEN status = 'paused' THEN 1 ELSE 0 END) as paused_orders,
+                SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled_orders,
+                SUM(CASE WHEN DATE(created_at) = CURDATE() THEN 1 ELSE 0 END) as today_orders,
+                AVG(total_amount) as avg_order_value,
+                0 as orders_with_complaints,
+                0 as total_complaints
+            FROM subscriptions
+        ");
+    }
     $statsStmt->execute();
     $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
 
 } catch (PDOException $e) {
-    $page_error = "เกิดข้อผิดพลาดในการดึงข้อมูลออเดอร์: " . $e->getMessage();
+    error_log("Database error in orders.php: " . $e->getMessage());
+    $page_error = "Database error: " . $e->getMessage();
     $orders = [];
-    $stats = ['total_orders' => 0, 'active_orders' => 0, 'paused_orders' => 0, 'cancelled_orders' => 0, 'today_orders' => 0, 'avg_order_value' => 0];
+    $stats = [
+        'total_orders' => 0, 
+        'active_orders' => 0, 
+        'paused_orders' => 0, 
+        'cancelled_orders' => 0, 
+        'today_orders' => 0, 
+        'avg_order_value' => 0,
+        'orders_with_complaints' => 0,
+        'total_complaints' => 0
+    ];
     $totalItems = 0;
     $totalPages = 0;
 }
 ?>
 
 <!DOCTYPE html>
-<html lang="th">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Orders Management - Krua Thai Admin</title>
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>Orders Management - Somdul Table Admin</title>
+    <link href="https://ydpschool.com/fonts/BaticaSans.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         :root {
+            --brown: #bd9379;
             --cream: #ece8e1;
             --sage: #adb89d;
-            --brown: #bd9379;
             --curry: #cf723a;
             --white: #ffffff;
             --text-dark: #2c3e50;
@@ -387,7 +504,7 @@ try {
         }
 
         body {
-            font-family: 'Sarabun', sans-serif;
+            font-family: 'BaticaSans', sans-serif;
             background: linear-gradient(135deg, var(--cream) 0%, #f8f6f3 100%);
             color: var(--text-dark);
             line-height: 1.6;
@@ -589,9 +706,11 @@ try {
             color: var(--white);
         }
 
-        .btn-danger {
-            background: linear-gradient(135deg, #e74c3c, #c0392b);
+        .btn-warning:disabled {
+            background: var(--text-gray);
             color: var(--white);
+            cursor: not-allowed;
+            opacity: 0.6;
         }
 
         .btn-info {
@@ -680,7 +799,7 @@ try {
 
         .filter-form {
             display: grid;
-            grid-template-columns: 2fr 1fr auto auto;
+            grid-template-columns: 2fr 1fr 1fr auto auto;
             gap: 1rem;
             align-items: flex-end;
         }
@@ -1160,12 +1279,12 @@ try {
         <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div class="logo">
-                    <img src="../assets/image/LOGO_White Trans.png" 
-                         alt="Krua Thai Logo" 
+                    <img src="../assets/image/LOGO_White_Trans.png" 
+                         alt="Somdul Table Logo" 
                          class="logo-image"
                          loading="lazy">
                 </div>
-                <div class="sidebar-title">Krua Thai</div>
+                <div class="sidebar-title">Somdul Table</div>
                 <div class="sidebar-subtitle">Admin Panel</div>
             </div>
             
@@ -1208,10 +1327,6 @@ try {
                         <i class="nav-icon fas fa-star"></i>
                         <span>Reviews</span>
                     </a>
-                    <a href="complaints.php" class="nav-item">
-                        <i class="nav-icon fas fa-exclamation-triangle"></i>
-                        <span>Complaints</span>
-                    </a>
                 </div>
                 
                 <div class="nav-section">
@@ -1250,12 +1365,16 @@ try {
                             <i class="fas fa-shopping-cart" style="color: var(--curry); margin-right: 0.5rem;"></i>
                             Orders Management
                         </h1>
-                        <p class="page-subtitle">Manage customer subscriptions and orders</p>
+                        <p class="page-subtitle">Manage customer subscriptions and complaint resolutions</p>
                     </div>
                     <div class="header-actions">
                         <button class="btn btn-secondary" onclick="refreshOrders()">
                             <i class="fas fa-sync-alt"></i>
                             Refresh
+                        </button>
+                        <button class="btn btn-warning" onclick="showComplaintOrders()" <?= !$tableExists ? 'disabled title="Complaints table not found"' : '' ?>>
+                            <i class="fas fa-exclamation-triangle"></i>
+                            View Complaints
                         </button>
                         <button class="btn btn-success" onclick="exportOrders('csv')">
                             <i class="fas fa-file-csv"></i>
@@ -1303,12 +1422,12 @@ try {
                 
                 <div class="stat-card">
                     <div class="stat-header">
-                        <div class="stat-icon" style="background: linear-gradient(135deg, #3498db, #2980b9);">
-                            <i class="fas fa-calendar-day"></i>
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #e74c3c, #c0392b);">
+                            <i class="fas fa-exclamation-triangle"></i>
                         </div>
                     </div>
-                    <div class="stat-value"><?= number_format($stats['today_orders']) ?></div>
-                    <div class="stat-label">Today's Orders</div>
+                    <div class="stat-value"><?= number_format($stats['orders_with_complaints']) ?></div>
+                    <div class="stat-label">Orders with Complaints</div>
                 </div>
                 
                 <div class="stat-card">
@@ -1317,7 +1436,7 @@ try {
                             <i class="fas fa-dollar-sign"></i>
                         </div>
                     </div>
-                    <div class="stat-value">₿<?= number_format($stats['avg_order_value'], 0) ?></div>
+                    <div class="stat-value">$<?= number_format($stats['avg_order_value'], 0) ?></div>
                     <div class="stat-label">Avg Order Value</div>
                 </div>
             </div>
@@ -1339,6 +1458,19 @@ try {
                             <option value="paused" <?php echo $status_filter === 'paused' ? 'selected' : ''; ?>>Paused</option>
                             <option value="cancelled" <?php echo $status_filter === 'cancelled' ? 'selected' : ''; ?>>Cancelled</option>
                         </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Complaints Filter</label>
+                        <select name="complaints" class="form-control" <?= !$tableExists ? 'disabled' : '' ?>>
+                            <option value="">All Orders</option>
+                            <option value="with_complaints" <?= $complaint_filter === 'with_complaints' ? 'selected' : ''; ?>>With Complaints</option>
+                            <option value="no_complaints" <?= $complaint_filter === 'no_complaints' ? 'selected' : ''; ?>>No Complaints</option>
+                        </select>
+                        <?php if (!$tableExists): ?>
+                        <small style="color: var(--warning); font-size: 0.8rem;">
+                            <i class="fas fa-exclamation-triangle"></i> Complaints table not found
+                        </small>
+                        <?php endif; ?>
                     </div>
                     <div class="form-group">
                         <button type="submit" class="btn btn-primary">
@@ -1399,11 +1531,17 @@ try {
                                     <th>Start Date</th>
                                     <th>Next Bill</th>
                                     <th>Amount</th>
+                                    <th>Complaints</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php foreach ($orders as $order): ?>
+                                <?php
+                                // Ensure has_complaints is set to avoid undefined key warning
+                                $hasComplaints = isset($order['has_complaints']) ? (bool)$order['has_complaints'] : false;
+                                $complaintCount = isset($order['complaint_count']) ? (int)$order['complaint_count'] : 0;
+                                ?>
                                 <tr>
                                     <td>
                                         <small style="font-family: monospace; color: var(--text-gray);">
@@ -1440,24 +1578,43 @@ try {
                                     </td>
                                     <td>
                                         <strong style="color: var(--curry);">
-                                            ₿<?= number_format($order['total_amount'], 0) ?>
+                                            $<?= number_format($order['total_amount'], 0) ?>
                                         </strong>
                                     </td>
                                     <td>
-                                        <div class="action-buttons">
-                                            <button class="action-btn view" 
-                                                    onclick="viewOrderDetails('<?= htmlspecialchars($order['id']) ?>')"
-                                                    title="View Details"
-                                                    type="button">
-                                                <i class="fas fa-eye"></i>
-                                            </button>
-                                            <button class="action-btn contact" 
-                                                    onclick="contactCustomer('<?= htmlspecialchars($order['id']) ?>', '<?= htmlspecialchars($order['email']) ?>')"
-                                                    title="Contact Customer"
-                                                    type="button">
-                                                <i class="fas fa-envelope"></i>
-                                            </button>
-                                        </div>
+                                        <?php if ($hasComplaints): ?>
+                                            <span class="status-badge" style="background: rgba(231, 76, 60, 0.1); color: #e74c3c;">
+                                                <i class="fas fa-exclamation-triangle"></i>
+                                                <?= $complaintCount ?> complaint<?= $complaintCount > 1 ? 's' : '' ?>
+                                            </span>
+                                        <?php else: ?>
+                                            <span style="color: var(--text-gray); font-size: 0.9rem;">
+                                                <i class="fas fa-check-circle" style="color: var(--sage);"></i>
+                                                No complaints
+                                            </span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <?php if ($hasComplaints): ?>
+                                            <div class="action-buttons">
+                                                <button class="action-btn view" 
+                                                        onclick="viewOrderDetails('<?= htmlspecialchars($order['id']) ?>')"
+                                                        title="View Details"
+                                                        type="button">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                                <button class="action-btn contact" 
+                                                        onclick="contactCustomer('<?= htmlspecialchars($order['id']) ?>', '<?= htmlspecialchars($order['email']) ?>')"
+                                                        title="Contact Customer"
+                                                        type="button">
+                                                    <i class="fas fa-envelope"></i>
+                                                </button>
+                                            </div>
+                                        <?php else: ?>
+                                            <span style="color: var(--text-gray); font-size: 0.8rem;">
+                                                No action needed
+                                            </span>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                                 <?php endforeach; ?>
@@ -1473,7 +1630,7 @@ try {
                         </div>
                         <div class="pagination">
                             <?php if ($page > 1): ?>
-                                <a href="?page=<?= $page - 1 ?>&status=<?= urlencode($status_filter) ?>&search=<?= urlencode($search) ?>" 
+                                <a href="?page=<?= $page - 1 ?>&status=<?= urlencode($status_filter) ?>&search=<?= urlencode($search) ?>&complaints=<?= urlencode($complaint_filter) ?>" 
                                    class="page-btn">
                                     <i class="fas fa-chevron-left"></i>
                                 </a>
@@ -1485,14 +1642,14 @@ try {
                             
                             for ($i = $start; $i <= $end; $i++):
                             ?>
-                                <a href="?page=<?= $i ?>&status=<?= urlencode($status_filter) ?>&search=<?= urlencode($search) ?>" 
+                                <a href="?page=<?= $i ?>&status=<?= urlencode($status_filter) ?>&search=<?= urlencode($search) ?>&complaints=<?= urlencode($complaint_filter) ?>" 
                                    class="page-btn <?= $i === $page ? 'active' : '' ?>">
                                     <?= $i ?>
                                 </a>
                             <?php endfor; ?>
                             
                             <?php if ($page < $totalPages): ?>
-                                <a href="?page=<?= $page + 1 ?>&status=<?= urlencode($status_filter) ?>&search=<?= urlencode($search) ?>" 
+                                <a href="?page=<?= $page + 1 ?>&status=<?= urlencode($status_filter) ?>&search=<?= urlencode($search) ?>&complaints=<?= urlencode($complaint_filter) ?>" 
                                    class="page-btn">
                                     <i class="fas fa-chevron-right"></i>
                                 </a>
@@ -1572,15 +1729,12 @@ try {
         
         // Update order status
         function updateOrderStatus(orderId, newStatus, currentStatus) {
-            if (newStatus === currentStatus) {
-                return; // No change
-            }
+            if (newStatus === currentStatus) return;
             
             let reason = '';
             if (newStatus === 'cancelled') {
                 reason = prompt("Please enter a reason for cancellation:");
                 if (reason === null || reason.trim() === '') {
-                    // Revert dropdown
                     document.querySelector(`select[onchange*="${orderId}"]`).value = currentStatus;
                     showToast("Cancellation requires a reason.", 'error');
                     return;
@@ -1588,7 +1742,6 @@ try {
             }
             
             if (!confirm(`Are you sure you want to change the status to "${newStatus}"?`)) {
-                // Revert dropdown
                 document.querySelector(`select[onchange*="${orderId}"]`).value = currentStatus;
                 return;
             }
@@ -1600,46 +1753,68 @@ try {
             formData.append('reason', reason);
             formData.append('csrf_token', CSRF_TOKEN);
 
-            fetch('orders.php', { 
-                method: 'POST', 
-                body: formData 
-            })
+            fetch('orders.php', { method: 'POST', body: formData })
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
                     showToast(data.message, 'success');
-                    // Update the row background to indicate change
                     const row = document.querySelector(`select[onchange*="${orderId}"]`).closest('tr');
                     row.style.background = '#e8f5e8';
-                    setTimeout(() => {
-                        row.style.background = '';
-                    }, 2000);
+                    setTimeout(() => { row.style.background = ''; }, 2000);
                 } else {
                     showToast(data.message, 'error');
-                    // Revert dropdown
                     document.querySelector(`select[onchange*="${orderId}"]`).value = currentStatus;
                 }
             })
             .catch(error => {
-                console.error('Error:', error);
+                showToast('Failed to update status. Please try again.', 'error');
+                document.querySelector(`select[onchange*="${orderId}"]`).value = currentStatus;
+            });
+        }
+
+        // View order details
+        function viewOrderDetails(orderId) {
+            openModal('orderModal');
+            document.getElementById('orderModalBody').innerHTML = `
+                <div style="text-align: center; padding: 2rem;">
+                    <div class="loading"></div>
+                    <p>Loading order details...</p>
+                </div>
+            `;
+
+            const formData = new FormData();
+            formData.append('action', 'get_details');
+            formData.append('order_id', orderId);
+            formData.append('csrf_token', CSRF_TOKEN);
+
+            fetch('orders.php', { method: 'POST', body: formData })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    displayOrderDetails(data.data);
+                } else {
+                    document.getElementById('orderModalBody').innerHTML = `
+                        <div style="text-align: center; padding: 2rem;">
+                            <i class="fas fa-exclamation-triangle" style="font-size: 2rem; color: #e74c3c; margin-bottom: 1rem;"></i>
+                            <h3>Error Loading Order</h3>
+                            <p>${data.message}</p>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
                 document.getElementById('orderModalBody').innerHTML = `
                     <div style="text-align: center; padding: 2rem;">
                         <i class="fas fa-exclamation-triangle" style="font-size: 2rem; color: #e74c3c; margin-bottom: 1rem;"></i>
                         <h3>Connection Error</h3>
                         <p>Failed to load order details. Please try again.</p>
-                        <button class="btn btn-primary" onclick="viewOrderDetails('${orderId}')">
-                            <i class="fas fa-sync-alt"></i> Retry
-                        </button>
                     </div>
                 `;
             });
         }
 
-        // Display order details - ENHANCED VERSION
+        // Display order details
         function displayOrderDetails(order) {
-            console.log('Displaying order details:', order);
-            
-            // Safely handle null/undefined values
             const safeGet = (obj, key, defaultValue = 'N/A') => {
                 return obj && obj[key] !== null && obj[key] !== undefined ? obj[key] : defaultValue;
             };
@@ -1647,7 +1822,7 @@ try {
             const formatDate = (dateString) => {
                 if (!dateString) return 'No date';
                 try {
-                    return new Date(dateString).toLocaleDateString('th-TH', {
+                    return new Date(dateString).toLocaleDateString('en-US', {
                         year: 'numeric',
                         month: 'long',
                         day: 'numeric'
@@ -1659,10 +1834,9 @@ try {
             
             const formatCurrency = (amount) => {
                 const num = parseFloat(amount || 0);
-                return `₿${num.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+                return `$${num.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
             };
 
-            // Build menus list with better formatting
             const menusList = order.menus && order.menus.length > 0 ? 
                 order.menus.map((menu, index) => `
                     <div class="menu-item" style="border-left: 3px solid var(--curry); padding-left: 1rem;">
@@ -1701,7 +1875,6 @@ try {
                     </div>
                 `;
 
-            // Build payments list with better formatting
             const paymentsList = order.payments && order.payments.length > 0 ? 
                 order.payments.map((payment, index) => {
                     const statusColor = payment.status === 'completed' ? '#27ae60' : 
@@ -1730,7 +1903,7 @@ try {
                                 </div>
                                 <div style="text-align: right;">
                                     <div style="color: var(--curry); font-weight: 600; font-size: 1.1rem;">
-                                        ${safeGet(payment, 'currency', '₿')}${formatCurrency(payment.amount).replace('₿', '')}
+                                        ${safeGet(payment, 'currency', '$')}${formatCurrency(payment.amount).replace('$', '')}
                                     </div>
                                     <div style="font-size: 0.8rem; color: ${statusColor}; font-weight: 500; text-transform: uppercase;">
                                         ${safeGet(payment, 'status', 'unknown')}
@@ -1746,7 +1919,6 @@ try {
                     </div>
                 `;
 
-            // Get status color for badge
             const getStatusColor = (status) => {
                 switch(status) {
                     case 'active': return '#27ae60';
@@ -1913,16 +2085,12 @@ try {
             formData.append('message', message);
             formData.append('csrf_token', CSRF_TOKEN);
 
-            // Show loading state
             const sendBtn = document.querySelector('#contactModal .btn-primary');
             const originalText = sendBtn.innerHTML;
             sendBtn.innerHTML = '<span class="loading"></span> Sending...';
             sendBtn.disabled = true;
 
-            fetch('orders.php', {
-                method: 'POST',
-                body: formData
-            })
+            fetch('orders.php', { method: 'POST', body: formData })
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
@@ -1933,7 +2101,6 @@ try {
                 }
             })
             .catch(error => {
-                console.error('Error:', error);
                 showToast('Failed to send email. Please try again.', 'error');
             })
             .finally(() => {
@@ -1946,24 +2113,22 @@ try {
         function exportOrders(format) {
             const statusFilter = new URLSearchParams(window.location.search).get('status') || '';
             const search = new URLSearchParams(window.location.search).get('search') || '';
+            const complaintFilter = new URLSearchParams(window.location.search).get('complaints') || '';
             
             const formData = new FormData();
             formData.append('action', 'export_orders');
             formData.append('format', format);
             formData.append('status_filter', statusFilter);
             formData.append('search', search);
+            formData.append('complaint_filter', complaintFilter);
             formData.append('csrf_token', CSRF_TOKEN);
 
-            // Show loading state
             const exportBtn = event.target;
             const originalText = exportBtn.innerHTML;
             exportBtn.innerHTML = '<span class="loading"></span> Exporting...';
             exportBtn.disabled = true;
 
-            fetch('orders.php', {
-                method: 'POST',
-                body: formData
-            })
+            fetch('orders.php', { method: 'POST', body: formData })
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
@@ -1978,7 +2143,6 @@ try {
                 }
             })
             .catch(error => {
-                console.error('Export error:', error);
                 showToast('Export failed. Please try again.', 'error');
             })
             .finally(() => {
@@ -1994,9 +2158,7 @@ try {
             if (Array.isArray(data) && data.length > 0) {
                 csvContent = data.map(row => 
                     row.map(field => {
-                        if (field === null || field === undefined) {
-                            return '""';
-                        }
+                        if (field === null || field === undefined) return '""';
                         return `"${String(field).replace(/"/g, '""')}"`;
                     }).join(',')
                 ).join('\n');
@@ -2005,9 +2167,7 @@ try {
             }
             
             const BOM = '\uFEFF';
-            const blob = new Blob([BOM + csvContent], { 
-                type: 'text/csv;charset=utf-8;' 
-            });
+            const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
             
             const link = document.createElement('a');
             if (link.download !== undefined) {
@@ -2026,9 +2186,7 @@ try {
         function downloadJSON(data, filename) {
             try {
                 const jsonContent = JSON.stringify(data, null, 2);
-                const blob = new Blob([jsonContent], { 
-                    type: 'application/json;charset=utf-8;' 
-                });
+                const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8;' });
                 
                 const link = document.createElement('a');
                 if (link.download !== undefined) {
@@ -2042,23 +2200,28 @@ try {
                     setTimeout(() => URL.revokeObjectURL(url), 100);
                 }
             } catch (error) {
-                console.error('JSON download error:', error);
                 showToast('Failed to download JSON file', 'error');
             }
         }
 
-        // Refresh orders
+        // Utility functions
         function refreshOrders() {
             showToast('Refreshing orders...', 'info');
             window.location.reload();
         }
 
-        // Clear filters
+        function showComplaintOrders() {
+            <?php if ($tableExists): ?>
+                window.location.href = 'orders.php?complaints=with_complaints';
+            <?php else: ?>
+                showToast('Complaints table not found. Please create the complaints table first.', 'warning');
+            <?php endif; ?>
+        }
+
         function clearFilters() {
             window.location.href = 'orders.php';
         }
 
-        // Modal functions
         function openModal(modalId) {
             document.getElementById(modalId).style.display = 'flex';
             document.body.style.overflow = 'hidden';
@@ -2069,7 +2232,6 @@ try {
             document.body.style.overflow = 'auto';
         }
 
-        // Toast notification system
         function showToast(message, type = 'info') {
             const container = document.getElementById('toastContainer');
             const toast = document.createElement('div');
@@ -2093,18 +2255,13 @@ try {
             `;
             
             container.appendChild(toast);
-            
-            // Show toast
             setTimeout(() => toast.classList.add('show'), 100);
-            
-            // Auto remove after 5 seconds
             setTimeout(() => {
                 toast.classList.remove('show');
                 setTimeout(() => toast.remove(), 300);
             }, 5000);
         }
 
-        // Logout function
         function logout() {
             if (confirm('Are you sure you want to logout?')) {
                 showToast('Logging out...', 'info');
@@ -2112,16 +2269,14 @@ try {
             }
         }
 
-        // Close modal when clicking outside
+        // Event listeners
         document.addEventListener('click', function(e) {
             if (e.target.classList.contains('modal-overlay')) {
                 closeModal(e.target.id);
             }
         });
 
-        // Keyboard shortcuts
         document.addEventListener('keydown', function(e) {
-            // Escape key to close modals
             if (e.key === 'Escape') {
                 const modals = document.querySelectorAll('.modal-overlay');
                 modals.forEach(modal => {
@@ -2130,21 +2285,8 @@ try {
                     }
                 });
             }
-            
-            // Ctrl+R for refresh
-            if (e.ctrlKey && e.key === 'r') {
-                e.preventDefault();
-                refreshOrders();
-            }
-            
-            // Ctrl+E for CSV export
-            if (e.ctrlKey && e.key === 'e') {
-                e.preventDefault();
-                exportOrders('csv');
-            }
         });
 
-        // Search form auto-submit on Enter
         document.querySelector('input[name="search"]').addEventListener('keydown', function(e) {
             if (e.key === 'Enter') {
                 this.form.submit();
@@ -2178,119 +2320,12 @@ try {
             document.body.appendChild(mobileMenuBtn);
         }
 
-        // Handle window resize
         window.addEventListener('resize', function() {
             if (window.innerWidth > 768) {
                 const sidebar = document.getElementById('sidebar');
                 sidebar.classList.remove('show');
             }
         });
-
-        // DEBUG: Test functions - ADD THIS FOR TESTING
-        function testModal() {
-            console.log('Testing modal...');
-            openModal('orderModal');
-            document.getElementById('orderModalBody').innerHTML = `
-                <div style="text-align: center; padding: 2rem;">
-                    <h3>✅ Modal is working!</h3>
-                    <p>This is a test modal.</p>
-                    <button class="btn btn-primary" onclick="closeModal('orderModal')">Close Test</button>
-                </div>
-            `;
-        }
-        
-        function testOrderDetails() {
-            console.log('Testing order details...');
-            const testOrderId = '<?= !empty($orders) ? $orders[0]['id'] : 'test-id' ?>';
-            console.log('Test order ID:', testOrderId);
-            viewOrderDetails(testOrderId);
-        }
-        
-        // Make functions globally available for testing
-        window.testModal = testModal;
-        window.testOrderDetails = testOrderDetails;
-        window.viewOrderDetails = viewOrderDetails;
-        window.contactCustomer = contactCustomer;
-        window.openModal = openModal;
-        window.closeModal = closeModal;
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Krua Thai Orders Management initialized successfully');
-            console.log('CSRF Token:', CSRF_TOKEN);
-            
-            // Test if jQuery is loaded (if needed)
-            if (typeof $ !== 'undefined') {
-                console.log('jQuery is available');
-            }
-            
-            // Add click event listeners to action buttons as backup
-            document.addEventListener('click', function(e) {
-                // Handle view button clicks
-                if (e.target.closest('.action-btn.view')) {
-                    e.preventDefault();
-                    const btn = e.target.closest('.action-btn.view');
-                    const orderId = btn.getAttribute('data-order-id') || 
-                                   btn.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
-                    if (orderId) {
-                        console.log('View button clicked for order:', orderId);
-                        viewOrderDetails(orderId);
-                    } else {
-                        console.error('No order ID found');
-                    }
-                }
-                
-                // Handle contact button clicks
-                if (e.target.closest('.action-btn.contact')) {
-                    e.preventDefault();
-                    const btn = e.target.closest('.action-btn.contact');
-                    const onclickAttr = btn.getAttribute('onclick');
-                    if (onclickAttr) {
-                        const matches = onclickAttr.match(/'([^']+)'/g);
-                        if (matches && matches.length >= 2) {
-                            const orderId = matches[0].replace(/'/g, '');
-                            const email = matches[1].replace(/'/g, '');
-                            console.log('Contact button clicked for order:', orderId, 'email:', email);
-                            contactCustomer(orderId, email);
-                        }
-                    }
-                }
-            });
-            
-            // Add loading states to form submissions
-            const filterForm = document.querySelector('.filter-form');
-            if (filterForm) {
-                filterForm.addEventListener('submit', function() {
-                    const submitBtn = this.querySelector('button[type="submit"]');
-                    if (submitBtn) {
-                        const originalContent = submitBtn.innerHTML;
-                        submitBtn.innerHTML = '<span class="loading"></span> Searching...';
-                        submitBtn.disabled = true;
-                        
-                        // Re-enable after 3 seconds (fallback)
-                        setTimeout(() => {
-                            submitBtn.innerHTML = originalContent;
-                            submitBtn.disabled = false;
-                        }, 3000);
-                    }
-                });
-            }
-            
-            // Test modal functionality
-            console.log('Testing modal elements...');
-            const orderModal = document.getElementById('orderModal');
-            const contactModal = document.getElementById('contactModal');
-            console.log('Order modal found:', !!orderModal);
-            console.log('Contact modal found:', !!contactModal);
-            
-            // Add keyboard shortcut info to console
-            console.log('Keyboard shortcuts: Esc (close modal), Ctrl+R (refresh), Ctrl+E (export CSV)');
-        });
-
-        // Performance monitoring
-        window.addEventListener('load', function() {
-            const loadTime = performance.now();
-            console.log(`Orders page loaded in ${Math.round(loadTime)}ms`);
-        });
     </script>
 </body>
 </html>
-             

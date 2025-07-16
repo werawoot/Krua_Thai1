@@ -47,13 +47,64 @@ session_destroy();
 ?>
 
 <!DOCTYPE html>
-<html lang="th">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ออกจากระบบ - Krua Thai</title>
+    <title>Logout - Somdul Table</title>
     <meta name="robots" content="noindex, nofollow">
+    
+    <!-- BaticaSans Font Import -->
+    <link rel="preconnect" href="https://ydpschool.com">
     <style>
+        @font-face {
+            font-family: 'BaticaSans';
+            src: url('https://ydpschool.com/fonts/BaticaSans-Regular.woff2') format('woff2'),
+                 url('https://ydpschool.com/fonts/BaticaSans-Regular.woff') format('woff'),
+                 url('https://ydpschool.com/fonts/BaticaSans-Regular.ttf') format('truetype');
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+        
+        @font-face {
+            font-family: 'BaticaSans';
+            src: url('https://ydpschool.com/fonts/BaticaSans-Bold.woff2') format('woff2'),
+                 url('https://ydpschool.com/fonts/BaticaSans-Bold.woff') format('woff'),
+                 url('https://ydpschool.com/fonts/BaticaSans-Bold.ttf') format('truetype');
+            font-weight: 700;
+            font-style: normal;
+            font-display: swap;
+        }
+        
+        @font-face {
+            font-family: 'BaticaSans';
+            src: url('https://ydpschool.com/fonts/BaticaSans-Medium.woff2') format('woff2'),
+                 url('https://ydpschool.com/fonts/BaticaSans-Medium.woff') format('woff'),
+                 url('https://ydpschool.com/fonts/BaticaSans-Medium.ttf') format('truetype');
+            font-weight: 500;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        /* CSS Custom Properties for Somdul Table Design System */
+        :root {
+            --brown: #bd9379;
+            --cream: #ece8e1;
+            --sage: #adb89d;
+            --curry: #cf723a;
+            --white: #ffffff;
+            --text-dark: #2c3e50;
+            --text-gray: #7f8c8d;
+            --border-light: #e8e8e8;
+            --shadow-soft: 0 4px 12px rgba(189, 147, 121, 0.15);
+            --shadow-medium: 0 8px 24px rgba(189, 147, 121, 0.25);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -61,25 +112,27 @@ session_destroy();
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: linear-gradient(135deg, #f5ede4 0%, #f9f5ed 100%);
+            font-family: 'BaticaSans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, var(--cream) 0%, #f8f9fa 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 20px;
-            color: #3d4028;
+            color: var(--text-dark);
+            font-weight: 400;
         }
 
         .logout-container {
-            background: white;
+            background: var(--white);
             border-radius: 20px;
             padding: 3rem;
             text-align: center;
-            box-shadow: 0 8px 30px rgba(61, 64, 40, 0.1);
+            box-shadow: var(--shadow-medium);
             max-width: 500px;
             width: 100%;
             animation: fadeIn 0.6s ease;
+            border: 1px solid var(--border-light);
         }
 
         @keyframes fadeIn {
@@ -100,28 +153,25 @@ session_destroy();
         .logo-icon {
             width: 60px;
             height: 60px;
-            background: linear-gradient(135deg, #ffffff, #d1b990);
+            background: linear-gradient(135deg, var(--curry), var(--brown));
             border-radius: 50%;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 4px 15px rgba(61, 64, 40, 0.1);
+            box-shadow: var(--shadow-soft);
             margin-bottom: 1rem;
-        }
-
-        .rice-grain {
-            width: 12px;
-            height: 20px;
-            background: linear-gradient(180deg, #3d4028, #4e4f22);
-            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
-            transform: rotate(-3deg);
+            color: var(--white);
+            font-size: 1.8rem;
+            font-family: 'BaticaSans', sans-serif;
+            font-weight: 700;
         }
 
         .logo-text {
-            color: #3d4028;
+            color: var(--curry);
             font-size: 1.8rem;
-            font-weight: 700;
+            font-weight: 800;
             margin: 0;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .logout-icon {
@@ -137,67 +187,74 @@ session_destroy();
         }
 
         h1 {
-            color: #3d4028;
+            color: var(--text-dark);
             margin-bottom: 1rem;
             font-size: 1.8rem;
             font-weight: 700;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .message {
             font-size: 1.1rem;
             margin-bottom: 2rem;
             line-height: 1.6;
-            color: #6c757d;
+            color: var(--text-gray);
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .user-info {
-            background: rgba(40, 167, 69, 0.1);
-            border: 2px solid #28a745;
-            border-radius: 12px;
+            background: rgba(173, 184, 157, 0.1);
+            border: 2px solid var(--sage);
+            border-radius: var(--radius-md);
             padding: 1.5rem;
             margin-bottom: 2rem;
         }
 
         .user-info h3 {
-            color: #28a745;
+            color: var(--sage);
             margin-bottom: 0.5rem;
             font-size: 1.2rem;
+            font-family: 'BaticaSans', sans-serif;
+            font-weight: 600;
         }
 
         .user-info p {
-            color: #3d4028;
+            color: var(--text-dark);
             margin: 0.3rem 0;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .btn {
             display: inline-block;
             padding: 1rem 2rem;
-            background: linear-gradient(45deg, #866028, #a67c00);
-            color: white;
+            background: linear-gradient(135deg, var(--curry), var(--brown));
+            color: var(--white);
             text-decoration: none;
             border-radius: 50px;
             font-weight: 600;
-            transition: all 0.3s ease;
+            font-family: 'BaticaSans', sans-serif;
+            transition: var(--transition);
             margin: 0 0.5rem 0.5rem 0;
-            box-shadow: 0 4px 15px rgba(134, 96, 40, 0.3);
+            box-shadow: var(--shadow-soft);
+            border: none;
+            cursor: pointer;
         }
 
         .btn:hover {
-            background: linear-gradient(45deg, #a67c00, #866028);
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(134, 96, 40, 0.4);
+            box-shadow: var(--shadow-medium);
         }
 
         .btn-secondary {
             background: transparent;
-            color: #866028;
-            border: 2px solid #866028;
+            color: var(--curry);
+            border: 2px solid var(--curry);
             box-shadow: none;
         }
 
         .btn-secondary:hover {
-            background: #866028;
-            color: white;
+            background: var(--curry);
+            color: var(--white);
         }
 
         .action-buttons {
@@ -209,24 +266,27 @@ session_destroy();
         }
 
         .countdown {
-            background: #cce7ff;
-            color: #004085;
+            background: rgba(207, 114, 58, 0.1);
+            color: var(--curry);
             padding: 1rem;
-            border-radius: 10px;
+            border-radius: var(--radius-md);
             margin: 1.5rem 0;
             font-weight: 600;
+            font-family: 'BaticaSans', sans-serif;
+            border: 1px solid var(--curry);
         }
 
         .footer-info {
             margin-top: 2rem;
             padding-top: 1.5rem;
-            border-top: 1px solid #e9ecef;
-            color: #6c757d;
+            border-top: 1px solid var(--border-light);
+            color: var(--text-gray);
             font-size: 0.9rem;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .footer-info a {
-            color: #866028;
+            color: var(--curry);
             text-decoration: none;
             font-weight: 600;
         }
@@ -256,46 +316,44 @@ session_destroy();
     <div class="logout-container">
         <!-- Logo Section -->
         <div class="logo-section">
-            <div class="logo-icon">
-                <div class="rice-grain"></div>
-            </div>
-            <h2 class="logo-text">Krua Thai</h2>
+            <div class="logo-icon">S</div>
+            <h2 class="logo-text">Somdul Table</h2>
         </div>
 
         <!-- Success Message -->
         <div class="logout-icon">👋</div>
-        <h1>ออกจากระบบสำเร็จ</h1>
+        <h1>Successfully Logged Out</h1>
         
         <div class="user-info">
-            <h3>ขอบคุณ, <?php echo htmlspecialchars($user_name); ?>!</h3>
-            <p>คุณได้ออกจากระบบเรียบร้อยแล้ว</p>
-            <p>ข้อมูลของคุณปลอดภัยและบัญชีของคุณได้รับการรักษาความปลอดภัย</p>
+            <h3>Thank you, <?php echo htmlspecialchars($user_name); ?>!</h3>
+            <p>You have been successfully logged out</p>
+            <p>Your data is secure and your account has been protected</p>
         </div>
         
         <p class="message">
-            ขอบคุณที่ใช้บริการ Krua Thai! เราหวังว่าคุณจะชอบอาหารไทยเพื่อสุขภาพของเรา 
-            กลับมาใช้บริการอีกเร็วๆ นี้สำหรับอาหารที่อร่อยและมีประโยชน์มากขึ้น
+            Thank you for using Somdul Table! We hope you enjoyed our authentic Thai restaurant management system. 
+            Come back soon for more delicious and healthy Thai cuisine experiences.
         </p>
 
         <!-- Countdown -->
         <div class="countdown" id="countdown">
-            🏠 กำลังเปลี่ยนไปหน้าแรกใน <span id="timer">5</span> วินาที...
+            🏠 Redirecting to home page in <span id="timer">5</span> seconds...
         </div>
         
         <div class="action-buttons">
-            <a href="index.php" class="btn">กลับหน้าแรก</a>
-            <a href="login.php" class="btn-secondary">เข้าสู่ระบบอีกครั้ง</a>
+            <a href="home2.php" class="btn">Back to Home</a>
+            <a href="login.php" class="btn btn-secondary">Sign In Again</a>
         </div>
 
         <!-- Footer Information -->
         <div class="footer-info">
-            <p><strong>มีคำถามเกี่ยวกับบัญชีของคุณ?</strong></p>
-            <p>📧 <a href="mailto:support@kruathai.com">support@kruathai.com</a></p>
-            <p>📞 <a href="tel:021234567">02-123-4567</a></p>
+            <p><strong>Questions about your account?</strong></p>
+            <p>📧 <a href="mailto:support@somdultable.com">support@somdultable.com</a></p>
+            <p>📞 <a href="tel:+1234567890">+1 (234) 567-890</a></p>
             <p style="margin-top: 1rem; font-size: 0.85rem;">
-                <a href="privacy.php">นโยบายความเป็นส่วนตัว</a> | 
-                <a href="terms.php">ข้อตกลงการใช้งาน</a> | 
-                <a href="help.php">ศูนย์ช่วยเหลือ</a>
+                <a href="privacy.php">Privacy Policy</a> | 
+                <a href="terms.php">Terms of Service</a> | 
+                <a href="help.php">Help Center</a>
             </p>
         </div>
     </div>
@@ -312,8 +370,8 @@ session_destroy();
             
             if (countdown <= 0) {
                 clearInterval(countdownInterval);
-                countdownElement.innerHTML = '🏠 กำลังเปลี่ยนหน้า...';
-                window.location.href = 'index.php';
+                countdownElement.innerHTML = '🏠 Redirecting...';
+                window.location.href = 'home2.php';
             }
         }, 1000);
 
@@ -344,7 +402,7 @@ session_destroy();
 
         // Clear any remaining data
         if (typeof Storage !== "undefined") {
-            localStorage.removeItem('krua_thai_login_email');
+            localStorage.removeItem('somdul_table_login_email');
             sessionStorage.clear();
         }
 

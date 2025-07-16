@@ -14,12 +14,59 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
-// --- Status Update Function ---
+// --- Complaint Submission Function ---
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'complain') {
+    $subscription_id = $_POST['subscription_id'];
+    $category = $_POST['category'];
+    $title = $_POST['title'];
+    $description = $_POST['description'];
+    $priority = $_POST['priority'] ?? 'medium';
+    
+    // Generate unique complaint ID and number
+    $complaint_id = bin2hex(random_bytes(16));
+    $complaint_number = 'CMP-' . date('Ymd') . '-' . strtoupper(substr(md5($complaint_id), 0, 4));
+    
+    try {
+        // Insert complaint with subscription_id (column was renamed from order_id)
+        $stmt = $pdo->prepare("
+            INSERT INTO complaints (
+                id, complaint_number, user_id, subscription_id, category, 
+                priority, title, description, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+        ");
+        
+        $result = $stmt->execute([
+            $complaint_id, 
+            $complaint_number, 
+            $user_id, 
+            $subscription_id, 
+            $category, 
+            $priority, 
+            $title, 
+            $description
+        ]);
+        
+        if ($result) {
+            $_SESSION['flash_message'] = "Complaint submitted successfully. Reference: " . $complaint_number;
+            $_SESSION['flash_type'] = 'success';
+        } else {
+            $_SESSION['flash_message'] = "Failed to submit complaint. Please try again.";
+            $_SESSION['flash_type'] = 'error';
+        }
+    } catch (PDOException $e) {
+        $_SESSION['flash_message'] = "Error submitting complaint: " . $e->getMessage();
+        $_SESSION['flash_type'] = 'error';
+    }
+    
+    header("Location: subscription-status.php");
+    exit();
+}
+
+// --- Status Update Function (Remove pause, keep cancel and renew) ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'])) {
     $id = $_POST['id'];
     $action = $_POST['action'];
     $status_map = [
-        'pause' => 'paused',
         'cancel' => 'cancelled',
         'renew' => 'active'
     ];
@@ -88,23 +135,58 @@ function getDayName($day) {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Subscription Status - Krua Thai</title>
+    <title>Subscription Status - Somdul Table</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <meta name="description" content="Manage your Thai meal subscriptions with Somdul Table">
+    
+    <!-- BaticaSans Font Import -->
+    <link rel="preconnect" href="https://ydpschool.com">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
     <style>
+        @font-face {
+            font-family: 'BaticaSans';
+            src: url('https://ydpschool.com/fonts/BaticaSans-Regular.woff2') format('woff2'),
+                 url('https://ydpschool.com/fonts/BaticaSans-Regular.woff') format('woff'),
+                 url('https://ydpschool.com/fonts/BaticaSans-Regular.ttf') format('truetype');
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+        
+        @font-face {
+            font-family: 'BaticaSans';
+            src: url('https://ydpschool.com/fonts/BaticaSans-Bold.woff2') format('woff2'),
+                 url('https://ydpschool.com/fonts/BaticaSans-Bold.woff') format('woff'),
+                 url('https://ydpschool.com/fonts/BaticaSans-Bold.ttf') format('truetype');
+            font-weight: 700;
+            font-style: normal;
+            font-display: swap;
+        }
+        
+        @font-face {
+            font-family: 'BaticaSans';
+            src: url('https://ydpschool.com/fonts/BaticaSans-Medium.woff2') format('woff2'),
+                 url('https://ydpschool.com/fonts/BaticaSans-Medium.woff') format('woff'),
+                 url('https://ydpschool.com/fonts/BaticaSans-Medium.ttf') format('truetype');
+            font-weight: 500;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        /* CSS Custom Properties for Somdul Table Design System */
         :root {
+            --brown: #bd9379;
             --cream: #ece8e1;
             --sage: #adb89d;
-            --brown: #bd9379;
             --curry: #cf723a;
             --white: #ffffff;
             --text-dark: #2c3e50;
             --text-gray: #7f8c8d;
             --border-light: #e8e8e8;
-            --shadow-soft: 0 4px 12px rgba(0,0,0,0.05);
-            --shadow-medium: 0 8px 24px rgba(0,0,0,0.1);
-            --shadow-large: 0 16px 48px rgba(0,0,0,0.15);
+            --shadow-soft: 0 4px 12px rgba(189, 147, 121, 0.15);
+            --shadow-medium: 0 8px 24px rgba(189, 147, 121, 0.25);
+            --shadow-large: 0 16px 48px rgba(189, 147, 121, 0.35);
             --radius-sm: 8px;
             --radius-md: 12px;
             --radius-lg: 16px;
@@ -123,11 +205,12 @@ function getDayName($day) {
         }
 
         body {
-            font-family: 'Sarabun', sans-serif;
-            background: linear-gradient(135deg, var(--cream) 0%, #f8f6f3 100%);
+            font-family: 'BaticaSans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, var(--cream) 0%, #f8f9fa 100%);
             color: var(--text-dark);
             line-height: 1.6;
             min-height: 100vh;
+            font-weight: 400;
         }
 
         /* Header */
@@ -151,15 +234,30 @@ function getDayName($day) {
         .logo {
             display: flex;
             align-items: center;
-            gap: 1rem;
+            gap: 0.8rem;
             text-decoration: none;
             color: inherit;
         }
 
+        .logo-icon {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, var(--curry), var(--brown));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--white);
+            font-size: 1.5rem;
+            font-family: 'BaticaSans', sans-serif;
+            font-weight: 700;
+        }
+
         .logo-text {
             font-size: 1.8rem;
-            font-weight: 700;
+            font-weight: 800;
             color: var(--curry);
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .header-nav {
@@ -170,8 +268,9 @@ function getDayName($day) {
 
         .nav-link {
             text-decoration: none;
-            color: var(--text-dark);
+            color: var(--text-gray);
             font-weight: 500;
+            font-family: 'BaticaSans', sans-serif;
             transition: var(--transition);
             padding: 0.5rem 1rem;
             border-radius: var(--radius-sm);
@@ -183,7 +282,7 @@ function getDayName($day) {
         }
 
         .container {
-            max-width: 1100px;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 2rem 2rem 4rem;
         }
@@ -195,6 +294,7 @@ function getDayName($day) {
             padding: 2rem;
             margin-bottom: 3rem;
             box-shadow: var(--shadow-soft);
+            border: 1px solid var(--border-light);
         }
 
         .progress-bar {
@@ -213,6 +313,7 @@ function getDayName($day) {
             border-radius: var(--radius-xl);
             font-weight: 600;
             font-size: 0.95rem;
+            font-family: 'BaticaSans', sans-serif;
             background: var(--cream);
             color: var(--text-gray);
             border: 2px solid var(--cream);
@@ -236,6 +337,7 @@ function getDayName($day) {
         .page-title {
             font-size: 2.5rem;
             font-weight: 700;
+            font-family: 'BaticaSans', sans-serif;
             text-align: center;
             margin-bottom: 2rem;
             color: var(--text-dark);
@@ -246,24 +348,35 @@ function getDayName($day) {
             margin-right: 0.5rem;
         }
 
-        /* Success Message */
-        .success-message {
-            background: linear-gradient(135deg, #d4edda, #c3e6cb);
-            border: 2px solid #b8dabc;
-            border-radius: var(--radius-lg);
+        /* Flash Messages */
+        .flash-message {
             padding: 1.5rem;
             margin-bottom: 2rem;
-            color: var(--success);
-            text-align: center;
+            border-radius: var(--radius-lg);
             font-weight: 600;
+            font-family: 'BaticaSans', sans-serif;
+            text-align: center;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 0.5rem;
+            border: 2px solid;
         }
 
-        .success-message i {
+        .flash-message i {
             font-size: 1.2rem;
+        }
+
+        .flash-message.success {
+            background: linear-gradient(135deg, rgba(39, 174, 96, 0.1), rgba(39, 174, 96, 0.05));
+            border-color: var(--success);
+            color: var(--success);
+        }
+
+        .flash-message.error {
+            background: linear-gradient(135deg, rgba(231, 76, 60, 0.1), rgba(231, 76, 60, 0.05));
+            border-color: var(--danger);
+            color: var(--danger);
         }
 
         /* Main Content Card */
@@ -273,6 +386,7 @@ function getDayName($day) {
             box-shadow: var(--shadow-medium);
             overflow: hidden;
             position: relative;
+            border: 1px solid var(--border-light);
         }
 
         .main-card::before {
@@ -294,6 +408,7 @@ function getDayName($day) {
         .card-title {
             font-size: 1.5rem;
             font-weight: 700;
+            font-family: 'BaticaSans', sans-serif;
             color: var(--text-dark);
             display: flex;
             align-items: center;
@@ -312,6 +427,7 @@ function getDayName($day) {
         table {
             width: 100%;
             border-collapse: collapse;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         th, td {
@@ -325,6 +441,7 @@ function getDayName($day) {
             color: var(--text-dark);
             font-weight: 700;
             font-size: 0.9rem;
+            font-family: 'BaticaSans', sans-serif;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
@@ -332,6 +449,7 @@ function getDayName($day) {
         td {
             color: var(--text-dark);
             font-weight: 500;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         tbody tr:hover {
@@ -341,6 +459,7 @@ function getDayName($day) {
         /* Status Badges */
         .status {
             font-weight: 600;
+            font-family: 'BaticaSans', sans-serif;
             padding: 0.5rem 1rem;
             border-radius: var(--radius-xl);
             display: inline-flex;
@@ -352,28 +471,33 @@ function getDayName($day) {
         }
 
         .status.active {
-            background: linear-gradient(135deg, #d4edda, #c3e6cb);
-            color: #155724;
+            background: linear-gradient(135deg, rgba(39, 174, 96, 0.1), rgba(39, 174, 96, 0.05));
+            color: var(--success);
+            border: 1px solid var(--success);
         }
 
         .status.paused {
-            background: linear-gradient(135deg, #fff3cd, #ffeaa7);
-            color: #856404;
+            background: linear-gradient(135deg, rgba(243, 156, 18, 0.1), rgba(243, 156, 18, 0.05));
+            color: var(--warning);
+            border: 1px solid var(--warning);
         }
 
         .status.cancelled {
-            background: linear-gradient(135deg, #f8d7da, #f5c6cb);
-            color: #721c24;
+            background: linear-gradient(135deg, rgba(231, 76, 60, 0.1), rgba(231, 76, 60, 0.05));
+            color: var(--danger);
+            border: 1px solid var(--danger);
         }
 
         .status.expired {
-            background: linear-gradient(135deg, #e2e3e5, #d6d8db);
-            color: #495057;
+            background: linear-gradient(135deg, rgba(127, 140, 141, 0.1), rgba(127, 140, 141, 0.05));
+            color: var(--text-gray);
+            border: 1px solid var(--text-gray);
         }
 
         .status.pending_payment {
-            background: linear-gradient(135deg, #cce5ff, #b3d9ff);
-            color: #004085;
+            background: linear-gradient(135deg, rgba(52, 152, 219, 0.1), rgba(52, 152, 219, 0.05));
+            color: var(--info);
+            border: 1px solid var(--info);
         }
 
         /* Action Buttons */
@@ -385,75 +509,80 @@ function getDayName($day) {
         }
 
         .btn-action {
-            border: none;
+            background: var(--white);
+            border: 1px solid var(--border-light);
             padding: 0.7rem 1.2rem;
-            border-radius: var(--radius-lg);
+            border-radius: var(--radius-md);
             font-size: 0.85rem;
-            font-weight: 600;
+            font-weight: 500;
+            font-family: 'BaticaSans', sans-serif;
             cursor: pointer;
             transition: var(--transition);
             display: inline-flex;
             align-items: center;
             justify-content: center;
             gap: 0.5rem;
-            font-family: inherit;
             text-align: center;
             width: 100%;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            color: var(--text-dark);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-action:hover {
+            background: var(--cream);
+            border-color: var(--sage);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
         }
 
         .btn-view {
-            background: linear-gradient(135deg, var(--info), #74b9ff);
-            color: var(--white);
-            border: 1px solid #74b9ff;
+            border-color: var(--sage);
+            color: var(--sage);
         }
 
         .btn-view:hover {
-            background: linear-gradient(135deg, #74b9ff, #0984e3);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(116, 185, 255, 0.4);
-        }
-
-        .btn-pause {
-            background: linear-gradient(135deg, #fdcb6e, #f39c12);
+            background: var(--sage);
             color: var(--white);
-            border: 1px solid #f39c12;
+            border-color: var(--sage);
         }
 
-        .btn-pause:hover {
-            background: linear-gradient(135deg, #f39c12, #e67e22);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(243, 156, 18, 0.4);
+        .btn-complain {
+            border-color: var(--warning);
+            color: var(--warning);
+        }
+
+        .btn-complain:hover {
+            background: var(--warning);
+            color: var(--white);
+            border-color: var(--warning);
         }
 
         .btn-cancel {
-            background: linear-gradient(135deg, #fd7979, var(--danger));
-            color: var(--white);
-            border: 1px solid var(--danger);
+            border-color: var(--brown);
+            color: var(--brown);
         }
 
         .btn-cancel:hover {
-            background: linear-gradient(135deg, var(--danger), #c0392b);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
+            background: var(--brown);
+            color: var(--white);
+            border-color: var(--brown);
         }
 
         .btn-renew {
-            background: linear-gradient(135deg, #00b894, var(--success));
-            color: var(--white);
-            border: 1px solid var(--success);
+            border-color: var(--sage);
+            color: var(--sage);
         }
 
         .btn-renew:hover {
-            background: linear-gradient(135deg, var(--success), #00a085);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(39, 174, 96, 0.4);
+            background: var(--sage);
+            color: var(--white);
+            border-color: var(--sage);
         }
 
         .btn-disabled {
-            background: linear-gradient(135deg, #b2bec3, #636e72);
-            color: var(--white);
-            border: 1px solid #636e72;
+            background: var(--cream);
+            border-color: var(--border-light);
+            color: var(--text-gray);
             cursor: not-allowed;
         }
 
@@ -461,12 +590,14 @@ function getDayName($day) {
             opacity: 0.6;
             cursor: not-allowed;
             transform: none;
-            box-shadow: none;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
 
         .btn-action:disabled:hover {
             transform: none;
-            box-shadow: none;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            background: var(--cream);
+            border-color: var(--border-light);
         }
 
         /* Modal */
@@ -501,6 +632,7 @@ function getDayName($day) {
             transform: scale(0.8);
             opacity: 0;
             transition: var(--transition);
+            border: 1px solid var(--border-light);
         }
 
         .modal.show .modal-content {
@@ -520,6 +652,7 @@ function getDayName($day) {
         .modal-title {
             font-size: 1.3rem;
             font-weight: 700;
+            font-family: 'BaticaSans', sans-serif;
             margin: 0;
         }
 
@@ -543,8 +676,90 @@ function getDayName($day) {
             padding: 2rem;
             max-height: 600px;
             overflow-y: auto;
+            font-family: 'BaticaSans', sans-serif;
         }
 
+        /* Complaint Form */
+        .complaint-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-label {
+            font-weight: 600;
+            font-family: 'BaticaSans', sans-serif;
+            color: var(--text-dark);
+            font-size: 0.9rem;
+        }
+
+        .form-control {
+            padding: 0.8rem;
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-md);
+            font-family: 'BaticaSans', sans-serif;
+            font-size: 0.9rem;
+            transition: var(--transition);
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--curry);
+            box-shadow: 0 0 0 2px rgba(207, 114, 58, 0.1);
+        }
+
+        .form-control-textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 1rem;
+        }
+
+        .btn-submit {
+            background: var(--curry);
+            color: var(--white);
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: var(--radius-md);
+            font-family: 'BaticaSans', sans-serif;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .btn-submit:hover {
+            background: var(--brown);
+            transform: translateY(-1px);
+        }
+
+        .btn-cancel-form {
+            background: var(--cream);
+            color: var(--text-dark);
+            border: 1px solid var(--border-light);
+            padding: 0.8rem 1.5rem;
+            border-radius: var(--radius-md);
+            font-family: 'BaticaSans', sans-serif;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .btn-cancel-form:hover {
+            background: var(--border-light);
+        }
+
+        /* Details Section */
         .detail-section {
             margin-bottom: 2rem;
         }
@@ -552,6 +767,7 @@ function getDayName($day) {
         .detail-title {
             font-size: 1.1rem;
             font-weight: 700;
+            font-family: 'BaticaSans', sans-serif;
             color: var(--curry);
             margin-bottom: 1rem;
             display: flex;
@@ -569,6 +785,7 @@ function getDayName($day) {
             background: var(--cream);
             padding: 1rem;
             border-radius: var(--radius-md);
+            border: 1px solid var(--border-light);
         }
 
         .detail-label {
@@ -577,10 +794,13 @@ function getDayName($day) {
             margin-bottom: 0.3rem;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            font-family: 'BaticaSans', sans-serif;
+            font-weight: 600;
         }
 
         .detail-value {
             font-weight: 600;
+            font-family: 'BaticaSans', sans-serif;
             color: var(--text-dark);
         }
 
@@ -598,6 +818,7 @@ function getDayName($day) {
             border-radius: var(--radius-lg);
             font-size: 0.8rem;
             font-weight: 600;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         /* Menu Cards */
@@ -635,6 +856,7 @@ function getDayName($day) {
 
         .menu-name {
             font-weight: 700;
+            font-family: 'BaticaSans', sans-serif;
             color: var(--text-dark);
             margin-bottom: 0.3rem;
             font-size: 1rem;
@@ -643,6 +865,7 @@ function getDayName($day) {
         .menu-name-thai {
             color: var(--text-gray);
             font-size: 0.9rem;
+            font-family: 'BaticaSans', sans-serif;
             margin-bottom: 0.5rem;
         }
 
@@ -653,6 +876,7 @@ function getDayName($day) {
             border-radius: var(--radius-sm);
             font-size: 0.75rem;
             font-weight: 600;
+            font-family: 'BaticaSans', sans-serif;
             display: inline-block;
             margin-bottom: 0.5rem;
         }
@@ -663,10 +887,12 @@ function getDayName($day) {
             font-size: 0.8rem;
             color: var(--text-gray);
             margin-bottom: 0.5rem;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .menu-price {
             font-weight: 700;
+            font-family: 'BaticaSans', sans-serif;
             color: var(--curry);
             font-size: 1.1rem;
         }
@@ -678,6 +904,7 @@ function getDayName($day) {
             border-radius: var(--radius-lg);
             font-size: 0.8rem;
             font-weight: 600;
+            font-family: 'BaticaSans', sans-serif;
             position: absolute;
             top: 0.5rem;
             left: 0.5rem;
@@ -705,29 +932,37 @@ function getDayName($day) {
             font-size: 1.5rem;
             margin-bottom: 1rem;
             color: var(--text-dark);
+            font-family: 'BaticaSans', sans-serif;
+            font-weight: 700;
         }
 
         .empty-state p {
             font-size: 1.1rem;
             margin-bottom: 2rem;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .empty-state .btn {
-            background: linear-gradient(135deg, var(--curry), var(--brown));
-            color: var(--white);
+            background: var(--white);
+            color: var(--curry);
+            border: 2px solid var(--curry);
             padding: 1rem 2rem;
-            border-radius: var(--radius-xl);
+            border-radius: var(--radius-lg);
             text-decoration: none;
             font-weight: 600;
+            font-family: 'BaticaSans', sans-serif;
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
             transition: var(--transition);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
 
         .empty-state .btn:hover {
-            background: linear-gradient(135deg, var(--brown), var(--sage));
-            transform: translateY(-2px);
+            background: var(--curry);
+            color: var(--white);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(207, 114, 58, 0.2);
         }
 
         /* Navigation */
@@ -741,6 +976,7 @@ function getDayName($day) {
             color: var(--curry);
             text-decoration: none;
             font-weight: 600;
+            font-family: 'BaticaSans', sans-serif;
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
@@ -755,6 +991,7 @@ function getDayName($day) {
         /* Price Display */
         .price {
             font-weight: 700;
+            font-family: 'BaticaSans', sans-serif;
             color: var(--curry);
             font-size: 1.1rem;
         }
@@ -762,6 +999,7 @@ function getDayName($day) {
         /* Plan Name */
         .plan-name {
             font-weight: 700;
+            font-family: 'BaticaSans', sans-serif;
             color: var(--text-dark);
         }
 
@@ -860,11 +1098,12 @@ function getDayName($day) {
     <!-- Header -->
     <header class="header">
         <div class="header-container">
-            <a href="index.php" class="logo">
-                <div class="logo-text">Krua Thai</div>
+            <a href="home2.php" class="logo">
+                <div class="logo-icon">S</div>
+                <div class="logo-text">Somdul Table</div>
             </a>
             <nav class="header-nav">
-                <a href="menu.php" class="nav-link">Menu</a>
+                <a href="menus.php" class="nav-link">Menu</a>
                 <a href="about.php" class="nav-link">About Us</a>
                 <a href="contact.php" class="nav-link">Contact</a>
                 <?php if (isset($_SESSION['user_id'])): ?>
@@ -906,13 +1145,13 @@ function getDayName($day) {
         <!-- Page Title -->
         <h1 class="page-title">
             <i class="fas fa-clipboard-list"></i>
-            Subscription Status
+            Order Status
         </h1>
 
-        <!-- Success Message -->
-        <?php if (isset($_SESSION['flash_message']) && $_SESSION['flash_type'] === 'success'): ?>
-            <div class="success-message">
-                <i class="fas fa-check-circle"></i>
+        <!-- Flash Messages -->
+        <?php if (isset($_SESSION['flash_message'])): ?>
+            <div class="flash-message <?php echo $_SESSION['flash_type']; ?>">
+                <i class="fas fa-<?php echo $_SESSION['flash_type'] === 'success' ? 'check-circle' : 'exclamation-circle'; ?>"></i>
                 <?php echo htmlspecialchars($_SESSION['flash_message']); ?>
             </div>
             <?php unset($_SESSION['flash_message'], $_SESSION['flash_type']); ?>
@@ -923,18 +1162,18 @@ function getDayName($day) {
             <div class="card-header">
                 <h2 class="card-title">
                     <i class="fas fa-list-alt"></i>
-                    Your Subscription Plans
+                    Your Order Plans
                 </h2>
             </div>
 
             <?php if (empty($subs)): ?>
                 <div class="empty-state">
                     <i class="fas fa-inbox"></i>
-                    <h3>No Subscription Plans Yet</h3>
+                    <h3>No Order Plans Yet</h3>
                     <p>Start your healthy eating journey with authentic Thai food</p>
                     <a href="subscribe.php" class="btn">
                         <i class="fas fa-plus"></i>
-                        Subscribe to Your First Plan
+                        Order Your First Plan
                     </a>
                 </div>
             <?php else: ?>
@@ -943,12 +1182,10 @@ function getDayName($day) {
                         <thead>
                             <tr>
                                 <th><i class="fas fa-box"></i> Plan</th>
-                                <th><i class="fas fa-tag"></i> Type</th>
                                 <th><i class="fas fa-utensils"></i> Meals</th>
                                 <th><i class="fas fa-money-bill"></i> Price</th>
                                 <th><i class="fas fa-info-circle"></i> Status</th>
-                                <th><i class="fas fa-calendar-alt"></i> Start Date</th>
-                                <th><i class="fas fa-calendar-times"></i> End Date</th>
+                                <th><i class="fas fa-calendar-alt"></i> Delivery Date</th>
                                 <th><i class="fas fa-cogs"></i> Manage</th>
                             </tr>
                         </thead>
@@ -958,7 +1195,6 @@ function getDayName($day) {
                                 <td>
                                     <span class="plan-name"><?= htmlspecialchars($sub['plan_name']) ?></span>
                                 </td>
-                                <td><?= htmlspecialchars(ucfirst($sub['plan_type'])) ?></td>
                                 <td><?= $sub['meals_per_week'] ?> meals/week</td>
                                 <td>
                                     <span class="price">$<?= number_format($sub['final_price'], 2) ?></span>
@@ -970,7 +1206,6 @@ function getDayName($day) {
                                     <span class="status <?= $sub['status'] ?>"><?= getStatusText($sub['status']) ?></span>
                                 </td>
                                 <td><?= htmlspecialchars($sub['start_date']) ?></td>
-                                <td><?= htmlspecialchars($sub['end_date'] ?? '-') ?></td>
                                 <td>
                                     <div class="action-buttons">
                                         <!-- View Details Button -->
@@ -978,19 +1213,21 @@ function getDayName($day) {
                                             <i class="fas fa-eye"></i> View Details
                                         </button>
                                         
+                                        <!-- Complain Button -->
+                                        <button onclick="openComplaintModal('<?= htmlspecialchars($sub['id']) ?>', '<?= htmlspecialchars($sub['plan_name']) ?>')" class="btn-action btn-complain">
+                                            <i class="fas fa-exclamation-triangle"></i> Complain
+                                        </button>
+                                        
                                         <!-- Management Buttons -->
                                         <form method="post" style="display:inline;">
                                             <input type="hidden" name="id" value="<?= htmlspecialchars($sub['id']) ?>">
                                             <?php if ($sub['status'] === 'active'): ?>
-                                                <button name="action" value="pause" class="btn-action btn-pause">
-                                                    <i class="fas fa-pause"></i> Pause
-                                                </button>
-                                                <button name="action" value="cancel" class="btn-action btn-cancel">
+                                                <button name="action" value="cancel" class="btn-action btn-cancel" onclick="return confirm('Are you sure you want to cancel this order plan?')">
                                                     <i class="fas fa-times"></i> Cancel
                                                 </button>
-                                            <?php elseif ($sub['status'] === 'paused'): ?>
-                                                <button name="action" value="renew" class="btn-action btn-renew">
-                                                    <i class="fas fa-play"></i> Resume
+                                            <?php elseif ($sub['status'] === 'cancelled'): ?>
+                                                <button name="action" value="renew" class="btn-action btn-renew" onclick="return confirm('Do you want to renew this order plan?')">
+                                                    <i class="fas fa-redo"></i> Renew
                                                 </button>
                                             <?php else: ?>
                                                 <button disabled class="btn-action btn-disabled">
@@ -1022,14 +1259,82 @@ function getDayName($day) {
             <div class="modal-header">
                 <h3 class="modal-title">
                     <i class="fas fa-clipboard-list"></i>
-                    Subscription Details
+                    Order Details
                 </h3>
-                <button class="modal-close" onclick="closeModal()">
+                <button class="modal-close" onclick="closeModal('detailsModal')">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
             <div class="modal-body" id="modalBody">
                 <!-- Content will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Complaint Form -->
+    <div id="complaintModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Submit Complaint
+                </h3>
+                <button class="modal-close" onclick="closeModal('complaintModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form method="post" class="complaint-form">
+                    <input type="hidden" name="action" value="complain">
+                    <input type="hidden" name="subscription_id" id="complaint_subscription_id">
+                    
+                    <div class="form-group">
+                        <label class="form-label">Order Plan</label>
+                        <input type="text" id="complaint_plan_name" class="form-control" readonly>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Complaint Category *</label>
+                        <select name="category" class="form-control" required>
+                            <option value="">Select a category</option>
+                            <option value="food_quality">Food Quality</option>
+                            <option value="delivery_late">Late Delivery</option>
+                            <option value="delivery_wrong">Wrong Delivery</option>
+                            <option value="missing_items">Missing Items</option>
+                            <option value="damaged_package">Damaged Package</option>
+                            <option value="customer_service">Customer Service</option>
+                            <option value="billing">Billing Issue</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Priority</label>
+                        <select name="priority" class="form-control">
+                            <option value="low">Low</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="high">High</option>
+                            <option value="critical">Critical</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Complaint Title *</label>
+                        <input type="text" name="title" class="form-control" placeholder="Brief description of the issue" required maxlength="200">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Detailed Description *</label>
+                        <textarea name="description" class="form-control form-control-textarea" placeholder="Please provide detailed information about your complaint..." required></textarea>
+                    </div>
+                    
+                    <div class="form-buttons">
+                        <button type="button" class="btn-cancel-form" onclick="closeModal('complaintModal')">Cancel</button>
+                        <button type="submit" class="btn-submit">
+                            <i class="fas fa-paper-plane"></i> Submit Complaint
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -1053,37 +1358,29 @@ function getDayName($day) {
                 }, index * 100);
             });
 
-            // Confirm actions
-            document.querySelectorAll('.btn-cancel').forEach(btn => {
-                btn.addEventListener('click', function(e) {
-                    if (!confirm('Are you sure you want to cancel this subscription plan?')) {
-                        e.preventDefault();
-                    }
-                });
-            });
-
-            document.querySelectorAll('.btn-pause').forEach(btn => {
-                btn.addEventListener('click', function(e) {
-                    if (!confirm('Do you want to pause this subscription plan temporarily?')) {
-                        e.preventDefault();
-                    }
-                });
-            });
-
             // Modal close on backdrop click
-            document.getElementById('detailsModal').addEventListener('click', function(e) {
-                if (e.target === this) {
-                    closeModal();
-                }
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        closeModal(this.id);
+                    }
+                });
             });
 
             // Keyboard shortcut for modal
             document.addEventListener('keydown', function(e) {
                 if (e.key === 'Escape') {
-                    closeModal();
+                    closeModal('detailsModal');
+                    closeModal('complaintModal');
                 }
             });
         });
+
+        function openComplaintModal(subscriptionId, planName) {
+            document.getElementById('complaint_subscription_id').value = subscriptionId;
+            document.getElementById('complaint_plan_name').value = planName;
+            document.getElementById('complaintModal').classList.add('show');
+        }
 
         function viewDetails(subscriptionId) {
             const subscription = subscriptionData.find(sub => sub.id === subscriptionId);
@@ -1113,7 +1410,6 @@ function getDayName($day) {
             // Group menus by day
             const menusByDay = {};
             menus.forEach(menu => {
-                // Use delivery_date instead of day_of_week for grouping
                 const deliveryDate = menu.delivery_date;
                 if (!menusByDay[deliveryDate]) {
                     menusByDay[deliveryDate] = [];
@@ -1157,12 +1453,8 @@ function getDayName($day) {
                     </div>
                     <div class="detail-grid">
                         <div class="detail-item">
-                            <div class="detail-label">Start Date</div>
+                            <div class="detail-label">Delivery Date</div>
                             <div class="detail-value">${subscription.start_date}</div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="detail-label">End Date</div>
-                            <div class="detail-value">${subscription.end_date || 'No expiration'}</div>
                         </div>
                         <div class="detail-item">
                             <div class="detail-label">Next Billing Date</div>
@@ -1207,7 +1499,7 @@ function getDayName($day) {
                             <div class="detail-value">${subscription.auto_renew == 1 ? '✅ Enabled' : '❌ Disabled'}</div>
                         </div>
                         <div class="detail-item">
-                            <div class="detail-label">Subscription Date</div>
+                            <div class="detail-label">Order Date</div>
                             <div class="detail-value">${subscription.created_at}</div>
                         </div>
                         <div class="detail-item">
@@ -1280,8 +1572,8 @@ function getDayName($day) {
             document.getElementById('detailsModal').classList.add('show');
         }
 
-        function closeModal() {
-            document.getElementById('detailsModal').classList.remove('show');
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('show');
         }
 
         function getStatusText(status) {
