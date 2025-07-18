@@ -1,8 +1,8 @@
 <?php
 /**
- * Krua Thai - Delivery Management System (Complete Fixed Version)
+ * Krua Thai - Smart Route Optimization Delivery Management
  * File: admin/delivery-management.php
- * Features: Real-time delivery tracking, rider assignment, route optimization
+ * Features: AI-powered route optimization, zone-based delivery, cost minimization
  * Status: PRODUCTION READY ✅
  */
 
@@ -18,6 +18,65 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
 
 require_once '../config/database.php';
 require_once '../includes/functions.php';
+
+// 🏪 Krua Thai Restaurant Location (Fullerton, CA)
+const RESTAURANT_ZIP = '92831';
+const RESTAURANT_LAT = 33.888121;
+const RESTAURANT_LNG = -117.868256;
+const RESTAURANT_ADDRESS = "3250 Yorba Linda Blvd, Fullerton, CA 92831";
+
+// 🗺️ Zone Configuration
+const DELIVERY_ZONES = [
+    'zone_a' => [
+        'name' => 'Fullerton Area',
+        'zip_codes' => ['92831', '92832', '92833', '92834', '92835'],
+        'max_distance' => 5,
+        'priority' => 1,
+        'color' => '#28a745'
+    ],
+    'zone_b' => [
+        'name' => 'Brea/Placentia',
+        'zip_codes' => ['92821', '92823', '92870', '92871'],
+        'max_distance' => 8,
+        'priority' => 2,
+        'color' => '#ffc107'
+    ],
+    'zone_c' => [
+        'name' => 'Buena Park',
+        'zip_codes' => ['90620', '90621', '90622', '90623'],
+        'max_distance' => 12,
+        'priority' => 3,
+        'color' => '#fd7e14'
+    ],
+    'zone_d' => [
+        'name' => 'Garden Grove',
+        'zip_codes' => ['92841', '92842', '92843', '92844'],
+        'max_distance' => 15,
+        'priority' => 4,
+        'color' => '#dc3545'
+    ]
+];
+
+// 📍 ZIP Code Coordinates (simplified mapping)
+const ZIP_COORDINATES = [
+    '92831' => ['lat' => 33.888121, 'lng' => -117.868256], // Restaurant location
+    '92832' => ['lat' => 33.891234, 'lng' => -117.871456],
+    '92833' => ['lat' => 33.885678, 'lng' => -117.865123],
+    '92834' => ['lat' => 33.892345, 'lng' => -117.875789],
+    '92835' => ['lat' => 33.883456, 'lng' => -117.861234],
+    '92821' => ['lat' => 33.835293, 'lng' => -117.914505],
+    '92823' => ['lat' => 33.847291, 'lng' => -117.853104],
+    '92870' => ['lat' => 33.917842, 'lng' => -117.761234],
+    '92871' => ['lat' => 33.925678, 'lng' => -117.755123],
+    '90620' => ['lat' => 33.864925, 'lng' => -118.012345],
+    '90621' => ['lat' => 33.867123, 'lng' => -118.015678],
+    '90622' => ['lat' => 33.861789, 'lng' => -118.008456],
+    '90623' => ['lat' => 33.859456, 'lng' => -118.019123],
+    '92841' => ['lat' => 33.676483, 'lng' => -117.867890],
+    '92842' => ['lat' => 33.684567, 'lng' => -117.871234],
+    '92843' => ['lat' => 33.672345, 'lng' => -117.864567],
+    '92844' => ['lat' => 33.679123, 'lng' => -117.875890]
+];
 
 // Database connection
 try {
@@ -38,6 +97,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 echo json_encode($result);
                 exit;
                 
+            case 'smart_route_optimization':
+                $result = smartRouteOptimization($pdo);
+                echo json_encode($result);
+                exit;
+                
+            case 'auto_assign_by_zones':
+                $result = autoAssignByZones($pdo);
+                echo json_encode($result);
+                exit;
+                
+            case 'analyze_delivery_zones':
+                $result = analyzeDeliveryZones($pdo);
+                echo json_encode($result);
+                exit;
+                
             case 'assign_rider':
                 $result = assignRider($pdo, $_POST['order_id'], $_POST['rider_id']);
                 echo json_encode($result);
@@ -48,28 +122,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 echo json_encode($result);
                 exit;
                 
-            case 'bulk_assign_riders':
-                $result = bulkAssignRiders($pdo, $_POST['assignments']);
-                echo json_encode($result);
-                exit;
-                
-            case 'get_rider_location':
-                $result = getRiderLocation($pdo, $_POST['rider_id']);
-                echo json_encode($result);
-                exit;
-                
-            case 'optimize_route':
-                $result = optimizeDeliveryRoute($pdo, $_POST['rider_id']);
-                echo json_encode($result);
-                exit;
-                
-            case 'export_report':
-                exportReport($pdo, $_POST);
-                exit;
-                
-            case 'send_notification':
-                $result = sendDeliveryNotification($pdo, $_POST['order_id'], $_POST['type'], $_POST['message']);
-                echo json_encode($result);
+            case 'export_route_report':
+                exportRouteReport($pdo, $_POST);
                 exit;
         }
     } catch (Exception $e) {
@@ -78,37 +132,85 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 }
 
-// ✅ FIXED: Real-time Data Function - คำนวณ amount จาก order_items
+// ✅ Calculate Distance using Haversine Formula
+function calculateDistance($lat1, $lng1, $lat2, $lng2) {
+    $earthRadius = 3959; // miles
+    
+    $dLat = deg2rad($lat2 - $lat1);
+    $dLng = deg2rad($lng2 - $lng1);
+    
+    $a = sin($dLat/2) * sin($dLat/2) + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLng/2) * sin($dLng/2);
+    $c = 2 * atan2(sqrt($a), sqrt(1-$a));
+    
+    return round($earthRadius * $c, 2);
+}
+
+// ✅ Extract ZIP Code from address
+function extractZipCode($address) {
+    preg_match('/\b\d{5}\b/', $address, $matches);
+    return $matches[0] ?? RESTAURANT_ZIP;
+}
+
+// ✅ Get Zone by ZIP Code
+function getZoneByZipCode($zipCode) {
+    foreach (DELIVERY_ZONES as $zoneId => $zone) {
+        if (in_array($zipCode, $zone['zip_codes'])) {
+            return array_merge($zone, ['id' => $zoneId]);
+        }
+    }
+    return ['id' => 'zone_unknown', 'name' => 'Unknown Zone', 'priority' => 5, 'color' => '#6c757d'];
+}
+
+// ✅ Get Coordinates by ZIP Code  
+function getCoordinatesByZipCode($zipCode) {
+    return ZIP_COORDINATES[$zipCode] ?? ZIP_COORDINATES[RESTAURANT_ZIP];
+}
+
+// ✅ Real-time Data with Zone Information
 function getRealTimeData($pdo) {
     try {
         $data = [];
         
-        // Unassigned orders - FIXED: Calculate amount from order_items
+        // Get unassigned orders with zone analysis
         $stmt = $pdo->prepare("
-            SELECT o.id, o.order_number, o.delivery_address, 
+            SELECT o.id, o.order_number, o.delivery_address, o.delivery_time_slot,
                    COALESCE(SUM(oi.menu_price * oi.quantity), 0) as amount,
                    CONCAT(u.first_name, ' ', u.last_name) as customer_name,
-                   u.phone as customer_phone, o.delivery_time_slot,
-                   TIMESTAMPDIFF(MINUTE, o.created_at, NOW()) as wait_time
+                   u.phone as customer_phone
             FROM orders o
             JOIN users u ON o.user_id = u.id
             LEFT JOIN order_items oi ON o.id = oi.order_id
             WHERE o.assigned_rider_id IS NULL 
             AND o.status IN ('ready', 'confirmed')
             AND DATE(o.delivery_date) = CURDATE()
-            GROUP BY o.id, o.order_number, o.delivery_address, u.first_name, u.last_name, u.phone, o.delivery_time_slot, o.created_at
+            GROUP BY o.id, o.order_number, o.delivery_address, u.first_name, u.last_name, u.phone, o.delivery_time_slot
             ORDER BY o.created_at ASC
-            LIMIT 20
         ");
         $stmt->execute();
-        $data['unassigned_orders'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        // Active deliveries - FIXED: Calculate amount from order_items
+        // Add zone information to each order
+        foreach ($orders as &$order) {
+            $zipCode = extractZipCode($order['delivery_address']);
+            $coordinates = getCoordinatesByZipCode($zipCode);
+            $zone = getZoneByZipCode($zipCode);
+            
+            $order['zip_code'] = $zipCode;
+            $order['zone'] = $zone;
+            $order['coordinates'] = $coordinates;
+            $order['distance_from_restaurant'] = calculateDistance(
+                RESTAURANT_LAT, RESTAURANT_LNG,
+                $coordinates['lat'], $coordinates['lng']
+            );
+        }
+        
+        $data['unassigned_orders'] = $orders;
+        
+        // Get active deliveries
         $stmt = $pdo->prepare("
             SELECT o.id, o.order_number, o.delivery_address,
                    COALESCE(SUM(oi.menu_price * oi.quantity), 0) as amount,
                    CONCAT(u.first_name, ' ', u.last_name) as customer_name,
-                   u.phone as customer_phone,
                    CONCAT(r.first_name, ' ', r.last_name) as rider_name,
                    r.phone as rider_phone, o.status, o.delivery_time_slot,
                    TIMESTAMPDIFF(MINUTE, o.updated_at, NOW()) as last_update_minutes
@@ -118,76 +220,467 @@ function getRealTimeData($pdo) {
             LEFT JOIN order_items oi ON o.id = oi.order_id
             WHERE o.status IN ('out_for_delivery', 'ready')
             AND DATE(o.delivery_date) = CURDATE()
-            GROUP BY o.id, o.order_number, o.delivery_address, u.first_name, u.last_name, u.phone, r.first_name, r.last_name, r.phone, o.status, o.delivery_time_slot, o.updated_at
+            GROUP BY o.id, o.order_number, o.delivery_address, u.first_name, u.last_name, r.first_name, r.last_name, r.phone, o.status, o.delivery_time_slot, o.updated_at
             ORDER BY o.delivery_time_slot ASC
         ");
         $stmt->execute();
-        $data['active_deliveries'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $activeDeliveries = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        // Available riders
+        // Add zone info to active deliveries
+        foreach ($activeDeliveries as &$delivery) {
+            $zipCode = extractZipCode($delivery['delivery_address']);
+            $zone = getZoneByZipCode($zipCode);
+            $delivery['zone'] = $zone;
+        }
+        
+        $data['active_deliveries'] = $activeDeliveries;
+        
+        // Get available riders
         $stmt = $pdo->prepare("
             SELECT u.id, CONCAT(u.first_name, ' ', u.last_name) as name,
-                   u.phone, COUNT(o.id) as active_orders,
-                   u.current_latitude, u.current_longitude
+                   u.phone, COUNT(o.id) as active_orders
             FROM users u
             LEFT JOIN orders o ON u.id = o.assigned_rider_id 
                 AND o.status = 'out_for_delivery'
             WHERE u.role = 'rider' AND u.status = 'active'
-            GROUP BY u.id, u.first_name, u.last_name, u.phone, u.current_latitude, u.current_longitude
+            GROUP BY u.id, u.first_name, u.last_name, u.phone
             ORDER BY active_orders ASC, u.first_name ASC
         ");
         $stmt->execute();
         $data['available_riders'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        // Today's statistics
-        $stmt = $pdo->prepare("
-            SELECT 
-                COUNT(*) as total_orders,
-                SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) as delivered,
-                SUM(CASE WHEN status = 'out_for_delivery' THEN 1 ELSE 0 END) as out_for_delivery,
-                SUM(CASE WHEN status = 'ready' THEN 1 ELSE 0 END) as ready,
-                SUM(CASE WHEN assigned_rider_id IS NULL AND status IN ('confirmed', 'ready') THEN 1 ELSE 0 END) as unassigned,
-                AVG(CASE WHEN delivered_at IS NOT NULL THEN 
-                    TIMESTAMPDIFF(MINUTE, created_at, delivered_at) 
-                ELSE NULL END) as avg_delivery_time
-            FROM orders 
-            WHERE DATE(delivery_date) = CURDATE()
-        ");
-        $stmt->execute();
-        $data['statistics'] = $stmt->fetch(PDO::FETCH_ASSOC);
+        // Calculate statistics
+        $data['statistics'] = calculateDeliveryStatistics($pdo);
+        $data['zone_summary'] = generateZoneSummary($orders);
         
         return ['success' => true, 'data' => $data];
     } catch (Exception $e) {
-        return ['success' => false, 'message' => 'Error fetching real-time data: ' . $e->getMessage()];
+        return ['success' => false, 'message' => 'Error fetching data: ' . $e->getMessage()];
     }
 }
 
-// ✅ Assign Rider Function
+// ✅ Smart Route Optimization Algorithm
+function smartRouteOptimization($pdo) {
+    try {
+        $realTimeData = getRealTimeData($pdo);
+        if (!$realTimeData['success']) {
+            return $realTimeData;
+        }
+        
+        $orders = $realTimeData['data']['unassigned_orders'];
+        $riders = $realTimeData['data']['available_riders'];
+        
+        if (empty($orders)) {
+            return ['success' => true, 'data' => [], 'message' => 'No orders to optimize'];
+        }
+        
+        if (empty($riders)) {
+            return ['success' => false, 'message' => 'No available riders'];
+        }
+        
+        // Group orders by zones
+        $zoneGroups = groupOrdersByZones($orders);
+        
+        // Create optimal assignments
+        $optimalRoutes = createOptimalAssignments($zoneGroups, $riders);
+        
+        // Calculate optimization metrics
+        $metrics = calculateOptimizationMetrics($optimalRoutes);
+        
+        return [
+            'success' => true,
+            'data' => [
+                'optimal_routes' => $optimalRoutes,
+                'zone_groups' => $zoneGroups,
+                'metrics' => $metrics,
+                'recommendations' => generateOptimizationRecommendations($optimalRoutes)
+            ]
+        ];
+    } catch (Exception $e) {
+        return ['success' => false, 'message' => 'Optimization error: ' . $e->getMessage()];
+    }
+}
+
+// ✅ Group Orders by Delivery Zones
+function groupOrdersByZones($orders) {
+    $zoneGroups = [];
+    
+    foreach ($orders as $order) {
+        $zoneId = $order['zone']['id'];
+        
+        if (!isset($zoneGroups[$zoneId])) {
+            $zoneGroups[$zoneId] = [
+                'zone_info' => $order['zone'],
+                'orders' => [],
+                'total_orders' => 0,
+                'total_amount' => 0,
+                'avg_distance' => 0,
+                'estimated_time' => 0
+            ];
+        }
+        
+        $zoneGroups[$zoneId]['orders'][] = $order;
+        $zoneGroups[$zoneId]['total_orders']++;
+        $zoneGroups[$zoneId]['total_amount'] += $order['amount'];
+    }
+    
+    // Calculate averages and metrics for each zone
+    foreach ($zoneGroups as &$group) {
+        $distances = array_column($group['orders'], 'distance_from_restaurant');
+        $group['avg_distance'] = round(array_sum($distances) / count($distances), 2);
+        $group['estimated_time'] = calculateZoneDeliveryTime($group);
+        $group['efficiency_score'] = calculateZoneEfficiency($group);
+    }
+    
+    // Sort zones by priority (Zone A first, then by efficiency)
+    uasort($zoneGroups, function($a, $b) {
+        if ($a['zone_info']['priority'] != $b['zone_info']['priority']) {
+            return $a['zone_info']['priority'] - $b['zone_info']['priority'];
+        }
+        return $b['efficiency_score'] - $a['efficiency_score'];
+    });
+    
+    return $zoneGroups;
+}
+
+// ✅ Create Optimal Rider Assignments
+function createOptimalAssignments($zoneGroups, $riders) {
+    $assignments = [];
+    
+    foreach ($zoneGroups as $zoneId => $group) {
+        if (empty($riders)) break;
+        
+        // Select best available rider
+        $selectedRider = selectBestRiderForZone($riders, $group);
+        
+        // Create optimized route within zone
+        $optimizedRoute = optimizeRouteWithinZone($group['orders']);
+        
+        $assignments[] = [
+            'rider' => $selectedRider,
+            'zone' => $group['zone_info'],
+            'orders' => $optimizedRoute,
+            'total_orders' => $group['total_orders'],
+            'total_amount' => $group['total_amount'],
+            'avg_distance' => $group['avg_distance'],
+            'estimated_time' => $group['estimated_time'],
+            'efficiency_score' => $group['efficiency_score'],
+            'cost_analysis' => calculateRouteCostAnalysis($group)
+        ];
+        
+        // Remove assigned rider from available pool if at capacity
+        if ($selectedRider['active_orders'] >= 5) {
+            $riders = array_filter($riders, function($rider) use ($selectedRider) {
+                return $rider['id'] != $selectedRider['id'];
+            });
+        }
+    }
+    
+    return $assignments;
+}
+
+// ✅ Select Best Rider for Zone
+function selectBestRiderForZone($riders, $zoneGroup) {
+    $bestRider = null;
+    $bestScore = 0;
+    
+    foreach ($riders as $rider) {
+        $score = 0;
+        
+        // Lower workload is better
+        $score += (6 - $rider['active_orders']) * 20;
+        
+        // Zone priority bonus
+        $zonePriority = $zoneGroup['zone_info']['priority'];
+        $score += (5 - $zonePriority) * 15;
+        
+        // Efficiency bonus
+        $score += $zoneGroup['efficiency_score'] * 0.5;
+        
+        if ($score > $bestScore) {
+            $bestScore = $score;
+            $bestRider = $rider;
+        }
+    }
+    
+    return $bestRider ?: $riders[0];
+}
+
+// ✅ Optimize Route Within Zone
+function optimizeRouteWithinZone($orders) {
+    // Sort by delivery time slot first, then by proximity
+    usort($orders, function($a, $b) {
+        // Priority 1: Time slot
+        if ($a['delivery_time_slot'] != $b['delivery_time_slot']) {
+            return strcmp($a['delivery_time_slot'], $b['delivery_time_slot']);
+        }
+        
+        // Priority 2: Distance from restaurant
+        return $a['distance_from_restaurant'] - $b['distance_from_restaurant'];
+    });
+    
+    // Add sequence numbers and estimated arrival times
+    foreach ($orders as $index => &$order) {
+        $order['sequence'] = $index + 1;
+        $order['estimated_arrival'] = calculateEstimatedArrival($index);
+    }
+    
+    return $orders;
+}
+
+// ✅ Calculate Zone Delivery Time
+function calculateZoneDeliveryTime($group) {
+    $baseTime = 15; // Restaurant prep time
+    $timePerOrder = 5; // Minutes per delivery
+    $travelTime = $group['avg_distance'] * 2; // Round trip consideration
+    
+    return round($baseTime + ($group['total_orders'] * $timePerOrder) + $travelTime);
+}
+
+// ✅ Calculate Zone Efficiency Score
+function calculateZoneEfficiency($group) {
+    $ordersPerMile = $group['total_orders'] / max($group['avg_distance'], 1);
+    $revenuePerMile = $group['total_amount'] / max($group['avg_distance'], 1);
+    
+    $efficiency = min(100, ($ordersPerMile * 25) + ($revenuePerMile / 10));
+    return round($efficiency, 1);
+}
+
+// ✅ Calculate Estimated Arrival Time
+function calculateEstimatedArrival($sequenceIndex) {
+    $startTime = strtotime('now + 20 minutes'); // Prep + travel time
+    $timePerDelivery = 8; // Minutes per stop
+    
+    $arrivalTime = $startTime + ($sequenceIndex * $timePerDelivery * 60);
+    return date('H:i', $arrivalTime);
+}
+
+// ✅ Calculate Route Cost Analysis
+function calculateRouteCostAnalysis($group) {
+    $fuelCostPerMile = 0.20; // $0.20 per mile
+    $riderHourlyRate = 15.00; // $15/hour
+    
+    $totalDistance = $group['avg_distance'] * $group['total_orders'] * 1.5; // Factor for multiple stops
+    $totalTime = $group['estimated_time'] / 60; // Convert to hours
+    
+    $fuelCost = $totalDistance * $fuelCostPerMile;
+    $laborCost = $totalTime * $riderHourlyRate;
+    $totalCost = $fuelCost + $laborCost;
+    
+    return [
+        'total_distance' => round($totalDistance, 2),
+        'fuel_cost' => round($fuelCost, 2),
+        'labor_cost' => round($laborCost, 2),
+        'total_cost' => round($totalCost, 2),
+        'revenue' => $group['total_amount'],
+        'profit' => round($group['total_amount'] - $totalCost, 2),
+        'roi_percentage' => $totalCost > 0 ? round((($group['total_amount'] - $totalCost) / $totalCost) * 100, 1) : 0
+    ];
+}
+
+// ✅ Auto Assign by Zones
+function autoAssignByZones($pdo) {
+    try {
+        $optimization = smartRouteOptimization($pdo);
+        
+        if (!$optimization['success']) {
+            return $optimization;
+        }
+        
+        $routes = $optimization['data']['optimal_routes'];
+        $successCount = 0;
+        $assignments = [];
+        
+        foreach ($routes as $route) {
+            foreach ($route['orders'] as $order) {
+                $result = assignRider($pdo, $order['id'], $route['rider']['id']);
+                
+                $assignments[] = [
+                    'order_id' => $order['id'],
+                    'order_number' => $order['order_number'],
+                    'rider_id' => $route['rider']['id'],
+                    'rider_name' => $route['rider']['name'],
+                    'zone' => $route['zone']['name'],
+                    'success' => $result['success']
+                ];
+                
+                if ($result['success']) {
+                    $successCount++;
+                }
+            }
+        }
+        
+        return [
+            'success' => true,
+            'message' => "Successfully assigned {$successCount} orders using smart zone optimization",
+            'data' => [
+                'assignments' => $assignments,
+                'optimization_summary' => $optimization['data']['metrics']
+            ]
+        ];
+    } catch (Exception $e) {
+        return ['success' => false, 'message' => 'Auto assignment error: ' . $e->getMessage()];
+    }
+}
+
+// ✅ Analyze Delivery Zones
+function analyzeDeliveryZones($pdo) {
+    try {
+        $stmt = $pdo->prepare("
+            SELECT 
+                SUBSTRING(o.delivery_address, -5) as zipcode,
+                COUNT(*) as order_count,
+                AVG(COALESCE(total_amount.amount, 0)) as avg_order_value,
+                COUNT(DISTINCT o.user_id) as unique_customers
+            FROM orders o
+            LEFT JOIN (
+                SELECT oi.order_id, SUM(oi.menu_price * oi.quantity) as amount
+                FROM order_items oi
+                GROUP BY oi.order_id
+            ) total_amount ON o.id = total_amount.order_id
+            WHERE DATE(o.delivery_date) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+            AND SUBSTRING(o.delivery_address, -5) REGEXP '^[0-9]{5}$'
+            GROUP BY SUBSTRING(o.delivery_address, -5)
+            ORDER BY order_count DESC
+        ");
+        $stmt->execute();
+        $zoneStats = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        $analysis = [];
+        foreach ($zoneStats as $stat) {
+            $zipCode = $stat['zipcode'];
+            $zone = getZoneByZipCode($zipCode);
+            $coordinates = getCoordinatesByZipCode($zipCode);
+            $distance = calculateDistance(RESTAURANT_LAT, RESTAURANT_LNG, $coordinates['lat'], $coordinates['lng']);
+            
+            $analysis[] = [
+                'zipcode' => $zipCode,
+                'zone' => $zone,
+                'distance' => $distance,
+                'order_frequency' => (int)$stat['order_count'],
+                'avg_order_value' => round($stat['avg_order_value'], 2),
+                'unique_customers' => (int)$stat['unique_customers'],
+                'revenue_potential' => round($stat['order_count'] * $stat['avg_order_value'], 2),
+                'delivery_priority' => calculateDeliveryPriority($stat, $distance),
+                'cost_efficiency' => calculateCostEfficiency($stat, $distance)
+            ];
+        }
+        
+        usort($analysis, function($a, $b) {
+            return $b['delivery_priority'] - $a['delivery_priority'];
+        });
+        
+        return ['success' => true, 'data' => $analysis];
+    } catch (Exception $e) {
+        return ['success' => false, 'message' => 'Zone analysis error: ' . $e->getMessage()];
+    }
+}
+
+// ✅ Helper Functions
+function calculateDeliveryPriority($stats, $distance) {
+    $frequencyScore = min(100, $stats['order_count'] * 3);
+    $valueScore = min(100, $stats['avg_order_value'] / 5);
+    $distanceScore = max(0, 100 - ($distance * 4));
+    
+    return round(($frequencyScore * 0.4) + ($valueScore * 0.3) + ($distanceScore * 0.3), 1);
+}
+
+function calculateCostEfficiency($stats, $distance) {
+    if ($distance == 0) return 100;
+    return round(($stats['order_count'] * $stats['avg_order_value']) / $distance, 2);
+}
+
+function calculateDeliveryStatistics($pdo) {
+    $stmt = $pdo->prepare("
+        SELECT 
+            COUNT(*) as total_orders,
+            SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) as delivered,
+            SUM(CASE WHEN status = 'out_for_delivery' THEN 1 ELSE 0 END) as out_for_delivery,
+            SUM(CASE WHEN assigned_rider_id IS NULL AND status IN ('confirmed', 'ready') THEN 1 ELSE 0 END) as unassigned
+        FROM orders 
+        WHERE DATE(delivery_date) = CURDATE()
+    ");
+    $stmt->execute();
+    return $stmt->fetch(PDO::FETCH_ASSOC);
+}
+
+function generateZoneSummary($orders) {
+    $summary = [];
+    foreach (DELIVERY_ZONES as $zoneId => $zone) {
+        $summary[$zoneId] = [
+            'name' => $zone['name'],
+            'color' => $zone['color'],
+            'orders' => 0,
+            'amount' => 0
+        ];
+    }
+    
+    foreach ($orders as $order) {
+        $zoneId = $order['zone']['id'];
+        if (isset($summary[$zoneId])) {
+            $summary[$zoneId]['orders']++;
+            $summary[$zoneId]['amount'] += $order['amount'];
+        }
+    }
+    
+    return $summary;
+}
+
+function calculateOptimizationMetrics($routes) {
+    $totalOrders = 0;
+    $totalRevenue = 0;
+    $totalDistance = 0;
+    $totalCost = 0;
+    
+    foreach ($routes as $route) {
+        $totalOrders += $route['total_orders'];
+        $totalRevenue += $route['total_amount'];
+        $totalDistance += $route['cost_analysis']['total_distance'];
+        $totalCost += $route['cost_analysis']['total_cost'];
+    }
+    
+    return [
+        'total_routes' => count($routes),
+        'total_orders' => $totalOrders,
+        'total_revenue' => round($totalRevenue, 2),
+        'total_distance' => round($totalDistance, 2),
+        'total_cost' => round($totalCost, 2),
+        'total_profit' => round($totalRevenue - $totalCost, 2),
+        'avg_efficiency' => $totalOrders > 0 ? round(array_sum(array_column($routes, 'efficiency_score')) / count($routes), 1) : 0,
+        'cost_per_mile' => $totalDistance > 0 ? round($totalCost / $totalDistance, 2) : 0,
+        'revenue_per_mile' => $totalDistance > 0 ? round($totalRevenue / $totalDistance, 2) : 0
+    ];
+}
+
+function generateOptimizationRecommendations($routes) {
+    $recommendations = [];
+    
+    foreach ($routes as $route) {
+        $zoneName = $route['zone']['name'];
+        
+        if ($route['total_orders'] > 8) {
+            $recommendations[] = "Consider splitting {$zoneName} route - high order count may cause delays";
+        }
+        
+        if ($route['cost_analysis']['roi_percentage'] < 50) {
+            $recommendations[] = "{$zoneName} has low ROI ({$route['cost_analysis']['roi_percentage']}%) - consider minimum order requirements";
+        }
+        
+        if ($route['avg_distance'] > 12) {
+            $recommendations[] = "{$zoneName} is far from restaurant ({$route['avg_distance']} mi) - consider delivery fees";
+        }
+    }
+    
+    if (count($routes) > 4) {
+        $recommendations[] = "High route count detected - consider hiring additional riders";
+    }
+    
+    return $recommendations;
+}
+
+// ✅ Basic Functions
 function assignRider($pdo, $orderId, $riderId) {
     try {
-        $pdo->beginTransaction();
-        
-        // Validate rider availability
-        $stmt = $pdo->prepare("
-            SELECT u.*, COUNT(o.id) as active_orders
-            FROM users u
-            LEFT JOIN orders o ON u.id = o.assigned_rider_id 
-                AND o.status = 'out_for_delivery'
-            WHERE u.id = ? AND u.role = 'rider' AND u.status = 'active'
-            GROUP BY u.id
-        ");
-        $stmt->execute([$riderId]);
-        $rider = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if (!$rider) {
-            throw new Exception('Rider not found or not available');
-        }
-        
-        if ($rider['active_orders'] >= 5) {
-            throw new Exception('Rider has maximum orders assigned');
-        }
-        
-        // Assign rider to order
         $stmt = $pdo->prepare("
             UPDATE orders 
             SET assigned_rider_id = ?, status = 'out_for_delivery', updated_at = NOW()
@@ -195,26 +688,16 @@ function assignRider($pdo, $orderId, $riderId) {
         ");
         $result = $stmt->execute([$riderId, $orderId]);
         
-        if (!$result || $stmt->rowCount() === 0) {
-            throw new Exception('Failed to assign rider or order already assigned');
+        if ($result && $stmt->rowCount() > 0) {
+            return ['success' => true, 'message' => 'Rider assigned successfully'];
+        } else {
+            return ['success' => false, 'message' => 'Failed to assign rider'];
         }
-        
-        // Log the assignment
-        $stmt = $pdo->prepare("
-            INSERT INTO delivery_logs (order_id, rider_id, action, notes, created_at)
-            VALUES (?, ?, 'rider_assigned', 'Rider assigned for delivery', NOW())
-        ");
-        $stmt->execute([$orderId, $riderId]);
-        
-        $pdo->commit();
-        return ['success' => true, 'message' => 'Rider assigned successfully'];
     } catch (Exception $e) {
-        $pdo->rollBack();
-        return ['success' => false, 'message' => $e->getMessage()];
+        return ['success' => false, 'message' => 'Error assigning rider: ' . $e->getMessage()];
     }
 }
 
-// ✅ Update Delivery Status Function
 function updateDeliveryStatus($pdo, $orderId, $status, $notes = '') {
     try {
         $validStatuses = ['confirmed', 'preparing', 'ready', 'out_for_delivery', 'delivered', 'cancelled'];
@@ -222,9 +705,6 @@ function updateDeliveryStatus($pdo, $orderId, $status, $notes = '') {
             throw new Exception('Invalid status');
         }
         
-        $pdo->beginTransaction();
-        
-        // Update order status
         $updateFields = ['status = ?', 'updated_at = NOW()'];
         $params = [$status, $orderId];
         
@@ -236,144 +716,57 @@ function updateDeliveryStatus($pdo, $orderId, $status, $notes = '') {
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         
-        // Log status change
-        $stmt = $pdo->prepare("
-            INSERT INTO delivery_logs (order_id, action, notes, created_at)
-            VALUES (?, 'status_updated', ?, NOW())
-        ");
-        $stmt->execute([$orderId, "Status changed to: $status. $notes"]);
-        
-        $pdo->commit();
         return ['success' => true, 'message' => 'Status updated successfully'];
     } catch (Exception $e) {
-        $pdo->rollBack();
-        return ['success' => false, 'message' => $e->getMessage()];
+        return ['success' => false, 'message' => 'Error updating status: ' . $e->getMessage()];
     }
 }
 
-// ✅ Bulk Assign Riders Function
-function bulkAssignRiders($pdo, $assignments) {
-    try {
-        $pdo->beginTransaction();
-        $successCount = 0;
-        $errors = [];
-        
-        foreach ($assignments as $assignment) {
-            $result = assignRider($pdo, $assignment['order_id'], $assignment['rider_id']);
-            if ($result['success']) {
-                $successCount++;
-            } else {
-                $errors[] = "Order {$assignment['order_id']}: " . $result['message'];
-            }
-        }
-        
-        $pdo->commit();
-        
-        $message = "$successCount assignments completed successfully";
-        if (!empty($errors)) {
-            $message .= ". Errors: " . implode(', ', $errors);
-        }
-        
-        return ['success' => true, 'message' => $message, 'assigned' => $successCount];
-    } catch (Exception $e) {
-        $pdo->rollBack();
-        return ['success' => false, 'message' => $e->getMessage()];
-    }
-}
-
-// ✅ Get Rider Location Function
-function getRiderLocation($pdo, $riderId) {
-    try {
-        $stmt = $pdo->prepare("
-            SELECT id, CONCAT(first_name, ' ', last_name) as name,
-                   current_latitude, current_longitude, 
-                   last_location_update
-            FROM users 
-            WHERE id = ? AND role = 'rider'
-        ");
-        $stmt->execute([$riderId]);
-        $rider = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if (!$rider) {
-            throw new Exception('Rider not found');
-        }
-        
-        return ['success' => true, 'data' => $rider];
-    } catch (Exception $e) {
-        return ['success' => false, 'message' => $e->getMessage()];
-    }
-}
-
-// ✅ Route Optimization Function
-function optimizeDeliveryRoute($pdo, $riderId) {
-    try {
-        // Get rider's assigned orders
-        $stmt = $pdo->prepare("
-            SELECT o.*, 
-                   CONCAT(u.first_name, ' ', u.last_name) as customer_name,
-                   u.phone as customer_phone
-            FROM orders o
-            JOIN users u ON o.user_id = u.id
-            WHERE o.assigned_rider_id = ? 
-            AND o.status = 'out_for_delivery'
-            ORDER BY o.delivery_time_slot ASC
-        ");
-        $stmt->execute([$riderId]);
-        $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        // Simple optimization: sort by delivery time slot and proximity
-        // In real implementation, you would use Google Maps API or similar
-        $optimizedRoute = $orders; // Placeholder for route optimization logic
-        
-        return ['success' => true, 'data' => $optimizedRoute];
-    } catch (Exception $e) {
-        return ['success' => false, 'message' => $e->getMessage()];
-    }
-}
-
-// ✅ FIXED: Export Report Function - คำนวณ amount จาก order_items
-function exportReport($pdo, $params) {
+function exportRouteReport($pdo, $params) {
     try {
         $dateFrom = $params['date_from'] ?? date('Y-m-d');
         $dateTo = $params['date_to'] ?? date('Y-m-d');
         
-        // FIXED: Calculate amount from order_items table
         $stmt = $pdo->prepare("
             SELECT o.order_number, o.status, 
                    COALESCE(SUM(oi.menu_price * oi.quantity), 0) as amount,
                    CONCAT(u.first_name, ' ', u.last_name) as customer_name,
                    CONCAT(r.first_name, ' ', r.last_name) as rider_name,
-                   o.delivery_date, o.created_at, o.delivered_at
+                   o.delivery_address, o.delivery_date, o.created_at, o.delivered_at
             FROM orders o
             JOIN users u ON o.user_id = u.id
             LEFT JOIN users r ON o.assigned_rider_id = r.id
             LEFT JOIN order_items oi ON o.id = oi.order_id
             WHERE DATE(o.delivery_date) BETWEEN ? AND ?
-            GROUP BY o.id, o.order_number, o.status, u.first_name, u.last_name, r.first_name, r.last_name, o.delivery_date, o.created_at, o.delivered_at
+            GROUP BY o.id, o.order_number, o.status, u.first_name, u.last_name, r.first_name, r.last_name, o.delivery_address, o.delivery_date, o.created_at, o.delivered_at
             ORDER BY o.delivery_date DESC, o.created_at DESC
         ");
         $stmt->execute([$dateFrom, $dateTo]);
         $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        // Generate CSV
-        $filename = "delivery_report_" . date('Y-m-d_H-i-s') . ".csv";
+        $filename = "route_optimization_report_" . date('Y-m-d_H-i-s') . ".csv";
         
         header('Content-Type: text/csv');
         header('Content-Disposition: attachment; filename="' . $filename . '"');
         
         $output = fopen('php://output', 'w');
+        fputcsv($output, ['Order Number', 'Status', 'Amount', 'Customer', 'Rider', 'Address', 'Zone', 'Distance', 'Delivery Date', 'Created', 'Delivered']);
         
-        // CSV Headers
-        fputcsv($output, ['Order Number', 'Status', 'Amount', 'Customer', 'Rider', 'Delivery Date', 'Created', 'Delivered']);
-        
-        // CSV Data
         foreach ($data as $row) {
+            $zipCode = extractZipCode($row['delivery_address']);
+            $zone = getZoneByZipCode($zipCode);
+            $coordinates = getCoordinatesByZipCode($zipCode);
+            $distance = calculateDistance(RESTAURANT_LAT, RESTAURANT_LNG, $coordinates['lat'], $coordinates['lng']);
+            
             fputcsv($output, [
                 $row['order_number'],
                 $row['status'],
                 number_format($row['amount'], 2),
                 $row['customer_name'],
                 $row['rider_name'] ?: 'Not Assigned',
+                $row['delivery_address'],
+                $zone['name'],
+                $distance . ' mi',
                 $row['delivery_date'],
                 $row['created_at'],
                 $row['delivered_at'] ?: 'Not Delivered'
@@ -386,39 +779,6 @@ function exportReport($pdo, $params) {
         http_response_code(500);
         echo "Error exporting report: " . $e->getMessage();
         exit;
-    }
-}
-
-// ✅ Send Notification Function
-function sendDeliveryNotification($pdo, $orderId, $type, $message) {
-    try {
-        // Get order and customer info
-        $stmt = $pdo->prepare("
-            SELECT o.*, u.phone, u.email, u.first_name
-            FROM orders o
-            JOIN users u ON o.user_id = u.id
-            WHERE o.id = ?
-        ");
-        $stmt->execute([$orderId]);
-        $order = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if (!$order) {
-            throw new Exception('Order not found');
-        }
-        
-        // Log notification
-        $stmt = $pdo->prepare("
-            INSERT INTO notifications (user_id, order_id, type, message, sent_at)
-            VALUES (?, ?, ?, ?, NOW())
-        ");
-        $stmt->execute([$order['user_id'], $orderId, $type, $message]);
-        
-        // Here you would integrate with SMS/Email service
-        // For now, just return success
-        
-        return ['success' => true, 'message' => 'Notification sent successfully'];
-    } catch (Exception $e) {
-        return ['success' => false, 'message' => $e->getMessage()];
     }
 }
 
@@ -437,9 +797,8 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Delivery Management - Krua Thai Admin</title>
+    <title>Smart Route Optimization - Krua Thai Admin</title>
     
-    <!-- External CSS -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
     
@@ -450,7 +809,10 @@ try {
             --accent-color: #FF6B35;
             --background-color: #F8F9FA;
             --text-dark: #2C3E50;
-            --border-color: #E0E0E0;
+            --zone-a: #28a745;
+            --zone-b: #ffc107;
+            --zone-c: #fd7e14;
+            --zone-d: #dc3545;
         }
 
         body {
@@ -483,101 +845,41 @@ try {
             margin-bottom: 20px;
         }
 
-        .stat-card.warning {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        }
-
-        .stat-card.success {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        }
-
-        .stat-card.info {
-            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-        }
-
-        .order-card {
-            border-left: 4px solid var(--accent-color);
+        .zone-card {
+            border-left: 5px solid;
             margin-bottom: 15px;
-            transition: all 0.3s ease;
         }
 
-        .order-card:hover {
-            border-left-color: var(--primary-color);
-            box-shadow: 0 6px 25px rgba(0,0,0,0.12);
-        }
+        .zone-a { border-left-color: var(--zone-a); }
+        .zone-b { border-left-color: var(--zone-b); }
+        .zone-c { border-left-color: var(--zone-c); }
+        .zone-d { border-left-color: var(--zone-d); }
 
-        .status-badge {
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 0.85em;
+        .zone-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
             font-weight: 500;
         }
 
-        .status-ready {
-            background-color: #fff3cd;
-            color: #856404;
+        .zone-badge.zone-a { background-color: var(--zone-a); color: white; }
+        .zone-badge.zone-b { background-color: var(--zone-b); color: black; }
+        .zone-badge.zone-c { background-color: var(--zone-c); color: white; }
+        .zone-badge.zone-d { background-color: var(--zone-d); color: white; }
+
+        .optimization-result {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
         }
 
-        .status-out-for-delivery {
-            background-color: #cce5ff;
-            color: #004085;
-        }
-
-        .status-delivered {
-            background-color: #d4edda;
-            color: #155724;
-        }
-
-        .btn-assign {
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            border: none;
-            color: white;
-            padding: 8px 16px;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-        }
-
-        .btn-assign:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            color: white;
-        }
-
-        .real-time-indicator {
-            position: fixed;
-            top: 80px;
-            right: 20px;
-            background: var(--secondary-color);
-            color: white;
-            padding: 10px 15px;
-            border-radius: 25px;
-            font-size: 0.9em;
-            z-index: 1000;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(76, 175, 80, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
-        }
-
-        .rider-select {
-            border-radius: 8px;
-            border: 2px solid var(--border-color);
-            padding: 8px 12px;
-            transition: all 0.3s ease;
-        }
-
-        .rider-select:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
-        }
-
-        .action-buttons {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
+        .route-card {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+            border-left: 4px solid var(--primary-color);
         }
 
         .loading-overlay {
@@ -607,15 +909,58 @@ try {
             100% { transform: rotate(360deg); }
         }
 
+        .btn-smart {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-smart:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+            color: white;
+        }
+
+        .efficiency-meter {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .efficiency-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #dc3545 0%, #ffc107 50%, #28a745 100%);
+            transition: width 0.5s ease;
+        }
+
+        .restaurant-banner {
+            background: linear-gradient(135deg, #2E7D32 0%, #4CAF50 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .order-list {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
         @media (max-width: 768px) {
-            .action-buttons {
+            .smart-controls .d-flex {
                 flex-direction: column;
+                gap: 10px;
             }
             
-            .real-time-indicator {
-                position: static;
-                margin: 10px 0;
-                text-align: center;
+            .smart-controls .btn {
+                width: 100%;
             }
         }
     </style>
@@ -626,16 +971,11 @@ try {
         <div class="loading-spinner"></div>
     </div>
 
-    <!-- Real-time Indicator -->
-    <div class="real-time-indicator">
-        <i class="fas fa-wifi"></i> Live Updates
-    </div>
-
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container-fluid">
             <a class="navbar-brand" href="dashboard.php">
-                <i class="fas fa-leaf"></i> Krua Thai Admin
+                <i class="fas fa-leaf"></i> Krua Thai Admin - Smart Delivery
             </a>
             <div class="navbar-nav ms-auto">
                 <a class="nav-link" href="dashboard.php">
@@ -645,7 +985,7 @@ try {
                     <i class="fas fa-receipt"></i> Orders
                 </a>
                 <a class="nav-link active" href="delivery-management.php">
-                    <i class="fas fa-truck"></i> Delivery
+                    <i class="fas fa-route"></i> Smart Delivery
                 </a>
                 <a class="nav-link" href="logout.php">
                     <i class="fas fa-sign-out-alt"></i> Logout
@@ -655,51 +995,98 @@ try {
     </nav>
 
     <div class="container-fluid mt-4">
+        <!-- Restaurant Info Banner -->
+        <div class="restaurant-banner">
+            <h4><i class="fas fa-store"></i> Krua Thai Restaurant - Smart Route Optimization Center</h4>
+            <p class="mb-0">📍 <?= RESTAURANT_ADDRESS ?> | 📍 Base Coordinates: <?= RESTAURANT_LAT ?>, <?= RESTAURANT_LNG ?></p>
+        </div>
+
         <!-- Statistics Row -->
         <div class="row mb-4">
             <div class="col-md-3">
                 <div class="stat-card">
                     <h5><i class="fas fa-chart-line"></i> Total Orders</h5>
                     <h2 id="totalOrders"><?= $real_time_data['statistics']['total_orders'] ?? 0 ?></h2>
+                    <small>Today's Orders</small>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="stat-card warning">
+                <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
                     <h5><i class="fas fa-clock"></i> Unassigned</h5>
                     <h2 id="unassignedOrders"><?= $real_time_data['statistics']['unassigned'] ?? 0 ?></h2>
+                    <small>Awaiting Assignment</small>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="stat-card success">
+                <div class="stat-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
                     <h5><i class="fas fa-truck"></i> Out for Delivery</h5>
                     <h2 id="outForDelivery"><?= $real_time_data['statistics']['out_for_delivery'] ?? 0 ?></h2>
+                    <small>Active Deliveries</small>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="stat-card info">
+                <div class="stat-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
                     <h5><i class="fas fa-check-circle"></i> Delivered</h5>
                     <h2 id="delivered"><?= $real_time_data['statistics']['delivered'] ?? 0 ?></h2>
+                    <small>Completed Today</small>
                 </div>
             </div>
         </div>
 
-        <!-- Action Buttons -->
+        <!-- Zone Summary -->
+        <?php if (!empty($real_time_data['zone_summary'])): ?>
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-map-marked-alt"></i> Zone Distribution Summary</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <?php foreach ($real_time_data['zone_summary'] as $zoneId => $zone): ?>
+                            <div class="col-md-3 mb-3">
+                                <div class="zone-card card <?= $zoneId ?>">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title"><?= $zone['name'] ?></h6>
+                                        <h4 style="color: <?= DELIVERY_ZONES[$zoneId]['color'] ?? '#6c757d' ?>;">
+                                            <?= $zone['orders'] ?> orders
+                                        </h4>
+                                        <p class="mb-0">฿<?= number_format($zone['amount'], 2) ?></p>
+                                        <small class="text-muted">
+                                            <?= DELIVERY_ZONES[$zoneId]['max_distance'] ?? 'Unknown' ?> miles max
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- Smart Optimization Controls -->
         <div class="row mb-4">
             <div class="col-12">
                 <div class="card">
                     <div class="card-body">
-                        <div class="action-buttons">
-                            <button class="btn btn-primary" onclick="refreshData()">
+                        <h5><i class="fas fa-brain"></i> Smart Route Optimization Controls</h5>
+                        <div class="d-flex flex-wrap gap-3 mt-3">
+                            <button class="btn btn-smart" onclick="smartOptimizeRoutes()">
+                                <i class="fas fa-brain"></i> Smart Route Optimization
+                            </button>
+                            <button class="btn btn-success" onclick="autoAssignByZones()">
+                                <i class="fas fa-magic"></i> Auto Assign by Zones
+                            </button>
+                            <button class="btn btn-info" onclick="analyzeDeliveryZones()">
+                                <i class="fas fa-chart-pie"></i> Analyze Zones
+                            </button>
+                            <button class="btn btn-warning" onclick="refreshData()">
                                 <i class="fas fa-sync-alt"></i> Refresh Data
                             </button>
-                            <button class="btn btn-success" onclick="optimizeAllRoutes()">
-                                <i class="fas fa-route"></i> Optimize Routes
-                            </button>
-                            <button class="btn btn-info" onclick="showExportModal()">
+                            <button class="btn btn-secondary" onclick="exportRouteReport()">
                                 <i class="fas fa-download"></i> Export Report
-                            </button>
-                            <button class="btn btn-warning" onclick="bulkAssignMode()">
-                                <i class="fas fa-users"></i> Bulk Assign
                             </button>
                         </div>
                     </div>
@@ -717,39 +1104,60 @@ try {
                             Unassigned Orders (<span id="unassignedCount"><?= count($real_time_data['unassigned_orders'] ?? []) ?></span>)
                         </h5>
                     </div>
-                    <div class="card-body" style="max-height: 600px; overflow-y: auto;">
+                    <div class="card-body order-list">
                         <div id="unassignedOrdersList">
                             <?php if (!empty($real_time_data['unassigned_orders'])): ?>
                                 <?php foreach ($real_time_data['unassigned_orders'] as $order): ?>
-                                    <div class="order-card card" data-order-id="<?= $order['id'] ?>">
+                                    <div class="zone-card card <?= $order['zone']['id'] ?>" data-order-id="<?= $order['id'] ?>">
                                         <div class="card-body">
                                             <div class="d-flex justify-content-between align-items-start">
-                                                <div>
+                                                <div class="flex-grow-1">
                                                     <h6 class="card-title">
                                                         #<?= htmlspecialchars($order['order_number']) ?>
-                                                        <span class="badge bg-warning">Unassigned</span>
+                                                        <span class="zone-badge <?= $order['zone']['id'] ?>">
+                                                            <?= $order['zone']['name'] ?>
+                                                        </span>
                                                     </h6>
-                                                    <p class="card-text">
-                                                        <strong><?= htmlspecialchars($order['customer_name']) ?></strong><br>
-                                                        <i class="fas fa-map-marker-alt"></i> <?= htmlspecialchars($order['delivery_address']) ?><br>
-                                                        <i class="fas fa-phone"></i> <?= htmlspecialchars($order['customer_phone']) ?><br>
-                                                        <i class="fas fa-clock"></i> <?= htmlspecialchars($order['delivery_time_slot']) ?><br>
-                                                        <i class="fas fa-dollar-sign"></i> ฿<?= number_format($order['amount'], 2) ?><br>
-                                                        <small class="text-muted">Waiting: <?= $order['wait_time'] ?> minutes</small>
-                                                    </p>
+                                                    <div class="order-details">
+                                                        <p class="mb-1">
+                                                            <strong><?= htmlspecialchars($order['customer_name']) ?></strong>
+                                                        </p>
+                                                        <p class="mb-1 small">
+                                                            <i class="fas fa-map-marker-alt"></i> <?= htmlspecialchars($order['delivery_address']) ?>
+                                                        </p>
+                                                        <div class="row text-center">
+                                                            <div class="col-4">
+                                                                <small class="text-muted">ZIP</small><br>
+                                                                <strong><?= $order['zip_code'] ?></strong>
+                                                            </div>
+                                                            <div class="col-4">
+                                                                <small class="text-muted">Distance</small><br>
+                                                                <strong><?= $order['distance_from_restaurant'] ?> mi</strong>
+                                                            </div>
+                                                            <div class="col-4">
+                                                                <small class="text-muted">Value</small><br>
+                                                                <strong>฿<?= number_format($order['amount'], 0) ?></strong>
+                                                            </div>
+                                                        </div>
+                                                        <?php if (!empty($order['delivery_time_slot'])): ?>
+                                                        <p class="mb-0 mt-2 small">
+                                                            <i class="fas fa-clock"></i> <?= htmlspecialchars($order['delivery_time_slot']) ?>
+                                                        </p>
+                                                        <?php endif; ?>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <select class="rider-select form-select form-select-sm mb-2" data-order-id="<?= $order['id'] ?>">
+                                                <div class="assignment-controls ms-3">
+                                                    <select class="form-select form-select-sm mb-2" data-order-id="<?= $order['id'] ?>">
                                                         <option value="">Select Rider</option>
                                                         <?php if (!empty($real_time_data['available_riders'])): ?>
                                                             <?php foreach ($real_time_data['available_riders'] as $rider): ?>
                                                                 <option value="<?= $rider['id'] ?>">
-                                                                    <?= htmlspecialchars($rider['name']) ?> (<?= $rider['active_orders'] ?> orders)
+                                                                    <?= htmlspecialchars($rider['name']) ?> (<?= $rider['active_orders'] ?>/6)
                                                                 </option>
                                                             <?php endforeach; ?>
                                                         <?php endif; ?>
                                                     </select>
-                                                    <button class="btn btn-assign btn-sm" onclick="assignRider(<?= $order['id'] ?>, this)">
+                                                    <button class="btn btn-primary btn-sm d-block w-100" onclick="assignRider(<?= $order['id'] ?>, this)">
                                                         <i class="fas fa-user-plus"></i> Assign
                                                     </button>
                                                 </div>
@@ -758,7 +1166,7 @@ try {
                                     </div>
                                 <?php endforeach; ?>
                             <?php else: ?>
-                                <div class="text-center text-muted py-4">
+                                <div class="text-center text-muted py-5">
                                     <i class="fas fa-check-circle fa-3x mb-3"></i>
                                     <h5>All orders are assigned!</h5>
                                     <p>No unassigned orders at the moment.</p>
@@ -778,40 +1186,55 @@ try {
                             Active Deliveries (<span id="activeCount"><?= count($real_time_data['active_deliveries'] ?? []) ?></span>)
                         </h5>
                     </div>
-                    <div class="card-body" style="max-height: 600px; overflow-y: auto;">
+                    <div class="card-body order-list">
                         <div id="activeDeliveriesList">
                             <?php if (!empty($real_time_data['active_deliveries'])): ?>
                                 <?php foreach ($real_time_data['active_deliveries'] as $delivery): ?>
-                                    <div class="order-card card" data-order-id="<?= $delivery['id'] ?>">
+                                    <div class="zone-card card <?= $delivery['zone']['id'] ?>" data-order-id="<?= $delivery['id'] ?>">
                                         <div class="card-body">
                                             <div class="d-flex justify-content-between align-items-start">
-                                                <div>
+                                                <div class="flex-grow-1">
                                                     <h6 class="card-title">
                                                         #<?= htmlspecialchars($delivery['order_number']) ?>
-                                                        <span class="status-badge status-<?= str_replace('_', '-', $delivery['status']) ?>">
-                                                            <?= ucfirst(str_replace('_', ' ', $delivery['status'])) ?>
+                                                        <span class="zone-badge <?= $delivery['zone']['id'] ?>">
+                                                            <?= $delivery['zone']['name'] ?>
                                                         </span>
                                                     </h6>
-                                                    <p class="card-text">
-                                                        <strong><?= htmlspecialchars($delivery['customer_name']) ?></strong><br>
-                                                        <i class="fas fa-map-marker-alt"></i> <?= htmlspecialchars($delivery['delivery_address']) ?><br>
-                                                        <i class="fas fa-user"></i> <?= htmlspecialchars($delivery['rider_name']) ?><br>
-                                                        <i class="fas fa-phone"></i> <?= htmlspecialchars($delivery['rider_phone']) ?><br>
-                                                        <i class="fas fa-clock"></i> <?= htmlspecialchars($delivery['delivery_time_slot']) ?><br>
-                                                        <i class="fas fa-dollar-sign"></i> ฿<?= number_format($delivery['amount'], 2) ?><br>
-                                                        <small class="text-muted">Last update: <?= $delivery['last_update_minutes'] ?> min ago</small>
-                                                    </p>
+                                                    <div class="delivery-details">
+                                                        <p class="mb-1">
+                                                            <strong><?= htmlspecialchars($delivery['customer_name']) ?></strong>
+                                                        </p>
+                                                        <p class="mb-1 small">
+                                                            <i class="fas fa-map-marker-alt"></i> <?= htmlspecialchars($delivery['delivery_address']) ?>
+                                                        </p>
+                                                        <p class="mb-1 small">
+                                                            <i class="fas fa-user"></i> <?= htmlspecialchars($delivery['rider_name']) ?>
+                                                            <span class="text-muted">(<?= htmlspecialchars($delivery['rider_phone']) ?>)</span>
+                                                        </p>
+                                                        <div class="row text-center">
+                                                            <div class="col-6">
+                                                                <small class="text-muted">Value</small><br>
+                                                                <strong>฿<?= number_format($delivery['amount'], 0) ?></strong>
+                                                            </div>
+                                                            <div class="col-6">
+                                                                <small class="text-muted">Last Update</small><br>
+                                                                <strong><?= $delivery['last_update_minutes'] ?> min ago</strong>
+                                                            </div>
+                                                        </div>
+                                                        <?php if (!empty($delivery['delivery_time_slot'])): ?>
+                                                        <p class="mb-0 mt-2 small">
+                                                            <i class="fas fa-clock"></i> <?= htmlspecialchars($delivery['delivery_time_slot']) ?>
+                                                        </p>
+                                                        <?php endif; ?>
+                                                    </div>
                                                 </div>
-                                                <div class="text-end">
+                                                <div class="delivery-actions ms-3">
                                                     <div class="btn-group-vertical" role="group">
                                                         <button class="btn btn-success btn-sm" onclick="updateStatus(<?= $delivery['id'] ?>, 'delivered')">
                                                             <i class="fas fa-check"></i> Delivered
                                                         </button>
                                                         <button class="btn btn-info btn-sm" onclick="trackOrder(<?= $delivery['id'] ?>)">
                                                             <i class="fas fa-map"></i> Track
-                                                        </button>
-                                                        <button class="btn btn-warning btn-sm" onclick="sendNotification(<?= $delivery['id'] ?>)">
-                                                            <i class="fas fa-bell"></i> Notify
                                                         </button>
                                                     </div>
                                                 </div>
@@ -820,7 +1243,7 @@ try {
                                     </div>
                                 <?php endforeach; ?>
                             <?php else: ?>
-                                <div class="text-center text-muted py-4">
+                                <div class="text-center text-muted py-5">
                                     <i class="fas fa-truck fa-3x mb-3"></i>
                                     <h5>No active deliveries</h5>
                                     <p>All orders are either pending or delivered.</p>
@@ -851,22 +1274,27 @@ try {
                                             <div class="card-body text-center">
                                                 <i class="fas fa-user-circle fa-3x text-success mb-2"></i>
                                                 <h6 class="card-title"><?= htmlspecialchars($rider['name']) ?></h6>
-                                                <p class="card-text">
-                                                    <i class="fas fa-phone"></i> <?= htmlspecialchars($rider['phone']) ?><br>
-                                                    <span class="badge bg-info"><?= $rider['active_orders'] ?> active orders</span>
+                                                <p class="mb-2">
+                                                    <i class="fas fa-phone"></i> <?= htmlspecialchars($rider['phone']) ?>
                                                 </p>
-                                                <button class="btn btn-outline-success btn-sm" onclick="viewRiderDetails(<?= $rider['id'] ?>)">
-                                                    <i class="fas fa-eye"></i> View Details
-                                                </button>
+                                                <span class="badge bg-info mb-2"><?= $rider['active_orders'] ?>/6 orders</span>
+                                                <div class="efficiency-meter mb-2">
+                                                    <div class="efficiency-fill" style="width: <?= min(100, (6 - $rider['active_orders']) * 16.67) ?>%"></div>
+                                                </div>
+                                                <small class="text-muted">
+                                                    Capacity: <?= 6 - $rider['active_orders'] ?> available
+                                                    <br>
+                                                    Status: <?= $rider['active_orders'] >= 6 ? 'Full' : ($rider['active_orders'] >= 4 ? 'Busy' : 'Available') ?>
+                                                </small>
                                             </div>
                                         </div>
                                     </div>
                                 <?php endforeach; ?>
                             <?php else: ?>
-                                <div class="col-12 text-center text-muted py-4">
+                                <div class="col-12 text-center text-muted py-5">
                                     <i class="fas fa-user-slash fa-3x mb-3"></i>
                                     <h5>No riders available</h5>
-                                    <p>All riders are currently offline or busy.</p>
+                                    <p>All riders are currently offline or at capacity.</p>
                                 </div>
                             <?php endif; ?>
                         </div>
@@ -876,71 +1304,22 @@ try {
         </div>
     </div>
 
-    <!-- Export Modal -->
-    <div class="modal fade" id="exportModal" tabindex="-1">
-        <div class="modal-dialog">
+    <!-- Optimization Results Modal -->
+    <div class="modal fade" id="optimizationModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Export Delivery Report</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <h5 class="modal-title">
+                        <i class="fas fa-brain"></i> Smart Route Optimization Results
+                    </h5>
                 </div>
                 <div class="modal-body">
-                    <form id="exportForm">
-                        <div class="mb-3">
-                            <label for="dateFrom" class="form-label">From Date</label>
-                            <input type="date" class="form-control" id="dateFrom" name="date_from" value="<?= date('Y-m-d') ?>">
-                        </div>
-                        <div class="mb-3">
-                            <label for="dateTo" class="form-label">To Date</label>
-                            <input type="date" class="form-control" id="dateTo" name="date_to" value="<?= date('Y-m-d') ?>">
-                        </div>
-                        <div class="mb-3">
-                            <label for="exportFormat" class="form-label">Format</label>
-                            <select class="form-select" id="exportFormat" name="format">
-                                <option value="csv">CSV</option>
-                                <option value="excel">Excel</option>
-                                <option value="pdf">PDF</option>
-                            </select>
-                        </div>
-                    </form>
+                    <div id="zoneAnalysisResults">
+                        <!-- Zone analysis will be loaded here -->
+                    </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="exportReport()">Export</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Notification Modal -->
-    <div class="modal fade" id="notificationModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Send Notification</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="notificationForm">
-                        <input type="hidden" id="notificationOrderId">
-                        <div class="mb-3">
-                            <label for="notificationType" class="form-label">Type</label>
-                            <select class="form-select" id="notificationType">
-                                <option value="sms">SMS</option>
-                                <option value="email">Email</option>
-                                <option value="both">Both</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="notificationMessage" class="form-label">Message</label>
-                            <textarea class="form-control" id="notificationMessage" rows="3" 
-                                      placeholder="Enter your message..."></textarea>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="sendNotificationMessage()">Send</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
@@ -949,20 +1328,138 @@ try {
     <!-- Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Global variables
         let refreshInterval;
-        let bulkMode = false;
-        let selectedOrders = [];
+        let currentOptimization = null;
 
         // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
-            startAutoRefresh();
-            
             // Auto-refresh every 30 seconds
             refreshInterval = setInterval(refreshData, 30000);
+            
+            // Initialize Apply Optimization button if it exists
+            const applyOptimizationBtn = document.getElementById('applyOptimization');
+            if (applyOptimizationBtn) {
+                applyOptimizationBtn.addEventListener('click', function() {
+                    if (!currentOptimization) {
+                        showError('No optimization data available');
+                        return;
+                    }
+                    
+                    if (!confirm('Apply the optimized route assignments? This will assign riders to orders.')) {
+                        return;
+                    }
+                    
+                    autoAssignByZones();
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('optimizationModal'));
+                    if (modal) {
+                        modal.hide();
+                    }
+                });
+            }
         });
 
-        // ✅ Real-time Data Refresh
+        // ✅ Smart Route Optimization with better error handling
+        function smartOptimizeRoutes() {
+            showLoading();
+            
+            fetch('delivery-management.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'action=smart_route_optimization'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Optimization response:', data); // Debug log
+                
+                if (data.success) {
+                    if (data.data && (data.data.optimal_routes || data.data.metrics)) {
+                        currentOptimization = data.data;
+                        showOptimizationResults(data.data);
+                        new bootstrap.Modal(document.getElementById('optimizationModal')).show();
+                    } else {
+                        showError('No optimization data returned - this usually means there are no unassigned orders or no available riders');
+                    }
+                } else {
+                    showError('Optimization failed: ' + (data.message || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Optimization error:', error);
+                showError('Error optimizing routes: ' + error.message);
+            })
+            .finally(() => {
+                hideLoading();
+            });
+        }
+
+        // ✅ Auto Assign by Zones
+        function autoAssignByZones() {
+            if (!confirm('This will automatically assign all unassigned orders based on zone optimization. Continue?')) {
+                return;
+            }
+            
+            showLoading();
+            
+            fetch('delivery-management.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'action=auto_assign_by_zones'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showSuccess(data.message);
+                    refreshData();
+                } else {
+                    showError('Auto assignment failed: ' + data.message);
+                }
+            })
+            .catch(error => {
+                showError('Error in auto assignment: ' + error.message);
+            })
+            .finally(() => {
+                hideLoading();
+            });
+        }
+
+        // ✅ Analyze Delivery Zones
+        function analyzeDeliveryZones() {
+            showLoading();
+            
+            fetch('delivery-management.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'action=analyze_delivery_zones'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showZoneAnalysis(data.data);
+                    new bootstrap.Modal(document.getElementById('zoneAnalysisModal')).show();
+                } else {
+                    showError('Zone analysis failed: ' + data.message);
+                }
+            })
+            .catch(error => {
+                showError('Error analyzing zones: ' + error.message);
+            })
+            .finally(() => {
+                hideLoading();
+            });
+        }
+
+        // ✅ Refresh Data
         function refreshData() {
             showLoading();
             
@@ -990,27 +1487,36 @@ try {
             });
         }
 
-        // ✅ Update UI with new data
-        function updateUI(data) {
-            // Update statistics
-            document.getElementById('totalOrders').textContent = data.statistics.total_orders;
-            document.getElementById('unassignedOrders').textContent = data.statistics.unassigned;
-            document.getElementById('outForDelivery').textContent = data.statistics.out_for_delivery;
-            document.getElementById('delivered').textContent = data.statistics.delivered;
+        // ✅ Export Route Report
+        function exportRouteReport() {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = 'delivery-management.php';
+            form.style.display = 'none';
             
-            // Update counts
-            document.getElementById('unassignedCount').textContent = data.unassigned_orders.length;
-            document.getElementById('activeCount').textContent = data.active_deliveries.length;
-            document.getElementById('ridersCount').textContent = data.available_riders.length;
+            const actionInput = document.createElement('input');
+            actionInput.type = 'hidden';
+            actionInput.name = 'action';
+            actionInput.value = 'export_route_report';
+            form.appendChild(actionInput);
             
-            // Update unassigned orders list
-            updateUnassignedOrdersList(data.unassigned_orders, data.available_riders);
+            const dateFromInput = document.createElement('input');
+            dateFromInput.type = 'hidden';
+            dateFromInput.name = 'date_from';
+            dateFromInput.value = new Date().toISOString().split('T')[0];
+            form.appendChild(dateFromInput);
             
-            // Update active deliveries list
-            updateActiveDeliveriesList(data.active_deliveries);
+            const dateToInput = document.createElement('input');
+            dateToInput.type = 'hidden';
+            dateToInput.name = 'date_to';
+            dateToInput.value = new Date().toISOString().split('T')[0];
+            form.appendChild(dateToInput);
             
-            // Update riders list
-            updateRidersList(data.available_riders);
+            document.body.appendChild(form);
+            form.submit();
+            document.body.removeChild(form);
+            
+            showSuccess('Report export started');
         }
 
         // ✅ Assign Rider
@@ -1081,376 +1587,271 @@ try {
 
         // ✅ Track Order
         function trackOrder(orderId) {
-            // Open tracking in new window
             window.open(`track-order.php?id=${orderId}`, '_blank');
         }
 
-        // ✅ Send Notification
-        function sendNotification(orderId) {
-            document.getElementById('notificationOrderId').value = orderId;
-            new bootstrap.Modal(document.getElementById('notificationModal')).show();
-        }
-
-        function sendNotificationMessage() {
-            const orderId = document.getElementById('notificationOrderId').value;
-            const type = document.getElementById('notificationType').value;
-            const message = document.getElementById('notificationMessage').value;
+        // ✅ Show Optimization Results
+        function showOptimizationResults(data) {
+            const container = document.getElementById('optimizationResults');
             
-            if (!message.trim()) {
-                showError('Please enter a message');
-                return;
-            }
-            
-            showLoading();
-            
-            fetch('delivery-management.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: `action=send_notification&order_id=${orderId}&type=${type}&message=${encodeURIComponent(message)}`
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showSuccess('Notification sent successfully');
-                    bootstrap.Modal.getInstance(document.getElementById('notificationModal')).hide();
-                } else {
-                    showError('Failed to send notification: ' + data.message);
-                }
-            })
-            .catch(error => {
-                showError('Error sending notification: ' + error.message);
-            })
-            .finally(() => {
-                hideLoading();
-            });
-        }
-
-        // ✅ Export Report
-        function showExportModal() {
-            new bootstrap.Modal(document.getElementById('exportModal')).show();
-        }
-
-        function exportReport() {
-            const form = document.getElementById('exportForm');
-            const formData = new FormData(form);
-            formData.append('action', 'export_report');
-            
-            showLoading();
-            
-            // Create a temporary form for file download
-            const tempForm = document.createElement('form');
-            tempForm.method = 'POST';
-            tempForm.action = 'delivery-management.php';
-            tempForm.style.display = 'none';
-            
-            for (let [key, value] of formData) {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = key;
-                input.value = value;
-                tempForm.appendChild(input);
-            }
-            
-            document.body.appendChild(tempForm);
-            tempForm.submit();
-            document.body.removeChild(tempForm);
-            
-            bootstrap.Modal.getInstance(document.getElementById('exportModal')).hide();
-            hideLoading();
-            showSuccess('Report export started');
-        }
-
-        // ✅ Bulk Operations
-        function bulkAssignMode() {
-            bulkMode = !bulkMode;
-            selectedOrders = [];
-            
-            const button = event.target;
-            if (bulkMode) {
-                button.textContent = 'Exit Bulk Mode';
-                button.classList.remove('btn-warning');
-                button.classList.add('btn-danger');
-                showBulkControls();
-            } else {
-                button.textContent = 'Bulk Assign';
-                button.classList.remove('btn-danger');
-                button.classList.add('btn-warning');
-                hideBulkControls();
-            }
-        }
-
-        function showBulkControls() {
-            // Add checkboxes to orders
-            const orderCards = document.querySelectorAll('.order-card');
-            orderCards.forEach(card => {
-                const checkbox = document.createElement('input');
-                checkbox.type = 'checkbox';
-                checkbox.className = 'bulk-checkbox';
-                checkbox.style.marginRight = '10px';
-                checkbox.addEventListener('change', handleBulkSelection);
-                card.querySelector('.card-body').prepend(checkbox);
-            });
-        }
-
-        function hideBulkControls() {
-            document.querySelectorAll('.bulk-checkbox').forEach(checkbox => {
-                checkbox.remove();
-            });
-        }
-
-        // ✅ Optimize Routes
-        function optimizeAllRoutes() {
-            showLoading();
-            
-            // Get all active riders
-            const riders = document.querySelectorAll('[data-rider-id]');
-            const promises = [];
-            
-            riders.forEach(rider => {
-                const riderId = rider.dataset.riderId;
-                promises.push(
-                    fetch('delivery-management.php', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                        },
-                        body: `action=optimize_route&rider_id=${riderId}`
-                    }).then(response => response.json())
-                );
-            });
-            
-            Promise.all(promises)
-                .then(results => {
-                    const successCount = results.filter(r => r.success).length;
-                    showSuccess(`Routes optimized for ${successCount} riders`);
-                    refreshData();
-                })
-                .catch(error => {
-                    showError('Error optimizing routes: ' + error.message);
-                })
-                .finally(() => {
-                    hideLoading();
-                });
-        }
-
-        // ✅ View Rider Details
-        function viewRiderDetails(riderId) {
-            window.open(`rider-details.php?id=${riderId}`, '_blank');
-        }
-
-        // ✅ Auto-refresh management
-        function startAutoRefresh() {
-            console.log('Auto-refresh started');
-        }
-
-        function stopAutoRefresh() {
-            if (refreshInterval) {
-                clearInterval(refreshInterval);
-                console.log('Auto-refresh stopped');
-            }
-        }
-
-        // ✅ UI Helper Functions
-        function updateUnassignedOrdersList(orders, riders) {
-            const container = document.getElementById('unassignedOrdersList');
-            
-            if (orders.length === 0) {
+            // Check if data and metrics exist
+            if (!data || !data.metrics) {
                 container.innerHTML = `
-                    <div class="text-center text-muted py-4">
-                        <i class="fas fa-check-circle fa-3x mb-3"></i>
-                        <h5>All orders are assigned!</h5>
-                        <p>No unassigned orders at the moment.</p>
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        No optimization data available or incomplete response.
                     </div>
                 `;
                 return;
             }
             
-            container.innerHTML = orders.map(order => `
-                <div class="order-card card" data-order-id="${order.id}">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div>
-                                <h6 class="card-title">
-                                    #${order.order_number}
-                                    <span class="badge bg-warning">Unassigned</span>
-                                </h6>
-                                <p class="card-text">
-                                    <strong>${order.customer_name}</strong><br>
-                                    <i class="fas fa-map-marker-alt"></i> ${order.delivery_address}<br>
-                                    <i class="fas fa-phone"></i> ${order.customer_phone}<br>
-                                    <i class="fas fa-clock"></i> ${order.delivery_time_slot}<br>
-                                    <i class="fas fa-dollar-sign"></i> ฿${Number(order.amount).toLocaleString('en-US', {minimumFractionDigits: 2})}<br>
-                                    <small class="text-muted">Waiting: ${order.wait_time} minutes</small>
-                                </p>
-                            </div>
-                            <div>
-                                <select class="rider-select form-select form-select-sm mb-2" data-order-id="${order.id}">
-                                    <option value="">Select Rider</option>
-                                    ${riders.map(rider => `
-                                        <option value="${rider.id}">
-                                            ${rider.name} (${rider.active_orders} orders)
-                                        </option>
-                                    `).join('')}
-                                </select>
-                                <button class="btn btn-assign btn-sm" onclick="assignRider(${order.id}, this)">
-                                    <i class="fas fa-user-plus"></i> Assign
-                                </button>
-                            </div>
+            const metrics = data.metrics;
+            const routes = data.optimal_routes || [];
+            const recommendations = data.recommendations || [];
+            
+            let html = `
+                <div class="optimization-result">
+                    <h5><i class="fas fa-chart-line"></i> Optimization Summary</h5>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <h6>Routes: ${metrics.total_routes || 0}</h6>
+                            <h6>Orders: ${metrics.total_orders || 0}</h6>
+                        </div>
+                        <div class="col-md-4">
+                            <h6>Distance: ${metrics.total_distance || 0} mi</h6>
+                            <h6>Revenue: ฿${metrics.total_revenue || 0}</h6>
+                        </div>
+                        <div class="col-md-4">
+                            <h6>Cost: ฿${metrics.total_cost || 0}</h6>
+                            <h6>Profit: ฿${metrics.total_profit || 0}</h6>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <strong>Efficiency Score: ${metrics.avg_efficiency || 0}%</strong>
+                        <div class="efficiency-meter">
+                            <div class="efficiency-fill" style="width: ${Math.min(100, metrics.avg_efficiency || 0)}%"></div>
                         </div>
                     </div>
                 </div>
-            `).join('');
-        }
-
-        function updateActiveDeliveriesList(deliveries) {
-            const container = document.getElementById('activeDeliveriesList');
+            `;
             
-            if (deliveries.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center text-muted py-4">
-                        <i class="fas fa-truck fa-3x mb-3"></i>
-                        <h5>No active deliveries</h5>
-                        <p>All orders are either pending or delivered.</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            container.innerHTML = deliveries.map(delivery => `
-                <div class="order-card card" data-order-id="${delivery.id}">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div>
-                                <h6 class="card-title">
-                                    #${delivery.order_number}
-                                    <span class="status-badge status-${delivery.status.replace('_', '-')}">
-                                        ${delivery.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                                    </span>
-                                </h6>
-                                <p class="card-text">
-                                    <strong>${delivery.customer_name}</strong><br>
-                                    <i class="fas fa-map-marker-alt"></i> ${delivery.delivery_address}<br>
-                                    <i class="fas fa-user"></i> ${delivery.rider_name}<br>
-                                    <i class="fas fa-phone"></i> ${delivery.rider_phone}<br>
-                                    <i class="fas fa-clock"></i> ${delivery.delivery_time_slot}<br>
-                                    <i class="fas fa-dollar-sign"></i> ฿${Number(delivery.amount).toLocaleString('en-US', {minimumFractionDigits: 2})}<br>
-                                    <small class="text-muted">Last update: ${delivery.last_update_minutes} min ago</small>
-                                </p>
-                            </div>
-                            <div class="text-end">
-                                <div class="btn-group-vertical" role="group">
-                                    <button class="btn btn-success btn-sm" onclick="updateStatus(${delivery.id}, 'delivered')">
-                                        <i class="fas fa-check"></i> Delivered
-                                    </button>
-                                    <button class="btn btn-info btn-sm" onclick="trackOrder(${delivery.id})">
-                                        <i class="fas fa-map"></i> Track
-                                    </button>
-                                    <button class="btn btn-warning btn-sm" onclick="sendNotification(${delivery.id})">
-                                        <i class="fas fa-bell"></i> Notify
-                                    </button>
+            if (routes.length > 0) {
+                html += '<h5><i class="fas fa-route"></i> Optimal Route Assignments</h5>';
+                
+                routes.forEach((route, index) => {
+                    const zoneColor = (route.zone && route.zone.color) || '#6c757d';
+                    const zoneName = (route.zone && route.zone.name) || 'Unknown Zone';
+                    const riderName = (route.rider && route.rider.name) || 'Unknown Rider';
+                    
+                    html += `
+                        <div class="route-card" style="border-left-color: ${zoneColor};">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 style="color: ${zoneColor};">
+                                        <i class="fas fa-map-marker-alt"></i> ${zoneName}
+                                        <span class="badge" style="background-color: ${zoneColor};">
+                                            ${route.total_orders || 0} orders
+                                        </span>
+                                    </h6>
+                                    <p><strong>Rider:</strong> ${riderName}</p>
+                                    <p><strong>Distance:</strong> ${route.avg_distance || 0} mi | 
+                                       <strong>Time:</strong> ${route.estimated_time || 0} min | 
+                                       <strong>Revenue:</strong> ฿${route.total_amount || 0}</p>
+                                    <p><strong>Efficiency:</strong> ${route.efficiency_score || 0}% | 
+                                       <strong>ROI:</strong> ${(route.cost_analysis && route.cost_analysis.roi_percentage) || 0}%</p>
                                 </div>
                             </div>
+                            <div class="mt-2">
+                                <small class="text-muted">Orders: </small>
+                                ${(route.orders || []).slice(0, 3).map(order => 
+                                    `<span class="badge bg-secondary me-1">#${order.order_number || 'N/A'}</span>`
+                                ).join('')}
+                                ${(route.orders || []).length > 3 ? `<span class="badge bg-light text-dark">+${(route.orders || []).length - 3} more</span>` : ''}
+                            </div>
                         </div>
+                    `;
+                });
+            } else {
+                html += `
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        No optimal routes generated. This may be due to no unassigned orders or no available riders.
                     </div>
-                </div>
-            `).join('');
+                `;
+            }
+            
+            if (recommendations.length > 0) {
+                html += `
+                    <div class="mt-4">
+                        <h5><i class="fas fa-lightbulb"></i> Recommendations</h5>
+                        <ul class="list-group">
+                            ${recommendations.map(rec => 
+                                `<li class="list-group-item"><i class="fas fa-arrow-right text-primary"></i> ${rec}</li>`
+                            ).join('')}
+                        </ul>
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html;
         }
 
-        function updateRidersList(riders) {
-            const container = document.getElementById('ridersList');
+        // ✅ Show Zone Analysis
+        function showZoneAnalysis(data) {
+            const container = document.getElementById('zoneAnalysisResults');
             
-            if (riders.length === 0) {
+            // Check if data exists and is an array
+            if (!data || !Array.isArray(data) || data.length === 0) {
                 container.innerHTML = `
-                    <div class="col-12 text-center text-muted py-4">
-                        <i class="fas fa-user-slash fa-3x mb-3"></i>
-                        <h5>No riders available</h5>
-                        <p>All riders are currently offline or busy.</p>
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        No zone analysis data available. This could be because there are no recent orders or the database query returned no results.
                     </div>
                 `;
                 return;
             }
             
-            container.innerHTML = riders.map(rider => `
-                <div class="col-md-3 mb-3">
-                    <div class="card border-success" data-rider-id="${rider.id}">
-                        <div class="card-body text-center">
-                            <i class="fas fa-user-circle fa-3x text-success mb-2"></i>
-                            <h6 class="card-title">${rider.name}</h6>
-                            <p class="card-text">
-                                <i class="fas fa-phone"></i> ${rider.phone}<br>
-                                <span class="badge bg-info">${rider.active_orders} active orders</span>
-                            </p>
-                            <button class="btn btn-outline-success btn-sm" onclick="viewRiderDetails(${rider.id})">
-                                <i class="fas fa-eye"></i> View Details
-                            </button>
-                        </div>
-                    </div>
+            let html = `
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>ZIP Code</th>
+                                <th>Zone</th>
+                                <th>Distance</th>
+                                <th>Orders</th>
+                                <th>Avg Value</th>
+                                <th>Revenue</th>
+                                <th>Priority</th>
+                                <th>Efficiency</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            data.forEach(zone => {
+                const zoneColor = (zone.zone && zone.zone.color) || '#6c757d';
+                const zoneName = (zone.zone && zone.zone.name) || 'Unknown Zone';
+                
+                html += `
+                    <tr>
+                        <td><strong>${zone.zipcode || 'N/A'}</strong></td>
+                        <td>
+                            <span class="badge" style="background-color: ${zoneColor};">
+                                ${zoneName}
+                            </span>
+                        </td>
+                        <td>${zone.distance || 0} mi</td>
+                        <td>${zone.order_frequency || 0}</td>
+                        <td>฿${zone.avg_order_value || 0}</td>
+                        <td>฿${zone.revenue_potential || 0}</td>
+                        <td>
+                            <div class="efficiency-meter" style="width: 60px; height: 15px;">
+                                <div class="efficiency-fill" style="width: ${Math.min(100, zone.delivery_priority || 0)}%"></div>
+                            </div>
+                            <small>${zone.delivery_priority || 0}%</small>
+                        </td>
+                        <td>฿${zone.cost_efficiency || 0}/mi</td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                        </tbody>
+                    </table>
                 </div>
-            `).join('');
+                <div class="mt-3">
+                    <h6><i class="fas fa-info-circle"></i> Zone Analysis Insights</h6>
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-check text-success"></i> High priority zones (80%+) should get dedicated riders</li>
+                        <li><i class="fas fa-check text-warning"></i> Medium priority zones (50-80%) can be combined</li>
+                        <li><i class="fas fa-check text-danger"></i> Low priority zones (<50%) need minimum order requirements</li>
+                    </ul>
+                </div>
+            `;
+            
+            container.innerHTML = html;
+        }
+
+        // ✅ Update UI with new data
+        function updateUI(data) {
+            // Update statistics
+            document.getElementById('totalOrders').textContent = data.statistics.total_orders;
+            document.getElementById('unassignedOrders').textContent = data.statistics.unassigned;
+            document.getElementById('outForDelivery').textContent = data.statistics.out_for_delivery;
+            document.getElementById('delivered').textContent = data.statistics.delivered;
+            
+            // Update counts
+            document.getElementById('unassignedCount').textContent = data.unassigned_orders.length;
+            document.getElementById('activeCount').textContent = data.active_deliveries.length;
+            document.getElementById('ridersCount').textContent = data.available_riders.length;
+            
+            // For production, you'd want more sophisticated DOM updates
+            // For now, we'll just reload for simplicity
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
         }
 
         // ✅ Utility Functions
         function showLoading() {
-            document.getElementById('loadingOverlay').style.display = 'flex';
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            if (loadingOverlay) {
+                loadingOverlay.style.display = 'flex';
+            }
         }
 
         function hideLoading() {
-            document.getElementById('loadingOverlay').style.display = 'none';
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            if (loadingOverlay) {
+                loadingOverlay.style.display = 'none';
+            }
         }
 
         function showSuccess(message) {
-            // Create toast notification
-            const toast = document.createElement('div');
-            toast.className = 'alert alert-success alert-dismissible fade show position-fixed';
-            toast.style.top = '100px';
-            toast.style.right = '20px';
-            toast.style.zIndex = '9999';
-            toast.innerHTML = `
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            `;
-            document.body.appendChild(toast);
-            
-            // Auto remove after 3 seconds
-            setTimeout(() => {
-                if (toast.parentNode) {
-                    toast.parentNode.removeChild(toast);
-                }
-            }, 3000);
+            const toast = createToast(message, 'success');
+            if (toast) {
+                document.body.appendChild(toast);
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.parentNode.removeChild(toast);
+                    }
+                }, 3000);
+            }
         }
 
         function showError(message) {
-            // Create toast notification
-            const toast = document.createElement('div');
-            toast.className = 'alert alert-danger alert-dismissible fade show position-fixed';
-            toast.style.top = '100px';
-            toast.style.right = '20px';
-            toast.style.zIndex = '9999';
-            toast.innerHTML = `
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            `;
-            document.body.appendChild(toast);
-            
-            // Auto remove after 5 seconds
-            setTimeout(() => {
-                if (toast.parentNode) {
-                    toast.parentNode.removeChild(toast);
-                }
-            }, 5000);
+            const toast = createToast(message, 'error');
+            if (toast) {
+                document.body.appendChild(toast);
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.parentNode.removeChild(toast);
+                    }
+                }, 5000);
+            }
         }
 
-        // Handle page visibility change (pause/resume auto-refresh)
-        document.addEventListener('visibilitychange', function() {
-            if (document.hidden) {
-                stopAutoRefresh();
-            } else {
-                refreshData();
-                refreshInterval = setInterval(refreshData, 30000);
+        function createToast(message, type) {
+            try {
+                const toast = document.createElement('div');
+                toast.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show position-fixed`;
+                toast.style.top = '100px';
+                toast.style.right = '20px';
+                toast.style.zIndex = '9999';
+                toast.style.minWidth = '300px';
+                toast.innerHTML = `
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'}"></i>
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                return toast;
+            } catch (error) {
+                console.error('Error creating toast:', error);
+                return null;
             }
-        });
+        }
     </script>
 </body>
 </html>
+               
