@@ -384,7 +384,7 @@ try {
         LEFT JOIN (
             SELECT subscription_id, COUNT(*) as complaint_count
             FROM complaints 
-            WHERE status IN ('submitted', 'pending', 'in_progress', 'resolved')
+            WHERE status IN ('open', 'in_progress', 'resolved', 'closed', 'escalated')
             GROUP BY subscription_id
         ) c ON s.id = c.subscription_id
         $whereClause
@@ -394,15 +394,32 @@ try {
     $totalItems = $countStmt->fetchColumn();
     $totalPages = ceil($totalItems / $limit);
 
+    if ($tableExists) {
+        $complaintsJoin = "
+            LEFT JOIN (
+                SELECT subscription_id, COUNT(*) as complaint_count
+                FROM complaints 
+                WHERE status IN ('open', 'in_progress', 'resolved', 'closed', 'escalated')
+                GROUP BY subscription_id
+            ) c ON s.id = c.subscription_id
+        ";
+        $complaintsSelect = ", COALESCE(c.complaint_count, 0) as complaint_count";
+    } else {
+        $complaintsJoin = "";
+        $complaintsSelect = ", 0 as complaint_count";
+    }
+
     $sql = "
         SELECT s.id, s.status, s.start_date, s.next_billing_date, s.total_amount,
-               CONCAT(u.first_name, ' ', u.last_name) as customer_name,
-               u.email, u.phone,
-               sp.name_thai as plan_name, sp.meals_per_week,
-               s.created_at, s.updated_at
+            CONCAT(u.first_name, ' ', u.last_name) as customer_name,
+            u.email, u.phone,
+            sp.name_thai as plan_name, sp.meals_per_week,
+            s.created_at, s.updated_at
+            $complaintsSelect
         FROM subscriptions s
         JOIN users u ON s.user_id = u.id
         JOIN subscription_plans sp ON s.plan_id = sp.id
+        $complaintsJoin
         $whereClause
         ORDER BY s.created_at DESC
         LIMIT ? OFFSET ?
@@ -431,7 +448,7 @@ try {
             LEFT JOIN (
                 SELECT subscription_id, COUNT(*) as complaint_count
                 FROM complaints 
-                WHERE status IN ('submitted', 'pending', 'in_progress', 'resolved')
+                WHERE status IN ('open', 'in_progress', 'resolved', 'closed', 'escalated')
                 GROUP BY subscription_id
             ) c ON s.id = c.subscription_id
         ");
@@ -1539,8 +1556,8 @@ try {
                                 <?php foreach ($orders as $order): ?>
                                 <?php
                                 // Ensure has_complaints is set to avoid undefined key warning
-                                $hasComplaints = isset($order['has_complaints']) ? (bool)$order['has_complaints'] : false;
                                 $complaintCount = isset($order['complaint_count']) ? (int)$order['complaint_count'] : 0;
+                                $hasComplaints = $complaintCount > 0;
                                 ?>
                                 <tr>
                                     <td>
