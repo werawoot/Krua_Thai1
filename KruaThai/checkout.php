@@ -15,7 +15,7 @@ $selected_meals = [];
 $meal_details = [];
 $errors = [];
 $success = false;
-$weekend_dates = [];
+$delivery_dates = [];
 $user = null;
 
 // Early session and authentication checks
@@ -90,9 +90,10 @@ class DatabaseConnection {
 }
 
 // Weekend Date Generator (Updated for single selection)
-class WeekendDateGenerator {
+// Weekend Date Generator (Updated for single selection)
+class DeliveryDateGenerator {
     
-    public static function getWeekendDates() {
+    public static function getDeliveryDates() {
         $dates = [];
         $currentDate = new DateTime();
         $currentDate->setTimezone(new DateTimeZone('Asia/Bangkok'));
@@ -101,30 +102,42 @@ class WeekendDateGenerator {
             $checkDate = clone $currentDate;
             $checkDate->modify("+{$i} days");
             
-            $dayOfWeek = $checkDate->format('N'); 
+            $dayOfWeek = $checkDate->format('N'); // 1=Monday, 3=Wednesday, 6=Saturday
             
-            if ($dayOfWeek == 6 || $dayOfWeek == 7) { 
-                $dayName = ($dayOfWeek == 6) ? 'Saturday' : 'Sunday';
+            // 🔥 เปลี่ยนเป็นวันพุธ(3) และวันเสาร์(6)
+            if ($dayOfWeek == 3 || $dayOfWeek == 6) { 
+                $dayName = ($dayOfWeek == 3) ? 'Wednesday' : 'Saturday';
+                $dayNameThai = ($dayOfWeek == 3) ? 'วันพุธ' : 'วันเสาร์';
                 $key = strtolower(substr($dayName, 0, 3)) . '_' . floor(count($dates) / 2);
+                
                 $dates[$key] = [
                     'label' => $checkDate->format('l, M j'),
                     'day' => $dayName,
+                    'day_thai' => $dayNameThai,
                     'date' => $checkDate->format('Y-m-d'),
                     'formatted' => $checkDate->format('d/m/Y')
                 ];
                 
-                if (count($dates) >= 8) break; 
+                if (count($dates) >= 8) break; // ได้ 8 วัน (4 พุธ + 4 เสาร์)
             }
         }
         
         return $dates;
     }
     
-    public static function convertWeekendKeyToDate($weekendKey) {
-        $weekendDates = self::getWeekendDates();
-        return isset($weekendDates[$weekendKey]) ? $weekendDates[$weekendKey]['date'] : null;
+    // 🔥 เพิ่มฟังก์ชันนี้ที่ขาดหายไป
+    public static function convertDeliveryKeyToDate($deliveryKey) {
+        $deliveryDates = self::getDeliveryDates();
+        return isset($deliveryDates[$deliveryKey]) ? $deliveryDates[$deliveryKey]['date'] : null;
+    }
+    
+    // 🔥 เพิ่มฟังก์ชันตรวจสอบวันที่
+    public static function isValidDeliveryDate($date) {
+        $dayOfWeek = date('N', strtotime($date)); // 1=Monday, 3=Wednesday, 6=Saturday
+        return in_array($dayOfWeek, [3, 6]); // เฉพาะวันพุธ(3) และวันเสาร์(6)
     }
 }
+    
 
 // Checkout Data Manager
 class CheckoutDataManager {
@@ -319,7 +332,10 @@ class OrderProcessor {
             $delivery_day = $postData['delivery_day']; // Single delivery day
             
             // Calculate dates
-            $start_date = WeekendDateGenerator::convertWeekendKeyToDate($delivery_day);
+            $start_date = DeliveryDateGenerator::convertDeliveryKeyToDate($delivery_day);
+
+
+
             
             if (!$start_date) {
                 $start_date = date('Y-m-d', strtotime('+1 day'));
@@ -418,7 +434,9 @@ try {
     $total_price = $plan['final_price'];
     
     // Get weekend dates
-    $weekend_dates = WeekendDateGenerator::getWeekendDates();
+    $delivery_dates = DeliveryDateGenerator::getDeliveryDates();
+
+
     
     // Process form submission
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['submit_order']) || !empty($_POST['payment_method']))) {
@@ -1156,16 +1174,16 @@ if ($success) {
                 <div class="weekend-info">
                     <i class="fas fa-info-circle"></i>
                     <div class="weekend-info-content">
-                        <strong>Weekend Delivery Only:</strong> Choose one delivery day from the available weekends. We deliver fresh Thai meals on Saturdays and Sundays only.
+                        <strong>Delivery Schedule:</strong> Choose one delivery day from available dates. We deliver fresh Thai meals on Wednesdays and Saturdays only.
                     </div>
                 </div>
                 
                 <div class="delivery-days-grid">
-                    <?php foreach($weekend_dates as $val => $dateInfo): ?>
+                    <?php foreach($delivery_dates as $val => $dateInfo): ?>
                         <div class="delivery-day-option">
                             <input type="radio" name="delivery_day" value="<?php echo htmlspecialchars($val); ?>" id="delivery_<?php echo htmlspecialchars($val); ?>" required>
                             <div class="delivery-day-card">
-                                <div class="delivery-day-title"><?php echo htmlspecialchars($dateInfo['day']); ?></div>
+                                <div class="delivery-day-title"><?php echo htmlspecialchars($dateInfo['day_thai'] . ' (' . $dateInfo['day'] . ')'); ?></div>
                                 <div class="delivery-day-date"><?php echo htmlspecialchars($dateInfo['label']); ?></div>
                                 <div class="delivery-day-info"><?php echo htmlspecialchars($dateInfo['formatted']); ?></div>
                             </div>
@@ -1174,12 +1192,12 @@ if ($success) {
                 </div>
                 
                 <div class="label" style="margin-top:2rem;"><i class="fas fa-clock"></i> Preferred Delivery Time</div>
-                <select name="preferred_time" class="address-input" required>
-                    <option value="morning">Morning (8:00 AM - 12:00 PM)</option>
-                    <option value="afternoon" selected>Afternoon (12:00 PM - 4:00 PM)</option>
-                    <option value="evening">Evening (4:00 PM - 8:00 PM)</option>
-                    <option value="flexible">Flexible (8:00 AM - 8:00 PM)</option>
-                </select>
+          <select name="preferred_time" class="address-input" required>
+    <option value="09:00-12:00">Morning (9:00 AM - 12:00 PM)</option>
+    <option value="12:00-15:00">Lunch (12:00 PM - 3:00 PM)</option>
+    <option value="15:00-18:00" selected>Afternoon (3:00 PM - 6:00 PM)</option>
+    <option value="18:00-21:00">Evening (6:00 PM - 9:00 PM)</option>
+</select>
             </div>
 
             <!-- Payment Method -->

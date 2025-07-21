@@ -94,17 +94,58 @@ function getNextWeekends() {
     
     return $weekends;
 }
+function getUpcomingDeliveryDays($weeks = 4) {
+    $deliveryDays = [];
+    $today = new DateTime();
+    $today->setTimezone(new DateTimeZone('Asia/Bangkok'));
+    
+    for ($week = 0; $week < $weeks; $week++) {
+        // หาวันพุธของสัปดาห์
+        $wednesday = clone $today;
+        $wednesday->modify("+" . $week . " weeks");
+        $wednesday->modify("wednesday this week");
+        
+        // หาวันเสาร์ของสัปดาห์
+        $saturday = clone $today;
+        $saturday->modify("+" . $week . " weeks");
+        $saturday->modify("saturday this week");
+        
+        // เพิ่มเฉพาะวันที่ยังไม่ผ่านไป
+        if ($wednesday >= $today) {
+            $deliveryDays[] = [
+                'date' => $wednesday->format('Y-m-d'),
+                'display' => 'วันพุธที่ ' . $wednesday->format('d/m/Y')
+            ];
+        }
+        
+        if ($saturday >= $today) {
+            $deliveryDays[] = [
+                'date' => $saturday->format('Y-m-d'),
+                'display' => 'วันเสาร์ที่ ' . $saturday->format('d/m/Y')
+            ];
+        }
+    }
+    
+    return $deliveryDays;
+}
+
+// ตรวจสอบว่าวันที่เลือกถูกต้องหรือไม่
+function isValidDeliveryDate($date) {
+    $dayOfWeek = date('N', strtotime($date)); // 1=Monday, 3=Wednesday, 6=Saturday
+    return in_array($dayOfWeek, [3, 6]); // เฉพาะวันพุธ(3) และวันเสาร์(6)
+}
+
+
 
 // Get filter parameters
-$available_weekends = getNextWeekends();
-$selected_date = $_GET['date'] ?? ($available_weekends[0]['date'] ?? date('Y-m-d'));
+$available_delivery_days = getUpcomingDeliveryDays();
+$selected_date = $_GET['date'] ?? ($available_delivery_days[0]['date'] ?? date('Y-m-d'));
 $status_filter = $_GET['status'] ?? 'all';
 $export_type = $_GET['export'] ?? '';
 
-// Validate selected date is a weekend
-$selected_day = date('N', strtotime($selected_date)); // 6=Saturday, 7=Sunday
-if (!in_array($selected_day, [6, 7])) {
-    $selected_date = $available_weekends[0]['date'] ?? date('Y-m-d');
+// ตรวจสอบว่าเป็นวันพุธหรือวันเสาร์
+if (!isValidDeliveryDate($selected_date)) {
+    $selected_date = $available_delivery_days[0]['date'] ?? date('Y-m-d');
 }
 
 // Kitchen data arrays
@@ -941,14 +982,14 @@ if ($export_type === 'json') {
     <div class="header">
         <div class="header-content">
             <div class="header-title">
-                <h1>
-                    <i class="fas fa-utensils"></i>
-                    Weekend Kitchen Dashboard
-                </h1>
-                <div class="weekend-indicator">
-                    <i class="fas fa-calendar-weekend"></i>
-                    Weekend Delivery Only
-                </div>
+               <h1>
+    <i class="fas fa-utensils"></i>
+    Kitchen Dashboard
+</h1>
+             <div class="weekend-indicator">
+    <i class="fas fa-calendar-alt"></i>
+    Wed & Sat Delivery
+</div>
             </div>
             <div class="header-meta">
                 <div class="meta-item">
@@ -989,17 +1030,17 @@ if ($export_type === 'json') {
 
         <!-- Dashboard Controls -->
         <div class="dashboard-controls">
-            <div class="control-group">
-                <label class="control-label">Select Delivery Date (Weekends Only)</label>
-                <select class="control-input" onchange="filterByDate(this.value)">
-                    <?php foreach ($available_weekends as $weekend): ?>
-                        <option value="<?php echo $weekend['date']; ?>" 
-                                <?php echo ($weekend['date'] === $selected_date) ? 'selected' : ''; ?>>
-                            <?php echo $weekend['display'] . ' - ' . $weekend['week_label']; ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
+       <div class="control-group">
+    <label class="control-label">Select Delivery Date (Wed & Sat Only)</label>
+    <select class="control-input" onchange="filterByDate(this.value)">
+        <?php foreach ($available_delivery_days as $day): ?>
+            <option value="<?php echo $day['date']; ?>" 
+                    <?php echo ($day['date'] === $selected_date) ? 'selected' : ''; ?>>
+                <?php echo $day['display']; ?>
+            </option>
+        <?php endforeach; ?>
+    </select>
+</div>
             
             <div class="control-group">
                 <label class="control-label">Status Filter</label>
@@ -1076,8 +1117,8 @@ if ($export_type === 'json') {
                     <?php if (empty($weekend_orders)): ?>
                         <div class="empty-state">
                             <i class="fas fa-calendar-times"></i>
-                            <h3>No Deliveries Scheduled</h3>
-                            <p>No weekend meal deliveries are scheduled for the selected date</p>
+                       <h3>No Deliveries Scheduled</h3>
+<p>No meal deliveries are scheduled for the selected date</p>
                             <small>Try selecting a different date or check if there are active subscriptions</small>
                         </div>
                     <?php else: ?>

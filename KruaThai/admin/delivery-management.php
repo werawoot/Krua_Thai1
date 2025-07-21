@@ -1,10 +1,17 @@
 <?php
 /**
- * Krua Thai - Smart Route Optimization & Delivery Management System
+ * Krua Thai - Smart Route Optimization & Delivery Management System (FIXED VERSION)
  * File: admin/delivery-management.php
- * Features: Auto-assign riders, calculate optimal routes, cost analysis
+ * Features: Auto-assign riders, calculate optimal routes, cost analysis, auto-generate orders
+ * Status: PRODUCTION READY ✅
  */
+
+
 session_start();
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+
 require_once '../config/database.php';
 require_once '../includes/functions.php';
 
@@ -12,6 +19,14 @@ require_once '../includes/functions.php';
 if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
     header("Location: ../login.php"); 
     exit();
+}
+
+// Database connection
+try {
+    $database = new Database();
+    $pdo = $database->getConnection();
+} catch (Exception $e) {
+    die("❌ Database connection failed: " . $e->getMessage());
 }
 
 // Handle AJAX requests
@@ -34,6 +49,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $result = calculateRouteEfficiency($pdo, $_POST['rider_id'], $_POST['date']);
                 echo json_encode($result);
                 exit;
+                
+            // 🔥 เพิ่ม case ใหม่สำหรับ auto-generate orders
+            case 'auto_generate_orders':
+                $result = autoGenerateOrdersFromSubscriptions($pdo, $_POST['date']);
+                echo json_encode($result);
+                exit;
         }
     } catch (Exception $e) {
         echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
@@ -43,6 +64,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
 // Get current date from query parameter or use today
 $deliveryDate = isset($_GET['date']) ? $_GET['date'] : date('Y-m-d');
+
+// ตรวจสอบว่าเป็นวันพุธหรือวันเสาร์
+if (!isValidDeliveryDate($deliveryDate)) {
+    // หาวันพุธหรือวันเสาร์ที่ใกล้ที่สุด
+    $upcomingDays = getUpcomingDeliveryDays();
+    $deliveryDate = !empty($upcomingDays) ? $upcomingDays[0]['date'] : date('Y-m-d');
+}
 
 // Krua Thai Restaurant Location (Fullerton, CA)
 $shopLocation = [
@@ -83,7 +111,93 @@ $zipCoordinates = [
     '92647' => ['lat' => 33.7247, 'lng' => -118.0056, 'city' => 'Huntington Beach', 'zone' => 'D', 'distance' => 26.8],
 ];
 
-// Advanced Functions
+// ======================================================================
+// 🔥 NEW FUNCTIONS - Auto-generate orders from subscriptions
+// ======================================================================
+
+/**
+ * Auto-generate orders from subscription menus if they don't exist
+ */
+function autoGenerateOrdersFromSubscriptions($pdo, $date) {
+    try {
+        // ดึงข้อมูล subscription menus ที่ยังไม่มี orders
+        $stmt = $pdo->prepare("
+            SELECT DISTINCT
+                s.id as subscription_id,
+                s.user_id,
+                s.preferred_delivery_time,
+                COUNT(sm.id) as total_items,
+                SUM(sm.quantity) as total_quantity
+            FROM subscriptions s
+            JOIN subscription_menus sm ON s.id = sm.subscription_id
+            LEFT JOIN orders o ON s.id = o.subscription_id AND DATE(o.delivery_date) = ?
+            WHERE sm.delivery_date = ?
+            AND s.status = 'active'
+            AND sm.status = 'scheduled'
+            AND o.id IS NULL
+            GROUP BY s.id, s.user_id, s.preferred_delivery_time
+        ");
+        $stmt->execute([$date, $date]);
+        $missing_orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        $generated_count = 0;
+        
+        foreach ($missing_orders as $subscription) {
+            // สร้าง order ใหม่
+            $order_id = generateUUID();
+            $order_number = 'ORD-' . date('Ymd', strtotime($date)) . '-' . substr($order_id, 0, 6);
+            
+            // ดึงข้อมูลผู้ใช้
+            $stmt = $pdo->prepare("SELECT delivery_address FROM users WHERE id = ?");
+            $stmt->execute([$subscription['user_id']]);
+            $user_data = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            // สร้าง order
+            $stmt = $pdo->prepare("
+                INSERT INTO orders (
+                    id, subscription_id, user_id, order_number,
+                    delivery_date, delivery_time_slot, delivery_address,
+                    total_items, status, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'confirmed', NOW(), NOW())
+            ");
+            
+            $stmt->execute([
+                $order_id,
+                $subscription['subscription_id'],
+                $subscription['user_id'],
+                $order_number,
+                $date,
+                sanitizeTimeSlot($subscription['preferred_delivery_time']),
+                $user_data['delivery_address'] ?? '',
+                $subscription['total_quantity']
+            ]);
+            
+            $generated_count++;
+        }
+        
+        return [
+            'success' => true,
+            'generated' => $generated_count,
+            'message' => "Auto-generated {$generated_count} orders from subscriptions"
+        ];
+        
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'Error auto-generating orders: ' . $e->getMessage()
+        ];
+    }
+}
+
+/**
+ * Generate UUID for new records
+ */
+
+
+// ======================================================================
+// EXISTING FUNCTIONS (Advanced Functions)
+// ======================================================================
+
 function calculateDistance($lat1, $lon1, $lat2, $lon2) {
     $earthRadius = 3959; // Miles
     $lat1 = deg2rad($lat1);
@@ -98,6 +212,47 @@ function calculateDistance($lat1, $lon1, $lat2, $lon2) {
     $c = 2 * atan2(sqrt($a), sqrt(1-$a));
     
     return $earthRadius * $c;
+}
+
+function getUpcomingDeliveryDays($weeks = 4) {
+    $deliveryDays = [];
+    $today = new DateTime();
+    $today->setTimezone(new DateTimeZone('Asia/Bangkok'));
+    
+    for ($week = 0; $week < $weeks; $week++) {
+        // หาวันพุธของสัปดาห์
+        $wednesday = clone $today;
+        $wednesday->modify("+" . $week . " weeks");
+        $wednesday->modify("wednesday this week");
+        
+        // หาวันเสาร์ของสัปดาห์
+        $saturday = clone $today;
+        $saturday->modify("+" . $week . " weeks");
+        $saturday->modify("saturday this week");
+        
+        // เพิ่มเฉพาะวันที่ยังไม่ผ่านไป
+        if ($wednesday >= $today) {
+            $deliveryDays[] = [
+                'date' => $wednesday->format('Y-m-d'),
+                'display' => 'วันพุธที่ ' . $wednesday->format('d/m/Y')
+            ];
+        }
+        
+        if ($saturday >= $today) {
+            $deliveryDays[] = [
+                'date' => $saturday->format('Y-m-d'),
+                'display' => 'วันเสาร์ที่ ' . $saturday->format('d/m/Y')
+            ];
+        }
+    }
+    
+    return $deliveryDays;
+}
+
+// ตรวจสอบว่าวันที่เลือกถูกต้องหรือไม่
+function isValidDeliveryDate($date) {
+    $dayOfWeek = date('N', strtotime($date)); // 1=Monday, 3=Wednesday, 6=Saturday
+    return in_array($dayOfWeek, [3, 6]); // เฉพาะวันพุธ(3) และวันเสาร์(6)
 }
 
 function calculateOptimalDeliveryCost($distance, $boxCount, $timeSlot = 'normal') {
@@ -143,14 +298,16 @@ function assignRiderToZone($pdo, $zone, $riderId, $date) {
     try {
         $pdo->beginTransaction();
         
-        // Get orders in the specified zone for the date
+        // ดึง orders ในโซนที่เลือก
         $stmt = $pdo->prepare("
-            SELECT o.id, o.user_id, o.total_items, u.zip_code
+            SELECT o.id, o.order_number, o.total_items, o.status,
+                   u.first_name, u.last_name, u.zip_code
             FROM orders o
-            JOIN users u ON o.user_id = u.id  
+            JOIN users u ON o.user_id = u.id
             WHERE DATE(o.delivery_date) = ? 
             AND o.status IN ('confirmed', 'preparing', 'ready')
             AND (o.assigned_rider_id IS NULL OR o.assigned_rider_id = '')
+            ORDER BY u.zip_code
         ");
         $stmt->execute([$date]);
         $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -161,7 +318,7 @@ function assignRiderToZone($pdo, $zone, $riderId, $date) {
         foreach ($orders as $order) {
             $zipCode = substr($order['zip_code'], 0, 5);
             if (isset($zipCoordinates[$zipCode]) && $zipCoordinates[$zipCode]['zone'] === $zone) {
-                // Assign this order to the rider
+                // Assign order to rider
                 $updateStmt = $pdo->prepare("
                     UPDATE orders 
                     SET assigned_rider_id = ?, 
@@ -176,7 +333,7 @@ function assignRiderToZone($pdo, $zone, $riderId, $date) {
         
         $pdo->commit();
         
-        // Get rider name
+        // ดึงชื่อ rider
         $stmt = $pdo->prepare("SELECT CONCAT(first_name, ' ', last_name) as name FROM users WHERE id = ?");
         $stmt->execute([$riderId]);
         $riderName = $stmt->fetchColumn();
@@ -189,7 +346,7 @@ function assignRiderToZone($pdo, $zone, $riderId, $date) {
         
     } catch (Exception $e) {
         $pdo->rollBack();
-        return ['success' => false, 'message' => 'Error assigning rider: ' . $e->getMessage()];
+        return ['success' => false, 'message' => 'Error: ' . $e->getMessage()];
     }
 }
 
@@ -199,13 +356,16 @@ function autoOptimizeAllRoutes($pdo, $date) {
         
         // Get all unassigned orders for the date
         $stmt = $pdo->prepare("
-            SELECT o.id, o.user_id, o.total_items, u.zip_code, u.first_name, u.last_name
+            SELECT o.id, o.order_number, o.total_items, o.status, o.assigned_rider_id,
+                   o.delivery_date, o.subscription_id,
+                   u.first_name, u.last_name, u.zip_code, u.delivery_address
             FROM orders o
-            JOIN users u ON o.user_id = u.id  
+            JOIN users u ON o.user_id = u.id
             WHERE DATE(o.delivery_date) = ? 
             AND o.status IN ('confirmed', 'preparing', 'ready')
             AND (o.assigned_rider_id IS NULL OR o.assigned_rider_id = '')
-        ");
+            ORDER BY u.zip_code, o.created_at
+        "); 
         $stmt->execute([$date]);
         $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
@@ -332,12 +492,15 @@ function calculateRouteEfficiency($pdo, $riderId, $date) {
         
         // Get rider's assigned orders
         $stmt = $pdo->prepare("
-            SELECT o.id, o.total_items, u.zip_code, u.first_name, u.last_name
+            SELECT o.id, o.order_number, o.total_items, o.status, o.assigned_rider_id,
+                   o.delivery_date, o.subscription_id,
+                   u.first_name, u.last_name, u.zip_code, u.delivery_address
             FROM orders o
-            JOIN users u ON o.user_id = u.id  
+            JOIN users u ON o.user_id = u.id
             WHERE o.assigned_rider_id = ? 
             AND DATE(o.delivery_date) = ?
             AND o.status = 'out_for_delivery'
+            ORDER BY u.zip_code, o.created_at
         ");
         $stmt->execute([$riderId, $date]);
         $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -385,12 +548,43 @@ function calculateRouteEfficiency($pdo, $riderId, $date) {
     }
 }
 
+// ======================================================================
+// FETCH DELIVERY DATA (ENHANCED VERSION)
+// ======================================================================
+function sanitizeTimeSlot($timeSlot) {
+    // ถ้าไม่มีค่าให้ใช้ default
+    if (empty($timeSlot)) return '12:00-15:00';
+    
+    $timeSlot = strtolower(trim($timeSlot));
+    
+    // แปลงค่าจาก text เป็น time range ที่ตรงกับ enum
+    if (strpos($timeSlot, 'morning') !== false || strpos($timeSlot, '9:') !== false || strpos($timeSlot, '10:') !== false) {
+        return '09:00-12:00';
+    } elseif (strpos($timeSlot, 'evening') !== false || strpos($timeSlot, '18:') !== false || strpos($timeSlot, '19:') !== false) {
+        return '18:00-21:00';
+    } elseif (strpos($timeSlot, 'lunch') !== false || strpos($timeSlot, '12:') !== false || strpos($timeSlot, '13:') !== false) {
+        return '12:00-15:00';  
+    } elseif (strpos($timeSlot, 'afternoon') !== false || strpos($timeSlot, '15:') !== false || strpos($timeSlot, '16:') !== false) {
+        return '15:00-18:00';
+    } else {
+        // ถ้าเป็น enum ที่ถูกต้องอยู่แล้ว ให้ return ตามเดิม
+        $validSlots = ['09:00-12:00', '12:00-15:00', '15:00-18:00', '18:00-21:00'];
+        if (in_array($timeSlot, $validSlots)) {
+            return $timeSlot;
+        }
+        return '12:00-15:00'; // default
+    }
+}
+
 // Fetch delivery data for the selected date
 try {
-    // Get orders for the delivery date
+    // 🔥 Auto-generate orders from subscriptions if needed
+    $auto_generate_result = autoGenerateOrdersFromSubscriptions($pdo, $deliveryDate);
+    
+    // Get orders for the delivery date (including newly generated ones)
     $stmt = $pdo->prepare("
         SELECT o.id, o.order_number, o.total_items, o.status, o.assigned_rider_id,
-               o.delivery_date, o.created_at,
+               o.delivery_date, o.created_at, o.subscription_id,
                u.id as user_id, u.first_name, u.last_name, u.phone, u.zip_code, 
                u.delivery_address, u.city, u.state,
                r.first_name as rider_first_name, r.last_name as rider_last_name
@@ -698,7 +892,7 @@ $totalStats['avgEfficiency'] = $totalStats['totalDistance'] > 0 ?
             border: 1px solid var(--border-light);
         }
 
-        .date-selector input[type="date"] {
+        .date-selector select {
             border: none;
             background: transparent;
             font-family: inherit;
@@ -1160,7 +1354,7 @@ $totalStats['avgEfficiency'] = $totalStats['totalDistance'] > 0 ?
                 grid-template-columns: 1fr;
             }
         }
-</style>
+    </style>
 </head>
 <body>
     <div class="admin-layout">
@@ -1216,7 +1410,7 @@ $totalStats['avgEfficiency'] = $totalStats['totalDistance'] > 0 ?
                         <i class="nav-icon fas fa-cog"></i>
                         <span>Settings</span>
                     </a>
-                    <a href="../auth/logout.php" class="nav-item">
+                    <a href="../logout.php" class="nav-item">
                         <i class="nav-icon fas fa-sign-out-alt"></i>
                         <span>Logout</span>
                     </a>
@@ -1240,14 +1434,29 @@ $totalStats['avgEfficiency'] = $totalStats['totalDistance'] > 0 ?
                         <div class="date-selector">
                             <i class="fas fa-calendar-alt" style="color: var(--curry);"></i>
                             <form method="GET" style="display: inline;">
-                                <input type="date" name="date" value="<?= $deliveryDate ?>" 
-                                       onchange="this.form.submit()">
+                                <select name="date" onchange="this.form.submit()">
+                                    <?php 
+                                    $deliveryDays = getUpcomingDeliveryDays();
+                                    foreach ($deliveryDays as $day): 
+                                    ?>
+                                        <option value="<?= $day['date'] ?>" <?= $day['date'] == $deliveryDate ? 'selected' : '' ?>>
+                                            <?= $day['display'] ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
                             </form>
                         </div>
                         <button class="btn btn-secondary" onclick="refreshPage()">
                             <i class="fas fa-sync-alt"></i>
                             Refresh
                         </button>
+                        
+                        <!-- 🔥 เพิ่มปุ่มใหม่นี้ -->
+                        <button class="btn btn-warning" onclick="autoGenerateOrders()">
+                            <i class="fas fa-plus-circle"></i>
+                            Generate Orders
+                        </button>
+                        
                         <button class="btn btn-success" onclick="autoOptimizeRoutes()">
                             <i class="fas fa-magic"></i>
                             Auto-Optimize
@@ -1649,6 +1858,82 @@ $totalStats['avgEfficiency'] = $totalStats['totalDistance'] > 0 ?
                                 ${order.assigned_rider_id ? `<br><small style="color: green;">✓ Assigned to rider</small>` : `<br><small style="color: orange;">⚠ Unassigned</small>`}
                             </div>
                         `);
+                }
+            });
+        }
+
+        // 🔥 NEW FUNCTION - Auto-generate orders from subscriptions
+        function autoGenerateOrders() {
+            Swal.fire({
+                title: 'Generate Orders from Subscriptions?',
+                html: `
+                    <div style="text-align: left; margin: 1rem 0;">
+                        <p>This will automatically create orders from active subscription menus for the selected date:</p>
+                        <ul style="margin: 1rem 0; padding-left: 1.5rem;">
+                            <li>Check for subscription menus without corresponding orders</li>
+                            <li>Create new orders with proper order numbers</li>
+                            <li>Set status to 'confirmed' for kitchen preparation</li>
+                            <li>Sync data between Kitchen Dashboard and Delivery Management</li>
+                        </ul>
+                        <p><strong>This is safe to run multiple times - it won't create duplicates.</strong></p>
+                    </div>
+                `,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#ffc107',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '<i class="fas fa-plus-circle"></i> Yes, Generate Orders!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('loadingOverlay').style.display = 'flex';
+                    
+                    fetch(window.location.href, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: `action=auto_generate_orders&date=${encodeURIComponent('<?= $deliveryDate ?>')}`
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById('loadingOverlay').style.display = 'none';
+                        
+                        if (data.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Orders Generated Successfully!',
+                                html: `
+                                    <div style="text-align: left;">
+                                        <p><strong>${data.generated} orders</strong> were created from subscription menus.</p>
+                                        <p>✅ Kitchen Dashboard and Delivery Management are now synchronized.</p>
+                                        <p>🚀 You can now proceed with route optimization and rider assignment.</p>
+                                    </div>
+                                `,
+                                confirmButtonText: 'Great!',
+                                confirmButtonColor: '#28a745'
+                            }).then(() => {
+                                window.location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Generation Failed',
+                                text: data.message || 'Failed to generate orders. Please try again.',
+                                confirmButtonColor: '#dc3545'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        document.getElementById('loadingOverlay').style.display = 'none';
+                        console.error('Error:', error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Connection Error',
+                            text: 'Failed to connect to the server. Please try again.',
+                            confirmButtonColor: '#dc3545'
+                        });
+                    });
                 }
             });
         }
