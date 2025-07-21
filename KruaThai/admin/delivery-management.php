@@ -665,7 +665,8 @@ foreach ($deliveryZones as $zone => $zoneOrders) {
     if (empty($zoneOrders)) {
         $zoneStats[$zone] = [
             'orderCount' => 0, 'totalBoxes' => 0, 'totalDistance' => 0,
-            'totalCost' => 0, 'avgEfficiency' => 0, 'assignedCount' => 0
+            'totalCost' => 0, 'avgEfficiency' => 0, 'assignedCount' => 0,
+            'isAssignable' => false // 🔥 เพิ่มค่าเริ่มต้น
         ];
         continue;
     }
@@ -676,7 +677,10 @@ foreach ($deliveryZones as $zone => $zoneOrders) {
     $totalCost = array_sum(array_column(array_column($zoneOrders, 'costAnalysis'), 'totalCost'));
     $assignedCount = count(array_filter($zoneOrders, function($o) { return !empty($o['assigned_rider_id']); }));
     
-    $avgDistance = $totalDistance / $orderCount;
+    // 🔥 เพิ่มการคำนวณออเดอร์ที่ยังไม่ถูกจ่ายงาน
+    $unassignedCount = $orderCount - $assignedCount;
+    
+    $avgDistance = $orderCount > 0 ? $totalDistance / $orderCount : 0;
     $efficiency = $totalBoxes / max($avgDistance, 1) * 10;
     
     $zoneStats[$zone] = [
@@ -686,7 +690,8 @@ foreach ($deliveryZones as $zone => $zoneOrders) {
         'totalCost' => round($totalCost, 2),
         'avgEfficiency' => round($efficiency, 1),
         'assignedCount' => $assignedCount,
-        'avgBoxesPerMile' => round($totalBoxes / max($totalDistance, 1), 2)
+        'avgBoxesPerMile' => round($totalBoxes / max($totalDistance, 1), 2),
+        'isAssignable' => $unassignedCount > 0 // 🔥 เพิ่ม Key นี้เพื่อส่งไปให้ HTML
     ];
 }
 
@@ -922,6 +927,18 @@ $totalStats['avgEfficiency'] = $totalStats['totalDistance'] > 0 ?
             transform: translateY(-2px);
             box-shadow: var(--shadow-medium);
         }
+.btn:disabled {
+    background: #e9ecef;
+    color: #6c757d;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.btn:disabled:hover {
+    transform: none;
+}
+
 
         .btn-primary {
             background: linear-gradient(135deg, var(--curry), #e67e22);
@@ -1713,10 +1730,17 @@ $totalStats['avgEfficiency'] = $totalStats['totalDistance'] > 0 ?
                             
                             <div style="display: flex; gap: 0.5rem;">
                                 <button class="btn btn-primary" style="flex: 1; padding: 0.5rem;"
-                                        onclick="assignRiderToZone('<?= $zone ?>')">
-                                    <i class="fas fa-user-plus"></i>
-                                    Assign Rider
-                                </button>
+                            <button class="btn <?= !$zoneStats[$zone]['isAssignable'] ? 'btn-secondary' : 'btn-primary' ?>" style="flex: 1; padding: 0.5rem;"
+        onclick="assignRiderToZone('<?= $zone ?>')"
+        <?= !$zoneStats[$zone]['isAssignable'] ? 'disabled' : '' ?>>
+    <?php if (!$zoneStats[$zone]['isAssignable']): ?>
+        <i class="fas fa-check-circle"></i>
+        <span>Assigned</span>
+    <?php else: ?>
+        <i class="fas fa-user-plus"></i>
+        <span>Assign Rider</span>
+    <?php endif; ?>
+</button>
                                 <button class="btn btn-secondary" style="padding: 0.5rem;"
                                         onclick="viewZoneDetails('<?= $zone ?>')">
                                     <i class="fas fa-eye"></i>
