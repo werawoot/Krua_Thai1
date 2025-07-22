@@ -1,14 +1,14 @@
 <?php
 /**
- * Krua Thai - Complete Delivery Management System
- * File: admin/delivery.php
- * Features: แบ่งงาน/มอบหมายไรเดอร์/Track/Export/Analytics
+ * Krua Thai - Complete Delivery Zone Management System
+ * File: admin/delivery-zones.php
+ * Features: CRUD zones, ZIP codes, delivery fees, time slots, capacity limits
  * Status: PRODUCTION READY ✅
  */
 
+session_start();
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
-session_start();
 
 require_once '../config/database.php';
 require_once '../includes/functions.php';
@@ -19,59 +19,47 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
     exit();
 }
 
-// Handle AJAX requests for delivery operations
+// Database connection
+try {
+    $database = new Database();
+    $pdo = $database->getConnection();
+} catch (Exception $e) {
+    die("❌ Database connection failed: " . $e->getMessage());
+}
+
+// Handle AJAX requests
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     header('Content-Type: application/json');
     
     try {
         switch ($_POST['action']) {
-            case 'assign_rider':
-                $result = assignRiderToOrder($pdo, $_POST['order_id'], $_POST['rider_id']);
+            case 'create_zone':
+                $result = createDeliveryZone($pdo, $_POST);
                 echo json_encode($result);
                 exit;
                 
-            case 'bulk_assign':
-                $result = bulkAssignRider($pdo, $_POST['order_ids'], $_POST['rider_id']);
+            case 'update_zone':
+                $result = updateDeliveryZone($pdo, $_POST['zone_id'], $_POST);
                 echo json_encode($result);
                 exit;
                 
-            case 'update_delivery_status':
-                $result = updateDeliveryStatus($pdo, $_POST['order_id'], $_POST['status']);
+            case 'delete_zone':
+                $result = deleteDeliveryZone($pdo, $_POST['zone_id']);
                 echo json_encode($result);
                 exit;
                 
-            case 'optimize_routes':
-                $result = optimizeDeliveryRoutes($pdo, $_POST['rider_id']);
+            case 'get_zone':
+                $result = getDeliveryZone($pdo, $_POST['zone_id']);
                 echo json_encode($result);
                 exit;
                 
-            case 'get_delivery_details':
-                $result = getDeliveryDetails($pdo, $_POST['order_id']);
+            case 'bulk_update_zip_codes':
+                $result = bulkUpdateZipCodes($pdo, $_POST['zone_id'], $_POST['zip_codes']);
                 echo json_encode($result);
                 exit;
                 
-            case 'update_delivery_notes':
-                $result = updateDeliveryNotes($pdo, $_POST['order_id'], $_POST['notes']);
-                echo json_encode($result);
-                exit;
-                
-            case 'export_delivery_report':
-                $result = exportDeliveryReport($pdo, $_POST);
-                echo json_encode($result);
-                exit;
-                
-            case 'get_delivery_overview':
-                $result = displayDeliveryOverview($pdo);
-                echo json_encode($result);
-                exit;
-                
-            case 'get_delivery_list':
-                $result = getDeliveryList($pdo, $_POST);
-                echo json_encode($result);
-                exit;
-                
-            case 'real_time_refresh':
-                $result = realTimeRefresh($pdo);
+            case 'test_zip_coverage':
+                $result = testZipCodeCoverage($pdo);
                 echo json_encode($result);
                 exit;
         }
@@ -81,421 +69,330 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 }
 
-// ✅ Core Dashboard Functions
-function displayDeliveryOverview($pdo) {
-    try {
-        $overview = [];
-        
-        // Today's delivery statistics
-        $stmt = $pdo->prepare("
-            SELECT 
-                COUNT(*) as total_deliveries,
-                SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
-                SUM(CASE WHEN status = 'confirmed' THEN 1 ELSE 0 END) as confirmed,
-                SUM(CASE WHEN status = 'preparing' THEN 1 ELSE 0 END) as preparing,
-                SUM(CASE WHEN status = 'ready' THEN 1 ELSE 0 END) as ready,
-                SUM(CASE WHEN status = 'out_for_delivery' THEN 1 ELSE 0 END) as out_for_delivery,
-                SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) as delivered,
-                SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled,
-                AVG(CASE WHEN delivered_at IS NOT NULL THEN 
-                    TIMESTAMPDIFF(MINUTE, created_at, delivered_at) 
-                ELSE NULL END) as avg_delivery_time
-            FROM orders 
-            WHERE DATE(delivery_date) = CURDATE()
-        ");
-        $stmt->execute();
-        $overview['today_stats'] = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        // Active riders count
-        $stmt = $pdo->prepare("
-            SELECT COUNT(*) as active_riders
-            FROM users 
-            WHERE role = 'rider' AND status = 'active'
-        ");
-        $stmt->execute();
-        $overview['active_riders'] = $stmt->fetchColumn();
-        
-        // Orders without riders
-        $stmt = $pdo->prepare("
-            SELECT COUNT(*) as unassigned_orders
-            FROM orders 
-            WHERE assigned_rider_id IS NULL 
-            AND status IN ('confirmed', 'preparing', 'ready')
-            AND DATE(delivery_date) = CURDATE()
-        ");
-        $stmt->execute();
-        $overview['unassigned_orders'] = $stmt->fetchColumn();
-        
-        // Average rating today
-        $stmt = $pdo->prepare("
-            SELECT AVG(delivery_rating) as avg_rating
-            FROM orders 
-            WHERE delivery_rating IS NOT NULL 
-            AND DATE(delivered_at) = CURDATE()
-        ");
-        $stmt->execute();
-        $overview['avg_rating'] = $stmt->fetchColumn() ?: 0;
-        
-        return ['success' => true, 'data' => $overview];
-    } catch (Exception $e) {
-        return ['success' => false, 'message' => 'Error fetching delivery overview: ' . $e->getMessage()];
-    }
-}
+// ======================================================================
+// DELIVERY ZONE FUNCTIONS
+// ======================================================================
 
-function getDeliveryList($pdo, $filters = []) {
-    try {
-        $where_conditions = ["1=1"];
-        $params = [];
-        
-        // Filter by status
-        if (!empty($filters['status'])) {
-            $where_conditions[] = "o.status = ?";
-            $params[] = $filters['status'];
-        }
-        
-        // Filter by date
-        if (!empty($filters['date'])) {
-            $where_conditions[] = "DATE(o.delivery_date) = ?";
-            $params[] = $filters['date'];
-        }
-        
-        // Filter by rider
-        if (!empty($filters['rider_id'])) {
-            $where_conditions[] = "o.assigned_rider_id = ?";
-            $params[] = $filters['rider_id'];
-        }
-        
-        // Search orders
-        if (!empty($filters['search'])) {
-            $where_conditions[] = "(o.order_number LIKE ? OR CONCAT(u.first_name, ' ', u.last_name) LIKE ? OR o.delivery_address LIKE ?)";
-            $search_term = '%' . $filters['search'] . '%';
-            $params[] = $search_term;
-            $params[] = $search_term;
-            $params[] = $search_term;
-        }
-        
-        $where_clause = implode(' AND ', $where_conditions);
-        
-        $stmt = $pdo->prepare("
-            SELECT o.*, 
-                   CONCAT(u.first_name, ' ', u.last_name) as customer_name,
-                   u.phone as customer_phone,
-                   CONCAT(r.first_name, ' ', r.last_name) as rider_name,
-                   r.phone as rider_phone,
-                   dz.zone_name,
-                   dz.estimated_delivery_time
-            FROM orders o 
-            JOIN users u ON o.user_id = u.id 
-            LEFT JOIN users r ON o.assigned_rider_id = r.id
-            LEFT JOIN delivery_zones dz ON JSON_CONTAINS(dz.zip_codes, JSON_QUOTE(SUBSTRING(o.delivery_address, -5)))
-            WHERE $where_clause
-            ORDER BY 
-                CASE o.status 
-                    WHEN 'ready' THEN 1
-                    WHEN 'out_for_delivery' THEN 2
-                    WHEN 'preparing' THEN 3
-                    WHEN 'confirmed' THEN 4
-                    ELSE 5
-                END, o.delivery_date ASC, o.created_at DESC
-        ");
-        $stmt->execute($params);
-        $deliveries = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        return ['success' => true, 'data' => $deliveries];
-    } catch (Exception $e) {
-        return ['success' => false, 'message' => 'Error fetching delivery list: ' . $e->getMessage()];
-    }
-}
 
-function realTimeRefresh($pdo) {
+
+function createDeliveryZone($pdo, $data) {
     try {
-        // Get real-time statistics
-        $overview = displayDeliveryOverview($pdo);
-        $deliveries = getDeliveryList($pdo);
+        $pdo->beginTransaction();
         
-        // Get rider status
+        $zoneId = generateUUID();
+        
+        // Prepare time slots and ZIP codes as JSON
+        $timeSlots = isset($data['time_slots']) ? json_encode($data['time_slots']) : json_encode([]);
+        $zipCodes = isset($data['zip_codes']) ? json_encode(array_filter(explode(',', $data['zip_codes']))) : json_encode([]);
+        
         $stmt = $pdo->prepare("
-            SELECT u.id, CONCAT(u.first_name, ' ', u.last_name) as name,
-                   COUNT(o.id) as active_orders,
-                   u.last_login
-            FROM users u
-            LEFT JOIN orders o ON u.id = o.assigned_rider_id 
-                AND o.status = 'out_for_delivery'
-            WHERE u.role = 'rider' AND u.status = 'active'
-            GROUP BY u.id
+            INSERT INTO delivery_zones (
+                id, zone_name, zone_description, zone_color,
+                min_distance, max_distance, base_delivery_fee, 
+                per_mile_fee, time_slots, zip_codes,
+                max_orders_per_day, max_orders_per_slot,
+                estimated_delivery_time, is_active, sort_order,
+                created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
         ");
-        $stmt->execute();
-        $riders = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        $stmt->execute([
+            $zoneId,
+            $data['zone_name'],
+            $data['zone_description'] ?? '',
+            $data['zone_color'] ?? '#3498db',
+            (float)($data['min_distance'] ?? 0),
+            (float)($data['max_distance'] ?? 0),
+            (float)($data['base_delivery_fee'] ?? 0),
+            (float)($data['per_mile_fee'] ?? 0),
+            $timeSlots,
+            $zipCodes,
+            (int)($data['max_orders_per_day'] ?? 50),
+            (int)($data['max_orders_per_slot'] ?? 10),
+            (int)($data['estimated_delivery_time'] ?? 60),
+            1, // is_active
+            (int)($data['sort_order'] ?? 1)
+        ]);
+        
+        $pdo->commit();
         
         return [
-            'success' => true, 
-            'data' => [
-                'overview' => $overview['data'] ?? [],
-                'deliveries' => $deliveries['data'] ?? [],
-                'riders' => $riders,
-                'timestamp' => date('Y-m-d H:i:s')
-            ]
+            'success' => true,
+            'message' => 'Delivery zone created successfully',
+            'zone_id' => $zoneId
         ];
+        
     } catch (Exception $e) {
-        return ['success' => false, 'message' => 'Error refreshing data: ' . $e->getMessage()];
+        $pdo->rollBack();
+        return ['success' => false, 'message' => 'Error creating zone: ' . $e->getMessage()];
     }
 }
 
-// ✅ Assignment Functions
-function assignRiderToOrder($pdo, $orderId, $riderId) {
+function updateDeliveryZone($pdo, $zoneId, $data) {
     try {
+        $pdo->beginTransaction();
+        
+        $timeSlots = isset($data['time_slots']) ? json_encode($data['time_slots']) : null;
+        $zipCodes = isset($data['zip_codes']) ? json_encode(array_filter(explode(',', $data['zip_codes']))) : null;
+        
         $stmt = $pdo->prepare("
-            UPDATE orders 
-            SET assigned_rider_id = ?, 
-                status = CASE 
-                    WHEN status = 'ready' THEN 'out_for_delivery' 
-                    ELSE status 
-                END,
-                updated_at = NOW() 
+            UPDATE delivery_zones SET
+                zone_name = ?, zone_description = ?, zone_color = ?,
+                min_distance = ?, max_distance = ?, base_delivery_fee = ?,
+                per_mile_fee = ?, time_slots = ?, zip_codes = ?,
+                max_orders_per_day = ?, max_orders_per_slot = ?,
+                estimated_delivery_time = ?, is_active = ?, sort_order = ?,
+                updated_at = NOW()
             WHERE id = ?
         ");
-        $stmt->execute([$riderId, $orderId]);
         
-        if ($stmt->rowCount() > 0) {
-            // Get rider name
-            $stmt = $pdo->prepare("SELECT CONCAT(first_name, ' ', last_name) as name FROM users WHERE id = ?");
-            $stmt->execute([$riderId]);
-            $riderName = $stmt->fetchColumn();
-            
-            return ['success' => true, 'message' => "Order assigned to {$riderName} successfully"];
-        } else {
-            return ['success' => false, 'message' => 'Failed to assign rider'];
-        }
+        $stmt->execute([
+            $data['zone_name'],
+            $data['zone_description'] ?? '',
+            $data['zone_color'] ?? '#3498db',
+            (float)($data['min_distance'] ?? 0),
+            (float)($data['max_distance'] ?? 0),
+            (float)($data['base_delivery_fee'] ?? 0),
+            (float)($data['per_mile_fee'] ?? 0),
+            $timeSlots,
+            $zipCodes,
+            (int)($data['max_orders_per_day'] ?? 50),
+            (int)($data['max_orders_per_slot'] ?? 10),
+            (int)($data['estimated_delivery_time'] ?? 60),
+            (int)($data['is_active'] ?? 1),
+            (int)($data['sort_order'] ?? 1),
+            $zoneId
+        ]);
+        
+        $pdo->commit();
+        
+        return [
+            'success' => true,
+            'message' => 'Delivery zone updated successfully'
+        ];
+        
     } catch (Exception $e) {
-        return ['success' => false, 'message' => 'Error assigning rider: ' . $e->getMessage()];
+        $pdo->rollBack();
+        return ['success' => false, 'message' => 'Error updating zone: ' . $e->getMessage()];
     }
 }
 
-function bulkAssignRider($pdo, $orderIds, $riderId) {
+function deleteDeliveryZone($pdo, $zoneId) {
     try {
-        $placeholders = str_repeat('?,', count($orderIds) - 1) . '?';
-        $params = array_merge([$riderId], $orderIds);
-        
+        // Check if zone has any active deliveries
         $stmt = $pdo->prepare("
-            UPDATE orders 
-            SET assigned_rider_id = ?, 
-                status = CASE 
-                    WHEN status = 'ready' THEN 'out_for_delivery' 
-                    ELSE status 
-                END,
-                updated_at = NOW() 
-            WHERE id IN ($placeholders)
+            SELECT COUNT(*) as count FROM subscriptions s
+            JOIN users u ON s.user_id = u.id
+            WHERE SUBSTRING(u.zip_code, 1, 5) IN (
+                SELECT JSON_UNQUOTE(JSON_EXTRACT(zip_codes, CONCAT('$[', numbers.n, ']')))
+                FROM delivery_zones dz
+                CROSS JOIN (SELECT 0 n UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9) numbers
+                WHERE dz.id = ? AND JSON_UNQUOTE(JSON_EXTRACT(zip_codes, CONCAT('$[', numbers.n, ']'))) IS NOT NULL
+            )
+            AND s.status = 'active'
         ");
-        $stmt->execute($params);
+        $stmt->execute([$zoneId]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
         
-        $updatedCount = $stmt->rowCount();
-        return ['success' => true, 'message' => "{$updatedCount} orders assigned successfully"];
-    } catch (Exception $e) {
-        return ['success' => false, 'message' => 'Error bulk assigning: ' . $e->getMessage()];
-    }
-}
-
-function updateDeliveryStatus($pdo, $orderId, $status) {
-    try {
-        $deliveredAt = ($status === 'delivered') ? ', delivered_at = NOW()' : '';
-        $stmt = $pdo->prepare("
-            UPDATE orders 
-            SET status = ?, updated_at = NOW() $deliveredAt
-            WHERE id = ?
-        ");
-        $stmt->execute([$status, $orderId]);
-        
-        if ($stmt->rowCount() > 0) {
-            return ['success' => true, 'message' => 'Delivery status updated successfully'];
-        } else {
-            return ['success' => false, 'message' => 'Order not found'];
-        }
-    } catch (Exception $e) {
-        return ['success' => false, 'message' => 'Error updating status: ' . $e->getMessage()];
-    }
-}
-
-function optimizeDeliveryRoutes($pdo, $riderId) {
-    try {
-        // Get rider's orders
-        $stmt = $pdo->prepare("
-            SELECT id, delivery_address, delivery_time_slot
-            FROM orders 
-            WHERE assigned_rider_id = ? 
-            AND status = 'out_for_delivery'
-            ORDER BY delivery_time_slot ASC
-        ");
-        $stmt->execute([$riderId]);
-        $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        // Simple optimization by time slot
-        $optimizedRoute = [];
-        foreach ($orders as $order) {
-            $optimizedRoute[] = [
-                'order_id' => $order['id'],
-                'address' => $order['delivery_address'],
-                'time_slot' => $order['delivery_time_slot']
+        if ($result['count'] > 0) {
+            return [
+                'success' => false,
+                'message' => "Cannot delete zone. There are {$result['count']} active subscriptions in this zone."
             ];
         }
         
-        return ['success' => true, 'data' => $optimizedRoute];
-    } catch (Exception $e) {
-        return ['success' => false, 'message' => 'Error optimizing routes: ' . $e->getMessage()];
-    }
-}
-
-function getDeliveryDetails($pdo, $orderId) {
-    try {
-        $stmt = $pdo->prepare("
-            SELECT o.*, 
-                   CONCAT(u.first_name, ' ', u.last_name) as customer_name,
-                   u.email as customer_email,
-                   u.phone as customer_phone,
-                   CONCAT(r.first_name, ' ', r.last_name) as rider_name,
-                   r.phone as rider_phone
-            FROM orders o 
-            JOIN users u ON o.user_id = u.id 
-            LEFT JOIN users r ON o.assigned_rider_id = r.id
-            WHERE o.id = ?
-        ");
-        $stmt->execute([$orderId]);
-        $order = $stmt->fetch(PDO::FETCH_ASSOC);
+        // Delete the zone
+        $stmt = $pdo->prepare("DELETE FROM delivery_zones WHERE id = ?");
+        $stmt->execute([$zoneId]);
         
-        if ($order) {
-            // Get order items
-            $stmt = $pdo->prepare("
-                SELECT oi.*, m.name as menu_name
-                FROM order_items oi
-                JOIN menus m ON oi.menu_id = m.id
-                WHERE oi.order_id = ?
-            ");
-            $stmt->execute([$orderId]);
-            $order['items'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
-            return ['success' => true, 'data' => $order];
-        } else {
-            return ['success' => false, 'message' => 'Order not found'];
-        }
+        return [
+            'success' => true,
+            'message' => 'Delivery zone deleted successfully'
+        ];
+        
     } catch (Exception $e) {
-        return ['success' => false, 'message' => 'Error fetching details: ' . $e->getMessage()];
+        return ['success' => false, 'message' => 'Error deleting zone: ' . $e->getMessage()];
     }
 }
 
-function updateDeliveryNotes($pdo, $orderId, $notes) {
+function getDeliveryZone($pdo, $zoneId) {
     try {
         $stmt = $pdo->prepare("
-            UPDATE orders 
-            SET special_notes = ?, updated_at = NOW() 
+            SELECT dz.*,
+                   (SELECT COUNT(*) FROM subscriptions s 
+                    JOIN users u ON s.user_id = u.id 
+                    WHERE JSON_CONTAINS(dz.zip_codes, JSON_QUOTE(SUBSTRING(u.zip_code, 1, 5)))
+                    AND s.status = 'active') as active_subscriptions
+            FROM delivery_zones dz
+            WHERE dz.id = ?
+        ");
+        $stmt->execute([$zoneId]);
+        $zone = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ($zone) {
+            // Decode JSON fields
+            $zone['time_slots_array'] = json_decode($zone['time_slots'], true) ?? [];
+            $zone['zip_codes_array'] = json_decode($zone['zip_codes'], true) ?? [];
+            $zone['zip_codes_string'] = implode(', ', $zone['zip_codes_array']);
+            
+            return ['success' => true, 'zone' => $zone];
+        } else {
+            return ['success' => false, 'message' => 'Zone not found'];
+        }
+        
+    } catch (Exception $e) {
+        return ['success' => false, 'message' => 'Error fetching zone: ' . $e->getMessage()];
+    }
+}
+
+function bulkUpdateZipCodes($pdo, $zoneId, $zipCodes) {
+    try {
+        $zipArray = array_filter(array_map('trim', explode(',', $zipCodes)));
+        $zipJson = json_encode($zipArray);
+        
+        $stmt = $pdo->prepare("
+            UPDATE delivery_zones 
+            SET zip_codes = ?, updated_at = NOW() 
             WHERE id = ?
         ");
-        $stmt->execute([$notes, $orderId]);
+        $stmt->execute([$zipJson, $zoneId]);
         
-        if ($stmt->rowCount() > 0) {
-            return ['success' => true, 'message' => 'Delivery notes updated successfully'];
-        } else {
-            return ['success' => false, 'message' => 'Order not found'];
-        }
+        return [
+            'success' => true,
+            'message' => 'ZIP codes updated successfully',
+            'zip_count' => count($zipArray)
+        ];
+        
     } catch (Exception $e) {
-        return ['success' => false, 'message' => 'Error updating notes: ' . $e->getMessage()];
+        return ['success' => false, 'message' => 'Error updating ZIP codes: ' . $e->getMessage()];
     }
 }
 
-function exportDeliveryReport($pdo, $params) {
+function testZipCodeCoverage($pdo) {
     try {
-        $dateFrom = $params['date_from'] ?? date('Y-m-d');
-        $dateTo = $params['date_to'] ?? date('Y-m-d');
-        $format = $params['format'] ?? 'csv';
-        
+        // Get all ZIP codes from users
         $stmt = $pdo->prepare("
-            SELECT o.order_number, o.status, o.total_amount,
-                   CONCAT(u.first_name, ' ', u.last_name) as customer_name,
-                   CONCAT(r.first_name, ' ', r.last_name) as rider_name,
-                   o.delivery_date, o.delivery_time_slot,
-                   o.created_at, o.delivered_at
-            FROM orders o 
-            JOIN users u ON o.user_id = u.id 
-            LEFT JOIN users r ON o.assigned_rider_id = r.id
-            WHERE DATE(o.delivery_date) BETWEEN ? AND ?
-            ORDER BY o.delivery_date DESC
+            SELECT DISTINCT SUBSTRING(zip_code, 1, 5) as zip_code, COUNT(*) as user_count
+            FROM users 
+            WHERE zip_code IS NOT NULL AND zip_code != ''
+            GROUP BY SUBSTRING(zip_code, 1, 5)
+            ORDER BY user_count DESC
         ");
-        $stmt->execute([$dateFrom, $dateTo]);
-        $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $stmt->execute();
+        $userZips = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        if ($format === 'csv') {
-            $filename = "delivery_report_{$dateFrom}_to_{$dateTo}.csv";
-            $csv_data = "Order Number,Status,Amount,Customer,Rider,Delivery Date,Time Slot,Created,Delivered\n";
+        // Get all configured zones with ZIP codes
+        $stmt = $pdo->prepare("
+            SELECT id, zone_name, zip_codes
+            FROM delivery_zones 
+            WHERE is_active = 1
+        ");
+        $stmt->execute();
+        $zones = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        $coverage = [];
+        $uncoveredZips = [];
+        
+        foreach ($userZips as $userZip) {
+            $zip = $userZip['zip_code'];
+            $covered = false;
             
-            foreach ($data as $row) {
-                $csv_data .= implode(',', [
-                    $row['order_number'],
-                    $row['status'],
-                    $row['total_amount'],
-                    $row['customer_name'],
-                    $row['rider_name'] ?? 'Unassigned',
-                    $row['delivery_date'],
-                    $row['delivery_time_slot'],
-                    $row['created_at'],
-                    $row['delivered_at'] ?? 'Not delivered'
-                ]) . "\n";
+            foreach ($zones as $zone) {
+                $zoneZips = json_decode($zone['zip_codes'], true) ?? [];
+                if (in_array($zip, $zoneZips)) {
+                    $coverage[] = [
+                        'zip_code' => $zip,
+                        'user_count' => $userZip['user_count'],
+                        'zone_name' => $zone['zone_name'],
+                        'status' => 'covered'
+                    ];
+                    $covered = true;
+                    break;
+                }
             }
             
-            return [
-                'success' => true, 
-                'data' => base64_encode($csv_data),
-                'filename' => $filename,
-                'type' => 'text/csv'
-            ];
+            if (!$covered) {
+                $uncoveredZips[] = [
+                    'zip_code' => $zip,
+                    'user_count' => $userZip['user_count'],
+                    'status' => 'uncovered'
+                ];
+            }
         }
         
-        return ['success' => true, 'data' => $data];
+        return [
+            'success' => true,
+            'coverage' => $coverage,
+            'uncovered' => $uncoveredZips,
+            'stats' => [
+                'total_zips' => count($userZips),
+                'covered_zips' => count($coverage),
+                'uncovered_zips' => count($uncoveredZips),
+                'coverage_percentage' => count($userZips) > 0 ? round((count($coverage) / count($userZips)) * 100, 1) : 0
+            ]
+        ];
+        
     } catch (Exception $e) {
-        return ['success' => false, 'message' => 'Error exporting report: ' . $e->getMessage()];
+        return ['success' => false, 'message' => 'Error testing coverage: ' . $e->getMessage()];
     }
 }
 
-// Initialize data for page load
+// ======================================================================
+// FETCH DELIVERY ZONES DATA
+// ======================================================================
+
 try {
-    // Get initial overview
-    $overview_result = displayDeliveryOverview($pdo);
-    $overview = $overview_result['success'] ? $overview_result['data'] : [];
-    
-    // Get initial delivery list
-    $deliveries_result = getDeliveryList($pdo);
-    $deliveries = $deliveries_result['success'] ? $deliveries_result['data'] : [];
-    
-    // Get available riders
+    // Get all delivery zones
     $stmt = $pdo->prepare("
-        SELECT id, CONCAT(first_name, ' ', last_name) as name, phone,
-               COUNT(o.id) as active_orders
-        FROM users u
-        LEFT JOIN orders o ON u.id = o.assigned_rider_id 
-            AND o.status = 'out_for_delivery'
-        WHERE u.role = 'rider' AND u.status = 'active'
-        GROUP BY u.id
-        ORDER BY active_orders ASC, u.first_name ASC
+        SELECT dz.*,
+               (SELECT COUNT(*) FROM subscriptions s 
+                JOIN users u ON s.user_id = u.id 
+                WHERE JSON_CONTAINS(dz.zip_codes, JSON_QUOTE(SUBSTRING(u.zip_code, 1, 5)))
+                AND s.status = 'active') as active_subscriptions,
+               (SELECT COUNT(*) FROM subscriptions s 
+                JOIN users u ON s.user_id = u.id 
+                WHERE JSON_CONTAINS(dz.zip_codes, JSON_QUOTE(SUBSTRING(u.zip_code, 1, 5)))
+                AND s.status = 'active' 
+                AND DATE(s.start_date) = CURDATE()) as today_orders
+        FROM delivery_zones dz
+        ORDER BY dz.sort_order ASC, dz.zone_name ASC
     ");
-    $stmt->execute();
-    $riders = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    // Get delivery zones for statistics
-    $stmt = $pdo->prepare("SELECT zone_name, is_active FROM delivery_zones ORDER BY zone_name");
     $stmt->execute();
     $zones = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
+    // Process zones data
+    foreach ($zones as &$zone) {
+        $zone['time_slots_array'] = json_decode($zone['time_slots'], true) ?? [];
+        $zone['zip_codes_array'] = json_decode($zone['zip_codes'], true) ?? [];
+        $zone['zip_codes_string'] = implode(', ', $zone['zip_codes_array']);
+        $zone['capacity_percentage'] = $zone['max_orders_per_day'] > 0 ? 
+            round(($zone['active_subscriptions'] / $zone['max_orders_per_day']) * 100, 1) : 0;
+    }
+    
+    // Get system statistics
+    $stmt = $pdo->prepare("
+        SELECT 
+            (SELECT COUNT(*) FROM delivery_zones WHERE is_active = 1) as active_zones,
+            (SELECT COUNT(DISTINCT SUBSTRING(zip_code, 1, 5)) FROM users WHERE zip_code IS NOT NULL) as unique_zip_codes,
+            (SELECT COUNT(*) FROM subscriptions WHERE status = 'active') as active_subscriptions,
+            (SELECT SUM(JSON_LENGTH(zip_codes)) FROM delivery_zones WHERE is_active = 1) as total_covered_zips
+    ");
+    $stmt->execute();
+    $systemStats = $stmt->fetch(PDO::FETCH_ASSOC);
+    
 } catch (Exception $e) {
-    $overview = ['today_stats' => ['total_deliveries' => 0, 'pending' => 0, 'delivered' => 0], 'active_riders' => 0];
-    $deliveries = [];
-    $riders = [];
     $zones = [];
-    error_log("Delivery page error: " . $e->getMessage());
+    $systemStats = ['active_zones' => 0, 'unique_zip_codes' => 0, 'active_subscriptions' => 0, 'total_covered_zips' => 0];
+    error_log("Delivery zones error: " . $e->getMessage());
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="th">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Delivery Management - Krua Thai Admin</title>
+    <title>Delivery Zone Management - Krua Thai Admin</title>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -514,6 +411,12 @@ try {
             --radius-md: 12px;
             --radius-lg: 16px;
             --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            
+            /* Status colors */
+            --success: #27ae60;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+            --info: #3498db;
         }
 
         * {
@@ -567,7 +470,6 @@ try {
             height: auto;
             object-fit: contain;
             filter: brightness(1.1) contrast(1.2);
-            transition: transform 0.3s ease;
         }
 
         .sidebar-title {
@@ -607,12 +509,13 @@ try {
             text-decoration: none;
             transition: var(--transition);
             border-left: 3px solid transparent;
-            cursor: pointer;
         }
 
         .nav-item:hover {
             background: rgba(255, 255, 255, 0.1);
             border-left-color: var(--white);
+            color: var(--white);
+            text-decoration: none;
         }
 
         .nav-item.active {
@@ -650,6 +553,7 @@ try {
             justify-content: space-between;
             align-items: center;
             gap: 1rem;
+            flex-wrap: wrap;
         }
 
         .page-title {
@@ -668,6 +572,7 @@ try {
             display: flex;
             gap: 1rem;
             align-items: center;
+            flex-wrap: wrap;
         }
 
         /* Buttons */
@@ -688,42 +593,14 @@ try {
             overflow: hidden;
         }
 
-        .btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            transition: left 0.5s;
-        }
-
-        .btn:hover::before {
-            left: 100%;
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-medium);
         }
 
         .btn-primary {
             background: linear-gradient(135deg, var(--curry), #e67e22);
             color: var(--white);
-            box-shadow: var(--shadow-soft);
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-medium);
-        }
-
-        .btn-secondary {
-            background: var(--white);
-            color: var(--text-dark);
-            border: 1px solid var(--border-light);
-            box-shadow: var(--shadow-soft);
-        }
-
-        .btn-secondary:hover {
-            background: var(--cream);
-            transform: translateY(-1px);
         }
 
         .btn-success {
@@ -741,22 +618,18 @@ try {
             color: var(--white);
         }
 
-        .btn-info {
-            background: linear-gradient(135deg, #3498db, #2980b9);
-            color: var(--white);
+        .btn-secondary {
+            background: var(--white);
+            color: var(--text-dark);
+            border: 1px solid var(--border-light);
         }
 
-        .btn-icon {
-            width: 36px;
-            height: 36px;
-            padding: 0;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: 0.8rem;
         }
 
-        /* Stats Cards */
+        /* Stats Grid */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -820,40 +693,132 @@ try {
             font-size: 0.9rem;
         }
 
-        /* Control Panel */
-        .control-panel {
-            background: var(--white);
-            padding: 1.5rem;
-            border-radius: var(--radius-md);
-            box-shadow: var(--shadow-soft);
-            border: 1px solid var(--border-light);
+        /* Zone Cards */
+        .zones-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
             margin-bottom: 2rem;
         }
 
-        .control-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: var(--text-dark);
+        .zone-card {
+            background: var(--white);
+            border-radius: var(--radius-md);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-soft);
+            border: 1px solid var(--border-light);
+            border-left: 4px solid var(--curry);
+            transition: var(--transition);
+        }
+
+        .zone-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .zone-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 1rem;
         }
 
-        .control-row {
+        .zone-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        .zone-status {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .zone-status.active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .zone-status.inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .zone-info {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: 1fr 1fr;
             gap: 1rem;
             margin-bottom: 1rem;
         }
 
+        .zone-info-item {
+            text-align: center;
+        }
+
+        .zone-info-value {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--curry);
+        }
+
+        .zone-info-label {
+            font-size: 0.8rem;
+            color: var(--text-gray);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .zone-progress {
+            margin: 1rem 0;
+        }
+
+        .zone-progress-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--border-light);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            transition: width 0.5s ease;
+            background: linear-gradient(90deg, var(--success), var(--sage));
+        }
+
+        .progress-fill.warning {
+            background: linear-gradient(90deg, var(--warning), #e67e22);
+        }
+
+        .progress-fill.danger {
+            background: linear-gradient(90deg, var(--danger), #c0392b);
+        }
+
+        .zone-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        /* Forms */
         .form-group {
-            margin-bottom: 1rem;
+            margin-bottom: 1.5rem;
         }
 
         .form-label {
             display: block;
+            margin-bottom: 0.5rem;
             font-weight: 500;
             color: var(--text-dark);
-            margin-bottom: 0.5rem;
-            font-size: 0.9rem;
         }
 
         .form-control {
@@ -864,7 +829,6 @@ try {
             font-family: inherit;
             font-size: 0.9rem;
             transition: var(--transition);
-            background: var(--white);
         }
 
         .form-control:focus {
@@ -873,192 +837,53 @@ try {
             box-shadow: 0 0 0 3px rgba(207, 114, 58, 0.1);
         }
 
-        /* Auto-refresh indicator */
-        .refresh-indicator {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.8rem;
-            color: var(--text-gray);
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
         }
 
-        .refresh-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--sage);
-            animation: pulse 2s infinite;
+        .form-row-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 1rem;
         }
 
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        /* Delivery Table */
-        .delivery-table-container {
-            background: var(--white);
-            border-radius: var(--radius-md);
-            box-shadow: var(--shadow-soft);
-            border: 1px solid var(--border-light);
-            overflow: hidden;
-        }
-
-        .table-header {
-            padding: 1.5rem;
-            border-bottom: 1px solid var(--border-light);
-            display: flex;
-            justify-content: between;
-            align-items: center;
-        }
-
-        .table-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: var(--text-dark);
-        }
-
-        .table-responsive {
-            overflow-x: auto;
-        }
-
-        .delivery-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .delivery-table th,
-        .delivery-table td {
-            padding: 1rem;
-            text-align: left;
-            border-bottom: 1px solid var(--border-light);
-        }
-
-        .delivery-table th {
-            background: #f8f9fa;
-            font-weight: 600;
-            color: var(--text-dark);
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .delivery-table td {
-            font-size: 0.9rem;
-        }
-
-        .delivery-table tr:hover {
-            background: rgba(207, 114, 58, 0.02);
-        }
-
-        /* Status badges */
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.25rem;
-            padding: 0.25rem 0.75rem;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 500;
-        }
-
-        .status-pending {
-            background: rgba(255, 193, 7, 0.1);
-            color: #856404;
-        }
-
-        .status-confirmed {
-            background: rgba(0, 123, 255, 0.1);
-            color: #004085;
-        }
-
-        .status-preparing {
-            background: rgba(255, 193, 7, 0.1);
-            color: #856404;
-        }
-
-        .status-ready {
-            background: rgba(40, 167, 69, 0.1);
-            color: #155724;
-        }
-
-        .status-out_for_delivery {
-            background: rgba(23, 162, 184, 0.1);
-            color: #0c5460;
-        }
-
-        .status-delivered {
-            background: rgba(40, 167, 69, 0.1);
-            color: #155724;
-        }
-
-        .status-cancelled {
-            background: rgba(220, 53, 69, 0.1);
-            color: #721c24;
-        }
-
-        /* Action buttons in table */
-        .table-actions {
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        .btn-sm {
-            padding: 0.375rem 0.75rem;
-            font-size: 0.8rem;
-        }
-
-        /* Modal styles */
+        /* Modals */
         .modal {
             display: none;
             position: fixed;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 2000;
-            backdrop-filter: blur(4px);
-        }
-
-        .modal.show {
-            display: flex;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 10000;
             align-items: center;
             justify-content: center;
+            backdrop-filter: blur(5px);
         }
 
         .modal-content {
             background: var(--white);
-            border-radius: var(--radius-lg);
-            box-shadow: var(--shadow-medium);
+            border-radius: var(--radius-md);
+            padding: 2rem;
             max-width: 600px;
             width: 90%;
-            max-height: 90vh;
+            max-height: 80vh;
             overflow-y: auto;
-            animation: modalSlideIn 0.3s ease-out;
-        }
-
-        @keyframes modalSlideIn {
-            from {
-                opacity: 0;
-                transform: translateY(-20px) scale(0.95);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
+            box-shadow: var(--shadow-medium);
         }
 
         .modal-header {
-            padding: 1.5rem;
-            border-bottom: 1px solid var(--border-light);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            margin-bottom: 1.5rem;
         }
 
         .modal-title {
-            font-size: 1.25rem;
+            font-size: 1.5rem;
             font-weight: 600;
             color: var(--text-dark);
         }
@@ -1076,87 +901,70 @@ try {
             color: var(--text-dark);
         }
 
-        .modal-body {
-            padding: 1.5rem;
-        }
-
-        .modal-footer {
-            padding: 1.5rem;
-            border-top: 1px solid var(--border-light);
-            display: flex;
-            gap: 1rem;
-            justify-content: flex-end;
-        }
-
-        /* Toast notifications */
-        .toast-container {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 3000;
-        }
-
-        .toast {
+        /* Tables */
+        .table-container {
             background: var(--white);
-            border-left: 4px solid var(--curry);
-            border-radius: var(--radius-sm);
-            box-shadow: var(--shadow-medium);
-            padding: 1rem;
-            margin-bottom: 0.5rem;
-            min-width: 300px;
-            transform: translateX(100%);
-            transition: var(--transition);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-soft);
+            border: 1px solid var(--border-light);
+            overflow: hidden;
         }
 
-        .toast.show {
-            transform: translateX(0);
-        }
-
-        .toast.success {
-            border-left-color: #27ae60;
-        }
-
-        .toast.error {
-            border-left-color: #e74c3c;
-        }
-
-        .toast-header {
+        .table-header {
+            background: linear-gradient(135deg, var(--cream), #f5f2ef);
+            padding: 1rem 1.5rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border-light);
         }
 
-    
-.toast-title {
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table th {
+            background: #f8f9fa;
+            padding: 1rem;
+            text-align: left;
             font-weight: 600;
-            color: var(--text-dark);
-        }
-
-        .toast-close {
-            background: none;
-            border: none;
-            cursor: pointer;
-            color: var(--text-gray);
-        }
-
-        .toast-body {
             color: var(--text-gray);
             font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
-        /* Loading states */
+        .table td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .table tr:hover {
+            background: #f8f9fa;
+        }
+
+        /* Loading States */
         .loading-overlay {
-            position: absolute;
+            position: fixed;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(255, 255, 255, 0.8);
-            display: flex;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
             align-items: center;
             justify-content: center;
-            z-index: 100;
+            z-index: 9999;
+            backdrop-filter: blur(3px);
+        }
+
+        .loading-content {
+            background: var(--white);
+            padding: 2rem;
+            border-radius: var(--radius-md);
+            text-align: center;
+            box-shadow: var(--shadow-medium);
         }
 
         .spinner {
@@ -1166,6 +974,7 @@ try {
             border-top: 4px solid var(--curry);
             border-radius: 50%;
             animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
         }
 
         @keyframes spin {
@@ -1173,15 +982,10 @@ try {
             100% { transform: rotate(360deg); }
         }
 
-        /* Responsive design */
+        /* Responsive */
         @media (max-width: 768px) {
             .sidebar {
-                width: 260px;
                 transform: translateX(-100%);
-            }
-
-            .sidebar.show {
-                transform: translateX(0);
             }
 
             .main-content {
@@ -1189,20 +993,110 @@ try {
                 padding: 1rem;
             }
 
+            .zones-grid {
+                grid-template-columns: 1fr;
+            }
+
             .stats-grid {
                 grid-template-columns: 1fr;
             }
 
-            .control-row {
+            .form-row,
+            .form-row-3 {
                 grid-template-columns: 1fr;
+            }
+
+            .header-content {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 1rem;
             }
         }
 
-        /* Utilities */
-        .text-center { text-align: center; }
-        .d-none { display: none; }
-        .mb-2 { margin-bottom: 1rem; }
-        .position-relative { position: relative; }
+        /* Additional Styles */
+        .badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .badge-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .badge-danger {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .zip-codes-display {
+            background: var(--cream);
+            padding: 0.5rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.8rem;
+            color: var(--text-gray);
+            margin-top: 0.5rem;
+            max-height: 60px;
+            overflow-y: auto;
+        }
+
+        .color-picker {
+            width: 50px;
+            height: 40px;
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+        }
+
+        .time-slots-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .time-slot-tag {
+            background: var(--curry);
+            color: var(--white);
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .time-slot-remove {
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .coverage-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+
+        .coverage-good {
+            background: var(--success);
+        }
+
+        .coverage-warning {
+            background: var(--warning);
+        }
+
+        .coverage-danger {
+            background: var(--danger);
+        }
     </style>
 </head>
 <body>
@@ -1217,7 +1111,7 @@ try {
                          loading="lazy">
                 </div>
                 <div class="sidebar-title">Krua Thai</div>
-                <div class="sidebar-subtitle">Admin Panel</div>
+                <div class="sidebar-subtitle">Zone Manager</div>
             </div>
             
             <nav class="sidebar-nav">
@@ -1227,33 +1121,41 @@ try {
                         <i class="nav-icon fas fa-tachometer-alt"></i>
                         <span>Dashboard</span>
                     </a>
+                    <a href="delivery-management.php" class="nav-item">
+                        <i class="nav-icon fas fa-route"></i>
+                        <span>Route Optimizer</span>
+                    </a>
                     <a href="orders.php" class="nav-item">
                         <i class="nav-icon fas fa-shopping-cart"></i>
                         <span>Orders</span>
                     </a>
-                    <a href="delivery.php" class="nav-item active">
-                        <i class="nav-icon fas fa-truck"></i>
-                        <span>Delivery</span>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Delivery</div>
+                    <a href="assign-riders.php" class="nav-item">
+                        <i class="nav-icon fas fa-users"></i>
+                        <span>Assign Riders</span>
                     </a>
-                    <a href="menus.php" class="nav-item">
-                        <i class="nav-icon fas fa-utensils"></i>
-                        <span>Menus</span>
+                    <a href="track-deliveries.php" class="nav-item">
+                        <i class="nav-icon fas fa-map-marked-alt"></i>
+                        <span>Track Deliveries</span>
+                    </a>
+                    <a href="delivery-zones.php" class="nav-item active">
+                        <i class="nav-icon fas fa-map"></i>
+                        <span>Delivery Zones</span>
                     </a>
                 </div>
                 
                 <div class="nav-section">
-                    <div class="nav-section-title">Management</div>
-                    <a href="users.php" class="nav-item">
-                        <i class="nav-icon fas fa-users"></i>
-                        <span>Users</span>
+                    <div class="nav-section-title">Reports</div>
+                    <a href="analytics.php" class="nav-item">
+                        <i class="nav-icon fas fa-chart-line"></i>
+                        <span>Analytics</span>
                     </a>
-                    <a href="delivery-zones.php" class="nav-item">
-                        <i class="nav-icon fas fa-map-marked-alt"></i>
-                        <span>Delivery Zones</span>
-                    </a>
-                    <a href="reviews.php" class="nav-item">
-                        <i class="nav-icon fas fa-star"></i>
-                        <span>Reviews</span>
+                    <a href="performance.php" class="nav-item">
+                        <i class="nav-icon fas fa-award"></i>
+                        <span>Performance</span>
                     </a>
                 </div>
                 
@@ -1263,7 +1165,7 @@ try {
                         <i class="nav-icon fas fa-cog"></i>
                         <span>Settings</span>
                     </a>
-                    <a href="#" class="nav-item" onclick="logout()" style="color: rgba(255, 255, 255, 0.9);">
+                    <a href="../logout.php" class="nav-item">
                         <i class="nav-icon fas fa-sign-out-alt"></i>
                         <span>Logout</span>
                     </a>
@@ -1277,858 +1179,935 @@ try {
             <div class="page-header">
                 <div class="header-content">
                     <div>
-                        <h1 class="page-title">Delivery Management</h1>
-                        <p class="page-subtitle">Monitor and manage all deliveries in real-time</p>
+                        <h1 class="page-title">
+                            <i class="fas fa-map" style="color: var(--curry); margin-right: 0.5rem;"></i>
+                            Delivery Zone Management
+                        </h1>
+                        <p class="page-subtitle">Manage delivery zones, ZIP codes, fees, and capacity limits</p>
                     </div>
                     <div class="header-actions">
-                        <div class="refresh-indicator">
-                            <div class="refresh-dot"></div>
-                            <span>Auto-refresh every 30s</span>
-                        </div>
-                        <button class="btn btn-secondary" onclick="refreshDeliveries()">
-                            <i class="fas fa-sync-alt"></i>
-                            Refresh
+                        <button class="btn btn-secondary" onclick="testZipCoverage()">
+                            <i class="fas fa-search"></i>
+                            Test Coverage
                         </button>
-                        <button class="btn btn-primary" onclick="exportReport()">
-                            <i class="fas fa-download"></i>
-                            Export Report
+                        
+                        <button class="btn btn-warning" onclick="bulkImportZips()">
+                            <i class="fas fa-upload"></i>
+                            Import ZIP Codes
+                        </button>
+                        
+                        <button class="btn btn-primary" onclick="showCreateZoneModal()">
+                            <i class="fas fa-plus"></i>
+                            Create New Zone
                         </button>
                     </div>
                 </div>
             </div>
 
-            <!-- Statistics Cards -->
+            <!-- System Statistics -->
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-header">
                         <div class="stat-icon" style="background: linear-gradient(135deg, var(--curry), #e67e22);">
-                            <i class="fas fa-truck"></i>
+                            <i class="fas fa-map-marked-alt"></i>
                         </div>
                     </div>
-                    <div class="stat-value" id="totalDeliveries"><?= $overview['today_stats']['total_deliveries'] ?? 0 ?></div>
-                    <div class="stat-label">Total Deliveries Today</div>
-                </div>
-                
-                <div class="stat-card">
-                    <div class="stat-header">
-                        <div class="stat-icon" style="background: linear-gradient(135deg, #f39c12, #e67e22);">
-                            <i class="fas fa-clock"></i>
-                        </div>
-                    </div>
-                    <div class="stat-value" id="outForDelivery"><?= $overview['today_stats']['out_for_delivery'] ?? 0 ?></div>
-                    <div class="stat-label">Out for Delivery</div>
+                    <div class="stat-value"><?= $systemStats['active_zones'] ?></div>
+                    <div class="stat-label">Active Zones</div>
                 </div>
                 
                 <div class="stat-card">
                     <div class="stat-header">
                         <div class="stat-icon" style="background: linear-gradient(135deg, var(--sage), #27ae60);">
-                            <i class="fas fa-check-circle"></i>
+                            <i class="fas fa-location-dot"></i>
                         </div>
                     </div>
-                    <div class="stat-value" id="delivered"><?= $overview['today_stats']['delivered'] ?? 0 ?></div>
-                    <div class="stat-label">Delivered</div>
+                    <div class="stat-value"><?= $systemStats['total_covered_zips'] ?></div>
+                    <div class="stat-label">Covered ZIP Codes</div>
                 </div>
                 
                 <div class="stat-card">
                     <div class="stat-header">
-                        <div class="stat-icon" style="background: linear-gradient(135deg, #3498db, #2980b9);">
-                            <i class="fas fa-motorcycle"></i>
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #f39c12, #e67e22);">
+                            <i class="fas fa-users"></i>
                         </div>
                     </div>
-                    <div class="stat-value" id="activeRiders"><?= $overview['active_riders'] ?? 0 ?></div>
-                    <div class="stat-label">Active Riders</div>
+                    <div class="stat-value"><?= $systemStats['unique_zip_codes'] ?></div>
+                    <div class="stat-label">Unique ZIP Codes</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #9b59b6, #8e44ad);">
+                            <i class="fas fa-clipboard-list"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value"><?= $systemStats['active_subscriptions'] ?></div>
+                    <div class="stat-label">Active Subscriptions</div>
                 </div>
             </div>
 
-            <!-- Control Panel -->
-            <div class="control-panel">
-                <h3 class="control-title">
-                    <i class="fas fa-filter"></i>
-                    Filters & Quick Actions
-                </h3>
-                <div class="control-row">
-                    <div class="form-group">
-                        <label class="form-label">Filter by Status</label>
-                        <select id="statusFilter" class="form-control" onchange="filterDeliveries()">
-                            <option value="">All Status</option>
-                            <option value="pending">Pending</option>
-                            <option value="confirmed">Confirmed</option>
-                            <option value="preparing">Preparing</option>
-                            <option value="ready">Ready</option>
-                            <option value="out_for_delivery">Out for Delivery</option>
-                            <option value="delivered">Delivered</option>
-                            <option value="cancelled">Cancelled</option>
-                        </select>
+            <!-- Delivery Zones Grid -->
+            <div class="zones-grid">
+                <?php foreach ($zones as $zone): ?>
+                    <div class="zone-card" style="border-left-color: <?= htmlspecialchars($zone['zone_color']) ?>;">
+                        <div class="zone-header">
+                            <div class="zone-title"><?= htmlspecialchars($zone['zone_name']) ?></div>
+                            <div class="zone-status <?= $zone['is_active'] ? 'active' : 'inactive' ?>">
+                                <?= $zone['is_active'] ? 'Active' : 'Inactive' ?>
+                            </div>
+                        </div>
+                        
+                        <div class="zone-info">
+                            <div class="zone-info-item">
+                                <div class="zone-info-value"><?= count($zone['zip_codes_array']) ?></div>
+                                <div class="zone-info-label">ZIP Codes</div>
+                            </div>
+                            <div class="zone-info-item">
+                                <div class="zone-info-value">$<?= number_format($zone['base_delivery_fee'], 2) ?></div>
+                                <div class="zone-info-label">Base Fee</div>
+                            </div>
+                            <div class="zone-info-item">
+                                <div class="zone-info-value"><?= $zone['active_subscriptions'] ?></div>
+                                <div class="zone-info-label">Subscriptions</div>
+                            </div>
+                            <div class="zone-info-item">
+                                <div class="zone-info-value"><?= $zone['estimated_delivery_time'] ?> min</div>
+                                <div class="zone-info-label">Est. Time</div>
+                            </div>
+                        </div>
+                        
+                        <div class="zone-progress">
+                            <div class="zone-progress-label">
+                                <span>Capacity Usage</span>
+                                <span><?= $zone['capacity_percentage'] ?>%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill <?= $zone['capacity_percentage'] > 80 ? 'danger' : ($zone['capacity_percentage'] > 60 ? 'warning' : '') ?>" 
+                                     style="width: <?= min($zone['capacity_percentage'], 100) ?>%"></div>
+                            </div>
+                        </div>
+                        
+                        <?php if (!empty($zone['zone_description'])): ?>
+                            <div style="font-size: 0.9rem; color: var(--text-gray); margin: 1rem 0;">
+                                <?= htmlspecialchars($zone['zone_description']) ?>
+                            </div>
+                        <?php endif; ?>
+                        
+                        <div class="zip-codes-display">
+                            <strong>ZIP Codes:</strong> 
+                            <?= !empty($zone['zip_codes_string']) ? htmlspecialchars($zone['zip_codes_string']) : 'No ZIP codes assigned' ?>
+                        </div>
+                        
+                        <?php if (count($zone['time_slots_array']) > 0): ?>
+                            <div class="time-slots-container">
+                                <?php foreach ($zone['time_slots_array'] as $slot): ?>
+                                    <span class="time-slot-tag"><?= htmlspecialchars($slot) ?></span>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+                        
+                        <div class="zone-actions">
+                            <button class="btn btn-primary btn-sm" onclick="editZone('<?= $zone['id'] ?>')">
+                                <i class="fas fa-edit"></i>
+                                Edit
+                            </button>
+                            <button class="btn btn-secondary btn-sm" onclick="viewZoneDetails('<?= $zone['id'] ?>')">
+                                <i class="fas fa-eye"></i>
+                                Details
+                            </button>
+                            <button class="btn btn-warning btn-sm" onclick="manageZipCodes('<?= $zone['id'] ?>')">
+                                <i class="fas fa-location-dot"></i>
+                                ZIP Codes
+                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteZone('<?= $zone['id'] ?>', '<?= htmlspecialchars($zone['zone_name']) ?>')">
+                                <i class="fas fa-trash"></i>
+                                Delete
+                            </button>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">Filter by Date</label>
-                        <input type="date" id="dateFilter" class="form-control" value="<?= date('Y-m-d') ?>" onchange="filterDeliveries()">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Filter by Rider</label>
-                        <select id="riderFilter" class="form-control" onchange="filterDeliveries()">
-                            <option value="">All Riders</option>
-                            <?php foreach ($riders as $rider): ?>
-                                <option value="<?= $rider['id'] ?>"><?= htmlspecialchars($rider['name']) ?> (<?= $rider['active_orders'] ?> orders)</option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Search Orders</label>
-                        <input type="text" id="searchInput" class="form-control" placeholder="Order number, customer name..." onkeyup="searchDeliveries()">
-                    </div>
-                </div>
-            </div>
-
-            <!-- Delivery Table -->
-            <div class="delivery-table-container">
-                <div class="table-header">
-                    <h3 class="table-title">
-                        <i class="fas fa-list"></i>
-                        Delivery Orders
-                    </h3>
-                    <div style="display: flex; gap: 1rem;">
-                        <button class="btn btn-warning btn-sm" onclick="bulkAssignModal()">
-                            <i class="fas fa-users"></i>
-                            Bulk Assign
+                <?php endforeach; ?>
+                
+                <?php if (empty($zones)): ?>
+                    <div class="zone-card" style="text-align: center; padding: 3rem; border: 2px dashed var(--border-light);">
+                        <i class="fas fa-map-marked-alt" style="font-size: 3rem; color: var(--text-gray); margin-bottom: 1rem;"></i>
+                        <h3 style="color: var(--text-gray); margin-bottom: 0.5rem;">No Delivery Zones Found</h3>
+                        <p style="color: var(--text-gray); margin-bottom: 1.5rem;">Create your first delivery zone to start managing deliveries</p>
+                        <button class="btn btn-primary" onclick="showCreateZoneModal()">
+                            <i class="fas fa-plus"></i>
+                            Create First Zone
                         </button>
-                        <span id="selectedCount" class="text-muted" style="font-size: 0.9rem;">0 selected</span>
                     </div>
-                </div>
-                <div class="table-responsive">
-                    <table class="delivery-table" id="deliveryTable">
-                        <thead>
-                            <tr>
-                                <th>
-                                    <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
-                                </th>
-                                <th>Order #</th>
-                                <th>Customer</th>
-                                <th>Address</th>
-                                <th>Status</th>
-                                <th>Rider</th>
-                                <th>Delivery Date</th>
-                                <th>Amount</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="deliveryTableBody">
-                            <?php foreach ($deliveries as $delivery): ?>
-                            <tr data-order-id="<?= $delivery['id'] ?>">
-                                <td>
-                                    <input type="checkbox" class="order-checkbox" value="<?= $delivery['id'] ?>" onchange="updateSelectedCount()">
-                                </td>
-                                <td>
-                                    <strong><?= htmlspecialchars($delivery['order_number']) ?></strong>
-                                    <?php if ($delivery['delivery_time_slot']): ?>
-                                        <div style="font-size: 0.8rem; color: var(--text-gray);">
-                                            <?= htmlspecialchars($delivery['delivery_time_slot']) ?>
-                                        </div>
-                                    <?php endif; ?>
-                                </td>
-                                <td>
-                                    <div>
-                                        <strong><?= htmlspecialchars($delivery['customer_name']) ?></strong>
-                                    </div>
-                                    <?php if ($delivery['customer_phone']): ?>
-                                        <div style="font-size: 0.8rem; color: var(--text-gray);">
-                                            <?= htmlspecialchars($delivery['customer_phone']) ?>
-                                        </div>
-                                    <?php endif; ?>
-                                </td>
-                                <td>
-                                    <div style="max-width: 200px; word-wrap: break-word;">
-                                        <?= htmlspecialchars($delivery['delivery_address']) ?>
-                                    </div>
-                                    <?php if ($delivery['zone_name']): ?>
-                                        <div style="font-size: 0.8rem; color: var(--text-gray);">
-                                            Zone: <?= htmlspecialchars($delivery['zone_name']) ?>
-                                        </div>
-                                    <?php endif; ?>
-                                </td>
-                                <td>
-                                    <span class="status-badge status-<?= $delivery['status'] ?>">
-                                        <i class="fas fa-circle"></i>
-                                        <?= ucfirst(str_replace('_', ' ', $delivery['status'])) ?>
-                                    </span>
-                                </td>
-                                <td>
-                                    <?php if ($delivery['rider_name']): ?>
-                                        <div>
-                                            <strong><?= htmlspecialchars($delivery['rider_name']) ?></strong>
-                                        </div>
-                                        <?php if ($delivery['rider_phone']): ?>
-                                            <div style="font-size: 0.8rem; color: var(--text-gray);">
-                                                <?= htmlspecialchars($delivery['rider_phone']) ?>
-                                            </div>
-                                        <?php endif; ?>
-                                    <?php else: ?>
-                                        <select class="form-control" style="font-size: 0.8rem;" onchange="assignRider('<?= $delivery['id'] ?>', this.value)">
-                                            <option value="">Assign Rider</option>
-                                            <?php foreach ($riders as $rider): ?>
-                                                <option value="<?= $rider['id'] ?>"><?= htmlspecialchars($rider['name']) ?></option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    <?php endif; ?>
-                                </td>
-                                <td>
-                                    <?= date('M d, Y', strtotime($delivery['delivery_date'])) ?>
-                                </td>
-                                <td>
-                                    <strong>₿<?= number_format($delivery['total_amount'], 2) ?></strong>
-                                </td>
-                                <td>
-                                    <div class="table-actions">
-                                        <button class="btn btn-info btn-sm" onclick="viewDeliveryDetails('<?= $delivery['id'] ?>')" title="View Details">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        <button class="btn btn-warning btn-sm" onclick="updateDeliveryStatus('<?= $delivery['id'] ?>')" title="Update Status">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <?php if ($delivery['status'] === 'ready' && !$delivery['rider_name']): ?>
-                                        <button class="btn btn-success btn-sm" onclick="quickAssignRider('<?= $delivery['id'] ?>')" title="Quick Assign">
-                                            <i class="fas fa-motorcycle"></i>
-                                        </button>
-                                        <?php endif; ?>
-                                    </div>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                    
-                    <?php if (empty($deliveries)): ?>
-                    <div class="text-center" style="padding: 3rem;">
-                        <i class="fas fa-truck" style="font-size: 4rem; color: var(--text-gray); margin-bottom: 1rem;"></i>
-                        <h3 style="color: var(--text-gray);">No deliveries found</h3>
-                        <p style="color: var(--text-gray);">Orders will appear here when they're ready for delivery</p>
-                    </div>
-                    <?php endif; ?>
-                </div>
+                <?php endif; ?>
             </div>
         </div>
     </div>
 
-    <!-- Modals -->
-    <!-- Bulk Assign Modal -->
-    <div id="bulkAssignModal" class="modal">
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <div>Processing...</div>
+        </div>
+    </div>
+
+    <!-- Create/Edit Zone Modal -->
+    <div class="modal" id="zoneModal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h3 class="modal-title" id="zoneModalTitle">Create New Delivery Zone</h3>
+                <button class="modal-close" onclick="closeModal('zoneModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="zoneForm">
+                <input type="hidden" id="zoneId" name="zone_id">
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Zone Name *</label>
+                        <input type="text" class="form-control" id="zoneName" name="zone_name" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Zone Color</label>
+                        <input type="color" class="color-picker" id="zoneColor" name="zone_color" value="#3498db">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Zone Description</label>
+                    <textarea class="form-control" id="zoneDescription" name="zone_description" rows="3"></textarea>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Min Distance (miles)</label>
+                        <input type="number" class="form-control" id="minDistance" name="min_distance" step="0.1" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Max Distance (miles)</label>
+                        <input type="number" class="form-control" id="maxDistance" name="max_distance" step="0.1" min="0">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Base Delivery Fee ($)</label>
+                        <input type="number" class="form-control" id="baseDeliveryFee" name="base_delivery_fee" step="0.01" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Per Mile Fee ($)</label>
+                        <input type="number" class="form-control" id="perMileFee" name="per_mile_fee" step="0.01" min="0">
+                    </div>
+                </div>
+                
+                <div class="form-row-3">
+                    <div class="form-group">
+                        <label class="form-label">Max Orders/Day</label>
+                        <input type="number" class="form-control" id="maxOrdersPerDay" name="max_orders_per_day" min="1" value="50">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Max Orders/Slot</label>
+                        <input type="number" class="form-control" id="maxOrdersPerSlot" name="max_orders_per_slot" min="1" value="10">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Est. Delivery Time (min)</label>
+                        <input type="number" class="form-control" id="estimatedDeliveryTime" name="estimated_delivery_time" min="1" value="60">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">ZIP Codes (comma-separated)</label>
+                    <textarea class="form-control" id="zipCodes" name="zip_codes" rows="3" 
+                              placeholder="92831, 92832, 92833, 90620, 90621"></textarea>
+                    <small style="color: var(--text-gray);">Enter ZIP codes separated by commas</small>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Available Time Slots</label>
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <input type="time" id="timeSlotStart" class="form-control" style="flex: 1;">
+                        <input type="time" id="timeSlotEnd" class="form-control" style="flex: 1;">
+                        <button type="button" class="btn btn-secondary" onclick="addTimeSlot()">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                    <div id="timeSlotsList" class="time-slots-container"></div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Sort Order</label>
+                        <input type="number" class="form-control" id="sortOrder" name="sort_order" min="1" value="1">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Status</label>
+                        <select class="form-control" id="isActive" name="is_active">
+                            <option value="1">Active</option>
+                            <option value="0">Inactive</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('zoneModal')">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i>
+                        Save Zone
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ZIP Code Management Modal -->
+    <div class="modal" id="zipCodeModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 class="modal-title">Bulk Assign Rider</h3>
-                <button class="modal-close" onclick="closeBulkAssignModal()">
+                <h3 class="modal-title">Manage ZIP Codes</h3>
+                <button class="modal-close" onclick="closeModal('zipCodeModal')">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label class="form-label">Select Rider</label>
-                    <select id="bulkRiderSelect" class="form-control">
-                        <option value="">Choose a rider</option>
-                        <?php foreach ($riders as $rider): ?>
-                            <option value="<?= $rider['id'] ?>"><?= htmlspecialchars($rider['name']) ?> (<?= $rider['active_orders'] ?> active orders)</option>
-                        <?php endforeach; ?>
-                    </select>
+                    <label class="form-label">ZIP Codes for <span id="zipModalZoneName"></span></label>
+                    <textarea class="form-control" id="zipCodeTextarea" rows="8" 
+                              placeholder="Enter ZIP codes, one per line or comma-separated"></textarea>
+                    <small style="color: var(--text-gray);">
+                        You can paste ZIP codes from Excel, enter one per line, or separate with commas
+                    </small>
                 </div>
-                <div id="selectedOrders" class="mb-2">
-                    <strong>Selected Orders:</strong>
-                    <div id="selectedOrdersList"></div>
+                
+                <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('zipCodeModal')">
+                        Cancel
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="saveZipCodes()">
+                        <i class="fas fa-save"></i>
+                        Save ZIP Codes
+                    </button>
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeBulkAssignModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="performBulkAssign()">
-                    <i class="fas fa-check"></i>
-                    Assign Orders
-                </button>
             </div>
         </div>
     </div>
 
-    <!-- Delivery Details Modal -->
-    <div id="deliveryDetailsModal" class="modal">
-        <div class="modal-content">
+    <!-- Coverage Test Modal -->
+    <div class="modal" id="coverageModal">
+        <div class="modal-content" style="max-width: 900px;">
             <div class="modal-header">
-                <h3 class="modal-title">Delivery Details</h3>
-                <button class="modal-close" onclick="closeDeliveryDetailsModal()">
+                <h3 class="modal-title">ZIP Code Coverage Analysis</h3>
+                <button class="modal-close" onclick="closeModal('coverageModal')">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-            <div class="modal-body" id="deliveryDetailsContent">
-                <!-- Content will be loaded dynamically -->
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeDeliveryDetailsModal()">Close</button>
+            <div class="modal-body" id="coverageResults">
+                <div class="spinner" style="margin: 2rem auto;"></div>
+                <div style="text-align: center; color: var(--text-gray);">Analyzing coverage...</div>
             </div>
         </div>
     </div>
 
-    <!-- Toast Container -->
-    <div class="toast-container" id="toastContainer"></div>
-
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         // Global variables
-        let selectedOrders = [];
-        let autoRefreshInterval;
+        let currentZoneId = null;
+        let currentTimeSlots = [];
 
         // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
-            // Start auto-refresh
-            startAutoRefresh();
-            
-            // Initialize tooltips
-            initializeTooltips();
-            
-            // Keyboard shortcuts
-            document.addEventListener('keydown', function(e) {
-                if (e.ctrlKey && e.key === 'r') {
-                    e.preventDefault();
-                    refreshDeliveries();
-                }
-            });
+            setupEventListeners();
+            console.log('🗺️ Krua Thai Delivery Zone Management System initialized');
         });
 
-        // ✅ Auto-refresh function
-        function startAutoRefresh() {
-            autoRefreshInterval = setInterval(function() {
-                realTimeRefresh();
-            }, 30000); // 30 seconds
+        // Event listeners
+        function setupEventListeners() {
+            // Zone form submission
+            document.getElementById('zoneForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                saveZone();
+            });
         }
 
-        function stopAutoRefresh() {
-            if (autoRefreshInterval) {
-                clearInterval(autoRefreshInterval);
-            }
+        // Show create zone modal
+        function showCreateZoneModal() {
+            document.getElementById('zoneModalTitle').textContent = 'Create New Delivery Zone';
+            document.getElementById('zoneForm').reset();
+            document.getElementById('zoneId').value = '';
+            currentZoneId = null;
+            currentTimeSlots = [];
+            updateTimeSlotsList();
+            showModal('zoneModal');
         }
 
-        // ✅ Real-time refresh function
-        function realTimeRefresh() {
-            fetch(window.location.href, {
+        // Edit zone
+        function editZone(zoneId) {
+            showLoading();
+            
+            fetch('delivery-zones.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                body: 'action=real_time_refresh'
+                body: `action=get_zone&zone_id=${zoneId}`
             })
             .then(response => response.json())
             .then(data => {
+                hideLoading();
                 if (data.success) {
-                    updateDashboardStats(data.data.overview);
-                    updateDeliveryTable(data.data.deliveries);
-                    updateRiderDropdowns(data.data.riders);
+                    populateZoneForm(data.zone);
+                    document.getElementById('zoneModalTitle').textContent = 'Edit Delivery Zone';
+                    showModal('zoneModal');
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.message
+                    });
                 }
             })
             .catch(error => {
-                console.error('Auto-refresh error:', error);
+                hideLoading();
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to fetch zone data'
+                });
             });
         }
 
-        // ✅ Filter functions
-        function filterDeliveries() {
-            const status = document.getElementById('statusFilter').value;
-            const date = document.getElementById('dateFilter').value;
-            const riderId = document.getElementById('riderFilter').value;
+        // Populate zone form with data
+        function populateZoneForm(zone) {
+            currentZoneId = zone.id;
+            document.getElementById('zoneId').value = zone.id;
+            document.getElementById('zoneName').value = zone.zone_name;
+            document.getElementById('zoneDescription').value = zone.zone_description || '';
+            document.getElementById('zoneColor').value = zone.zone_color || '#3498db';
+            document.getElementById('minDistance').value = zone.min_distance || '';
+            document.getElementById('maxDistance').value = zone.max_distance || '';
+            document.getElementById('baseDeliveryFee').value = zone.base_delivery_fee || '';
+            document.getElementById('perMileFee').value = zone.per_mile_fee || '';
+            document.getElementById('maxOrdersPerDay').value = zone.max_orders_per_day || 50;
+            document.getElementById('maxOrdersPerSlot').value = zone.max_orders_per_slot || 10;
+            document.getElementById('estimatedDeliveryTime').value = zone.estimated_delivery_time || 60;
+            document.getElementById('zipCodes').value = zone.zip_codes_string || '';
+            document.getElementById('sortOrder').value = zone.sort_order || 1;
+            document.getElementById('isActive').value = zone.is_active || 1;
             
-            const formData = new FormData();
-            formData.append('action', 'get_delivery_list');
-            if (status) formData.append('status', status);
-            if (date) formData.append('date', date);
-            if (riderId) formData.append('rider_id', riderId);
+            currentTimeSlots = zone.time_slots_array || [];
+            updateTimeSlotsList();
+        }
+
+        // Save zone
+        function saveZone() {
+            const formData = new FormData(document.getElementById('zoneForm'));
+            const action = currentZoneId ? 'update_zone' : 'create_zone';
+            formData.append('action', action);
+            formData.append('time_slots', JSON.stringify(currentTimeSlots));
             
-            fetch(window.location.href, {
+            showLoading();
+            
+            fetch('delivery-zones.php', {
                 method: 'POST',
                 body: formData
             })
             .then(response => response.json())
             .then(data => {
+                hideLoading();
                 if (data.success) {
-                    updateDeliveryTable(data.data);
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: data.message,
+                        timer: 2000,
+                        showConfirmButton: false
+                    }).then(() => {
+                        closeModal('zoneModal');
+                        location.reload();
+                    });
                 } else {
-                    showToast(data.message, 'error');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.message
+                    });
                 }
             })
             .catch(error => {
-                console.error('Filter error:', error);
-                showToast('Error filtering deliveries', 'error');
+                hideLoading();
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to save zone'
+                });
             });
         }
 
-        // ✅ Search function
-        function searchDeliveries() {
-            const searchTerm = document.getElementById('searchInput').value;
+        // Delete zone
+        function deleteZone(zoneId, zoneName) {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: `Delete delivery zone "${zoneName}"? This action cannot be undone.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#e74c3c',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, delete it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    showLoading();
+                    
+                    fetch('delivery-zones.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: `action=delete_zone&zone_id=${zoneId}`
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        hideLoading();
+                        if (data.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Deleted!',
+                                text: data.message,
+                                timer: 2000,
+                                showConfirmButton: false
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Cannot Delete',
+                                text: data.message
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        hideLoading();
+                        console.error('Error:', error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Failed to delete zone'
+                        });
+                    });
+                }
+            });
+        }
+
+        // Manage ZIP codes
+        function manageZipCodes(zoneId) {
+            showLoading();
             
-            const formData = new FormData();
-            formData.append('action', 'get_delivery_list');
-            if (searchTerm) formData.append('search', searchTerm);
-            
-            fetch(window.location.href, {
+            fetch('delivery-zones.php', {
                 method: 'POST',
-                body: formData
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `action=get_zone&zone_id=${zoneId}`
             })
             .then(response => response.json())
             .then(data => {
+                hideLoading();
                 if (data.success) {
-                    updateDeliveryTable(data.data);
+                    currentZoneId = zoneId;
+                    document.getElementById('zipModalZoneName').textContent = data.zone.zone_name;
+                    document.getElementById('zipCodeTextarea').value = data.zone.zip_codes_string || '';
+                    showModal('zipCodeModal');
                 } else {
-                    showToast(data.message, 'error');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.message
+                    });
                 }
             })
             .catch(error => {
-                console.error('Search error:', error);
-                showToast('Error searching deliveries', 'error');
+                hideLoading();
+                console.error('Error:', error);
             });
         }
 
-        // ✅ Manual refresh function
-        function refreshDeliveries() {
-            showToast('Refreshing deliveries...', 'success');
-            realTimeRefresh();
-        }
-
-        // Assignment functions
-        function assignRider(orderId, riderId) {
-            if (!riderId) return;
+        // Save ZIP codes
+        function saveZipCodes() {
+            const zipCodes = document.getElementById('zipCodeTextarea').value;
             
-            const formData = new FormData();
-            formData.append('action', 'assign_rider');
-            formData.append('order_id', orderId);
-            formData.append('rider_id', riderId);
+            showLoading();
             
-            fetch(window.location.href, {
+            fetch('delivery-zones.php', {
                 method: 'POST',
-                body: formData
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `action=bulk_update_zip_codes&zone_id=${currentZoneId}&zip_codes=${encodeURIComponent(zipCodes)}`
             })
             .then(response => response.json())
             .then(data => {
+                hideLoading();
                 if (data.success) {
-                    showToast(data.message, 'success');
-                    refreshDeliveries();
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: `Updated ${data.zip_count} ZIP codes successfully`,
+                        timer: 2000,
+                        showConfirmButton: false
+                    }).then(() => {
+                        closeModal('zipCodeModal');
+                        location.reload();
+                    });
                 } else {
-                    showToast(data.message, 'error');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.message
+                    });
                 }
             })
             .catch(error => {
-                console.error('Assign rider error:', error);
-                showToast('Error assigning rider', 'error');
+                hideLoading();
+                console.error('Error:', error);
             });
         }
 
-        function bulkAssignModal() {
-            const checkboxes = document.querySelectorAll('.order-checkbox:checked');
-            if (checkboxes.length === 0) {
-                showToast('Please select orders to assign', 'error');
+        // Add time slot
+        function addTimeSlot() {
+            const startTime = document.getElementById('timeSlotStart').value;
+            const endTime = document.getElementById('timeSlotEnd').value;
+            
+            if (!startTime || !endTime) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Invalid Time',
+                    text: 'Please select both start and end times'
+                });
                 return;
             }
             
-            selectedOrders = Array.from(checkboxes).map(cb => cb.value);
-            updateSelectedOrdersList();
-            document.getElementById('bulkAssignModal').classList.add('show');
-        }
-
-        function closeBulkAssignModal() {
-            document.getElementById('bulkAssignModal').classList.remove('show');
-            selectedOrders = [];
-        }
-
-        function performBulkAssign() {
-            const riderId = document.getElementById('bulkRiderSelect').value;
-            if (!riderId) {
-                showToast('Please select a rider', 'error');
+            if (startTime >= endTime) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Invalid Time Range',
+                    text: 'End time must be after start time'
+                });
                 return;
             }
             
-            const formData = new FormData();
-            formData.append('action', 'bulk_assign');
-            formData.append('rider_id', riderId);
-            selectedOrders.forEach(orderId => {
-                formData.append('order_ids[]', orderId);
-            });
+            const timeSlot = `${startTime}-${endTime}`;
             
-            fetch(window.location.href, {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showToast(data.message, 'success');
-                    closeBulkAssignModal();
-                    refreshDeliveries();
-                } else {
-                    showToast(data.message, 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Bulk assign error:', error);
-                showToast('Error bulk assigning', 'error');
-            });
-        }
-
-        function updateDeliveryStatus(orderId) {
-            const newStatus = prompt('Enter new status:', 'out_for_delivery');
-            if (!newStatus) return;
-            
-            const formData = new FormData();
-            formData.append('action', 'update_delivery_status');
-            formData.append('order_id', orderId);
-            formData.append('status', newStatus);
-            
-            fetch(window.location.href, {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showToast(data.message, 'success');
-                    refreshDeliveries();
-                } else {
-                    showToast(data.message, 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Update status error:', error);
-                showToast('Error updating status', 'error');
-            });
-        }
-
-        function viewDeliveryDetails(orderId) {
-            const formData = new FormData();
-            formData.append('action', 'get_delivery_details');
-            formData.append('order_id', orderId);
-            
-            fetch(window.location.href, {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    displayDeliveryDetails(data.data);
-                    document.getElementById('deliveryDetailsModal').classList.add('show');
-                } else {
-                    showToast(data.message, 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Get details error:', error);
-                showToast('Error getting details', 'error');
-            });
-        }
-
-        function closeDeliveryDetailsModal() {
-            document.getElementById('deliveryDetailsModal').classList.remove('show');
-        }
-
-        // ✅ Export report function
-        function exportReport() {
-            const dateFrom = document.getElementById('dateFilter').value || new Date().toISOString().split('T')[0];
-            const dateTo = dateFrom;
-            
-            const formData = new FormData();
-            formData.append('action', 'export_delivery_report');
-            formData.append('date_from', dateFrom);
-            formData.append('date_to', dateTo);
-            formData.append('format', 'csv');
-            
-            fetch(window.location.href, {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    downloadFile(data.data, data.filename, data.type);
-                    showToast('Report exported successfully', 'success');
-                } else {
-                    showToast(data.message, 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Export error:', error);
-                showToast('Error exporting report', 'error');
-            });
-        }
-
-        // Helper functions
-        function updateDashboardStats(overview) {
-            if (overview.today_stats) {
-                document.getElementById('totalDeliveries').textContent = overview.today_stats.total_deliveries || 0;
-                document.getElementById('outForDelivery').textContent = overview.today_stats.out_for_delivery || 0;
-                document.getElementById('delivered').textContent = overview.today_stats.delivered || 0;
+            if (currentTimeSlots.includes(timeSlot)) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Duplicate Time Slot',
+                    text: 'This time slot already exists'
+                });
+                return;
             }
-            if (overview.active_riders !== undefined) {
-                document.getElementById('activeRiders').textContent = overview.active_riders;
-            }
-        }
-
-        function updateDeliveryTable(deliveries) {
-            // This would update the table with new data
-            // For now, we'll reload the page for simplicity
-            // In a real application, you'd update the DOM directly
-        }
-
-        function updateRiderDropdowns(riders) {
-            // Update rider dropdowns with current workload
-        }
-
-        function toggleSelectAll() {
-            const selectAll = document.getElementById('selectAll');
-            const checkboxes = document.querySelectorAll('.order-checkbox');
             
-            checkboxes.forEach(cb => {
-                cb.checked = selectAll.checked;
-            });
+            currentTimeSlots.push(timeSlot);
+            updateTimeSlotsList();
             
-            updateSelectedCount();
+            // Clear inputs
+            document.getElementById('timeSlotStart').value = '';
+            document.getElementById('timeSlotEnd').value = '';
         }
 
-        function updateSelectedCount() {
-            const checked = document.querySelectorAll('.order-checkbox:checked');
-            document.getElementById('selectedCount').textContent = `${checked.length} selected`;
+        // Remove time slot
+        function removeTimeSlot(index) {
+            currentTimeSlots.splice(index, 1);
+            updateTimeSlotsList();
         }
 
-        function updateSelectedOrdersList() {
-            const container = document.getElementById('selectedOrdersList');
+        // Update time slots list display
+        function updateTimeSlotsList() {
+            const container = document.getElementById('timeSlotsList');
             container.innerHTML = '';
             
-            selectedOrders.forEach(orderId => {
-                const row = document.querySelector(`tr[data-order-id="${orderId}"]`);
-                if (row) {
-                    const orderNumber = row.querySelector('td:nth-child(2) strong').textContent;
-                    const div = document.createElement('div');
-                    div.textContent = orderNumber;
-                    div.style.padding = '0.25rem 0';
-                    container.appendChild(div);
-                }
+            currentTimeSlots.forEach((slot, index) => {
+                const tag = document.createElement('span');
+                tag.className = 'time-slot-tag';
+                tag.innerHTML = `
+                    ${slot}
+                    <span class="time-slot-remove" onclick="removeTimeSlot(${index})">×</span>
+                `;
+                container.appendChild(tag);
             });
         }
 
-        function displayDeliveryDetails(order) {
-            const content = document.getElementById('deliveryDetailsContent');
-            content.innerHTML = `
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                    <div>
-                        <h4>Order Information</h4>
-                        <p><strong>Order #:</strong> ${order.order_number}</p>
-                        <p><strong>Status:</strong> ${order.status}</p>
-                        <p><strong>Amount:</strong> ₿${order.total_amount}</p>
-                        <p><strong>Created:</strong> ${new Date(order.created_at).toLocaleString()}</p>
-                    </div>
-                    <div>
-                        <h4>Customer Details</h4>
-                        <p><strong>Name:</strong> ${order.customer_name}</p>
-                        <p><strong>Email:</strong> ${order.customer_email}</p>
-                        <p><strong>Phone:</strong> ${order.customer_phone}</p>
-                    </div>
-                </div>
-                <div style="margin-top: 1rem;">
-                    <h4>Delivery Information</h4>
-                    <p><strong>Address:</strong> ${order.delivery_address}</p>
-                    <p><strong>Date:</strong> ${order.delivery_date}</p>
-                    <p><strong>Time Slot:</strong> ${order.delivery_time_slot || 'Not specified'}</p>
-                    ${order.rider_name ? `<p><strong>Rider:</strong> ${order.rider_name} (${order.rider_phone})</p>` : '<p><strong>Rider:</strong> Not assigned</p>'}
-                </div>
-                ${order.items ? `
-                <div style="margin-top: 1rem;">
-                    <h4>Order Items</h4>
-                    <div style="max-height: 200px; overflow-y: auto;">
-                        ${order.items.map(item => `
-                            <div style="padding: 0.5rem; border-bottom: 1px solid #eee;">
-                                <strong>${item.menu_name}</strong> x ${item.quantity}
-                                <span style="float: right;">₿${(item.price * item.quantity).toFixed(2)}</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-                ` : ''}
-                ${order.special_notes ? `
-                <div style="margin-top: 1rem;">
-                    <h4>Special Notes</h4>
-                    <p>${order.special_notes}</p>
-                </div>
-                ` : ''}
+        // Test ZIP code coverage
+        function testZipCoverage() {
+            showLoading();
+            document.getElementById('coverageResults').innerHTML = `
+                <div class="spinner" style="margin: 2rem auto;"></div>
+                <div style="text-align: center; color: var(--text-gray);">Analyzing coverage...</div>
             `;
-        }
-
-        function downloadFile(data, filename, type) {
-            const blob = new Blob([atob(data)], { type: type });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
-        }
-
-        function showToast(message, type = 'success') {
-            const container = document.getElementById('toastContainer');
-            const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
+            showModal('coverageModal');
             
-            toast.innerHTML = `
-                <div class="toast-header">
-                    <div class="toast-title">${type === 'success' ? 'Success' : 'Error'}</div>
-                    <button class="toast-close" onclick="this.parentElement.parentElement.remove()">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                <div class="toast-body">${message}</div>
-            `;
-            
-            container.appendChild(toast);
-            
-            // Show toast
-            setTimeout(() => toast.classList.add('show'), 100);
-            
-            // Auto remove after 5 seconds
-            setTimeout(() => {
-                toast.classList.remove('show');
-                setTimeout(() => toast.remove(), 300);
-            }, 5000);
-        }
-
-        function initializeTooltips() {
-            // Initialize tooltips if you have a tooltip library
-        }
-
-        function logout() {
-            if (confirm('Are you sure you want to logout?')) {
-                window.location.href = '../auth/logout.php';
-            }
-        }
-
-        // Close modals when clicking outside
-        document.addEventListener('click', function(e) {
-            const modals = document.querySelectorAll('.modal');
-            modals.forEach(modal => {
-                if (e.target === modal) {
-                    modal.classList.remove('show');
-                }
-            });
-        });
-
-        // Quick assign rider function
-        function quickAssignRider(orderId) {
-            // Find the first available rider with least workload
-            const riderSelect = document.querySelector(`tr[data-order-id="${orderId}"] select`);
-            if (riderSelect && riderSelect.options.length > 1) {
-                riderSelect.selectedIndex = 1; // Select first rider
-                assignRider(orderId, riderSelect.value);
-            } else {
-                showToast('No riders available for assignment', 'error');
-            }
-        }
-
-        // Mobile sidebar toggle
-        function toggleSidebar() {
-            const sidebar = document.querySelector('.sidebar');
-            sidebar.classList.toggle('show');
-        }
-
-        // Handle window resize
-        window.addEventListener('resize', function() {
-            if (window.innerWidth > 768) {
-                document.querySelector('.sidebar').classList.remove('show');
-            }
-        });
-
-        // Performance optimization: Debounce search
-        let searchTimeout;
-        document.getElementById('searchInput').addEventListener('input', function() {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(searchDeliveries, 300);
-        });
-
-        // Optimize route function (simple implementation)
-        function optimizeRoute(riderId) {
-            const formData = new FormData();
-            formData.append('action', 'optimize_routes');
-            formData.append('rider_id', riderId);
-            
-            fetch(window.location.href, {
+            fetch('delivery-zones.php', {
                 method: 'POST',
-                body: formData
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'action=test_zip_coverage'
             })
             .then(response => response.json())
             .then(data => {
+                hideLoading();
                 if (data.success) {
-                    showToast('Route optimized successfully', 'success');
-                    console.log('Optimized route:', data.data);
+                    displayCoverageResults(data);
                 } else {
-                    showToast(data.message, 'error');
+                    document.getElementById('coverageResults').innerHTML = `
+                        <div style="text-align: center; color: var(--danger);">
+                            <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                            <p>Error analyzing coverage: ${data.message}</p>
+                        </div>
+                    `;
                 }
             })
             .catch(error => {
-                console.error('Route optimization error:', error);
-                showToast('Error optimizing route', 'error');
+                hideLoading();
+                console.error('Error:', error);
+                document.getElementById('coverageResults').innerHTML = `
+                    <div style="text-align: center; color: var(--danger);">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                        <p>Failed to analyze coverage</p>
+                    </div>
+                `;
             });
         }
 
-        // Update delivery notes function
-        function updateDeliveryNotes(orderId) {
-            const notes = prompt('Enter delivery notes:');
-            if (notes === null) return;
+        // Display coverage analysis results
+        function displayCoverageResults(data) {
+            const stats = data.stats;
+            const coverage = data.coverage;
+            const uncovered = data.uncovered;
             
-            const formData = new FormData();
-            formData.append('action', 'update_delivery_notes');
-            formData.append('order_id', orderId);
-            formData.append('notes', notes);
+            let html = `
+                <div style="margin-bottom: 2rem;">
+                    <h4>Coverage Summary</h4>
+                    <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr); gap: 1rem; margin: 1rem 0;">
+                        <div style="text-align: center; padding: 1rem; background: var(--cream); border-radius: var(--radius-sm);">
+                            <div style="font-size: 1.5rem; font-weight: 700; color: var(--curry);">${stats.total_zips}</div>
+                            <div style="font-size: 0.8rem; color: var(--text-gray);">Total ZIP Codes</div>
+                        </div>
+                        <div style="text-align: center; padding: 1rem; background: var(--cream); border-radius: var(--radius-sm);">
+                            <div style="font-size: 1.5rem; font-weight: 700; color: var(--success);">${stats.covered_zips}</div>
+                            <div style="font-size: 0.8rem; color: var(--text-gray);">Covered</div>
+                        </div>
+                        <div style="text-align: center; padding: 1rem; background: var(--cream); border-radius: var(--radius-sm);">
+                            <div style="font-size: 1.5rem; font-weight: 700; color: var(--danger);">${stats.uncovered_zips}</div>
+                            <div style="font-size: 0.8rem; color: var(--text-gray);">Uncovered</div>
+                        </div>
+                        <div style="text-align: center; padding: 1rem; background: var(--cream); border-radius: var(--radius-sm);">
+                            <div style="font-size: 1.5rem; font-weight: 700; color: var(--info);">${stats.coverage_percentage}%</div>
+                            <div style="font-size: 0.8rem; color: var(--text-gray);">Coverage Rate</div>
+                        </div>
+                    </div>
+                </div>
+            `;
             
-            fetch(window.location.href, {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showToast(data.message, 'success');
-                    refreshDeliveries();
-                } else {
-                    showToast(data.message, 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Update notes error:', error);
-                showToast('Error updating notes', 'error');
-            });
-        }
-
-        // Print delivery list
-        function printDeliveryList() {
-            window.print();
-        }
-
-        // Add print styles
-        const printStyles = `
-            @media print {
-                .sidebar, .header-actions, .control-panel, .table-actions { display: none !important; }
-                .main-content { margin-left: 0 !important; }
-                .delivery-table { font-size: 0.8rem; }
-                .page-header { margin-bottom: 1rem; }
-                body { background: white !important; }
+            if (uncovered.length > 0) {
+                html += `
+                    <div style="margin-bottom: 2rem;">
+                        <h4 style="color: var(--danger);">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Uncovered ZIP Codes (${uncovered.length})
+                        </h4>
+                        <div style="max-height: 200px; overflow-y: auto; background: var(--white); border: 1px solid var(--border-light); border-radius: var(--radius-sm); padding: 1rem;">
+                `;
+                
+                uncovered.forEach(item => {
+                    html += `
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid var(--border-light);">
+                            <span>
+                                <span class="coverage-indicator coverage-danger"></span>
+                                <strong>${item.zip_code}</strong>
+                            </span>
+                            <span style="color: var(--text-gray);">${item.user_count} users</span>
+                        </div>
+                    `;
+                });
+                
+                html += `
+                        </div>
+                        <div style="margin-top: 1rem;">
+                            <button class="btn btn-warning" onclick="suggestZoneForUncovered()">
+                                <i class="fas fa-lightbulb"></i>
+                                Suggest Zone Assignment
+                            </button>
+                        </div>
+                    </div>
+                `;
             }
-        `;
-        const style = document.createElement('style');
-        style.textContent = printStyles;
-        document.head.appendChild(style);
+            
+            if (coverage.length > 0) {
+                html += `
+                    <div>
+                        <h4 style="color: var(--success);">
+                            <i class="fas fa-check-circle"></i>
+                            Covered ZIP Codes (${coverage.length})
+                        </h4>
+                        <div style="max-height: 200px; overflow-y: auto; background: var(--white); border: 1px solid var(--border-light); border-radius: var(--radius-sm); padding: 1rem;">
+                `;
+                
+                coverage.forEach(item => {
+                    html += `
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid var(--border-light);">
+                            <span>
+                                <span class="coverage-indicator coverage-good"></span>
+                                <strong>${item.zip_code}</strong> → ${item.zone_name}
+                            </span>
+                            <span style="color: var(--text-gray);">${item.user_count} users</span>
+                        </div>
+                    `;
+                });
+                
+                html += '</div></div>';
+            }
+            
+            document.getElementById('coverageResults').innerHTML = html;
+        }
+
+        // View zone details
+        function viewZoneDetails(zoneId) {
+            // Implementation for detailed zone view
+            Swal.fire({
+                title: 'Zone Details',
+                text: 'Detailed view functionality will be implemented here',
+                icon: 'info'
+            });
+        }
+
+        // Bulk import ZIP codes
+        function bulkImportZips() {
+            Swal.fire({
+                title: 'Bulk Import ZIP Codes',
+                html: `
+                    <div style="text-align: left;">
+                        <p>Upload a CSV file with ZIP codes and zone assignments.</p>
+                        <p><strong>Required format:</strong></p>
+                        <pre style="background: #f8f9fa; padding: 1rem; border-radius: 4px;">zip_code,zone_name
+92831,Zone A
+92832,Zone A
+90620,Zone B</pre>
+                        <input type="file" id="zipImportFile" accept=".csv" style="margin-top: 1rem;">
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Import',
+                cancelButtonText: 'Cancel',
+                preConfirm: () => {
+                    const file = document.getElementById('zipImportFile').files[0];
+                    if (!file) {
+                        Swal.showValidationMessage('Please select a CSV file');
+                        return false;
+                    }
+                    return file;
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Process CSV file
+                    const file = result.value;
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        processCSVImport(e.target.result);
+                    };
+                    reader.readAsText(file);
+                }
+            });
+        }
+
+        // Process CSV import
+        function processCSVImport(csvContent) {
+            const lines = csvContent.split('\n');
+            const header = lines[0].split(',');
+            
+            if (header.length < 2) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Invalid Format',
+                    text: 'CSV must have at least 2 columns: zip_code, zone_name'
+                });
+                return;
+            }
+            
+            let importData = [];
+            for (let i = 1; i < lines.length; i++) {
+                const row = lines[i].split(',');
+                if (row.length >= 2 && row[0].trim()) {
+                    importData.push({
+                        zip_code: row[0].trim(),
+                        zone_name: row[1].trim()
+                    });
+                }
+            }
+            
+            if (importData.length === 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'No Data',
+                    text: 'No valid data found in CSV file'
+                });
+                return;
+            }
+            
+            Swal.fire({
+                icon: 'success',
+                title: 'Import Preview',
+                html: `
+                    <p>Found ${importData.length} ZIP codes to import.</p>
+                    <p>This feature will be fully implemented in the next update.</p>
+                `
+            });
+        }
+
+        // Suggest zone assignment for uncovered ZIP codes
+        function suggestZoneForUncovered() {
+            Swal.fire({
+                title: 'Zone Assignment Suggestions',
+                html: `
+                    <p>AI-powered zone assignment suggestions will be implemented here.</p>
+                    <p>This will analyze distance, user density, and existing zones to suggest optimal assignments.</p>
+                `,
+                icon: 'info'
+            });
+        }
+
+        // Utility functions
+        function showModal(modalId) {
+            document.getElementById(modalId).style.display = 'flex';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        function showLoading() {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
 
         // Keyboard shortcuts
         document.addEventListener('keydown', function(e) {
-            if (e.ctrlKey) {
+            if (e.ctrlKey || e.metaKey) {
                 switch(e.key) {
-                    case 'f':
+                    case 'n':
                         e.preventDefault();
-                        document.getElementById('searchInput').focus();
+                        showCreateZoneModal();
                         break;
-                    case 'e':
+                    case 't':
                         e.preventDefault();
-                        exportReport();
-                        break;
-                    case 'p':
-                        e.preventDefault();
-                        printDeliveryList();
+                        testZipCoverage();
                         break;
                 }
             }
@@ -2136,43 +2115,117 @@ try {
             if (e.key === 'Escape') {
                 // Close all modals
                 document.querySelectorAll('.modal').forEach(modal => {
-                    modal.classList.remove('show');
+                    modal.style.display = 'none';
                 });
             }
         });
 
-        // Status color mapping
-        const statusColors = {
-            'pending': '#ffc107',
-            'confirmed': '#007bff',
-            'preparing': '#fd7e14',
-            'ready': '#28a745',
-            'out_for_delivery': '#17a2b8',
-            'delivered': '#28a745',
-            'cancelled': '#dc3545'
-        };
+        console.log('🗺️ Krua Thai Delivery Zone Management System initialized successfully');
+        console.log('⌨️ Keyboard shortcuts: Ctrl+N (New Zone), Ctrl+T (Test Coverage), Esc (Close Modals)');
+        console.log('🎯 Features: CRUD Zones, ZIP Management, Coverage Analysis, Bulk Import');
+    </script>
 
-        // Add status indicators to the page
-        function updateStatusIndicators() {
-            const statusBadges = document.querySelectorAll('.status-badge');
-            statusBadges.forEach(badge => {
-                const status = badge.className.split(' ').find(c => c.startsWith('status-')).replace('status-', '');
-                if (statusColors[status]) {
-                    badge.style.borderLeft = `3px solid ${statusColors[status]}`;
-                }
-            });
+    <!-- Additional CSS for better styling -->
+    <style>
+        .modal-body {
+            padding: 0;
         }
 
-        // Call on page load
-        document.addEventListener('DOMContentLoaded', updateStatusIndicators);
+        .coverage-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
 
-        // Cleanup on page unload
-        window.addEventListener('beforeunload', function() {
-            stopAutoRefresh();
-        });
+        .coverage-item {
+            text-align: center;
+            padding: 1rem;
+            background: var(--cream);
+            border-radius: var(--radius-sm);
+        }
 
-        console.log('Krua Thai Delivery Management System initialized successfully');
-        console.log('Features: Auto-refresh, Filtering, Search, Bulk Assignment, Export, Real-time Updates');
-    </script>
+        .coverage-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .coverage-label {
+            font-size: 0.8rem;
+            color: var(--text-gray);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .zip-list {
+            max-height: 300px;
+            overflow-y: auto;
+            background: var(--white);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-sm);
+            padding: 1rem;
+        }
+
+        .zip-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .zip-item:last-child {
+            border-bottom: none;
+        }
+
+        .form-help {
+            font-size: 0.8rem;
+            color: var(--text-gray);
+            margin-top: 0.25rem;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 1200px) {
+            .zones-grid {
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
+            .modal-content {
+                width: 95%;
+                padding: 1rem;
+                max-height: 90vh;
+            }
+
+            .form-row,
+            .form-row-3 {
+                grid-template-columns: 1fr;
+            }
+
+            .zone-info {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .coverage-summary {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .zone-actions {
+                flex-direction: column;
+            }
+
+            .zone-actions .btn {
+                justify-content: center;
+            }
+        }
+    </style>
 </body>
 </html>
