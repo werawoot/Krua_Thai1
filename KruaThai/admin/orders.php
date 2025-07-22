@@ -288,6 +288,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     echo json_encode(['success' => false, 'message' => 'Failed to send email.']);
                 }
                 exit;
+            case 'resolve_complaint':
+                $complaintId = $_POST['complaint_id'] ?? null;
+                $resolution = $_POST['resolution'] ?? '';
+                
+                if (!$complaintId || !$resolution) {
+                    echo json_encode(['success' => false, 'message' => 'Missing complaint ID or resolution.']);
+                    exit;
+                }
+                
+                // Update complaint status to resolved
+                $stmt = $pdo->prepare("
+                    UPDATE complaints 
+                    SET status = 'resolved', 
+                        resolution = ?, 
+                        resolution_date = NOW(), 
+                        assigned_to = ?, 
+                        updated_at = NOW() 
+                    WHERE id = ?
+                ");
+                $result = $stmt->execute([$resolution, $_SESSION['user_id'], $complaintId]);
+                
+                if ($result && $stmt->rowCount() > 0) {
+                    echo json_encode(['success' => true, 'message' => 'Complaint resolved successfully.']);
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'Failed to resolve complaint.']);
+                }
+                exit;
+
+            case 'get_order_complaints':
+                $orderId = $_POST['order_id'] ?? null;
+                if (!$orderId) {
+                    echo json_encode(['success' => false, 'message' => 'Order ID missing.']);
+                    exit;
+                }
+                
+                // Get all complaints for this subscription/order
+                $stmt = $pdo->prepare("
+                    SELECT id, complaint_number, category, priority, status, title, description, 
+                        resolution, created_at, resolution_date
+                    FROM complaints 
+                    WHERE subscription_id = ? 
+                    ORDER BY created_at DESC
+                ");
+                $stmt->execute([$orderId]);
+                $complaints = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                
+                echo json_encode(['success' => true, 'data' => $complaints]);
+                exit;
         }
     } catch (Exception $e) {
         echo json_encode(['success' => false, 'message' => 'Server error: ' . $e->getMessage()]);
@@ -1288,6 +1336,39 @@ try {
                 grid-template-columns: 1fr;
             }
         }
+        .complaint-item {
+            background: #f8f9fa;
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-sm);
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .complaint-status-resolved {
+            background: rgba(46, 204, 113, 0.1);
+            color: #27ae60;
+            border-color: #27ae60;
+        }
+
+        .complaint-status-open {
+            background: rgba(52, 152, 219, 0.1);
+            color: #3498db;
+            border-color: #3498db;
+        }
+
+        .complaint-status-in_progress {
+            background: rgba(241, 196, 15, 0.1);
+            color: #f39c12;
+            border-color: #f39c12;
+        }
+
+        .quick-resolve-form {
+            background: var(--cream);
+            padding: 1rem;
+            border-radius: var(--radius-sm);
+            margin-top: 0.5rem;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -1809,6 +1890,8 @@ try {
             .then(data => {
                 if (data.success) {
                     displayOrderDetails(data.data);
+                    // Also load complaints for this order
+                    viewOrderComplaints(orderId);
                 } else {
                     document.getElementById('orderModalBody').innerHTML = `
                         <div style="text-align: center; padding: 2rem;">
@@ -2343,6 +2426,162 @@ try {
                 sidebar.classList.remove('show');
             }
         });
+        // Get complaints for an order
+        function viewOrderComplaints(orderId) {
+            const formData = new FormData();
+            formData.append('action', 'get_order_complaints');
+            formData.append('order_id', orderId);
+            formData.append('csrf_token', CSRF_TOKEN);
+
+            fetch('orders.php', { method: 'POST', body: formData })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    displayOrderComplaints(data.data, orderId);
+                } else {
+                    showToast('Failed to load complaints: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                showToast('Error loading complaints', 'error');
+            });
+        }
+
+        // Display complaints in order details modal
+        function displayOrderComplaints(complaints, orderId) {
+            if (!complaints || complaints.length === 0) {
+                return;
+            }
+
+            const complaintsHtml = complaints.map(complaint => {
+                const statusColor = complaint.status === 'resolved' ? '#27ae60' : 
+                                complaint.status === 'in_progress' ? '#f39c12' : '#3498db';
+                
+                return `
+                    <div class="complaint-item complaint-status-${complaint.status}">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+                            <div style="flex: 1;">
+                                <strong style="color: var(--text-dark);">${complaint.title}</strong>
+                                <div style="font-size: 0.8rem; color: var(--text-gray); margin-top: 0.25rem;">
+                                    <span class="status-badge" style="background: ${statusColor}; color: white; margin-right: 0.5rem;">
+                                        ${complaint.status.toUpperCase()}
+                                    </span>
+                                    <span>ID: ${complaint.complaint_number}</span>
+                                    <span style="margin-left: 0.5rem;">Priority: ${complaint.priority}</span>
+                                    <span style="margin-left: 0.5rem;">Category: ${complaint.category}</span>
+                                </div>
+                            </div>
+                            ${complaint.status !== 'resolved' ? `
+                                <button class="btn btn-sm btn-success" onclick="showQuickResolve('${complaint.id}')">
+                                    <i class="fas fa-check"></i> Resolve
+                                </button>
+                            ` : ''}
+                        </div>
+                        
+                        <div style="margin-bottom: 0.5rem;">
+                            <strong>Description:</strong><br>
+                            <div style="background: white; padding: 0.5rem; border-radius: 4px; margin-top: 0.25rem;">
+                                ${complaint.description}
+                            </div>
+                        </div>
+                        
+                        ${complaint.resolution ? `
+                            <div style="background: rgba(46, 204, 113, 0.1); padding: 0.75rem; border-radius: 4px; border-left: 3px solid #27ae60;">
+                                <strong style="color: #27ae60;"><i class="fas fa-check-circle"></i> Resolution:</strong><br>
+                                <div style="margin-top: 0.25rem;">${complaint.resolution}</div>
+                                <small style="color: var(--text-gray); margin-top: 0.5rem; display: block;">
+                                    Resolved on ${new Date(complaint.resolution_date).toLocaleDateString()}
+                                </small>
+                            </div>
+                        ` : ''}
+                        
+                        <div class="quick-resolve-form" id="resolve-form-${complaint.id}">
+                            <h5 style="margin-bottom: 0.5rem; color: var(--curry);">
+                                <i class="fas fa-clipboard-check"></i> Add Resolution
+                            </h5>
+                            <textarea id="resolution-${complaint.id}" 
+                                    placeholder="Describe how you resolved this complaint..." 
+                                    class="form-control" 
+                                    rows="3" 
+                                    style="margin-bottom: 0.5rem;"></textarea>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <button class="btn btn-sm btn-success" onclick="resolveComplaint('${complaint.id}')">
+                                    <i class="fas fa-check"></i> Mark as Resolved
+                                </button>
+                                <button class="btn btn-sm btn-secondary" onclick="hideQuickResolve('${complaint.id}')">
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <small style="color: var(--text-gray); display: block; margin-top: 0.5rem;">
+                            Created: ${new Date(complaint.created_at).toLocaleDateString()}
+                        </small>
+                    </div>
+                `;
+            }).join('');
+
+            // Append to the existing order modal body
+            const complaintsSection = `
+                <div class="detail-section">
+                    <h4>
+                        <i class="fas fa-exclamation-triangle" style="color: var(--curry);"></i> 
+                        Customer Complaints 
+                        <span style="background: #e74c3c; color: white; padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.8rem; margin-left: 0.5rem;">
+                            ${complaints.length} complaint${complaints.length > 1 ? 's' : ''}
+                        </span>
+                    </h4>
+                    <div style="max-height: 400px; overflow-y: auto;">
+                        ${complaintsHtml}
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('orderModalBody').innerHTML += complaintsSection;
+        }
+
+        // Show quick resolve form
+        function showQuickResolve(complaintId) {
+            document.getElementById(`resolve-form-${complaintId}`).style.display = 'block';
+        }
+
+        // Hide quick resolve form
+        function hideQuickResolve(complaintId) {
+            document.getElementById(`resolve-form-${complaintId}`).style.display = 'none';
+        }
+
+        // Resolve complaint quickly
+        function resolveComplaint(complaintId) {
+            const resolution = document.getElementById(`resolution-${complaintId}`).value.trim();
+            
+            if (!resolution) {
+                showToast('Please enter a resolution description.', 'warning');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('action', 'resolve_complaint');
+            formData.append('complaint_id', complaintId);
+            formData.append('resolution', resolution);
+            formData.append('csrf_token', CSRF_TOKEN);
+
+            fetch('orders.php', { method: 'POST', body: formData })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Complaint resolved successfully!', 'success');
+                    // Refresh the page to show updated complaint status
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    showToast('Failed to resolve complaint: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                showToast('Error resolving complaint', 'error');
+            });
+        }
     </script>
 </body>
 </html>

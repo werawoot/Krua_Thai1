@@ -1,6 +1,6 @@
 <?php
 /**
- * Krua Thai - Customer Support Center
+ * Somdul Table - Customer Support Center
  * File: support-center.php
  * Description: Customer support page for submitting complaints, viewing tickets, and getting help
  */
@@ -23,6 +23,14 @@ $user_id = $_SESSION['user_id'];
 $user_id = $_SESSION['user_id'];
 $success_message = '';
 $error_message = '';
+
+// Database connection
+try {
+    $database = new Database();
+    $pdo = $database->getConnection();
+} catch (Exception $e) {
+    die("Database connection failed: " . $e->getMessage());
+}
 
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -50,11 +58,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_POST['expected_resolution'] ?: null
             ]);
             
-            $success_message = "ส่งคำร้องเรียนเรียบร้อยแล้ว หมายเลขคำร้องเรียน: {$complaint_number}";
+            $success_message = "Complaint submitted successfully! Complaint number: {$complaint_number}";
         }
         
     } catch (Exception $e) {
-        $error_message = "เกิดข้อผิดพลาด: " . $e->getMessage();
+        $error_message = "An error occurred: " . $e->getMessage();
         error_log("Support center error: " . $e->getMessage());
     }
 }
@@ -104,18 +112,19 @@ try {
 ?>
 
 <!DOCTYPE html>
-<html lang="th">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ศูนย์บริการลูกค้า - Krua Thai</title>
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>Customer Support Center - Somdul Table</title>
+    <link href="https://ydpschool.com/fonts/BaticaSans.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         :root {
+            /* Somdul Table Brand Colors */
+            --brown: #bd9379;
             --cream: #ece8e1;
             --sage: #adb89d;
-            --brown: #bd9379;
             --curry: #cf723a;
             --white: #ffffff;
             --text-dark: #2c3e50;
@@ -136,7 +145,7 @@ try {
         }
 
         body {
-            font-family: 'Sarabun', sans-serif;
+            font-family: 'BaticaSans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             background: linear-gradient(135deg, var(--cream) 0%, #f8f6f3 100%);
             color: var(--text-dark);
             line-height: 1.6;
@@ -602,8 +611,7 @@ try {
     <div class="header">
         <div class="header-content">
             <a href="index.php" class="logo">
-                <img src="assets/image/LOGO_White Trans.png" alt="Krua Thai" class="logo-image">
-                <span>Krua Thai</span>
+                <span>Somdul Table</span>
             </a>
             <div class="user-menu">
                 <div class="user-info">
@@ -612,7 +620,7 @@ try {
                 </div>
                 <a href="logout.php" class="btn-logout">
                     <i class="fas fa-sign-out-alt"></i>
-                    ออกจากระบบ
+                    Sign Out
                 </a>
             </div>
         </div>
@@ -621,8 +629,8 @@ try {
     <div class="container">
         <!-- Page Header -->
         <div class="page-header">
-            <h1 class="page-title">ศูนย์บริการลูกค้า</h1>
-            <p class="page-subtitle">ส่งคำร้องเรียน ติดตามปัญหา และรับการช่วยเหลือ</p>
+            <h1 class="page-title">Customer Support Center</h1>
+            <p class="page-subtitle">Submit complaints, track issues, and get help</p>
         </div>
 
         <!-- Alert Messages -->
@@ -646,48 +654,48 @@ try {
                 <div class="quick-action-icon">
                     <i class="fas fa-exclamation-triangle"></i>
                 </div>
-                <div class="quick-action-title">ส่งคำร้องเรียนใหม่</div>
-                <div class="quick-action-desc">รายงานปัญหาเกี่ยวกับการสั่งซื้อหรือบริการ</div>
+                <div class="quick-action-title">Submit New Complaint</div>
+                <div class="quick-action-desc">Report issues with orders or services</div>
             </div>
             
             <div class="quick-action" onclick="showTab('my-tickets')">
                 <div class="quick-action-icon">
                     <i class="fas fa-ticket-alt"></i>
                 </div>
-                <div class="quick-action-title">ตรวจสอบคำร้องเรียน</div>
-                <div class="quick-action-desc">ดูสถานะและการตอบกลับคำร้องเรียนของคุณ</div>
+                <div class="quick-action-title">Check My Complaints</div>
+                <div class="quick-action-desc">View status and responses to your complaints</div>
             </div>
             
             <div class="quick-action" onclick="showTab('faq')">
                 <div class="quick-action-icon">
                     <i class="fas fa-question-circle"></i>
                 </div>
-                <div class="quick-action-title">คำถามที่พบบ่อย</div>
-                <div class="quick-action-desc">หาคำตอบสำหรับคำถามทั่วไป</div>
+                <div class="quick-action-title">Frequently Asked Questions</div>
+                <div class="quick-action-desc">Find answers to common questions</div>
             </div>
             
             <div class="quick-action" onclick="showTab('contact')">
                 <div class="quick-action-icon">
                     <i class="fas fa-phone"></i>
                 </div>
-                <div class="quick-action-title">ติดต่อเรา</div>
-                <div class="quick-action-desc">ช่องทางการติดต่อและข้อมูลบริษัท</div>
+                <div class="quick-action-title">Contact Us</div>
+                <div class="quick-action-desc">Contact channels and company information</div>
             </div>
         </div>
 
         <!-- Tabs -->
         <div class="tabs">
             <button class="tab-button active" onclick="showTab('new-complaint')">
-                <i class="fas fa-plus"></i> ส่งคำร้องเรียนใหม่
+                <i class="fas fa-plus"></i> Submit New Complaint
             </button>
             <button class="tab-button" onclick="showTab('my-tickets')">
-                <i class="fas fa-list"></i> คำร้องเรียนของฉัน
+                <i class="fas fa-list"></i> My Complaints
             </button>
             <button class="tab-button" onclick="showTab('faq')">
-                <i class="fas fa-question"></i> คำถามที่พบบ่อย
+                <i class="fas fa-question"></i> FAQ
             </button>
             <button class="tab-button" onclick="showTab('contact')">
-                <i class="fas fa-phone"></i> ติดต่อเรา
+                <i class="fas fa-phone"></i> Contact Us
             </button>
         </div>
 
@@ -695,8 +703,8 @@ try {
         <div id="new-complaint" class="tab-content active">
             <div class="card">
                 <div class="card-header">
-                    <h3 class="card-title">ส่งคำร้องเรียนใหม่</h3>
-                    <p>กรุณากรอกข้อมูลให้ครบถ้วนเพื่อให้เราสามารถช่วยเหลือคุณได้อย่างดีที่สุด</p>
+                    <h3 class="card-title">Submit New Complaint</h3>
+                    <p>Please fill out the form completely so we can assist you in the best way possible</p>
                 </div>
                 <div class="card-body">
                     <form method="POST" action="">
@@ -704,64 +712,64 @@ try {
                         
                         <div class="form-grid">
                             <div class="form-group">
-                                <label class="form-label">ประเภทปัญหา *</label>
+                                <label class="form-label">Issue Category *</label>
                                 <select name="category" class="form-control" required>
-                                    <option value="">เลือกประเภทปัญหา</option>
-                                    <option value="food_quality">คุณภาพอาหาร</option>
-                                    <option value="delivery_late">การจัดส่งล่าช้า</option>
-                                    <option value="delivery_wrong">จัดส่งผิดที่อยู่</option>
-                                    <option value="missing_items">อาหารไม่ครบ</option>
-                                    <option value="damaged_package">บรรจุภัณฑ์เสียหาย</option>
-                                    <option value="customer_service">บริการลูกค้า</option>
-                                    <option value="billing">การเรียกเก็บเงิน</option>
-                                    <option value="other">อื่นๆ</option>
+                                    <option value="">Select issue category</option>
+                                    <option value="food_quality">Food Quality</option>
+                                    <option value="delivery_late">Late Delivery</option>
+                                    <option value="delivery_wrong">Wrong Delivery Address</option>
+                                    <option value="missing_items">Missing Items</option>
+                                    <option value="damaged_package">Damaged Package</option>
+                                    <option value="customer_service">Customer Service</option>
+                                    <option value="billing">Billing</option>
+                                    <option value="other">Other</option>
                                 </select>
                             </div>
                             
                             <div class="form-group">
-                                <label class="form-label">ระดับความเร่งด่วน *</label>
+                                <label class="form-label">Priority Level *</label>
                                 <select name="priority" class="form-control" required>
-                                    <option value="">เลือกระดับความเร่งด่วน</option>
-                                    <option value="low">ต่ำ</option>
-                                    <option value="medium">ปานกลาง</option>
-                                    <option value="high">สูง</option>
-                                    <option value="critical">วิกฤต</option>
+                                    <option value="">Select priority level</option>
+                                    <option value="low">Low</option>
+                                    <option value="medium">Medium</option>
+                                    <option value="high">High</option>
+                                    <option value="critical">Critical</option>
                                 </select>
                             </div>
                         </div>
                         
                         <div class="form-group">
-                            <label class="form-label">แพ็กเกจการสมัครสมาชิก (ถ้ามี)</label>
+                            <label class="form-label">Subscription Package (if applicable)</label>
                             <select name="subscription_id" class="form-control">
-                                <option value="">ไม่เกี่ยวข้องกับการสมัครสมาชิก</option>
+                                <option value="">Not related to subscription</option>
                                 <?php foreach ($subscriptions as $subscription): ?>
                                 <option value="<?= $subscription['id'] ?>">
                                     <?= htmlspecialchars($subscription['plan_name']) ?> 
-                                    (<?= date('d/m/Y', strtotime($subscription['start_date'])) ?> - 
-                                    <?= $subscription['end_date'] ? date('d/m/Y', strtotime($subscription['end_date'])) : 'ไม่มีกำหนด' ?>)
+                                    (<?= date('m/d/Y', strtotime($subscription['start_date'])) ?> - 
+                                    <?= $subscription['end_date'] ? date('m/d/Y', strtotime($subscription['end_date'])) : 'Ongoing' ?>)
                                 </option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
                         
                         <div class="form-group">
-                            <label class="form-label">หัวข้อปัญหา *</label>
-                            <input type="text" name="title" class="form-control" placeholder="สรุปปัญหาในหัวข้อ" required>
+                            <label class="form-label">Issue Title *</label>
+                            <input type="text" name="title" class="form-control" placeholder="Brief summary of the issue" required>
                         </div>
                         
                         <div class="form-group">
-                            <label class="form-label">รายละเอียดปัญหา *</label>
-                            <textarea name="description" class="form-control" placeholder="กรุณาอธิบายปัญหาอย่างละเอียด เพื่อให้เราสามารถช่วยเหลือคุณได้อย่างเหมาะสม" required></textarea>
+                            <label class="form-label">Issue Details *</label>
+                            <textarea name="description" class="form-control" placeholder="Please describe the issue in detail so we can assist you appropriately" required></textarea>
                         </div>
                         
                         <div class="form-group">
-                            <label class="form-label">ผลลัพธ์ที่คาดหวัง</label>
-                            <textarea name="expected_resolution" class="form-control" placeholder="คุณต้องการให้เราแก้ไขปัญหานี้อย่างไร (ไม่บังคับ)"></textarea>
+                            <label class="form-label">Expected Resolution</label>
+                            <textarea name="expected_resolution" class="form-control" placeholder="How would you like us to resolve this issue? (optional)"></textarea>
                         </div>
                         
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-paper-plane"></i>
-                            ส่งคำร้องเรียน
+                            Submit Complaint
                         </button>
                     </form>
                 </div>
@@ -772,28 +780,28 @@ try {
         <div id="my-tickets" class="tab-content">
             <div class="card">
                 <div class="card-header">
-                    <h3 class="card-title">คำร้องเรียนของฉัน</h3>
-                    <p>ติดตามสถานะและดูการตอบกลับของคำร้องเรียน</p>
+                    <h3 class="card-title">My Complaints</h3>
+                    <p>Track status and view responses to your complaints</p>
                 </div>
                 <div class="card-body">
                     <?php if (empty($user_complaints)): ?>
                     <div class="empty-state">
                         <i class="fas fa-inbox"></i>
-                        <h3>ไม่มีคำร้องเรียน</h3>
-                        <p>คุณยังไม่เคยส่งคำร้องเรียนมาก่อน</p>
+                        <h3>No Complaints</h3>
+                        <p>You haven't submitted any complaints yet</p>
                     </div>
                     <?php else: ?>
                     <div style="overflow-x: auto;">
                         <table class="table">
                             <thead>
                                 <tr>
-                                    <th>หมายเลข</th>
-                                    <th>หัวข้อ</th>
-                                    <th>ประเภท</th>
-                                    <th>สถานะ</th>
-                                    <th>ความเร่งด่วน</th>
-                                    <th>วันที่ส่ง</th>
-                                    <th>การกระทำ</th>
+                                    <th>Number</th>
+                                    <th>Title</th>
+                                    <th>Category</th>
+                                    <th>Status</th>
+                                    <th>Priority</th>
+                                    <th>Date Submitted</th>
+                                    <th>Action</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -803,16 +811,15 @@ try {
                                     <td><?= htmlspecialchars($complaint['title']) ?></td>
                                     <td>
                                         <?php
-                                        
                                         $categories = [
-                                            'food_quality' => 'คุณภาพอาหาร',
-                                            'delivery_late' => 'การจัดส่งล่าช้า',
-                                            'delivery_wrong' => 'จัดส่งผิดที่อยู่',
-                                            'missing_items' => 'อาหารไม่ครบ',
-                                            'damaged_package' => 'บรรจุภัณฑ์เสียหาย',
-                                            'customer_service' => 'บริการลูกค้า',
-                                            'billing' => 'การเรียกเก็บเงิน',
-                                            'other' => 'อื่นๆ'
+                                            'food_quality' => 'Food Quality',
+                                            'delivery_late' => 'Late Delivery',
+                                            'delivery_wrong' => 'Wrong Delivery Address',
+                                            'missing_items' => 'Missing Items',
+                                            'damaged_package' => 'Damaged Package',
+                                            'customer_service' => 'Customer Service',
+                                            'billing' => 'Billing',
+                                            'other' => 'Other'
                                         ];
                                         echo $categories[$complaint['category']] ?? $complaint['category'];
                                         ?>
@@ -821,11 +828,11 @@ try {
                                         <span class="status-badge status-<?= $complaint['status'] ?>">
                                             <?php
                                             $statuses = [
-                                                'open' => 'เปิด',
-                                                'in_progress' => 'กำลังดำเนินการ',
-                                                'resolved' => 'แก้ไขแล้ว',
-                                                'closed' => 'ปิด',
-                                                'escalated' => 'ส่งต่อ'
+                                                'open' => 'Open',
+                                                'in_progress' => 'In Progress',
+                                                'resolved' => 'Resolved',
+                                                'closed' => 'Closed',
+                                                'escalated' => 'Escalated'
                                             ];
                                             echo $statuses[$complaint['status']] ?? $complaint['status'];
                                             ?>
@@ -835,19 +842,19 @@ try {
                                         <span class="status-badge priority-<?= $complaint['priority'] ?>">
                                             <?php
                                             $priorities = [
-                                                'low' => 'ต่ำ',
-                                                'medium' => 'ปานกลาง',
-                                                'high' => 'สูง',
-                                                'critical' => 'วิกฤต'
+                                                'low' => 'Low',
+                                                'medium' => 'Medium',
+                                                'high' => 'High',
+                                                'critical' => 'Critical'
                                             ];
                                             echo $priorities[$complaint['priority']] ?? $complaint['priority'];
                                             ?>
                                         </span>
                                     </td>
-                                    <td><?= date('d/m/Y H:i', strtotime($complaint['created_at'])) ?></td>
+                                    <td><?= date('m/d/Y h:i A', strtotime($complaint['created_at'])) ?></td>
                                     <td>
                                         <button class="btn btn-secondary" onclick="viewComplaint('<?= $complaint['id'] ?>')">
-                                            <i class="fas fa-eye"></i> ดูรายละเอียด
+                                            <i class="fas fa-eye"></i> View Details
                                         </button>
                                     </td>
                                 </tr>
@@ -864,96 +871,96 @@ try {
         <div id="faq" class="tab-content">
             <div class="card">
                 <div class="card-header">
-                    <h3 class="card-title">คำถามที่พบบ่อย</h3>
-                    <p>คำตอบสำหรับคำถามที่ลูกค้าถามบ่อยที่สุด</p>
+                    <h3 class="card-title">Frequently Asked Questions</h3>
+                    <p>Answers to the most commonly asked questions by our customers</p>
                 </div>
                 <div class="card-body">
                     <div class="faq-item">
                         <button class="faq-question" onclick="toggleFAQ(this)">
-                            <span>วิธีการสั่งอาหารผ่านแพ็กเกจสมาชิก?</span>
+                            <span>How do I order food through subscription packages?</span>
                             <i class="fas fa-chevron-down"></i>
                         </button>
                         <div class="faq-answer">
-                            <p>คุณสามารถสั่งอาหารผ่านแพ็กเกจสมาชิกได้โดยการ:</p>
+                            <p>You can order food through subscription packages by:</p>
                             <ol>
-                                <li>เข้าสู่ระบบในบัญชีของคุณ</li>
-                                <li>เลือกแพ็กเกจที่ต้องการ</li>
-                                <li>เลือกเมนูอาหารสำหรับแต่ละวัน</li>
-                                <li>กำหนดวันและเวลาจัดส่ง</li>
-                                <li>ชำระเงิน</li>
+                                <li>Logging into your account</li>
+                                <li>Selecting the desired package</li>
+                                <li>Choosing menu items for each day</li>
+                                <li>Setting delivery date and time</li>
+                                <li>Making payment</li>
                             </ol>
                         </div>
                     </div>
 
                     <div class="faq-item">
                         <button class="faq-question" onclick="toggleFAQ(this)">
-                            <span>สามารถเปลี่ยนเมนูอาหารหลังจากสั่งแล้วได้ไหม?</span>
+                            <span>Can I change menu items after placing an order?</span>
                             <i class="fas fa-chevron-down"></i>
                         </button>
                         <div class="faq-answer">
-                            <p>คุณสามารถเปลี่ยนเมนูอาหารได้ก่อนวันจัดส่งอย่างน้อย 24 ชั่วโมง โดยเข้าไปที่หน้าการจัดการสมาชิกและแก้ไขการสั่งซื้อ</p>
+                            <p>You can change menu items at least 24 hours before the delivery date by going to your subscription management page and modifying your order.</p>
                         </div>
                     </div>
 
                     <div class="faq-item">
                         <button class="faq-question" onclick="toggleFAQ(this)">
-                            <span>ค่าจัดส่งเท่าไหร่?</span>
+                            <span>What are the delivery charges?</span>
                             <i class="fas fa-chevron-down"></i>
                         </button>
                         <div class="faq-answer">
-                            <p>ค่าจัดส่งขึ้นอยู่กับพื้นที่การจัดส่ง:</p>
+                            <p>Delivery charges depend on your location:</p>
                             <ul>
-                                <li>กรุงเทพฯ และปริมณฑล: ฟรีสำหรับออเดอร์ขั้นต่ำ 500 บาท</li>
-                                <li>ต่างจังหวัด: 80-120 บาท ขึ้นอยู่กับระยะทาง</li>
+                                <li>Within major metro areas: Free for orders over $25</li>
+                                <li>Other areas: $5-12 depending on distance</li>
                             </ul>
                         </div>
                     </div>
 
                     <div class="faq-item">
                         <button class="faq-question" onclick="toggleFAQ(this)">
-                            <span>จะยกเลิกการสมัครสมาชิกได้อย่างไร?</span>
+                            <span>How can I cancel my subscription?</span>
                             <i class="fas fa-chevron-down"></i>
                         </button>
                         <div class="faq-answer">
-                            <p>คุณสามารถยกเลิกการสมัครสมาชิกได้โดย:</p>
+                            <p>You can cancel your subscription by:</p>
                             <ol>
-                                <li>เข้าไปที่หน้าการจัดการสมาชิก</li>
-                                <li>เลือก "ยกเลิกสมาชิก"</li>
-                                <li>ระบุเหตุผลในการยกเลิก</li>
-                                <li>ยืนยันการยกเลิก</li>
+                                <li>Going to your subscription management page</li>
+                                <li>Selecting "Cancel Subscription"</li>
+                                <li>Providing a reason for cancellation</li>
+                                <li>Confirming the cancellation</li>
                             </ol>
-                            <p>หมายเหตุ: การยกเลิกจะมีผลตั้งแต่รอบการเรียกเก็บเงินถัดไป</p>
+                            <p>Note: Cancellation will take effect from the next billing cycle</p>
                         </div>
                     </div>
 
                     <div class="faq-item">
                         <button class="faq-question" onclick="toggleFAQ(this)">
-                            <span>ถ้าอาหารมีปัญหาควรทำอย่างไร?</span>
+                            <span>What should I do if there's a problem with my food?</span>
                             <i class="fas fa-chevron-down"></i>
                         </button>
                         <div class="faq-answer">
-                            <p>หากอาหารมีปัญหา กรุณา:</p>
+                            <p>If there's a problem with your food, please:</p>
                             <ol>
-                                <li>ถ่ายรูปอาหารที่มีปัญหา</li>
-                                <li>ส่งคำร้องเรียนผ่านระบบ หรือโทรหาเรา</li>
-                                <li>ระบุรายละเอียดปัญหาให้ชัดเจน</li>
-                                <li>เราจะดำเนินการแก้ไขภายใน 24 ชั่วโมง</li>
+                                <li>Take photos of the problematic food</li>
+                                <li>Submit a complaint through our system or call us</li>
+                                <li>Provide clear details about the problem</li>
+                                <li>We will take action within 24 hours</li>
                             </ol>
                         </div>
                     </div>
 
                     <div class="faq-item">
                         <button class="faq-question" onclick="toggleFAQ(this)">
-                            <span>รับประกันคุณภาพอาหารอย่างไร?</span>
+                            <span>How do you guarantee food quality?</span>
                             <i class="fas fa-chevron-down"></i>
                         </button>
                         <div class="faq-answer">
-                            <p>เรามีการรับประกันคุณภาพอาหาร 100% โดย:</p>
+                            <p>We guarantee 100% food quality through:</p>
                             <ul>
-                                <li>ใช้วัตถุดิบคุณภาพสูงและสดใหม่</li>
-                                <li>มีมาตรฐาน HACCP</li>
-                                <li>ตรวจสอบคุณภาพทุกขั้นตอน</li>
-                                <li>หากมีปัญหาเราจะเปลี่ยนให้ใหม่หรือคืนเงิน</li>
+                                <li>Using high-quality, fresh ingredients</li>
+                                <li>HACCP standards compliance</li>
+                                <li>Quality checks at every step</li>
+                                <li>Replacement or refund if issues occur</li>
                             </ul>
                         </div>
                     </div>
@@ -965,8 +972,8 @@ try {
         <div id="contact" class="tab-content">
             <div class="card">
                 <div class="card-header">
-                    <h3 class="card-title">ติดต่อเรา</h3>
-                    <p>ช่องทางการติดต่อและข้อมูลบริษัท</p>
+                    <h3 class="card-title">Contact Us</h3>
+                    <p>Contact channels and company information</p>
                 </div>
                 <div class="card-body">
                     <div class="form-grid">
@@ -975,9 +982,9 @@ try {
                                 <div style="font-size: 2rem; color: var(--curry); margin-bottom: 1rem;">
                                     <i class="fas fa-phone"></i>
                                 </div>
-                                <h4>โทรศัพท์</h4>
-                                <p style="font-size: 1.2rem; font-weight: 600; color: var(--curry);">02-123-4567</p>
-                                <p style="color: var(--text-gray);">จันทร์-ศุกร์ 9:00-18:00<br>เสาร์-อาทิตย์ 9:00-17:00</p>
+                                <h4>Phone</h4>
+                                <p style="font-size: 1.2rem; font-weight: 600; color: var(--curry);">1-800-SOMDUL</p>
+                                <p style="color: var(--text-gray);">Mon-Fri 9:00 AM - 6:00 PM<br>Sat-Sun 9:00 AM - 5:00 PM</p>
                             </div>
                         </div>
 
@@ -986,20 +993,20 @@ try {
                                 <div style="font-size: 2rem; color: var(--curry); margin-bottom: 1rem;">
                                     <i class="fas fa-envelope"></i>
                                 </div>
-                                <h4>อีเมล</h4>
-                                <p style="font-size: 1.2rem; font-weight: 600; color: var(--curry);">support@kruathai.com</p>
-                                <p style="color: var(--text-gray);">ตอบกลับภายใน 24 ชั่วโมง</p>
+                                <h4>Email</h4>
+                                <p style="font-size: 1.2rem; font-weight: 600; color: var(--curry);">support@somdultable.com</p>
+                                <p style="color: var(--text-gray);">Response within 24 hours</p>
                             </div>
                         </div>
 
                         <div class="card">
                             <div class="card-body" style="text-align: center;">
                                 <div style="font-size: 2rem; color: var(--curry); margin-bottom: 1rem;">
-                                    <i class="fab fa-line"></i>
+                                    <i class="fas fa-comments"></i>
                                 </div>
-                                <h4>LINE Official</h4>
-                                <p style="font-size: 1.2rem; font-weight: 600; color: var(--curry);">@kruathai</p>
-                                <p style="color: var(--text-gray);">แชทสดทุกวัน 9:00-21:00</p>
+                                <h4>Live Chat</h4>
+                                <p style="font-size: 1.2rem; font-weight: 600; color: var(--curry);">Available 24/7</p>
+                                <p style="color: var(--text-gray);">Instant support on our website</p>
                             </div>
                         </div>
 
@@ -1008,29 +1015,29 @@ try {
                                 <div style="font-size: 2rem; color: var(--curry); margin-bottom: 1rem;">
                                     <i class="fas fa-map-marker-alt"></i>
                                 </div>
-                                <h4>ที่อยู่สำนักงาน</h4>
-                                <p style="color: var(--text-gray);">123 ถนนสุขุมวิท<br>แขวงคลองเตย เขตคลองเตย<br>กรุงเทพฯ 10110</p>
+                                <h4>Office Address</h4>
+                                <p style="color: var(--text-gray);">123 Main Street<br>Food District, NY 10001<br>United States</p>
                             </div>
                         </div>
                     </div>
 
                     <div style="margin-top: 2rem; padding: 1.5rem; background: var(--cream); border-radius: var(--radius-md);">
-                        <h4 style="margin-bottom: 1rem;">เวลาทำการ</h4>
+                        <h4 style="margin-bottom: 1rem;">Business Hours</h4>
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
                             <div>
-                                <strong>ศูนย์บริการลูกค้า</strong><br>
-                                จันทร์-ศุกร์: 9:00-18:00<br>
-                                เสาร์-อาทิตย์: 9:00-17:00
+                                <strong>Customer Service</strong><br>
+                                Mon-Fri: 9:00 AM - 6:00 PM<br>
+                                Sat-Sun: 9:00 AM - 5:00 PM
                             </div>
                             <div>
-                                <strong>การจัดส่งอาหาร</strong><br>
-                                ทุกวัน: 9:00-21:00<br>
-                                (รวมวันหยุดนักขัตฤกษ์)
+                                <strong>Food Delivery</strong><br>
+                                Every day: 9:00 AM - 9:00 PM<br>
+                                (Including holidays)
                             </div>
                             <div>
-                                <strong>แชทสด LINE</strong><br>
-                                ทุกวัน: 9:00-21:00<br>
-                                ตอบกลับทันที
+                                <strong>Live Chat</strong><br>
+                                Available 24/7<br>
+                                Instant response
                             </div>
                         </div>
                     </div>
@@ -1043,7 +1050,7 @@ try {
     <div id="complaintModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
         <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--white); border-radius: var(--radius-lg); padding: 2rem; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                <h3>รายละเอียดคำร้องเรียน</h3>
+                <h3>Complaint Details</h3>
                 <button onclick="closeComplaintModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">
                     <i class="fas fa-times"></i>
                 </button>
@@ -1107,7 +1114,7 @@ try {
             details.innerHTML = `
                 <div style="text-align: center; padding: 2rem;">
                     <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: var(--curry);"></i>
-                    <p style="margin-top: 1rem;">กำลังโหลดข้อมูล...</p>
+                    <p style="margin-top: 1rem;">Loading information...</p>
                 </div>
             `;
             
@@ -1117,17 +1124,17 @@ try {
             setTimeout(() => {
                 details.innerHTML = `
                     <div style="border-bottom: 1px solid var(--border-light); padding-bottom: 1rem; margin-bottom: 1rem;">
-                        <p><strong>หมายเลขคำร้องเรียน:</strong> COMP-20250721-ABC123</p>
-                        <p><strong>สถานะ:</strong> <span class="status-badge status-in_progress">กำลังดำเนินการ</span></p>
-                        <p><strong>ความเร่งด่วน:</strong> <span class="status-badge priority-medium">ปานกลาง</span></p>
+                        <p><strong>Complaint Number:</strong> COMP-20250721-ABC123</p>
+                        <p><strong>Status:</strong> <span class="status-badge status-in_progress">In Progress</span></p>
+                        <p><strong>Priority:</strong> <span class="status-badge priority-medium">Medium</span></p>
                     </div>
                     <div style="margin-bottom: 1rem;">
-                        <h4>รายละเอียดปัญหา</h4>
-                        <p>ข้อมูลรายละเอียดของคำร้องเรียนจะแสดงที่นี่...</p>
+                        <h4>Issue Details</h4>
+                        <p>Complaint details will be displayed here...</p>
                     </div>
                     <div>
-                        <h4>การตอบกลับ</h4>
-                        <p style="color: var(--text-gray);">ยังไม่มีการตอบกลับ</p>
+                        <h4>Responses</h4>
+                        <p style="color: var(--text-gray);">No responses yet</p>
                     </div>
                 `;
             }, 1000);
@@ -1153,19 +1160,19 @@ try {
             
             if (!category || !priority || !title || !description) {
                 e.preventDefault();
-                alert('กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน');
+                alert('Please fill out all required fields');
                 return false;
             }
             
             if (title.length < 5) {
                 e.preventDefault();
-                alert('หัวข้อปัญหาต้องมีความยาวอย่างน้อย 5 ตัวอักษร');
+                alert('Issue title must be at least 5 characters long');
                 return false;
             }
             
             if (description.length < 20) {
                 e.preventDefault();
-                alert('รายละเอียดปัญหาต้องมีความยาวอย่างน้อย 20 ตัวอักษร');
+                alert('Issue details must be at least 20 characters long');
                 return false;
             }
         });
@@ -1182,7 +1189,7 @@ try {
             });
         }, 5000);
 
-        console.log('Krua Thai Support Center loaded successfully');
+        console.log('Somdul Table Support Center loaded successfully');
     </script>
 </body>
 </html>
