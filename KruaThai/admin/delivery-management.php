@@ -31,6 +31,7 @@ try {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     header('Content-Type: application/json');
     
+
     try {
         switch ($_POST['action']) {
             case 'assign_rider_to_zone':
@@ -833,6 +834,172 @@ function estimateDeliveryTimes($pdo, $riderId, $date) {
         return ['success' => false, 'message' => 'Error estimating times: ' . $e->getMessage()];
     }
 }
+
+// ======================================================================
+// เพิ่มฟังก์ชันนี้ในส่วน NEW FUNCTIONS FOR COMPLETE FUNCTIONALITY
+// ======================================================================
+
+function calculateRouteEfficiency($pdo, $riderId, $date) {
+    try {
+        global $zipCoordinates, $shopLocation;
+        
+        // ดึงข้อมูล orders ของ rider ในวันที่กำหนด
+        $stmt = $pdo->prepare("
+            SELECT o.id, o.order_number, o.total_items, o.delivery_time_slot,
+                   u.first_name, u.last_name, u.zip_code, u.delivery_address,
+                   o.status, o.created_at
+            FROM orders o
+            JOIN users u ON o.user_id = u.id
+            WHERE o.assigned_rider_id = ? 
+            AND DATE(o.delivery_date) = ?
+            ORDER BY o.delivery_time_slot, u.zip_code
+        ");
+        $stmt->execute([$riderId, $date]);
+        $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        if (empty($orders)) {
+            return [
+                'success' => true,
+                'efficiency' => [
+                    'total_orders' => 0,
+                    'total_boxes' => 0,
+                    'total_distance' => 0,
+                    'total_cost' => 0,
+                    'efficiency_score' => 0,
+                    'recommendations' => ['No orders assigned to this rider for the selected date.']
+                ]
+            ];
+        }
+        
+        // คำนวณข้อมูลสำหรับแต่ละ order
+        $routeData = [];
+        $totalDistance = 0;
+        $totalBoxes = 0;
+        $totalCost = 0;
+        $currentLocation = $shopLocation;
+        
+        foreach ($orders as $order) {
+            $zipCode = substr($order['zip_code'], 0, 5);
+            
+            if (isset($zipCoordinates[$zipCode])) {
+                $destination = $zipCoordinates[$zipCode];
+                
+                // คำนวณระยะทางจากตำแหน่งปัจจุบัน
+                $distance = calculateDistance(
+                    $currentLocation['lat'], 
+                    $currentLocation['lng'],
+                    $destination['lat'],
+                    $destination['lng']
+                );
+                
+                // คำนวณต้นทุน
+                $costAnalysis = calculateOptimalDeliveryCost(
+                    $distance, 
+                    $order['total_items'], 
+                    'normal'
+                );
+                
+                $routeData[] = [
+                    'order' => $order,
+                    'distance' => $distance,
+                    'cost' => $costAnalysis['totalCost'],
+                    'efficiency' => $costAnalysis['efficiencyScore'],
+                    'zone' => $destination['zone']
+                ];
+                
+                $totalDistance += $distance;
+                $totalBoxes += $order['total_items'];
+                $totalCost += $costAnalysis['totalCost'];
+                
+                // อัพเดทตำแหน่งปัจจุบันสำหรับการคำนวณครั้งต่อไป
+                $currentLocation = $destination;
+            }
+        }
+        
+        // คำนวณระยะทางกลับร้าน
+        if (!empty($routeData)) {
+            $returnDistance = calculateDistance(
+                $currentLocation['lat'], 
+                $currentLocation['lng'],
+                $shopLocation['lat'],
+                $shopLocation['lng']
+            );
+            $totalDistance += $returnDistance;
+        }
+        
+        // คำนวณ efficiency score รวม
+        $avgEfficiency = count($routeData) > 0 ? 
+            array_sum(array_column($routeData, 'efficiency')) / count($routeData) : 0;
+        
+        $boxesPerMile = $totalDistance > 0 ? $totalBoxes / $totalDistance : 0;
+        $costPerBox = $totalBoxes > 0 ? $totalCost / $totalBoxes : 0;
+        
+        // สร้างคำแนะนำ
+        $recommendations = [];
+        
+        if ($avgEfficiency < 50) {
+            $recommendations[] = "Low efficiency route. Consider reassigning some orders to optimize.";
+        }
+        
+        if ($boxesPerMile < 2) {
+            $recommendations[] = "Too much travel for few deliveries. Group nearby orders together.";
+        }
+        
+        if ($costPerBox > 15) {
+            $recommendations[] = "High delivery cost per box. Review route optimization.";
+        }
+        
+        if (count($routeData) < 5) {
+            $recommendations[] = "Underutilized rider capacity. Consider assigning more orders.";
+        }
+        
+        if (empty($recommendations)) {
+            $recommendations[] = "Route efficiency looks good! Well optimized delivery plan.";
+        }
+        
+        // จัดกลุ่มตาม time slot
+        $timeSlots = [];
+        foreach ($routeData as $route) {
+            $slot = $route['order']['delivery_time_slot'];
+            if (!isset($timeSlots[$slot])) {
+                $timeSlots[$slot] = [
+                    'orders' => 0,
+                    'boxes' => 0,
+                    'distance' => 0,
+                    'zones' => []
+                ];
+            }
+            $timeSlots[$slot]['orders']++;
+            $timeSlots[$slot]['boxes'] += $route['order']['total_items'];
+            $timeSlots[$slot]['distance'] += $route['distance'];
+            $timeSlots[$slot]['zones'][] = $route['zone'];
+        }
+        
+        return [
+            'success' => true,
+            'efficiency' => [
+                'total_orders' => count($orders),
+                'total_boxes' => $totalBoxes,
+                'total_distance' => round($totalDistance, 2),
+                'total_cost' => round($totalCost, 2),
+                'efficiency_score' => round($avgEfficiency, 1),
+                'boxes_per_mile' => round($boxesPerMile, 2),
+                'cost_per_box' => round($costPerBox, 2),
+                'return_distance' => round($returnDistance ?? 0, 2),
+                'time_slots' => $timeSlots,
+                'route_details' => $routeData,
+                'recommendations' => $recommendations
+            ]
+        ];
+        
+    } catch (Exception $e) {
+        return [
+            'success' => false, 
+            'message' => 'Error calculating route efficiency: ' . $e->getMessage()
+        ];
+    }
+}
+
 
 function getDeliveryAnalytics($pdo, $date) {
     try {
