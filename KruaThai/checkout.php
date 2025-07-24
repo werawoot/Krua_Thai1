@@ -1,6 +1,6 @@
 <?php
 /**
- * Krua Thai - Improved Checkout System
+ * Somdul Table - Improved Checkout System
  * Updated for single date selection and better UI
  */
 
@@ -42,11 +42,11 @@ class CheckoutUtils {
     }
     
     public static function getPlanName($plan) {
-        return $plan['name_thai'] ?? $plan['name'] ?? 'Selected Package';
+        return $plan['name'] ?? 'Selected Package';
     }
     
     public static function getMenuName($menu) {
-        return $menu['name_thai'] ?? $menu['name'] ?? 'Menu Item';
+        return $menu['name'] ?? 'Menu Item';
     }
     
     public static function sanitizeInput($input) {
@@ -66,8 +66,8 @@ class DatabaseConnection {
             } catch (Exception $e) {
                 // Fallback connections
                 $configs = [
-                    ["mysql:host=localhost;dbname=krua_thai;charset=utf8mb4", "root", "root"],
-                    ["mysql:host=localhost:8889;dbname=krua_thai;charset=utf8mb4", "root", "root"]
+                    ["mysql:host=localhost;dbname=somdul_table;charset=utf8mb4", "root", "root"],
+                    ["mysql:host=localhost:8889;dbname=somdul_table;charset=utf8mb4", "root", "root"]
                 ];
                 
                 foreach ($configs as $config) {
@@ -90,13 +90,12 @@ class DatabaseConnection {
 }
 
 // Weekend Date Generator (Updated for single selection)
-// Weekend Date Generator (Updated for single selection)
 class DeliveryDateGenerator {
     
     public static function getDeliveryDates() {
         $dates = [];
         $currentDate = new DateTime();
-        $currentDate->setTimezone(new DateTimeZone('Asia/Bangkok'));
+        $currentDate->setTimezone(new DateTimeZone('America/New_York'));
         
         for ($i = 0; $i < 28; $i++) { 
             $checkDate = clone $currentDate;
@@ -104,37 +103,35 @@ class DeliveryDateGenerator {
             
             $dayOfWeek = $checkDate->format('N'); // 1=Monday, 3=Wednesday, 6=Saturday
             
-            // 🔥 เปลี่ยนเป็นวันพุธ(3) และวันเสาร์(6)
+            // Changed to Wednesday(3) and Saturday(6) delivery days
             if ($dayOfWeek == 3 || $dayOfWeek == 6) { 
                 $dayName = ($dayOfWeek == 3) ? 'Wednesday' : 'Saturday';
-                $dayNameThai = ($dayOfWeek == 3) ? 'วันพุธ' : 'วันเสาร์';
                 $key = strtolower(substr($dayName, 0, 3)) . '_' . floor(count($dates) / 2);
                 
                 $dates[$key] = [
                     'label' => $checkDate->format('l, M j'),
                     'day' => $dayName,
-                    'day_thai' => $dayNameThai,
                     'date' => $checkDate->format('Y-m-d'),
-                    'formatted' => $checkDate->format('d/m/Y')
+                    'formatted' => $checkDate->format('m/d/Y')
                 ];
                 
-                if (count($dates) >= 8) break; // ได้ 8 วัน (4 พุธ + 4 เสาร์)
+                if (count($dates) >= 8) break; // Get 8 days (4 Wednesdays + 4 Saturdays)
             }
         }
         
         return $dates;
     }
     
-    // 🔥 เพิ่มฟังก์ชันนี้ที่ขาดหายไป
+    // Added missing function
     public static function convertDeliveryKeyToDate($deliveryKey) {
         $deliveryDates = self::getDeliveryDates();
         return isset($deliveryDates[$deliveryKey]) ? $deliveryDates[$deliveryKey]['date'] : null;
     }
     
-    // 🔥 เพิ่มฟังก์ชันตรวจสอบวันที่
+    // Added date validation function
     public static function isValidDeliveryDate($date) {
         $dayOfWeek = date('N', strtotime($date)); // 1=Monday, 3=Wednesday, 6=Saturday
-        return in_array($dayOfWeek, [3, 6]); // เฉพาะวันพุธ(3) และวันเสาร์(6)
+        return in_array($dayOfWeek, [3, 6]); // Only Wednesday(3) and Saturday(6)
     }
 }
     
@@ -149,7 +146,7 @@ class CheckoutDataManager {
             
             if ($plan) {
                 $meal_limit = $plan['meals_per_week'] ?? 3;
-                $stmt = $db->query("SELECT id, name, name_thai, base_price FROM menus WHERE is_available = 1 ORDER BY RAND() LIMIT $meal_limit");
+                $stmt = $db->query("SELECT id, name, base_price FROM menus WHERE is_available = 1 ORDER BY RAND() LIMIT $meal_limit");
                 $menus = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 
                 if (!empty($menus)) {
@@ -333,9 +330,6 @@ class OrderProcessor {
             
             // Calculate dates
             $start_date = DeliveryDateGenerator::convertDeliveryKeyToDate($delivery_day);
-
-
-
             
             if (!$start_date) {
                 $start_date = date('Y-m-d', strtotime('+1 day'));
@@ -435,8 +429,6 @@ try {
     
     // Get weekend dates
     $delivery_dates = DeliveryDateGenerator::getDeliveryDates();
-
-
     
     // Process form submission
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['submit_order']) || !empty($_POST['payment_method']))) {
@@ -453,7 +445,7 @@ try {
                 if ($result['success']) {
                     $success = true;
                     unset($_SESSION['checkout_data']);
-                    $_SESSION['flash_message'] = "Order placed successfully! Thank you for choosing Krua Thai";
+                    $_SESSION['flash_message'] = "Order placed successfully! Thank you for choosing Somdul Table";
                     $_SESSION['flash_type'] = 'success';
                     $_SESSION['last_order_id'] = $result['subscription_id'];
                     $_SESSION['prevent_double_submit'] = time();
@@ -481,9 +473,9 @@ if ($success) {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Confirm Order | Krua Thai</title>
+    <title>Confirm Order | Somdul Table</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://ydpschool.com/fonts/BaticaSans.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         :root {
@@ -514,7 +506,7 @@ if ($success) {
         }
 
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'BaticaSans', 'Inter', sans-serif;
             background: linear-gradient(135deg, var(--cream) 0%, #f8f6f3 100%);
             color: var(--text-dark);
             line-height: 1.6;
@@ -1080,7 +1072,7 @@ if ($success) {
     <header class="header">
         <div class="header-container">
             <a href="index.php" class="logo">
-                <div class="logo-text">Krua Thai</div>
+                <div class="logo-text">Somdul Table</div>
             </a>
             <nav class="header-nav">
                 <a href="menu.php" class="nav-link">Menu</a>
@@ -1183,7 +1175,7 @@ if ($success) {
                         <div class="delivery-day-option">
                             <input type="radio" name="delivery_day" value="<?php echo htmlspecialchars($val); ?>" id="delivery_<?php echo htmlspecialchars($val); ?>" required>
                             <div class="delivery-day-card">
-                                <div class="delivery-day-title"><?php echo htmlspecialchars($dateInfo['day_thai'] . ' (' . $dateInfo['day'] . ')'); ?></div>
+                                <div class="delivery-day-title"><?php echo htmlspecialchars($dateInfo['day']); ?></div>
                                 <div class="delivery-day-date"><?php echo htmlspecialchars($dateInfo['label']); ?></div>
                                 <div class="delivery-day-info"><?php echo htmlspecialchars($dateInfo['formatted']); ?></div>
                             </div>
@@ -1192,12 +1184,12 @@ if ($success) {
                 </div>
                 
                 <div class="label" style="margin-top:2rem;"><i class="fas fa-clock"></i> Preferred Delivery Time</div>
-          <select name="preferred_time" class="address-input" required>
-    <option value="09:00-12:00">Morning (9:00 AM - 12:00 PM)</option>
-    <option value="12:00-15:00">Lunch (12:00 PM - 3:00 PM)</option>
-    <option value="15:00-18:00" selected>Afternoon (3:00 PM - 6:00 PM)</option>
-    <option value="18:00-21:00">Evening (6:00 PM - 9:00 PM)</option>
-</select>
+                <select name="preferred_time" class="address-input" required>
+                    <option value="09:00-12:00">Morning (9:00 AM - 12:00 PM)</option>
+                    <option value="12:00-15:00">Lunch (12:00 PM - 3:00 PM)</option>
+                    <option value="15:00-18:00" selected>Afternoon (3:00 PM - 6:00 PM)</option>
+                    <option value="18:00-21:00">Evening (6:00 PM - 9:00 PM)</option>
+                </select>
             </div>
 
             <!-- Payment Method -->

@@ -1,17 +1,17 @@
 <?php
 /**
- * Weekend Kitchen Dashboard - Krua Thai (COMPLETE FIXED VERSION)
- * File: weekend_kitchen_dashboard.php
+ * Kitchen Dashboard - Somdul Table (COMPLETE ENGLISH VERSION)
+ * File: kitchen_dashboard.php
  * Role: kitchen, admin only
  * Status: PRODUCTION READY ✅
- * Focus: Weekend delivery preparation (Saturday & Sunday only)
- * Language: Thai/English
- * Timezone: Asia/Bangkok
+ * Focus: Delivery preparation (Wednesday & Saturday only)
+ * Language: English
+ * Timezone: America/New_York
  * 
- * 🔥 FIXED ISSUES:
- * - Query logic แก้ไขแล้ว - ไม่ใช้ DISTINCT ผิดๆ
- * - แสดงลูกค้าและเมนูครบถ้วน
- * - เพิ่ม Debug information
+ * 🔥 FEATURES:
+ * - Query logic fixed - no incorrect DISTINCT usage
+ * - Shows complete customer and menu information
+ * - Debug information included
  */
 
 // Start output buffering to prevent header issues
@@ -23,8 +23,8 @@ ini_set('display_errors', 1);
 // Start session FIRST
 session_start();
 
-// Set timezone to Bangkok
-date_default_timezone_set('Asia/Bangkok');
+// Set timezone to US Eastern
+date_default_timezone_set('America/New_York');
 
 // Role-based access control
 if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
@@ -53,75 +53,35 @@ try {
     die("❌ Database connection failed: " . $e->getMessage());
 }
 
-// Get next weekends (Saturday & Sunday) for next 4 weeks
-function getNextWeekends() {
-    $weekends = [];
-    $currentDate = new DateTime();
-    $currentDate->setTimezone(new DateTimeZone('Asia/Bangkok'));
-    
-    for ($week = 0; $week < 4; $week++) { // 4 weeks
-        // Calculate this week's Saturday
-        $saturday = clone $currentDate;
-        $saturday->modify('this week monday')->modify('+' . (5 + $week * 7) . ' days');
-        
-        // Calculate this week's Sunday  
-        $sunday = clone $saturday;
-        $sunday->modify('+1 day');
-        
-        // Only include future dates or today
-        $today = new DateTime();
-        $today->setTimezone(new DateTimeZone('Asia/Bangkok'));
-        $today->setTime(0, 0, 0); // Set to start of day for comparison
-        
-        if ($saturday >= $today) {
-            $weekends[] = [
-                'date' => $saturday->format('Y-m-d'),
-                'display' => $saturday->format('l, M j') . ' (Saturday)',
-                'day_name' => 'Saturday',
-                'week_label' => $week == 0 ? 'This Week' : ($week == 1 ? 'Next Week' : 'Week ' . ($week + 1))
-            ];
-        }
-        
-        if ($sunday >= $today) {
-            $weekends[] = [
-                'date' => $sunday->format('Y-m-d'),
-                'display' => $sunday->format('l, M j') . ' (Sunday)', 
-                'day_name' => 'Sunday',
-                'week_label' => $week == 0 ? 'This Week' : ($week == 1 ? 'Next Week' : 'Week ' . ($week + 1))
-            ];
-        }
-    }
-    
-    return $weekends;
-}
+// Get upcoming delivery days (Wednesday & Saturday) for next 4 weeks
 function getUpcomingDeliveryDays($weeks = 4) {
     $deliveryDays = [];
     $today = new DateTime();
-    $today->setTimezone(new DateTimeZone('Asia/Bangkok'));
+    $today->setTimezone(new DateTimeZone('America/New_York'));
     
     for ($week = 0; $week < $weeks; $week++) {
-        // หาวันพุธของสัปดาห์
+        // Find Wednesday of the week
         $wednesday = clone $today;
         $wednesday->modify("+" . $week . " weeks");
         $wednesday->modify("wednesday this week");
         
-        // หาวันเสาร์ของสัปดาห์
+        // Find Saturday of the week
         $saturday = clone $today;
         $saturday->modify("+" . $week . " weeks");
         $saturday->modify("saturday this week");
         
-        // เพิ่มเฉพาะวันที่ยังไม่ผ่านไป
+        // Add only future dates
         if ($wednesday >= $today) {
             $deliveryDays[] = [
                 'date' => $wednesday->format('Y-m-d'),
-                'display' => 'วันพุธที่ ' . $wednesday->format('d/m/Y')
+                'display' => 'Wednesday ' . $wednesday->format('m/d/Y')
             ];
         }
         
         if ($saturday >= $today) {
             $deliveryDays[] = [
                 'date' => $saturday->format('Y-m-d'),
-                'display' => 'วันเสาร์ที่ ' . $saturday->format('d/m/Y')
+                'display' => 'Saturday ' . $saturday->format('m/d/Y')
             ];
         }
     }
@@ -129,13 +89,11 @@ function getUpcomingDeliveryDays($weeks = 4) {
     return $deliveryDays;
 }
 
-// ตรวจสอบว่าวันที่เลือกถูกต้องหรือไม่
+// Check if selected date is valid delivery date
 function isValidDeliveryDate($date) {
     $dayOfWeek = date('N', strtotime($date)); // 1=Monday, 3=Wednesday, 6=Saturday
-    return in_array($dayOfWeek, [3, 6]); // เฉพาะวันพุธ(3) และวันเสาร์(6)
+    return in_array($dayOfWeek, [3, 6]); // Only Wednesday(3) and Saturday(6)
 }
-
-
 
 // Get filter parameters
 $available_delivery_days = getUpcomingDeliveryDays();
@@ -143,22 +101,20 @@ $selected_date = $_GET['date'] ?? ($available_delivery_days[0]['date'] ?? date('
 $status_filter = $_GET['status'] ?? 'all';
 $export_type = $_GET['export'] ?? '';
 
-// ตรวจสอบว่าเป็นวันพุธหรือวันเสาร์
+// Check if it's Wednesday or Saturday
 if (!isValidDeliveryDate($selected_date)) {
     $selected_date = $available_delivery_days[0]['date'] ?? date('Y-m-d');
 }
 
 // Kitchen data arrays
-$weekend_orders = [];
+$delivery_orders = [];
 $meal_summary = [];
 $total_customers = 0;
 $total_meals = 0;
 $error_message = '';
 
 try {
-    // 🔥 FIXED QUERY LOGIC - แยกเป็น 2 ขั้นตอน
-    
-    // ขั้นตอนที่ 1: ดึงลูกค้าทั้งหมดที่มี delivery ในวันที่เลือก
+    // STEP 1: Get all customers with deliveries on selected date
     $customer_query = "
         SELECT 
             s.id as subscription_id,
@@ -174,7 +130,6 @@ try {
             u.allergies,
             u.spice_level,
             sp.name as plan_name,
-            sp.name_thai as plan_name_thai,
             sp.meals_per_week,
             COUNT(sm.id) as total_meals_today
         FROM subscriptions s
@@ -186,7 +141,7 @@ try {
         AND sm.status = 'scheduled'
         GROUP BY s.id, s.user_id, u.first_name, u.last_name, u.phone, 
                  u.delivery_address, u.city, u.dietary_preferences, u.allergies, 
-                 u.spice_level, sp.name, sp.name_thai, sp.meals_per_week,
+                 u.spice_level, sp.name, sp.meals_per_week,
                  s.preferred_delivery_time, s.special_instructions
         ORDER BY s.preferred_delivery_time ASC, u.last_name ASC
     ";
@@ -197,12 +152,12 @@ try {
     
     $total_customers = count($customers_data);
     
-    // ขั้นตอนที่ 2: ดึงเมนูสำหรับแต่ละลูกค้า
+    // STEP 2: Get menu items for each customer
     foreach ($customers_data as $customer_data) {
         $customer = $customer_data;
         $customer['meals'] = [];
         
-        // Query เมนูสำหรับลูกค้าคนนี้
+        // Query meals for this customer
         $meals_query = "
             SELECT 
                 sm.id as subscription_menu_id,
@@ -211,14 +166,12 @@ try {
                 sm.special_requests,
                 m.id as menu_id,
                 m.name as menu_name,
-                m.name_thai as menu_name_thai,
                 m.base_price,
                 m.ingredients,
                 m.cooking_method,
                 m.preparation_time,
                 m.spice_level as menu_spice_level,
-                mc.name as category_name,
-                mc.name_thai as category_name_thai
+                mc.name as category_name
             FROM subscription_menus sm
             JOIN menus m ON sm.menu_id = m.id
             LEFT JOIN menu_categories mc ON m.category_id = mc.id
@@ -236,15 +189,13 @@ try {
             $customer['meals'][] = $meal;
             $total_meals += $meal['quantity'];
             
-            // สร้าง meal summary สำหรับครัว
+            // Create meal summary for kitchen
             $meal_key = $meal['menu_name'];
             if (!isset($meal_summary[$meal_key])) {
                 $meal_summary[$meal_key] = [
                     'menu_id' => $meal['menu_id'],
                     'name' => $meal['menu_name'],
-                    'name_thai' => $meal['menu_name_thai'],
                     'category' => $meal['category_name'],
-                    'category_thai' => $meal['category_name_thai'],
                     'total_quantity' => 0,
                     'prep_time' => $meal['preparation_time'],
                     'spice_level' => $meal['menu_spice_level'],
@@ -280,9 +231,9 @@ try {
             }
         }
         
-        // เพิ่มลูกค้าเข้าไปใน array สุดท้าย (เฉพาะที่มีเมนู)
+        // Add customer to final array (only if they have meals)
         if (!empty($customer['meals'])) {
-            $weekend_orders[] = $customer;
+            $delivery_orders[] = $customer;
         }
     }
     
@@ -292,7 +243,7 @@ try {
     });
     
 } catch (Exception $e) {
-    error_log("Weekend Kitchen Dashboard Error: " . $e->getMessage());
+    error_log("Kitchen Dashboard Error: " . $e->getMessage());
     $error_message = "Error loading kitchen data: " . $e->getMessage();
 }
 
@@ -302,7 +253,7 @@ if ($export_type === 'csv') {
     ob_end_clean();
     
     header('Content-Type: text/csv; charset=utf-8');
-    header('Content-Disposition: attachment; filename="weekend_kitchen_prep_' . $selected_date . '.csv"');
+    header('Content-Disposition: attachment; filename="kitchen_prep_' . $selected_date . '.csv"');
     
     $output = fopen('php://output', 'w');
     
@@ -317,14 +268,14 @@ if ($export_type === 'csv') {
     ]);
     
     // Data rows
-    foreach ($weekend_orders as $customer) {
+    foreach ($delivery_orders as $customer) {
         foreach ($customer['meals'] as $meal) {
             fputcsv($output, [
                 $selected_date,
                 $customer['first_name'] . ' ' . $customer['last_name'],
                 $customer['phone'] ?? '',
                 ($customer['delivery_address'] ?? '') . ', ' . ($customer['city'] ?? ''),
-                $customer['preferred_delivery_time'] ?? '12:00 PM - 3:00 PM',
+                $customer['preferred_delivery_time'] ?? '3:00 PM - 6:00 PM',
                 $customer['plan_name'] ?? 'Standard Plan',
                 $meal['menu_name'],
                 $meal['quantity'],
@@ -347,13 +298,13 @@ if ($export_type === 'json') {
     ob_end_clean();
     
     header('Content-Type: application/json; charset=utf-8');
-    header('Content-Disposition: attachment; filename="weekend_kitchen_data_' . $selected_date . '.json"');
+    header('Content-Disposition: attachment; filename="kitchen_data_' . $selected_date . '.json"');
     
     $export_data = [
         'delivery_date' => $selected_date,
         'total_customers' => $total_customers,
         'total_meals' => $total_meals,
-        'customers' => $weekend_orders,
+        'customers' => $delivery_orders,
         'meal_summary' => $meal_summary,
         'exported_at' => date('Y-m-d H:i:s')
     ];
@@ -364,21 +315,20 @@ if ($export_type === 'json') {
 
 ?>
 <!DOCTYPE html>
-<html lang="th">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Weekend Kitchen Dashboard - Krua Thai (Fixed)</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>Kitchen Dashboard - Somdul Table</title>
+    <link href="https://ydpschool.com/fonts/BaticaSans.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            /* Krua Thai Brand Colors */
-            --primary-cream: #f8f6f3;
-            --primary-green: #4a7c59;
-            --primary-brown: #8b4513;
-            --primary-orange: #e67e22;
+            /* Somdul Table Brand Colors */
+            --brown: #bd9379;
+            --cream: #ece8e1;
+            --sage: #adb89d;
+            --curry: #cf723a;
             --white: #ffffff;
             --text-dark: #2c3e50;
             --text-gray: #6c757d;
@@ -402,15 +352,15 @@ if ($export_type === 'json') {
         }
 
         body {
-            font-family: 'Inter', 'Kanit', sans-serif;
-            background: linear-gradient(135deg, var(--primary-cream) 0%, #f1f3f4 100%);
+            font-family: 'BaticaSans', 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--cream) 0%, #f1f3f4 100%);
             min-height: 100vh;
             color: var(--text-dark);
             line-height: 1.6;
         }
 
         .header {
-            background: linear-gradient(135deg, var(--primary-brown) 0%, var(--primary-orange) 100%);
+            background: linear-gradient(135deg, var(--curry) 0%, var(--brown) 100%);
             color: white;
             padding: 1.5rem 2rem;
             box-shadow: var(--shadow-medium);
@@ -490,8 +440,6 @@ if ($export_type === 'json') {
             padding: 2rem;
         }
 
-        /* Debug Information Styles - ลบออกแล้ว */
-
         .dashboard-controls {
             background: white;
             padding: 2rem;
@@ -512,7 +460,7 @@ if ($export_type === 'json') {
 
         .control-label {
             font-weight: 500;
-            color: var(--primary-brown);
+            color: var(--curry);
             font-size: 0.9rem;
         }
 
@@ -527,8 +475,8 @@ if ($export_type === 'json') {
 
         .control-input:focus {
             outline: none;
-            border-color: var(--primary-orange);
-            box-shadow: 0 0 0 3px rgba(230, 126, 34, 0.1);
+            border-color: var(--curry);
+            box-shadow: 0 0 0 3px rgba(207, 114, 58, 0.1);
         }
 
         .btn {
@@ -548,7 +496,7 @@ if ($export_type === 'json') {
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, var(--primary-orange), #d35400);
+            background: linear-gradient(135deg, var(--curry), var(--brown));
             color: white;
         }
 
@@ -558,7 +506,7 @@ if ($export_type === 'json') {
         }
 
         .btn-secondary {
-            background: linear-gradient(135deg, var(--primary-green), #27ae60);
+            background: linear-gradient(135deg, var(--sage), #27ae60);
             color: white;
         }
 
@@ -569,13 +517,13 @@ if ($export_type === 'json') {
 
         .btn-outline {
             background: white;
-            border: 2px solid var(--primary-cream);
-            color: var(--primary-brown);
+            border: 2px solid var(--cream);
+            color: var(--curry);
         }
 
         .btn-outline:hover {
-            background: var(--primary-cream);
-            border-color: var(--primary-brown);
+            background: var(--cream);
+            border-color: var(--curry);
         }
 
         .stats-grid {
@@ -603,7 +551,7 @@ if ($export_type === 'json') {
             left: 0;
             right: 0;
             height: 4px;
-            background: linear-gradient(90deg, var(--primary-orange), var(--primary-brown));
+            background: linear-gradient(90deg, var(--curry), var(--brown));
         }
 
         .stat-card:hover {
@@ -614,13 +562,13 @@ if ($export_type === 'json') {
         .stat-icon {
             font-size: 3rem;
             margin-bottom: 1rem;
-            color: var(--primary-orange);
+            color: var(--curry);
         }
 
         .stat-number {
             font-size: 2.5rem;
             font-weight: 700;
-            color: var(--primary-brown);
+            color: var(--curry);
             margin-bottom: 0.5rem;
         }
 
@@ -654,7 +602,7 @@ if ($export_type === 'json') {
         }
 
         .section-header {
-            background: linear-gradient(135deg, var(--primary-cream), #f8f6f3);
+            background: linear-gradient(135deg, var(--cream), #f8f6f3);
             padding: 1.5rem 2rem;
             border-bottom: 1px solid var(--border-light);
             display: flex;
@@ -665,7 +613,7 @@ if ($export_type === 'json') {
         .section-title {
             font-size: 1.4rem;
             font-weight: 600;
-            color: var(--primary-brown);
+            color: var(--curry);
             display: flex;
             align-items: center;
             gap: 0.5rem;
@@ -683,7 +631,7 @@ if ($export_type === 'json') {
         }
 
         .customer-card:hover {
-            background: var(--primary-cream);
+            background: var(--cream);
         }
 
         .customer-header {
@@ -696,7 +644,7 @@ if ($export_type === 'json') {
         .customer-info h3 {
             font-size: 1.2rem;
             font-weight: 600;
-            color: var(--primary-brown);
+            color: var(--curry);
             margin-bottom: 0.25rem;
         }
 
@@ -711,7 +659,7 @@ if ($export_type === 'json') {
         }
 
         .delivery-time {
-            background: linear-gradient(135deg, var(--primary-green), #27ae60);
+            background: linear-gradient(135deg, var(--sage), #27ae60);
             color: white;
             padding: 0.5rem 1rem;
             border-radius: 20px;
@@ -724,11 +672,11 @@ if ($export_type === 'json') {
         }
 
         .meal-item {
-            background: var(--primary-cream);
+            background: var(--cream);
             padding: 1rem;
             border-radius: var(--radius-sm);
             margin-bottom: 0.5rem;
-            border-left: 4px solid var(--primary-orange);
+            border-left: 4px solid var(--curry);
         }
 
         .meal-item:last-child {
@@ -744,11 +692,11 @@ if ($export_type === 'json') {
 
         .meal-name {
             font-weight: 600;
-            color: var(--primary-brown);
+            color: var(--curry);
         }
 
         .meal-quantity {
-            background: var(--primary-orange);
+            background: var(--curry);
             color: white;
             padding: 0.25rem 0.75rem;
             border-radius: 12px;
@@ -769,7 +717,7 @@ if ($export_type === 'json') {
         .prep-summary-title {
             font-size: 1.3rem;
             font-weight: 600;
-            color: var(--primary-brown);
+            color: var(--curry);
             margin-bottom: 1.5rem;
             display: flex;
             align-items: center;
@@ -777,7 +725,7 @@ if ($export_type === 'json') {
         }
 
         .prep-item {
-            background: linear-gradient(135deg, var(--primary-cream), white);
+            background: linear-gradient(135deg, var(--cream), white);
             border: 1px solid var(--border-light);
             border-radius: var(--radius-md);
             padding: 1.5rem;
@@ -799,12 +747,12 @@ if ($export_type === 'json') {
 
         .prep-name {
             font-weight: 600;
-            color: var(--primary-brown);
+            color: var(--curry);
             font-size: 1.1rem;
         }
 
         .prep-quantity {
-            background: linear-gradient(135deg, var(--primary-orange), #d35400);
+            background: linear-gradient(135deg, var(--curry), var(--brown));
             color: white;
             padding: 0.5rem 1rem;
             border-radius: 20px;
@@ -825,7 +773,7 @@ if ($export_type === 'json') {
         .prep-customers {
             margin-top: 0.5rem;
             font-weight: 500;
-            color: var(--primary-green);
+            color: var(--sage);
         }
 
         .print-section {
@@ -850,14 +798,14 @@ if ($export_type === 'json') {
 
         .empty-state i {
             font-size: 4rem;
-            color: var(--primary-cream);
+            color: var(--cream);
             margin-bottom: 1rem;
         }
 
         .empty-state h3 {
             font-size: 1.5rem;
             margin-bottom: 0.5rem;
-            color: var(--primary-brown);
+            color: var(--curry);
         }
 
         .alert {
@@ -881,11 +829,11 @@ if ($export_type === 'json') {
             border: 1px solid #bbf7d0;
         }
 
-        .weekend-indicator {
+        .delivery-indicator {
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
-            background: linear-gradient(135deg, var(--primary-green), #27ae60);
+            background: linear-gradient(135deg, var(--sage), #27ae60);
             color: white;
             padding: 0.5rem 1rem;
             border-radius: 20px;
@@ -983,13 +931,13 @@ if ($export_type === 'json') {
         <div class="header-content">
             <div class="header-title">
                <h1>
-    <i class="fas fa-utensils"></i>
-    Kitchen Dashboard
-</h1>
-             <div class="weekend-indicator">
-    <i class="fas fa-calendar-alt"></i>
-    Wed & Sat Delivery
-</div>
+                    <i class="fas fa-utensils"></i>
+                    Kitchen Dashboard
+                </h1>
+             <div class="delivery-indicator">
+                    <i class="fas fa-calendar-alt"></i>
+                    Wed & Sat Delivery
+                </div>
             </div>
             <div class="header-meta">
                 <div class="meta-item">
@@ -1019,7 +967,6 @@ if ($export_type === 'json') {
     </div>
 
     <div class="main-container">
-        <!-- Debug Information - เอาออกแล้ว -->
 
         <?php if (!empty($error_message)): ?>
             <div class="alert alert-error">
@@ -1030,17 +977,17 @@ if ($export_type === 'json') {
 
         <!-- Dashboard Controls -->
         <div class="dashboard-controls">
-       <div class="control-group">
-    <label class="control-label">Select Delivery Date (Wed & Sat Only)</label>
-    <select class="control-input" onchange="filterByDate(this.value)">
-        <?php foreach ($available_delivery_days as $day): ?>
-            <option value="<?php echo $day['date']; ?>" 
-                    <?php echo ($day['date'] === $selected_date) ? 'selected' : ''; ?>>
-                <?php echo $day['display']; ?>
-            </option>
-        <?php endforeach; ?>
-    </select>
-</div>
+           <div class="control-group">
+                <label class="control-label">Select Delivery Date (Wed & Sat Only)</label>
+                <select class="control-input" onchange="filterByDate(this.value)">
+                    <?php foreach ($available_delivery_days as $day): ?>
+                        <option value="<?php echo $day['date']; ?>" 
+                                <?php echo ($day['date'] === $selected_date) ? 'selected' : ''; ?>>
+                            <?php echo $day['display']; ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
             
             <div class="control-group">
                 <label class="control-label">Status Filter</label>
@@ -1091,7 +1038,7 @@ if ($export_type === 'json') {
                 <div class="stat-icon">
                     <i class="fas fa-calendar-weekend"></i>
                 </div>
-                <div class="stat-number"><?php echo date('N', strtotime($selected_date)) == 6 ? 'SAT' : 'SUN'; ?></div>
+                <div class="stat-number"><?php echo date('N', strtotime($selected_date)) == 3 ? 'WED' : 'SAT'; ?></div>
                 <div class="stat-label">Delivery Day</div>
             </div>
         </div>
@@ -1106,7 +1053,6 @@ if ($export_type === 'json') {
                         Delivery Schedule - <?php echo !empty($selected_date) ? date('l, M j', strtotime($selected_date)) : 'Date not selected'; ?>
                     </h2>
                     <div style="display: flex; gap: 1rem;">
-               
                         <button class="btn btn-primary" onclick="markAllCompleted()">
                             <i class="fas fa-check-circle"></i> Mark All Complete
                         </button>
@@ -1114,15 +1060,15 @@ if ($export_type === 'json') {
                 </div>
                 
                 <div class="customer-list">
-                    <?php if (empty($weekend_orders)): ?>
+                    <?php if (empty($delivery_orders)): ?>
                         <div class="empty-state">
                             <i class="fas fa-calendar-times"></i>
-                       <h3>No Deliveries Scheduled</h3>
-<p>No meal deliveries are scheduled for the selected date</p>
+                           <h3>No Deliveries Scheduled</h3>
+                            <p>No meal deliveries are scheduled for the selected date</p>
                             <small>Try selecting a different date or check if there are active subscriptions</small>
                         </div>
                     <?php else: ?>
-                        <?php foreach ($weekend_orders as $index => $customer): ?>
+                        <?php foreach ($delivery_orders as $index => $customer): ?>
                             <div class="customer-card" id="customer-<?php echo $customer['user_id']; ?>">
                                 <div class="customer-header">
                                     <div class="customer-info">
@@ -1145,7 +1091,7 @@ if ($export_type === 'json') {
                                     </div>
                                     <div class="delivery-time">
                                         <i class="fas fa-clock"></i>
-                                        <?php echo htmlspecialchars($customer['preferred_delivery_time'] ?? '12:00 PM - 3:00 PM'); ?>
+                                        <?php echo htmlspecialchars($customer['preferred_delivery_time'] ?? '3:00 PM - 6:00 PM'); ?>
                                     </div>
                                 </div>
                                 
@@ -1281,20 +1227,20 @@ if ($export_type === 'json') {
     <!-- Print Areas (Hidden) -->
     <div id="prep-print-area" class="print-area" style="display: none;">
         <div style="text-align: center; margin-bottom: 2rem;">
-            <h1 style="color: #8b4513; margin-bottom: 0.5rem;">Krua Thai - Kitchen Prep Sheet</h1>
+            <h1 style="color: #cf723a; margin-bottom: 0.5rem;">Somdul Table - Kitchen Prep Sheet</h1>
             <h2 style="color: #6c757d;">Delivery Date: <?php echo !empty($selected_date) ? date('l, F j, Y', strtotime($selected_date)) : 'Date not selected'; ?></h2>
-            <p style="color: #666;">Printed: <?php echo date('m/d/Y H:i:s'); ?> (Bangkok Time)</p>
+            <p style="color: #666;">Printed: <?php echo date('m/d/Y H:i:s'); ?> (Eastern Time)</p>
         </div>
         
         <div style="margin-bottom: 2rem;">
-            <h3 style="background: #f8f6f3; padding: 1rem; border-radius: 8px; color: #8b4513;">
+            <h3 style="background: #ece8e1; padding: 1rem; border-radius: 8px; color: #cf723a;">
                 Prep Summary - Total <?php echo count($meal_summary); ?> items / <?php echo $total_meals; ?> portions
             </h3>
         </div>
         
         <?php foreach ($meal_summary as $meal): ?>
             <div style="border: 1px solid #ddd; margin-bottom: 1rem; border-radius: 8px; overflow: hidden;">
-                <div style="background: #e67e22; color: white; padding: 1rem; font-weight: bold; font-size: 1.2rem;">
+                <div style="background: #cf723a; color: white; padding: 1rem; font-weight: bold; font-size: 1.2rem;">
                     <?php echo htmlspecialchars($meal['name']); ?> - <?php echo $meal['total_quantity']; ?> portions
                 </div>
                 <div style="padding: 1rem;">
@@ -1342,13 +1288,13 @@ if ($export_type === 'json') {
                 
                 let prepContent = `
                     <div style="text-align: center; margin-bottom: 2rem;">
-                        <h1 style="color: #8b4513; margin-bottom: 0.5rem;">Krua Thai - Kitchen Prep Sheet</h1>
+                        <h1 style="color: #cf723a; margin-bottom: 0.5rem;">Somdul Table - Kitchen Prep Sheet</h1>
                         <h2 style="color: #6c757d;">Delivery Date: <?php echo !empty($selected_date) ? date('l, F j, Y', strtotime($selected_date)) : 'Date not selected'; ?></h2>
-                        <p style="color: #666;">Printed: ${new Date().toLocaleString('th-TH')} (Bangkok Time)</p>
+                        <p style="color: #666;">Printed: ${new Date().toLocaleString('en-US')} (Eastern Time)</p>
                     </div>
                     
                     <div style="margin-bottom: 2rem;">
-                        <h3 style="background: #f8f6f3; padding: 1rem; border-radius: 8px; color: #8b4513;">
+                        <h3 style="background: #ece8e1; padding: 1rem; border-radius: 8px; color: #cf723a;">
                             Prep Summary - Total ${Object.keys(mealSummary).length} items / <?php echo $total_meals; ?> portions
                         </h3>
                     </div>
@@ -1357,7 +1303,7 @@ if ($export_type === 'json') {
                 Object.values(mealSummary).forEach(meal => {
                     prepContent += `
                         <div style="border: 1px solid #ddd; margin-bottom: 1rem; border-radius: 8px; overflow: hidden;">
-                            <div style="background: #e67e22; color: white; padding: 1rem; font-weight: bold; font-size: 1.2rem;">
+                            <div style="background: #cf723a; color: white; padding: 1rem; font-weight: bold; font-size: 1.2rem;">
                                 ${meal.name} - ${meal.total_quantity} portions
                             </div>
                             <div style="padding: 1rem;">
@@ -1380,7 +1326,7 @@ if ($export_type === 'json') {
                         <head>
                             <title>Kitchen Prep Sheet - <?php echo !empty($selected_date) ? date('m/d/Y', strtotime($selected_date)) : 'Date not selected'; ?></title>
                             <style>
-                                body { font-family: 'Inter', 'Kanit', sans-serif; margin: 20px; }
+                                body { font-family: 'BaticaSans', 'Inter', sans-serif; margin: 20px; }
                                 h1 { margin-bottom: 10px; }
                                 h2 { margin-bottom: 20px; }
                                 @media print {
@@ -1411,13 +1357,13 @@ if ($export_type === 'json') {
             // Create delivery sheet content
             let deliveryContent = `
                 <div style="text-align: center; margin-bottom: 2rem;">
-                    <h1 style="color: #8b4513;">Krua Thai - Delivery Sheet</h1>
+                    <h1 style="color: #cf723a;">Somdul Table - Delivery Sheet</h1>
                     <h2>Delivery Date: <?php echo !empty($selected_date) ? date('l, F j, Y', strtotime($selected_date)) : 'Date not selected'; ?></h2>
                     <p>Total <?php echo $total_customers; ?> customers / <?php echo $total_meals; ?> meals</p>
                 </div>
                 <table style="width: 100%; border-collapse: collapse; margin-top: 1rem;">
                     <thead>
-                        <tr style="background: #f8f6f3;">
+                        <tr style="background: #ece8e1;">
                             <th style="border: 1px solid #ddd; padding: 0.5rem;">No.</th>
                             <th style="border: 1px solid #ddd; padding: 0.5rem;">Customer</th>
                             <th style="border: 1px solid #ddd; padding: 0.5rem;">Phone</th>
@@ -1431,7 +1377,7 @@ if ($export_type === 'json') {
             `;
             
             // Build delivery sheet content dynamically
-            const customers = <?php echo json_encode($weekend_orders, JSON_UNESCAPED_UNICODE); ?>;
+            const customers = <?php echo json_encode($delivery_orders, JSON_UNESCAPED_UNICODE); ?>;
             
             customers.forEach((customer, index) => {
                 let menuItems = '';
@@ -1445,7 +1391,7 @@ if ($export_type === 'json') {
                         <td style="border: 1px solid #ddd; padding: 0.5rem;">${customer.first_name} ${customer.last_name}</td>
                         <td style="border: 1px solid #ddd; padding: 0.5rem;">${customer.phone || ''}</td>
                         <td style="border: 1px solid #ddd; padding: 0.5rem;">${(customer.delivery_address || '') + ', ' + (customer.city || '')}</td>
-                        <td style="border: 1px solid #ddd; padding: 0.5rem;">${customer.preferred_delivery_time || '12:00 PM - 3:00 PM'}</td>
+                        <td style="border: 1px solid #ddd; padding: 0.5rem;">${customer.preferred_delivery_time || '3:00 PM - 6:00 PM'}</td>
                         <td style="border: 1px solid #ddd; padding: 0.5rem;">${menuItems}</td>
                         <td style="border: 1px solid #ddd; padding: 0.5rem; text-align: center;">☐</td>
                     </tr>
@@ -1463,7 +1409,7 @@ if ($export_type === 'json') {
                     <head>
                         <title>Delivery Sheet - <?php echo !empty($selected_date) ? date('m/d/Y', strtotime($selected_date)) : 'Date not selected'; ?></title>
                         <style>
-                            body { font-family: 'Inter', 'Kanit', sans-serif; margin: 20px; }
+                            body { font-family: 'BaticaSans', 'Inter', sans-serif; margin: 20px; }
                             table { width: 100%; border-collapse: collapse; }
                             th, td { border: 1px solid #ddd; padding: 0.5rem; font-size: 12px; }
                             th { background: #f5f5f5; font-weight: bold; }
@@ -1500,13 +1446,13 @@ if ($export_type === 'json') {
             
             let ingredientsContent = `
                 <div style="text-align: center; margin-bottom: 2rem;">
-                    <h1 style="color: #8b4513;">Krua Thai - Ingredients List</h1>
+                    <h1 style="color: #cf723a;">Somdul Table - Ingredients List</h1>
                     <h2>Delivery Date: <?php echo !empty($selected_date) ? date('l, F j, Y', strtotime($selected_date)) : 'Date not selected'; ?></h2>
-                    <p>Generated: ${new Date().toLocaleString('th-TH')}</p>
+                    <p>Generated: ${new Date().toLocaleString('en-US')}</p>
                 </div>
                 <table style="width: 100%; border-collapse: collapse;">
                     <thead>
-                        <tr style="background: #f8f6f3;">
+                        <tr style="background: #ece8e1;">
                             <th style="border: 1px solid #ddd; padding: 1rem;">Ingredient</th>
                             <th style="border: 1px solid #ddd; padding: 1rem;">Quantity Needed</th>
                             <th style="border: 1px solid #ddd; padding: 1rem;">Notes</th>
@@ -1552,7 +1498,7 @@ if ($export_type === 'json') {
                     <head>
                         <title>Ingredients List - <?php echo !empty($selected_date) ? date('m/d/Y', strtotime($selected_date)) : 'Date not selected'; ?></title>
                         <style>
-                            body { font-family: 'Inter', 'Kanit', sans-serif; margin: 20px; }
+                            body { font-family: 'BaticaSans', 'Inter', sans-serif; margin: 20px; }
                             table { width: 100%; border-collapse: collapse; }
                             th, td { border: 1px solid #ddd; padding: 0.75rem; }
                             th { background: #f5f5f5; font-weight: bold; }
@@ -1630,16 +1576,16 @@ if ($export_type === 'json') {
         });
 
         // Log successful load
-        console.log('✅ Weekend Kitchen Dashboard loaded successfully');
+        console.log('✅ Kitchen Dashboard loaded successfully');
         console.log('📊 Statistics:');
         console.log('- Total customers:', <?php echo $total_customers; ?>);
         console.log('- Total meals:', <?php echo $total_meals; ?>);
         console.log('- Selected date:', '<?php echo $selected_date; ?>');
-        console.log('- Timezone: Bangkok (Asia/Bangkok)');
+        console.log('- Timezone: Eastern Time (America/New_York)');
         
         // Export to Excel function
         function exportToExcel() {
-            const customers = <?php echo json_encode($weekend_orders, JSON_UNESCAPED_UNICODE); ?>;
+            const customers = <?php echo json_encode($delivery_orders, JSON_UNESCAPED_UNICODE); ?>;
             
             // Create CSV content
             let csvContent = '\ufeff'; // UTF-8 BOM for proper Excel display
@@ -1652,7 +1598,7 @@ if ($export_type === 'json') {
                         `"${customer.first_name} ${customer.last_name}"`,
                         `"${customer.phone || ''}"`,
                         `"${(customer.delivery_address || '') + ', ' + (customer.city || '')}"`,
-                        `"${customer.preferred_delivery_time || '12:00 PM - 3:00 PM'}"`,
+                        `"${customer.preferred_delivery_time || '3:00 PM - 6:00 PM'}"`,
                         `"${customer.plan_name || 'Standard Plan'}"`,
                         `"${meal.menu_name}"`,
                         meal.quantity,
@@ -1671,7 +1617,7 @@ if ($export_type === 'json') {
             const link = document.createElement('a');
             const url = URL.createObjectURL(blob);
             link.setAttribute('href', url);
-            link.setAttribute('download', `weekend_kitchen_prep_<?php echo $selected_date; ?>.csv`);
+            link.setAttribute('download', `kitchen_prep_<?php echo $selected_date; ?>.csv`);
             link.style.visibility = 'hidden';
             document.body.appendChild(link);
             link.click();
