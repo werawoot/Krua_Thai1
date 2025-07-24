@@ -1,6 +1,6 @@
 <?php
 /**
- * Krua Thai - Beautiful Forgot Password Page
+ * Somdul Table - Beautiful Forgot Password Page
  * File: forgot_password.php
  * Description: Modern, responsive forgot password page with beautiful UI
  */
@@ -27,90 +27,113 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     // Validate email
     if (empty($email)) {
-        $errors[] = "กรุณากรอกอีเมล";
+        $errors[] = "Please enter your email address";
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $errors[] = "รูปแบบอีเมลไม่ถูกต้อง";
+        $errors[] = "Please enter a valid email address";
     } else {
         // Check if email exists in database
-        if (isset($connection) && mysqli_ping($connection)) {
-            $stmt = mysqli_prepare($connection, "SELECT id, first_name, email, status FROM users WHERE email = ?");
-            if ($stmt) {
-                mysqli_stmt_bind_param($stmt, "s", $email);
-                mysqli_stmt_execute($stmt);
-                $result = mysqli_stmt_get_result($stmt);
-                $user = mysqli_fetch_assoc($result);
-                
-                if ($user) {
-                    // Check if account is active
-                    if ($user['status'] !== 'active' && $user['status'] !== 'pending_verification') {
-                        $errors[] = "บัญชีของคุณถูกระงับ กรุณาติดต่อฝ่ายสนับสนุน";
-                    } else {
-                        // Generate password reset token
-                        $reset_token = bin2hex(random_bytes(32));
-                        $reset_expires = date('Y-m-d H:i:s', strtotime('+1 hour'));
-                        
-                        // Update user with reset token
-                        $update_stmt = mysqli_prepare($connection, 
-                            "UPDATE users SET password_reset_token = ?, password_reset_expires = ? WHERE id = ?");
-                        if ($update_stmt) {
-                            mysqli_stmt_bind_param($update_stmt, "sss", $reset_token, $reset_expires, $user['id']);
-                            
-                            if (mysqli_stmt_execute($update_stmt)) {
-                                $success_message = "เราได้ส่งลิงก์รีเซ็ตรหัสผ่านไปยังอีเมลของคุณแล้ว กรุณาตรวจสอบอีเมล";
-                                
-                                // Log activity if function exists
-                                if (function_exists('logActivity')) {
-                                    logActivity($user['id'], 'password_reset_requested', 'Password reset token generated');
-                                }
-                            } else {
-                                $errors[] = "เกิดข้อผิดพลาดในระบบ กรุณาลองใหม่อีกครั้ง";
-                            }
-                            mysqli_stmt_close($update_stmt);
-                        }
-                    }
+        try {
+            $database = new Database();
+            $pdo = $database->getConnection();
+            
+            $stmt = $pdo->prepare("SELECT id, first_name, email, status FROM users WHERE email = ?");
+            $stmt->execute([$email]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($user) {
+                // Check if account is active
+                if ($user['status'] !== 'active' && $user['status'] !== 'pending_verification') {
+                    $errors[] = "Your account has been suspended. Please contact support.";
                 } else {
-                    // Don't reveal if email exists or not for security
-                    $success_message = "หากอีเมลนี้มีอยู่ในระบบ เราจะส่งลิงก์รีเซ็ตรหัสผ่านให้คุณ";
+                    // Generate password reset token
+                    $reset_token = bin2hex(random_bytes(32));
+                    $reset_expires = date('Y-m-d H:i:s', strtotime('+1 hour'));
+                    
+                    // Update user with reset token
+                    $update_stmt = $pdo->prepare(
+                        "UPDATE users SET password_reset_token = ?, password_reset_expires = ? WHERE id = ?");
+                    $update_stmt->execute([$reset_token, $reset_expires, $user['id']]);
+                    
+                    $success_message = "We've sent a password reset link to your email. Please check your inbox.";
+                    
+                    // Log activity if function exists
+                    if (function_exists('logActivity')) {
+                        logActivity($user['id'], 'password_reset_requested', 'Password reset token generated');
+                    }
                 }
-                mysqli_stmt_close($stmt);
+            } else {
+                // Don't reveal if email exists or not for security
+                $success_message = "If this email exists in our system, we'll send you a password reset link.";
             }
-        } else {
-            $success_message = "ระบบไม่พร้อมใช้งานในขณะนี้ กรุณาลองใหม่อีกครั้ง";
+        } catch (Exception $e) {
+            $success_message = "System is temporarily unavailable. Please try again later.";
         }
     }
 }
 
-$page_title = "ลืมรหัสผ่าน";
+$page_title = "Forgot Password";
 ?>
 
 <!DOCTYPE html>
-<html lang="th">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo htmlspecialchars($page_title); ?> - Krua Thai</title>
+    <title><?php echo htmlspecialchars($page_title); ?> - Somdul Table</title>
     
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
+    <!-- BaticaSans Font Import -->
+    <link rel="preconnect" href="https://ydpschool.com">
     <style>
+        @font-face {
+            font-family: 'BaticaSans';
+            src: url('https://ydpschool.com/fonts/BaticaSans-Regular.woff2') format('woff2'),
+                 url('https://ydpschool.com/fonts/BaticaSans-Regular.woff') format('woff'),
+                 url('https://ydpschool.com/fonts/BaticaSans-Regular.ttf') format('truetype');
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+        
+        @font-face {
+            font-family: 'BaticaSans';
+            src: url('https://ydpschool.com/fonts/BaticaSans-Bold.woff2') format('woff2'),
+                 url('https://ydpschool.com/fonts/BaticaSans-Bold.woff') format('woff'),
+                 url('https://ydpschool.com/fonts/BaticaSans-Bold.ttf') format('truetype');
+            font-weight: 700;
+            font-style: normal;
+            font-display: swap;
+        }
+        
+        @font-face {
+            font-family: 'BaticaSans';
+            src: url('https://ydpschool.com/fonts/BaticaSans-Medium.woff2') format('woff2'),
+                 url('https://ydpschool.com/fonts/BaticaSans-Medium.woff') format('woff'),
+                 url('https://ydpschool.com/fonts/BaticaSans-Medium.ttf') format('truetype');
+            font-weight: 500;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        /* CSS Custom Properties for Somdul Table Design System */
         :root {
-            --olive: #3d4028;
-            --matcha: #4e4f22;
-            --brown: #866028;
-            --cream: #d1b990;
-            --light-cream: #f5ede4;
+            --brown: #bd9379;
+            --cream: #ece8e1;
+            --sage: #adb89d;
+            --curry: #cf723a;
             --white: #ffffff;
-            --gray: #6c757d;
-            --light-gray: #f8f9fa;
+            --text-dark: #2c3e50;
+            --text-gray: #7f8c8d;
+            --border-light: #e8e8e8;
+            --shadow-soft: 0 4px 12px rgba(189, 147, 121, 0.15);
+            --shadow-medium: 0 8px 24px rgba(189, 147, 121, 0.25);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             --success: #28a745;
             --warning: #ffc107;
             --danger: #dc3545;
             --info: #17a2b8;
-            --shadow: rgba(61, 64, 40, 0.1);
-            --shadow-lg: rgba(61, 64, 40, 0.15);
         }
 
         * {
@@ -120,10 +143,10 @@ $page_title = "ลืมรหัสผ่าน";
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: 'BaticaSans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             line-height: 1.6;
-            color: var(--olive);
-            background: linear-gradient(135deg, var(--light-cream) 0%, #f0ebe1 100%);
+            color: var(--text-dark);
+            background: linear-gradient(135deg, var(--cream) 0%, #f0ebe1 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -139,15 +162,15 @@ $page_title = "ลืมรหัสผ่าน";
 
         .auth-card {
             background: var(--white);
-            border-radius: 20px;
-            box-shadow: 0 20px 60px var(--shadow-lg);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-medium);
             overflow: hidden;
             position: relative;
-            border: 1px solid rgba(134, 96, 40, 0.1);
+            border: 1px solid rgba(189, 147, 121, 0.1);
         }
 
         .auth-header {
-            background: linear-gradient(135deg, var(--olive) 0%, var(--matcha) 100%);
+            background: linear-gradient(135deg, var(--curry) 0%, var(--brown) 100%);
             color: var(--white);
             padding: 3rem 2rem 2rem;
             text-align: center;
@@ -196,12 +219,14 @@ $page_title = "ลืมรหัสผ่าน";
             font-weight: 700;
             margin-bottom: 0.5rem;
             text-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .auth-header p {
             font-size: 1rem;
             opacity: 0.9;
             line-height: 1.5;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .auth-body {
@@ -214,12 +239,13 @@ $page_title = "ลืมรหัสผ่าน";
             align-items: flex-start;
             gap: 1rem;
             padding: 1.25rem;
-            border-radius: 12px;
+            border-radius: var(--radius-md);
             margin-bottom: 2rem;
             font-weight: 500;
             border: 1px solid;
             position: relative;
             overflow: hidden;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .alert::before {
@@ -301,8 +327,9 @@ $page_title = "ลืมรหัสผ่าน";
             gap: 0.5rem;
             margin-bottom: 0.75rem;
             font-weight: 600;
-            color: var(--olive);
+            color: var(--text-dark);
             font-size: 0.95rem;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .required {
@@ -322,49 +349,49 @@ $page_title = "ลืมรหัสผ่าน";
             z-index: 2;
             font-size: 1.2rem;
             opacity: 0.7;
-            transition: all 0.3s ease;
+            transition: var(--transition);
         }
 
         .form-input {
             width: 100%;
             padding: 1.25rem 1rem 1.25rem 3rem;
-            border: 2px solid #e9ecef;
-            border-radius: 12px;
+            border: 2px solid var(--border-light);
+            border-radius: var(--radius-md);
             font-size: 1rem;
-            transition: all 0.3s ease;
+            transition: var(--transition);
             background: var(--white);
-            color: var(--olive);
-            font-family: inherit;
+            color: var(--text-dark);
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .form-input:focus {
             outline: none;
-            border-color: var(--brown);
-            box-shadow: 0 0 0 4px rgba(134, 96, 40, 0.1);
+            border-color: var(--curry);
+            box-shadow: 0 0 0 4px rgba(207, 114, 58, 0.1);
             transform: translateY(-1px);
         }
 
         .form-input:focus + .input-icon {
-            color: var(--brown);
+            color: var(--curry);
             transform: scale(1.1);
         }
 
         .form-input::placeholder {
-            color: #adb5bd;
+            color: var(--text-gray);
         }
 
         /* Buttons */
         .btn-primary {
-            background: linear-gradient(45deg, var(--brown), #a67c00);
+            background: linear-gradient(135deg, var(--curry), var(--brown));
             color: var(--white);
             padding: 1.25rem 2rem;
             border: none;
-            border-radius: 12px;
+            border-radius: var(--radius-md);
             font-weight: 600;
             font-size: 1rem;
             cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 8px 25px rgba(134, 96, 40, 0.3);
+            transition: var(--transition);
+            box-shadow: var(--shadow-soft);
             position: relative;
             overflow: hidden;
             display: flex;
@@ -372,6 +399,7 @@ $page_title = "ลืมรหัสผ่าน";
             justify-content: center;
             gap: 0.5rem;
             text-transform: none;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .btn-primary::before {
@@ -386,9 +414,9 @@ $page_title = "ลืมรหัสผ่าน";
         }
 
         .btn-primary:hover:not(:disabled) {
-            background: linear-gradient(45deg, #a67c00, var(--brown));
+            background: linear-gradient(135deg, var(--brown), var(--curry));
             transform: translateY(-2px);
-            box-shadow: 0 12px 35px rgba(134, 96, 40, 0.4);
+            box-shadow: var(--shadow-medium);
         }
 
         .btn-primary:hover::before {
@@ -400,7 +428,7 @@ $page_title = "ลืมรหัสผ่าน";
         }
 
         .btn-primary:disabled {
-            background: var(--gray);
+            background: var(--text-gray);
             cursor: not-allowed;
             transform: none;
             box-shadow: none;
@@ -434,8 +462,8 @@ $page_title = "ลืมรหัสผ่าน";
         /* Footer */
         .auth-footer {
             padding: 1.5rem 2rem 2rem;
-            background: var(--light-gray);
-            border-top: 1px solid #e9ecef;
+            background: #f8f6f0;
+            border-top: 1px solid var(--border-light);
         }
 
         .auth-links {
@@ -447,23 +475,24 @@ $page_title = "ลืมรหัสผ่าน";
         }
 
         .auth-link {
-            color: var(--brown);
+            color: var(--curry);
             text-decoration: none;
             font-weight: 600;
             display: flex;
             align-items: center;
             gap: 0.5rem;
             padding: 0.5rem 1rem;
-            border-radius: 8px;
-            transition: all 0.3s ease;
+            border-radius: var(--radius-sm);
+            transition: var(--transition);
             border: 1px solid transparent;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .auth-link:hover {
-            background: var(--brown);
+            background: var(--curry);
             color: var(--white);
             transform: translateY(-1px);
-            border-color: var(--brown);
+            border-color: var(--curry);
         }
 
         .link-icon {
@@ -481,18 +510,19 @@ $page_title = "ลืมรหัสผ่าน";
         }
 
         .btn-link {
-            color: var(--brown);
+            color: var(--curry);
             text-decoration: none;
             font-weight: 600;
             padding: 0.75rem 1rem;
-            border: 1px solid var(--brown);
-            border-radius: 8px;
-            transition: all 0.3s ease;
+            border: 1px solid var(--curry);
+            border-radius: var(--radius-sm);
+            transition: var(--transition);
             display: inline-block;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .btn-link:hover {
-            background: var(--brown);
+            background: var(--curry);
             color: var(--white);
             transform: translateY(-1px);
         }
@@ -501,18 +531,19 @@ $page_title = "ลืมรหัสผ่าน";
         .help-section {
             margin-top: 2rem;
             background: var(--white);
-            border-radius: 15px;
+            border-radius: var(--radius-lg);
             padding: 2rem;
-            box-shadow: 0 10px 30px var(--shadow);
-            border: 1px solid rgba(134, 96, 40, 0.1);
+            box-shadow: var(--shadow-soft);
+            border: 1px solid rgba(189, 147, 121, 0.1);
         }
 
         .help-section h3 {
-            color: var(--olive);
+            color: var(--text-dark);
             font-size: 1.3rem;
             margin-bottom: 1.5rem;
             text-align: center;
             font-weight: 700;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .help-grid {
@@ -524,16 +555,17 @@ $page_title = "ลืมรหัสผ่าน";
         .help-item {
             text-align: center;
             padding: 1.5rem;
-            background: var(--light-cream);
-            border-radius: 12px;
-            transition: all 0.3s ease;
-            border: 1px solid rgba(134, 96, 40, 0.1);
+            background: var(--cream);
+            border-radius: var(--radius-md);
+            transition: var(--transition);
+            border: 1px solid rgba(189, 147, 121, 0.1);
         }
 
         .help-item:hover {
             transform: translateY(-3px);
-            box-shadow: 0 8px 25px var(--shadow);
-            background: var(--cream);
+            box-shadow: var(--shadow-soft);
+            background: var(--sage);
+            color: var(--white);
         }
 
         .help-icon {
@@ -549,25 +581,36 @@ $page_title = "ลืมรหัสผ่าน";
         }
 
         .help-item h4 {
-            color: var(--olive);
+            color: var(--text-dark);
             font-size: 1rem;
             font-weight: 600;
             margin-bottom: 0.5rem;
+            font-family: 'BaticaSans', sans-serif;
+        }
+
+        .help-item:hover h4 {
+            color: var(--white);
         }
 
         .help-item p {
-            color: var(--gray);
+            color: var(--text-gray);
             font-size: 0.9rem;
             line-height: 1.5;
+            font-family: 'BaticaSans', sans-serif;
+        }
+
+        .help-item:hover p {
+            color: var(--white);
         }
 
         .help-item a {
-            color: var(--brown);
+            color: var(--curry);
             text-decoration: none;
             font-weight: 600;
         }
 
-        .help-item a:hover {
+        .help-item:hover a {
+            color: var(--white);
             text-decoration: underline;
         }
 
@@ -579,7 +622,7 @@ $page_title = "ลืมรหัสผ่าน";
             left: 0;
             right: 0;
             bottom: 0;
-            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="20" cy="20" r="2" fill="rgba(134,96,40,0.1)"/><circle cx="80" cy="80" r="3" fill="rgba(134,96,40,0.05)"/><circle cx="40" cy="70" r="1" fill="rgba(134,96,40,0.1)"/></svg>');
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="20" cy="20" r="2" fill="rgba(189,147,121,0.1)"/><circle cx="80" cy="80" r="3" fill="rgba(189,147,121,0.05)"/><circle cx="40" cy="70" r="1" fill="rgba(189,147,121,0.1)"/></svg>');
             animation: float 20s linear infinite;
             pointer-events: none;
             z-index: -1;
@@ -654,7 +697,7 @@ $page_title = "ลืมรหัสผ่าน";
 
         /* Focus Management */
         .form-input:focus-visible {
-            outline: 2px solid var(--brown);
+            outline: 2px solid var(--curry);
             outline-offset: 2px;
         }
 
@@ -687,8 +730,8 @@ $page_title = "ลืมรหัสผ่าน";
             <div class="auth-header">
                 <div class="logo-section">
                     <div class="auth-logo">🍜</div>
-                    <h1>ลืมรหัสผ่าน</h1>
-                    <p>กรอกอีเมลของคุณเพื่อรับลิงก์รีเซ็ตรหัสผ่าน<br>เราจะส่งคำแนะนำไปให้คุณทันที</p>
+                    <h1>Forgot Password</h1>
+                    <p>Enter your email address to receive a password reset link<br>We'll send you instructions right away</p>
                 </div>
             </div>
 
@@ -712,7 +755,7 @@ $page_title = "ลืมรหัสผ่าน";
                         <div class="alert-content">
                             <p><?php echo htmlspecialchars($success_message); ?></p>
                             <div class="success-actions">
-                                <a href="login.php" class="btn-link">กลับไปหน้าเข้าสู่ระบบ</a>
+                                <a href="login.php" class="btn-link">Back to Sign In</a>
                             </div>
                         </div>
                     </div>
@@ -720,7 +763,7 @@ $page_title = "ลืมรหัสผ่าน";
                     <form method="POST" class="auth-form" id="forgotPasswordForm">
                         <div class="form-group">
                             <label for="email" class="form-label">
-                                <span class="label-text">อีเมลของคุณ</span>
+                                <span class="label-text">Your Email Address</span>
                                 <span class="required">*</span>
                             </label>
                             <div class="input-wrapper">
@@ -729,7 +772,7 @@ $page_title = "ลืมรหัสผ่าน";
                                     id="email" 
                                     name="email" 
                                     class="form-input"
-                                    placeholder="กรอกอีเมลที่ใช้สมัครสมาชิก"
+                                    placeholder="Enter the email you registered with"
                                     value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>"
                                     required
                                     autocomplete="email"
@@ -740,10 +783,10 @@ $page_title = "ลืมรหัสผ่าน";
                         </div>
 
                         <button type="submit" class="btn-primary btn-full" id="submitBtn">
-                            <span class="btn-text">ส่งลิงก์รีเซ็ตรหัสผ่าน</span>
+                            <span class="btn-text">Send Password Reset Link</span>
                             <span class="btn-spinner" style="display: none;">
                                 <span class="spinner"></span>
-                                กำลังส่ง...
+                                Sending...
                             </span>
                         </button>
                     </form>
@@ -754,11 +797,11 @@ $page_title = "ลืมรหัสผ่าน";
                 <div class="auth-links">
                     <a href="login.php" class="auth-link">
                         <span class="link-icon">←</span>
-                        กลับไปหน้าเข้าสู่ระบบ
+                        Back to Sign In
                     </a>
                     <span class="link-divider">|</span>
                     <a href="register.php" class="auth-link">
-                        สมัครสมาชิกใหม่
+                        Create New Account
                         <span class="link-icon">→</span>
                     </a>
                 </div>
@@ -767,27 +810,27 @@ $page_title = "ลืมรหัสผ่าน";
 
         <!-- Help Section -->
         <div class="help-section">
-            <h3>💡 ต้องการความช่วยเหลือ?</h3>
+            <h3>💡 Need Help?</h3>
             <div class="help-grid">
                 <div class="help-item">
                     <div class="help-icon">💡</div>
-                    <h4>เคล็ดลับ</h4>
-                    <p>ตรวจสอบโฟลเดอร์ Spam หากไม่พบอีเมลรีเซ็ตรหัสผ่าน</p>
+                    <h4>Check Spam</h4>
+                    <p>Check your spam folder if you don't see the reset email</p>
                 </div>
                 <div class="help-item">
                     <div class="help-icon">⏰</div>
-                    <h4>หมดอายุ</h4>
-                    <p>ลิงก์รีเซ็ตรหัสผ่านจะหมดอายุภายใน 1 ชั่วโมง</p>
+                    <h4>Expires</h4>
+                    <p>Password reset link expires within 1 hour</p>
                 </div>
                 <div class="help-item">
                     <div class="help-icon">🔒</div>
-                    <h4>ความปลอดภัย</h4>
-                    <p>ลิงก์รีเซ็ตใช้ได้เพียงครั้งเดียวเท่านั้น</p>
+                    <h4>Security</h4>
+                    <p>Reset link can only be used once for security</p>
                 </div>
                 <div class="help-item">
                     <div class="help-icon">📞</div>
-                    <h4>ติดต่อเรา</h4>
-                    <p>หากมีปัญหา โทร <a href="tel:02-000-1234">02-000-1234</a><br>หรือ <a href="mailto:support@kruathai.com">support@kruathai.com</a></p>
+                    <h4>Contact Us</h4>
+                    <p>Need help? Call <a href="tel:02-000-1234">02-000-1234</a><br>or <a href="mailto:support@somdultable.com">support@somdultable.com</a></p>
                 </div>
             </div>
         </div>
@@ -827,22 +870,15 @@ $page_title = "ลืมรหัสผ่าน";
                     
                     if (email.length > 0) {
                         if (isValid) {
-                            this.style.borderColor = 'var(--success)';
-                            this.style.boxShadow = '0 0 0 4px rgba(40, 167, 69, 0.1)';
-                        } else {
-                            this.style.borderColor = 'var(--danger)';
-                            this.style.boxShadow = '0 0 0 4px rgba(220, 53, 69, 0.1)';
-                        }
-                    } else {
-                        this.style.borderColor = '#e9ecef';
+                            this.style.borderColor = 'var(--border-light)';
                         this.style.boxShadow = '';
                     }
-                });
+            
 
                 // Clear validation on focus
                 emailField.addEventListener('focus', function() {
-                    this.style.borderColor = 'var(--brown)';
-                    this.style.boxShadow = '0 0 0 4px rgba(134, 96, 40, 0.1)';
+                    this.style.borderColor = 'var(--curry)';
+                    this.style.boxShadow = '0 0 0 4px rgba(207, 114, 58, 0.1)';
                 });
             }
 
@@ -993,7 +1029,7 @@ $page_title = "ลืมรหัสผ่าน";
                 }, index * 100); // Stagger animation
             });
 
-            console.log('🍜 Krua Thai - Forgot Password page loaded successfully!');
+            console.log('🍜 Somdul Table - Forgot Password page loaded successfully!');
         });
 
         // Global error handler
@@ -1006,7 +1042,7 @@ $page_title = "ลืมรหัสผ่าน";
             errorDiv.innerHTML = `
                 <div class="alert-icon">⚠️</div>
                 <div class="alert-content">
-                    <p>เกิดข้อผิดพลาดที่ไม่คาดคิด กรุณารีเฟรชหน้าเว็บ</p>
+                    <p>An unexpected error occurred. Please refresh the page.</p>
                 </div>
             `;
             
@@ -1045,19 +1081,19 @@ if (!function_exists('generatePasswordResetEmail')) {
         
         return '
         <!DOCTYPE html>
-        <html lang="th">
+        <html lang="en">
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>รีเซ็ตรหัสผ่าน - Krua Thai</title>
+            <title>Password Reset - Somdul Table</title>
             <style>
                 body { 
-                    font-family: "Inter", "Sarabun", Arial, sans-serif; 
+                    font-family: "BaticaSans", "Inter", Arial, sans-serif; 
                     line-height: 1.6; 
-                    color: #3d4028; 
+                    color: #2c3e50; 
                     margin: 0; 
                     padding: 0; 
-                    background-color: #f5ede4; 
+                    background-color: #ece8e1; 
                 }
                 .container { 
                     max-width: 600px; 
@@ -1065,11 +1101,11 @@ if (!function_exists('generatePasswordResetEmail')) {
                     background: white; 
                     border-radius: 20px; 
                     overflow: hidden; 
-                    box-shadow: 0 20px 60px rgba(61, 64, 40, 0.15);
-                    border: 1px solid rgba(134, 96, 40, 0.1);
+                    box-shadow: 0 20px 60px rgba(189, 147, 121, 0.15);
+                    border: 1px solid rgba(189, 147, 121, 0.1);
                 }
                 .header { 
-                    background: linear-gradient(135deg, #3d4028, #4e4f22); 
+                    background: linear-gradient(135deg, #cf723a, #bd9379); 
                     padding: 3rem 2rem; 
                     text-align: center; 
                     color: white; 
@@ -1105,21 +1141,21 @@ if (!function_exists('generatePasswordResetEmail')) {
                 }
                 .btn-reset { 
                     display: inline-block; 
-                    background: linear-gradient(45deg, #866028, #a67c00); 
+                    background: linear-gradient(135deg, #cf723a, #bd9379); 
                     color: white; 
                     padding: 1.25rem 2.5rem; 
                     text-decoration: none; 
                     border-radius: 12px; 
                     font-weight: 600; 
                     margin: 2rem 0;
-                    box-shadow: 0 8px 25px rgba(134, 96, 40, 0.3);
+                    box-shadow: 0 8px 25px rgba(207, 114, 58, 0.3);
                     transition: all 0.3s ease;
                 }
                 .footer { 
                     background: #f8f6f0; 
                     padding: 2rem; 
                     text-align: center; 
-                    color: #6c757d; 
+                    color: #7f8c8d; 
                     font-size: 0.9rem; 
                     border-top: 1px solid #e9ecef;
                 }
@@ -1155,11 +1191,11 @@ if (!function_exists('generatePasswordResetEmail')) {
                     line-height: 1.4;
                 }
                 .highlight {
-                    background: linear-gradient(135deg, rgba(134, 96, 40, 0.1), rgba(134, 96, 40, 0.05));
+                    background: linear-gradient(135deg, rgba(207, 114, 58, 0.1), rgba(207, 114, 58, 0.05));
                     padding: 1rem;
                     border-radius: 8px;
                     margin: 1rem 0;
-                    border-left: 3px solid #866028;
+                    border-left: 3px solid #cf723a;
                 }
                 @media (max-width: 600px) {
                     .container { margin: 1rem; border-radius: 15px; }
@@ -1172,50 +1208,50 @@ if (!function_exists('generatePasswordResetEmail')) {
             <div class="container">
                 <div class="header">
                     <div class="logo">🍜</div>
-                    <h1>รีเซ็ตรหัสผ่าน</h1>
+                    <h1>Password Reset</h1>
                 </div>
                 <div class="content">
-                    <p style="font-size: 1.1rem; margin-bottom: 1.5rem;">สวัสดี คุณ<strong>' . htmlspecialchars($firstName) . '</strong> 👋</p>
+                    <p style="font-size: 1.1rem; margin-bottom: 1.5rem;">Hello <strong>' . htmlspecialchars($firstName) . '</strong> 👋</p>
                     
-                    <p>เราได้รับคำขอรีเซ็ตรหัสผ่านสำหรับบัญชี <strong>Krua Thai</strong> ของคุณ</p>
+                    <p>We received a password reset request for your <strong>Somdul Table</strong> account.</p>
                     
-                    <p>กรุณาคลิกปุ่มด้านล่างเพื่อสร้างรหัสผ่านใหม่:</p>
+                    <p>Please click the button below to create a new password:</p>
                     
                     <div style="text-align: center; margin: 2.5rem 0;">
-                        <a href="' . $resetLink . '" class="btn-reset">🔒 รีเซ็ตรหัสผ่าน</a>
+                        <a href="' . $resetLink . '" class="btn-reset">🔒 Reset Password</a>
                     </div>
                     
                     <div class="warning">
-                        <h3>⚠️ ข้อมูลสำคัญ:</h3>
+                        <h3>⚠️ Important Information:</h3>
                         <ul>
-                            <li><strong>ลิงก์นี้จะหมดอายุภายใน 1 ชั่วโมง</strong></li>
-                            <li>ใช้ได้เพียงครั้งเดียวเท่านั้น</li>
-                            <li>หากคุณไม่ได้ขอรีเซ็ตรหัสผ่าน กรุณาเพิกเฉยอีเมลนี้</li>
-                            <li>ห้ามแชร์ลิงก์นี้กับผู้อื่น</li>
+                            <li><strong>This link expires in 1 hour</strong></li>
+                            <li>Can only be used once</li>
+                            <li>If you didn\'t request this reset, please ignore this email</li>
+                            <li>Never share this link with others</li>
                         </ul>
                     </div>
                     
                     <div class="highlight">
-                        <p><strong>💡 เคล็ดลับ:</strong> หากปุ่มไม่ทำงาน กรุณาคัดลอกลิงก์ด้านล่างและวางในเบราว์เซอร์:</p>
+                        <p><strong>💡 Tip:</strong> If the button doesn\'t work, copy and paste this link into your browser:</p>
                     </div>
                     
                     <div class="link-box">
                         ' . $resetLink . '
                     </div>
                     
-                    <p style="margin-top: 2rem; color: #6c757d; font-size: 0.95rem;">
-                        หากคุณยังคงประสบปัญหา กรุณาติดต่อทีมสนับสนุนของเราได้ตลอด 24 ชั่วโมง
+                    <p style="margin-top: 2rem; color: #7f8c8d; font-size: 0.95rem;">
+                        If you continue to have problems, please contact our support team available 24/7.
                     </p>
                 </div>
                 <div class="footer">
-                    <p style="margin-bottom: 1rem;">ด้วยความห่วงใย ❤️<br><strong>ทีมงาน Krua Thai</strong></p>
+                    <p style="margin-bottom: 1rem;">With care ❤️<br><strong>Somdul Table Team</strong></p>
                     <p style="margin-bottom: 1rem;">
-                        📞 <a href="tel:02-000-1234" style="color: #866028;">02-000-1234</a> | 
-                        ✉️ <a href="mailto:support@kruathai.com" style="color: #866028;">support@kruathai.com</a>
+                        📞 <a href="tel:02-000-1234" style="color: #cf723a;">02-000-1234</a> | 
+                        ✉️ <a href="mailto:support@somdultable.com" style="color: #cf723a;">support@somdultable.com</a>
                     </p>
                     <p style="font-size: 0.8rem; color: #adb5bd;">
-                        © ' . $currentYear . ' Krua Thai. สงวนลิขสิทธิ์ทุกการใช้งาน<br>
-                        อีเมลนี้ถูกส่งถึง ' . htmlspecialchars($firstName) . ' เนื่องจากมีการร้องขอรีเซ็ตรหัสผ่าน
+                        © ' . $currentYear . ' Somdul Table. All rights reserved.<br>
+                        This email was sent to ' . htmlspecialchars($firstName) . ' because a password reset was requested.
                     </p>
                 </div>
             </div>
@@ -1229,8 +1265,8 @@ if (!function_exists('sendEmail')) {
         $headers = [
             'MIME-Version: 1.0',
             'Content-type: text/html; charset=UTF-8',
-            'From: Krua Thai <noreply@kruathai.com>',
-            'Reply-To: support@kruathai.com',
+            'From: Somdul Table <noreply@somdultable.com>',
+            'Reply-To: support@somdultable.com',
             'X-Mailer: PHP/' . phpversion(),
             'X-Priority: 1',
             'Importance: High'
@@ -1249,4 +1285,4 @@ if (!function_exists('sendEmail')) {
         return mail($to, $subject, $body, implode("\r\n", $headers));
     }
 }
-?>
+?> 

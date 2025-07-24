@@ -1230,7 +1230,7 @@ try {
     </button>
 
     <div class="admin-layout">
-        <!-- Sidebar -->
+      <!-- Sidebar -->
         <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div class="logo">
@@ -1254,6 +1254,10 @@ try {
                         <i class="nav-icon fas fa-shopping-cart"></i>
                         <span>Orders</span>
                     </a>
+                    <a href="menus.php" class="nav-item">
+                        <i class="nav-icon fas fa-utensils"></i>
+                        <span>Menus</span>
+                    </a>
                     <a href="subscriptions.php" class="nav-item">
                         <i class="nav-icon fas fa-calendar-alt"></i>
                         <span>Subscriptions</span>
@@ -1261,34 +1265,26 @@ try {
                 </div>
                 
                 <div class="nav-section">
-                    <div class="nav-section-title">Content</div>
-                    <a href="menus.php" class="nav-item">
-                        <i class="nav-icon fas fa-utensils"></i>
-                        <span>Menus</span>
-                    </a>
-                    <a href="categories.php" class="nav-item">
-                        <i class="nav-icon fas fa-tags"></i>
-                        <span>Categories</span>
+                    <div class="nav-section-title">Management</div>
+                    <a href="users.php" class="nav-item">
+                        <i class="nav-icon fas fa-users"></i>
+                        <span>Users</span>
                     </a>
                     <a href="inventory.php" class="nav-item">
                         <i class="nav-icon fas fa-boxes"></i>
                         <span>Inventory</span>
                     </a>
-                </div>
-                
-                <div class="nav-section">
-                    <div class="nav-section-title">Customer Service</div>
-                    <a href="complaints.php" class="nav-item">
-                        <i class="nav-icon fas fa-exclamation-triangle"></i>
-                        <span>Complaints</span>
+                    <a href="delivery-zones.php" class="nav-item">
+                        <i class="nav-icon fas fa-map-marked-alt"></i>
+                        <span>Delivery Zones</span>
                     </a>
                     <a href="reviews.php" class="nav-item">
                         <i class="nav-icon fas fa-star"></i>
                         <span>Reviews</span>
                     </a>
-                    <a href="users.php" class="nav-item">
-                        <i class="nav-icon fas fa-users"></i>
-                        <span>Users</span>
+                    <a href="complaints.php" class="nav-item">
+                        <i class="nav-icon fas fa-exclamation-triangle"></i>
+                        <span>Complaints</span>
                     </a>
                 </div>
                 
@@ -1306,7 +1302,11 @@ try {
                 
                 <div class="nav-section">
                     <div class="nav-section-title">System</div>
-                    <a href="../logout.php" class="nav-item">
+                    <a href="settings.php" class="nav-item">
+                        <i class="nav-icon fas fa-cog"></i>
+                        <span>Settings</span>
+                    </a>
+                    <a href="../logout.php" class="nav-item" onclick="logout()" style="color: rgba(255, 255, 255, 0.9);">
                         <i class="nav-icon fas fa-sign-out-alt"></i>
                         <span>Logout</span>
                     </a>

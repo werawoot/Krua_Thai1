@@ -105,36 +105,64 @@ $shopLocation = [
     'name' => 'Krua Thai Restaurant'
 ];
 
-// California ZIP Code Database with precise coordinates
 $zipCoordinates = [
-    // Zone A: 0-8 miles (Fullerton area)
-    '92831' => ['lat' => 33.8703, 'lng' => -117.9253, 'city' => 'Fullerton', 'zone' => 'A', 'distance' => 2.1],
-    '92832' => ['lat' => 33.8847, 'lng' => -117.9390, 'city' => 'Fullerton', 'zone' => 'A', 'distance' => 3.4],
-    '92833' => ['lat' => 33.8889, 'lng' => -117.9256, 'city' => 'Fullerton', 'zone' => 'A', 'distance' => 2.8],
-    '92834' => ['lat' => 33.9172, 'lng' => -117.9467, 'city' => 'Fullerton', 'zone' => 'A', 'distance' => 4.2],
-    '92835' => ['lat' => 33.8892, 'lng' => -117.8817, 'city' => 'Fullerton', 'zone' => 'A', 'distance' => 1.8],
-    '92821' => ['lat' => 33.9097, 'lng' => -117.9006, 'city' => 'Brea', 'zone' => 'A', 'distance' => 3.1],
-    '92823' => ['lat' => 33.9267, 'lng' => -117.8653, 'city' => 'Brea', 'zone' => 'A', 'distance' => 2.9],
+    // ----- Zone A: 0–8 miles (Fullerton & รอบๆ) -----
+    // Fullerton
+    '92831' => ['lat'=>33.8703, 'lng'=>-117.9253],
+    '92832' => ['lat'=>33.8847, 'lng'=>-117.9390],
+    '92833' => ['lat'=>33.8889, 'lng'=>-117.9256],
+    '92834' => ['lat'=>33.9172, 'lng'=>-117.9467],
+    '92835' => ['lat'=>33.8892, 'lng'=>-117.8817],
+    // Yorba Linda
+    '92885' => ['lat'=>33.8881, 'lng'=>-117.8132],
+    '92886' => ['lat'=>33.8950, 'lng'=>-117.7890],
+    '92887' => ['lat'=>33.9020, 'lng'=>-117.8200],
+    // Placentia
+    '92870' => ['lat'=>33.8722, 'lng'=>-117.8554],
+    // Brea
+    '92821' => ['lat'=>33.9097, 'lng'=>-117.9006],
+    '92823' => ['lat'=>33.9267, 'lng'=>-117.8653],
+    // La Habra
+    '90631' => ['lat'=>33.9312, 'lng'=>-117.9462],
+    '90632' => ['lat'=>33.9148, 'lng'=>-117.9370],
     
-    // Zone B: 8-15 miles
-    '90620' => ['lat' => 33.8408, 'lng' => -118.0011, 'city' => 'Buena Park', 'zone' => 'B', 'distance' => 8.7],
-    '90621' => ['lat' => 33.8803, 'lng' => -117.9322, 'city' => 'Buena Park', 'zone' => 'B', 'distance' => 10.2],
-    '92801' => ['lat' => 33.8353, 'lng' => -117.9145, 'city' => 'Anaheim', 'zone' => 'B', 'distance' => 9.4],
-    '92802' => ['lat' => 33.8025, 'lng' => -117.9228, 'city' => 'Anaheim', 'zone' => 'B', 'distance' => 11.8],
-    '92804' => ['lat' => 33.8172, 'lng' => -117.8978, 'city' => 'Anaheim', 'zone' => 'B', 'distance' => 12.3],
-    '92805' => ['lat' => 33.8614, 'lng' => -117.9078, 'city' => 'Anaheim', 'zone' => 'B', 'distance' => 8.9],
-    
-    // Zone C: 15-25 miles
-    '92840' => ['lat' => 33.7742, 'lng' => -117.9378, 'city' => 'Garden Grove', 'zone' => 'C', 'distance' => 18.2],
-    '92841' => ['lat' => 33.7894, 'lng' => -117.9578, 'city' => 'Garden Grove', 'zone' => 'C', 'distance' => 16.9],
-    '92843' => ['lat' => 33.7739, 'lng' => -117.9028, 'city' => 'Garden Grove', 'zone' => 'C', 'distance' => 19.1],
-    '92683' => ['lat' => 33.7175, 'lng' => -117.9581, 'city' => 'Westminster', 'zone' => 'C', 'distance' => 22.4],
-    
-    // Zone D: 25+ miles
-    '92703' => ['lat' => 33.7492, 'lng' => -117.8731, 'city' => 'Santa Ana', 'zone' => 'D', 'distance' => 28.6],
-    '92648' => ['lat' => 33.6597, 'lng' => -117.9992, 'city' => 'Huntington Beach', 'zone' => 'D', 'distance' => 32.1],
-    '92647' => ['lat' => 33.7247, 'lng' => -118.0056, 'city' => 'Huntington Beach', 'zone' => 'D', 'distance' => 26.8],
+    // ----- Zone B: 8–15 miles -----
+    '90620' => ['lat'=>33.8408, 'lng'=>-118.0011], // Buena Park
+    '90621' => ['lat'=>33.8803, 'lng'=>-117.9322], // Buena Park
+    '92801' => ['lat'=>33.8353, 'lng'=>-117.9145], // Anaheim
+    '92802' => ['lat'=>33.8025, 'lng'=>-117.9228], // Anaheim
+    '92804' => ['lat'=>33.8172, 'lng'=>-117.8978], // Anaheim
+    '92805' => ['lat'=>33.8614, 'lng'=>-117.9078], // Anaheim
+    '92806' => ['lat'=>33.8260, 'lng'=>-117.9243], // Anaheim
+    '92807' => ['lat'=>33.8455, 'lng'=>-117.7583], // Anaheim Hills
+    '92808' => ['lat'=>33.8115, 'lng'=>-117.8311], // Anaheim Hills
+
+    // ----- Zone C: 15–25 miles -----
+    '92840' => ['lat'=>33.7742, 'lng'=>-117.9378], // Garden Grove
+    '92841' => ['lat'=>33.7894, 'lng'=>-117.9578], // Garden Grove
+    '92843' => ['lat'=>33.7739, 'lng'=>-117.9028], // Garden Grove
+    '92683' => ['lat'=>33.7175, 'lng'=>-117.9581], // Westminster
+
+    // ----- Zone D: 25+ miles -----
+    '92703' => ['lat'=>33.7492, 'lng'=>-117.8731], // Santa Ana
+    '92647' => ['lat'=>33.7247, 'lng'=>-118.0056], // Huntington Beach
+    '92648' => ['lat'=>33.6597, 'lng'=>-117.9992], // Huntington Beach
 ];
+
+// แล้วค่อยคำนวณ zone/distance อีกทีด้วย calculateDistance() เพื่อตรวจสอบว่าอยู่ในโซน A/B/C/D จริงหรือไม่
+foreach ($zipCoordinates as $zip => &$data) {
+    $d = calculateDistance(
+        $shopLocation['lat'], $shopLocation['lng'],
+        $data['lat'], $data['lng']
+    );
+    // กำหนดระยะและโซนตามค่าที่คำนวณได้
+    $data['distance'] = round($d, 1);
+    if      ($d <= 8)  $data['zone'] = 'A';
+    elseif  ($d <= 15) $data['zone'] = 'B';
+    elseif  ($d <= 25) $data['zone'] = 'C';
+    else               $data['zone'] = 'D';
+}
+unset($data);
 
 // ======================================================================
 // UTILITY FUNCTIONS
@@ -1208,6 +1236,54 @@ $totalStats['avgEfficiency'] = $totalStats['totalDistance'] > 0 ?
             text-align: center;
         }
 
+        /* 👇 เพิ่มตรงนี้ - หลังจาก .nav-icon */
+/* Collapsible Delivery Menu */
+.nav-item-with-submenu {
+    position: relative;
+}
+.nav-item-with-submenu .nav-toggle {
+    margin-left: auto;
+    transition: transform 0.3s ease;
+    font-size: 0.8rem;
+}
+.nav-item-with-submenu.expanded .nav-toggle {
+    transform: rotate(180deg);
+}
+.nav-submenu {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+    background: rgba(0, 0, 0, 0.1);
+}
+.nav-submenu.expanded {
+    max-height: 300px;
+}
+.nav-subitem {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.5rem 1.5rem 0.5rem 3rem;
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    transition: var(--transition);
+    font-size: 0.9rem;
+}
+.nav-subitem:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--white);
+}
+.nav-subitem.active {
+    background: rgba(255, 255, 255, 0.15);
+    color: var(--white);
+    font-weight: 600;
+}
+.nav-subitem-icon {
+    width: 16px;
+    text-align: center;
+    font-size: 0.9rem;
+}
+
+
         /* Main Content */
         .main-content {
             margin-left: 280px;
@@ -1937,7 +2013,8 @@ $totalStats['avgEfficiency'] = $totalStats['totalDistance'] > 0 ?
 <body>
     <div class="admin-layout">
         <!-- Sidebar -->
-        <div class="sidebar">
+        <!-- Enhanced Sidebar -->
+        <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div class="logo">
                     <img src="../assets/image/LOGO_White Trans.png" 
@@ -1946,54 +2023,94 @@ $totalStats['avgEfficiency'] = $totalStats['totalDistance'] > 0 ?
                          loading="lazy">
                 </div>
                 <div class="sidebar-title">Krua Thai</div>
-                <div class="sidebar-subtitle">Route Optimizer</div>
+                <div class="sidebar-subtitle">Admin Panel</div>
             </div>
             
             <nav class="sidebar-nav">
+                <!-- Main Section -->
                 <div class="nav-section">
                     <div class="nav-section-title">Main</div>
                     <a href="dashboard.php" class="nav-item">
                         <i class="nav-icon fas fa-tachometer-alt"></i>
                         <span>Dashboard</span>
                     </a>
-                    <a href="delivery-management.php" class="nav-item active">
-                        <i class="nav-icon fas fa-route"></i>
-                        <span>Route Optimizer</span>
-                    </a>
                     <a href="orders.php" class="nav-item">
                         <i class="nav-icon fas fa-shopping-cart"></i>
                         <span>Orders</span>
                     </a>
+                    <a href="menus.php" class="nav-item">
+                        <i class="nav-icon fas fa-utensils"></i>
+                        <span>Menus</span>
+                    </a>
+                    <a href="subscriptions.php" class="nav-item">
+                        <i class="nav-icon fas fa-calendar-alt"></i>
+                        <span>Subscriptions</span>
+                    </a>
                 </div>
                 
+            
+                <!-- Management Section -->
                 <div class="nav-section">
-                    <div class="nav-section-title">Delivery</div>
-                    <a href="assign-riders.php" class="nav-item">
+                    <div class="nav-section-title">Management</div>
+                    <a href="users.php" class="nav-item">
                         <i class="nav-icon fas fa-users"></i>
-                        <span>Assign Riders</span>
+                        <span>Users</span>
                     </a>
-                    <a href="track-deliveries.php" class="nav-item">
-                        <i class="nav-icon fas fa-map-marked-alt"></i>
-                        <span>Track Deliveries</span>
+                    <a href="inventory.php" class="nav-item">
+                        <i class="nav-icon fas fa-boxes"></i>
+                        <span>Inventory</span>
                     </a>
-                    <a href="delivery-zones.php" class="nav-item">
-                        <i class="nav-icon fas fa-map"></i>
-                        <span>Delivery Zones</span>
-                    </a>
-                </div>
-                
+                     <!-- Delivery Section with Submenu -->
                 <div class="nav-section">
-                    <div class="nav-section-title">Reports</div>
-                    <a href="analytics.php" class="nav-item">
-                        <i class="nav-icon fas fa-chart-line"></i>
-                        <span>Analytics</span>
+                    
+                    <div class="nav-item-with-submenu" id="deliveryMenu">
+                        <div class="nav-item" onclick="toggleDeliveryMenu()">
+                            <i class="nav-icon fas fa-truck"></i>
+                            <span>Delivery</span>
+                            <i class="nav-toggle fas fa-chevron-down"></i>
+                        </div>
+                        <div class="nav-submenu" id="deliverySubmenu">
+                            <a href="delivery-management.php" class="nav-subitem active">
+                                <i class="nav-subitem-icon fas fa-route"></i>
+                                <span>Route Optimizer</span>
+                            </a>
+                            <a href="delivery-zones.php" class="nav-subitem">
+                                <i class="nav-subitem-icon fas fa-map"></i>
+                                <span>Delivery Zones</span>
+                            </a>
+                            <a href="assign-riders.php" class="nav-subitem">
+                                <i class="nav-subitem-icon fas fa-user-check"></i>
+                                <span>Assign Riders</span>
+                            </a>
+                
+                        </div>
+                    </div>
+                </div>
+                
+                    <a href="reviews.php" class="nav-item">
+                        <i class="nav-icon fas fa-star"></i>
+                        <span>Reviews</span>
                     </a>
-                    <a href="performance.php" class="nav-item">
-                        <i class="nav-icon fas fa-award"></i>
-                        <span>Performance</span>
+                    <a href="complaints.php" class="nav-item">
+                        <i class="nav-icon fas fa-exclamation-triangle"></i>
+                        <span>Complaints</span>
                     </a>
                 </div>
                 
+                <!-- Financial Section -->
+                <div class="nav-section">
+                    <div class="nav-section-title">Financial</div>
+                    <a href="payments.php" class="nav-item">
+                        <i class="nav-icon fas fa-credit-card"></i>
+                        <span>Payments</span>
+                    </a>
+                    <a href="reports.php" class="nav-item">
+                        <i class="nav-icon fas fa-chart-bar"></i>
+                        <span>Reports</span>
+                    </a>
+                </div>
+                
+                <!-- System Section -->
                 <div class="nav-section">
                     <div class="nav-section-title">System</div>
                     <a href="settings.php" class="nav-item">
@@ -2098,19 +2215,7 @@ $totalStats['avgEfficiency'] = $totalStats['totalDistance'] > 0 ?
                     </div>
                 </div>
                 
-                <div class="stat-card">
-                    <div class="stat-header">
-                        <div class="stat-icon" style="background: linear-gradient(135deg, #9b59b6, #8e44ad);">
-                            <i class="fas fa-chart-line"></i>
-                        </div>
-                    </div>
-                    <div class="stat-value"><?= $totalStats['avgEfficiency'] ?>%</div>
-                    <div class="stat-label">Efficiency Score</div>
-                    <div class="stat-change <?= $totalStats['avgEfficiency'] > 70 ? 'positive' : '' ?>">
-                        <i class="fas fa-<?= $totalStats['avgEfficiency'] > 70 ? 'arrow-up' : 'exclamation-triangle' ?>"></i>
-                        <?= $totalStats['avgEfficiency'] > 70 ? 'Excellent' : 'Can improve' ?>
-                    </div>
-                </div>
+             
             </div>
 
             <!-- Analytics Panel -->
@@ -2158,30 +2263,13 @@ $totalStats['avgEfficiency'] = $totalStats['totalDistance'] > 0 ?
                 </div>
                 
                 <div class="action-grid">
-                    <button class="btn btn-success" onclick="autoOptimizeRoutes()">
-                        <i class="fas fa-magic"></i>
-                        Auto-Optimize All
-                    </button>
-                    <button class="btn btn-primary" onclick="showRouteAnalysis()">
-                        <i class="fas fa-analytics"></i>
-                        Route Analysis
-                    </button>
-                    <button class="btn btn-warning" onclick="exportRoutes()">
-                        <i class="fas fa-download"></i>
-                        Export Routes
-                    </button>
+                  
+             
                     <button class="btn btn-secondary" onclick="printDeliverySheets()">
                         <i class="fas fa-print"></i>
                         Print Sheets
                     </button>
-                    <button class="btn btn-primary" onclick="showBulkActions()">
-                        <i class="fas fa-tasks"></i>
-                        Bulk Actions
-                    </button>
-                    <button class="btn btn-danger" onclick="showEmergencyReroute()">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        Emergency
-                    </button>
+                
                 </div>
             </div>
 
@@ -2625,8 +2713,27 @@ $totalStats['avgEfficiency'] = $totalStats['totalDistance'] > 0 ?
             'D': '#e74c3c'
         };
 
+  // Toggle delivery submenu
+    function toggleDeliveryMenu() {
+        const deliveryMenu = document.getElementById('deliveryMenu');
+        const deliverySubmenu = document.getElementById('deliverySubmenu');
+        
+        deliveryMenu.classList.toggle('expanded');
+        deliverySubmenu.classList.toggle('expanded');
+    }
+
+
+
+
         // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
+               const deliveryMenu = document.getElementById('deliveryMenu');
+    const deliverySubmenu = document.getElementById('deliverySubmenu');
+    if (deliveryMenu && deliverySubmenu) {
+        deliveryMenu.classList.add('expanded');
+        deliverySubmenu.classList.add('expanded');
+    }
+    // 👆 เพิ่มจบ
             initializeMap();
             setupEventListeners();
             updateMapMarkers();

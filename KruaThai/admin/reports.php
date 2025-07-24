@@ -590,10 +590,25 @@ try {
             text-align: center;
             border-bottom: 1px solid rgba(255,255,255,0.1);
         }
-
         .logo {
-            font-size: 2.5rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             margin-bottom: 0.5rem;
+        }
+
+        .logo-image {
+            max-width: 80px;
+            max-height: 80px;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            filter: brightness(1.1) contrast(1.2);
+            transition: transform 0.3s ease;
+        }
+
+        .logo-image:hover {
+            transform: scale(1.05);
         }
 
         .sidebar-title {
@@ -1229,7 +1244,12 @@ try {
         <!-- Sidebar -->
         <div class="sidebar">
             <div class="sidebar-header">
-                <div class="logo">🍜</div>
+                  <div class="logo">
+                    <img src="../assets/image/LOGO_White Trans.png" 
+                         alt="Krua Thai Logo" 
+                         class="logo-image"
+                         loading="lazy">
+                </div>
                 <div class="sidebar-title">Krua Thai</div>
                 <div class="sidebar-subtitle">Admin Panel</div>
             </div>
@@ -1296,6 +1316,10 @@ try {
                     <a href="settings.php" class="nav-item">
                         <i class="nav-icon fas fa-cog"></i>
                         <span>Settings</span>
+                    </a>
+                        <a href="../logout.php" class="nav-item" onclick="logout()" style="color: rgba(255, 255, 255, 0.9);">
+                        <i class="nav-icon fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
                     </a>
                 </div>
             </nav>
