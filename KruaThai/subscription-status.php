@@ -14,6 +14,104 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
+
+// --- Review Submission Function (เวอร์ชันสมบูรณ์) ---
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'submit_review') {
+    $subscription_id = $_POST['subscription_id'];
+    $rating = $_POST['rating'];
+    $title = $_POST['title'];
+    $comment = $_POST['comment'];
+    
+    try {
+        // หา order_id จาก subscription_id
+        $stmt = $pdo->prepare("
+            SELECT o.id as order_id 
+            FROM orders o
+            WHERE o.subscription_id = ? 
+            ORDER BY o.created_at DESC
+            LIMIT 1
+        ");
+        $stmt->execute([$subscription_id]);
+        $order = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$order) {
+            // ดึงข้อมูลผู้ใช้สำหรับที่อยู่
+            $stmt = $pdo->prepare("
+                SELECT delivery_address, city, zip_code, phone
+                FROM users 
+                WHERE id = ?
+            ");
+            $stmt->execute([$user_id]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            // ถ้าไม่มี order ให้สร้างใหม่พร้อมข้อมูลครบถ้วน
+            $order_id = bin2hex(random_bytes(16));
+            
+            // สร้าง order_number (format: ORD-YYYYMMDD-XXXX)
+            $order_number = 'ORD-' . date('Ymd') . '-' . strtoupper(substr(md5($order_id), 0, 4));
+            
+            // กำหนด delivery_date (วันถัดไป)
+            $delivery_date = date('Y-m-d', strtotime('+1 day'));
+            
+            // จัดการที่อยู่
+            $delivery_address = $user['delivery_address'] ?? 'No address provided';
+            $delivery_city = $user['city'] ?? 'Bangkok';
+            $delivery_zip = $user['zip_code'] ?? '10100';
+            $customer_phone = $user['phone'] ?? '';
+            
+            $stmt = $pdo->prepare("
+                INSERT INTO orders (
+                    id, subscription_id, user_id, order_number, 
+                    delivery_date, delivery_address, status, 
+                    created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, 'confirmed', NOW(), NOW())
+            ");
+            $stmt->execute([
+                $order_id, 
+                $subscription_id, 
+                $user_id, 
+                $order_number,
+                $delivery_date,
+                $delivery_address
+            ]);
+        } else {
+            $order_id = $order['order_id'];
+        }
+        
+        $stmt = $pdo->prepare("
+            INSERT INTO reviews (
+                id, user_id, order_id, overall_rating, title, comment, 
+                moderation_status, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, 'pending', NOW(), NOW())
+        ");
+        
+        $review_id = bin2hex(random_bytes(16));
+        $result = $stmt->execute([
+            $review_id, 
+            $user_id, 
+            $order_id,
+            $rating, 
+            $title, 
+            $comment
+        ]);
+        
+        if ($result) {
+            $_SESSION['flash_message'] = "Thank you for your review! It will be published after approval.";
+            $_SESSION['flash_type'] = 'success';
+        } else {
+            $_SESSION['flash_message'] = "Failed to submit review. Please try again.";
+            $_SESSION['flash_type'] = 'error';
+        }
+    } catch (PDOException $e) {
+        $_SESSION['flash_message'] = "Error submitting review: " . $e->getMessage();
+        $_SESSION['flash_type'] = 'error';
+    }
+    
+    header("Location: subscription-status.php");
+    exit();
+}
+
+
 // --- Complaint Submission Function ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'complain') {
     $subscription_id = $_POST['subscription_id'];
@@ -579,6 +677,19 @@ function getDayName($day) {
             border-color: var(--sage);
         }
 
+
+/* เพิ่มตรงนี้ */
+.btn-review {
+    background: linear-gradient(135deg, #f39c12, #e67e22);
+    color: white;
+}
+
+.btn-review:hover {
+    background: linear-gradient(135deg, #e67e22, #d35400);
+    transform: translateY(-1px);
+}
+
+
         .btn-disabled {
             background: var(--cream);
             border-color: var(--border-light);
@@ -1092,6 +1203,83 @@ function getDayName($day) {
                 padding: 1.5rem 1rem;
             }
         }
+
+        /* Review Form Styles */
+.review-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.rating-section {
+    text-align: center;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, rgba(207, 114, 58, 0.05), rgba(189, 147, 121, 0.05));
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-light);
+}
+
+.rating-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    font-family: 'BaticaSans', sans-serif;
+    color: var(--text-dark);
+    margin-bottom: 1rem;
+}
+
+.star-rating {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.star {
+    font-size: 2rem;
+    color: #ddd;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    padding: 0.3rem;
+    border-radius: 50%;
+}
+
+.star:hover,
+.star.active {
+    color: #ffd700;
+    transform: scale(1.1);
+}
+
+.star:hover {
+    background: rgba(255, 215, 0, 0.1);
+}
+
+.rating-text {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--curry);
+    margin-top: 0.5rem;
+    min-height: 1.5rem;
+}
+
+.review-tips {
+    background: var(--cream);
+    padding: 1rem;
+    border-radius: var(--radius-sm);
+    border-left: 4px solid var(--curry);
+    font-size: 0.85rem;
+    color: var(--text-gray);
+}
+
+.review-tips strong {
+    color: var(--text-dark);
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.form-control-textarea {
+    resize: vertical;
+    min-height: 120px;
+}
     </style>
 </head>
 <body>
@@ -1212,6 +1400,12 @@ function getDayName($day) {
                                         <button onclick="viewDetails('<?= htmlspecialchars($sub['id']) ?>')" class="btn-action btn-view">
                                             <i class="fas fa-eye"></i> View Details
                                         </button>
+
+<?php if ($sub['status'] === 'active' || $sub['status'] === 'completed'): ?>
+<button onclick="openReviewModal('<?= htmlspecialchars($sub['id']) ?>', '<?= htmlspecialchars($sub['plan_name']) ?>')" class="btn-action btn-review">
+    <i class="fas fa-star"></i> Review
+</button>
+<?php endif; ?>
                                         
                                         <!-- Complain Button -->
                                         <button onclick="openComplaintModal('<?= htmlspecialchars($sub['id']) ?>', '<?= htmlspecialchars($sub['plan_name']) ?>')" class="btn-action btn-complain">
@@ -1337,6 +1531,73 @@ function getDayName($day) {
                 </form>
             </div>
         </div>
+ 
+    </div>
+
+       <!-- Modal for Review Form -->
+    <div id="reviewModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <i class="fas fa-star"></i>
+                    Leave a Review
+                </h3>
+                <button class="modal-close" onclick="closeModal('reviewModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form method="post" class="review-form" id="reviewForm">
+                    <input type="hidden" name="action" value="submit_review">
+                    <input type="hidden" name="subscription_id" id="review_subscription_id">
+                    
+                    <div class="form-group">
+                        <label class="form-label">Order Plan</label>
+                        <input type="text" id="review_plan_name" class="form-control" readonly>
+                    </div>
+                    
+                    <!-- Rating Section -->
+                    <div class="rating-section">
+                        <div class="rating-title">How would you rate your experience?</div>
+                        <div class="star-rating" id="starRating">
+                            <i class="fas fa-star star" data-rating="1"></i>
+                            <i class="fas fa-star star" data-rating="2"></i>
+                            <i class="fas fa-star star" data-rating="3"></i>
+                            <i class="fas fa-star star" data-rating="4"></i>
+                            <i class="fas fa-star star" data-rating="5"></i>
+                        </div>
+                        <div class="rating-text" id="ratingText">Click a star to rate</div>
+                        <input type="hidden" name="rating" id="selectedRating" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Review Title *</label>
+                        <input type="text" name="title" class="form-control" 
+                               placeholder="Brief title for your review" required maxlength="100">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Your Review *</label>
+                        <textarea name="comment" class="form-control form-control-textarea" 
+                                  placeholder="Share your experience with this meal plan..." required></textarea>
+                    </div>
+                    
+                    <div class="review-tips">
+                        <strong>Tips for writing a helpful review:</strong>
+                        • Comment on food quality, delivery time, and packaging<br>
+                        • Mention your favorite dishes<br>
+                        • Be honest and constructive
+                    </div>
+                    
+                    <div class="form-buttons">
+                        <button type="button" class="btn-cancel-form" onclick="closeModal('reviewModal')">Cancel</button>
+                        <button type="submit" class="btn-submit" id="submitReviewBtn" disabled>
+                            <i class="fas fa-paper-plane"></i> Submit Review
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -1344,37 +1605,82 @@ function getDayName($day) {
         const subscriptionData = <?= json_encode($subs) ?>;
         const menuData = <?= json_encode($subscription_menus) ?>;
 
-        // Add animations
-        document.addEventListener('DOMContentLoaded', function() {
-            // Animate table rows
-            const rows = document.querySelectorAll('tbody tr');
-            rows.forEach((row, index) => {
-                row.style.opacity = '0';
-                row.style.transform = 'translateY(20px)';
-                setTimeout(() => {
-                    row.style.transition = 'all 0.6s ease';
-                    row.style.opacity = '1';
-                    row.style.transform = 'translateY(0)';
-                }, index * 100);
-            });
+      document.addEventListener('DOMContentLoaded', function() {
+    // Animate table rows
+    const rows = document.querySelectorAll('tbody tr');
+    rows.forEach((row, index) => {
+        row.style.opacity = '0';
+        row.style.transform = 'translateY(20px)';
+        setTimeout(() => {
+            row.style.transition = 'all 0.6s ease';
+            row.style.opacity = '1';
+            row.style.transform = 'translateY(0)';
+        }, index * 100);
+    });
 
-            // Modal close on backdrop click
-            document.querySelectorAll('.modal').forEach(modal => {
-                modal.addEventListener('click', function(e) {
-                    if (e.target === this) {
-                        closeModal(this.id);
-                    }
-                });
-            });
+    // Modal close on backdrop click
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal(this.id);
+            }
+        });
+    });
 
-            // Keyboard shortcut for modal
-            document.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape') {
-                    closeModal('detailsModal');
-                    closeModal('complaintModal');
+    // Keyboard shortcut for modal
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeModal('detailsModal');
+            closeModal('complaintModal');
+            closeModal('reviewModal');
+        }
+    });
+
+    // Initialize star rating events
+    const stars = document.querySelectorAll('.star');
+    const ratingTexts = ['Terrible', 'Poor', 'Average', 'Good', 'Excellent'];
+
+    stars.forEach(star => {
+        star.addEventListener('click', function() {
+            const rating = parseInt(this.dataset.rating);
+            document.getElementById('selectedRating').value = rating;
+            document.getElementById('ratingText').textContent = ratingTexts[rating - 1];
+            document.getElementById('submitReviewBtn').disabled = false;
+
+            // Update star display
+            stars.forEach((s, index) => {
+                if (index < rating) {
+                    s.classList.add('active');
+                } else {
+                    s.classList.remove('active');
                 }
             });
         });
+
+        star.addEventListener('mouseenter', function() {
+            const rating = parseInt(this.dataset.rating);
+            stars.forEach((s, index) => {
+                if (index < rating) {
+                    s.style.color = '#ffd700';
+                } else {
+                    s.style.color = '#ddd';
+                }
+            });
+        });
+    }); // ✅ ปิด forEach นี้
+
+    // Reset on mouse leave
+    document.querySelector('.star-rating').addEventListener('mouseleave', function() {
+        const selectedRating = document.getElementById('selectedRating').value;
+        stars.forEach((s, index) => {
+            if (selectedRating && index < parseInt(selectedRating)) {
+                s.style.color = '#ffd700';
+            } else {
+                s.style.color = '#ddd';
+            }
+        });
+    });
+}); // ✅ ปิด DOMContentLoaded
 
         function openComplaintModal(subscriptionId, planName) {
             document.getElementById('complaint_subscription_id').value = subscriptionId;
@@ -1573,8 +1879,11 @@ function getDayName($day) {
         }
 
         function closeModal(modalId) {
-            document.getElementById(modalId).classList.remove('show');
-        }
+          if (modalId === 'reviewModal') {
+        resetStarRating(); // เพิ่ม
+    }
+    document.getElementById(modalId).classList.remove('show');
+}
 
         function getStatusText(status) {
             const statusMap = {
@@ -1586,6 +1895,30 @@ function getDayName($day) {
             };
             return statusMap[status] || status;
         }
+
+
+// เพิ่มฟังก์ชันสำหรับ Review Modal
+function openReviewModal(subscriptionId, planName) {
+    document.getElementById('review_subscription_id').value = subscriptionId;
+    document.getElementById('review_plan_name').value = planName;
+    
+    // Reset form
+    document.getElementById('reviewForm').reset();
+    document.getElementById('review_subscription_id').value = subscriptionId;
+    document.getElementById('review_plan_name').value = planName;
+    resetStarRating();
+    
+    document.getElementById('reviewModal').classList.add('show');
+}
+
+// Star Rating Functionality
+function resetStarRating() {
+    const stars = document.querySelectorAll('.star');
+    stars.forEach(star => star.classList.remove('active'));
+    document.getElementById('selectedRating').value = '';
+    document.getElementById('ratingText').textContent = 'Click a star to rate';
+    document.getElementById('submitReviewBtn').disabled = true;
+}
     </script>
 </body>
 </html>
