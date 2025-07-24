@@ -748,40 +748,37 @@ function handleEmergencyReroute($pdo, $riderId, $reason, $date) {
     }
 }
 
-// 🔧 แทนที่ฟังก์ชัน estimateDeliveryTimes เดิมด้วยตัวนี้
 function estimateDeliveryTimes($pdo, $riderId, $date) {
     try {
         global $zipCoordinates, $shopLocation;
         
-        // เปลี่ยนจาก orders เป็น subscriptions
         $stmt = $pdo->prepare("
-            SELECT s.id, s.user_id, s.preferred_delivery_time as delivery_time_slot,
+            SELECT o.id, o.order_number, o.delivery_time_slot,
                    u.first_name, u.last_name, u.zip_code, u.delivery_address
-            FROM subscriptions s
-            JOIN users u ON s.user_id = u.id
-            WHERE s.assigned_rider_id = ? 
-            AND s.delivery_date = ?
-            AND s.status IN ('active', 'confirmed')
-            ORDER BY s.preferred_delivery_time, u.zip_code
+            FROM orders o
+            JOIN users u ON o.user_id = u.id
+            WHERE o.assigned_rider_id = ? 
+            AND DATE(o.delivery_date) = ?
+            AND o.status IN ('confirmed', 'preparing', 'ready', 'out_for_delivery')
+            ORDER BY o.delivery_time_slot, u.zip_code
         ");
         $stmt->execute([$riderId, $date]);
-        $subscriptions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        if (empty($subscriptions)) {
+        if (empty($orders)) {
             return ['success' => true, 'estimates' => []];
         }
         
         $estimates = [];
         $currentLocation = $shopLocation;
-        $previousDeparture = null; // ✅ แก้ไข undefined variable
+        $previousDeparture = null;
         
-        foreach ($subscriptions as $index => $subscription) {
-            $zipCode = substr($subscription['zip_code'], 0, 5);
+        foreach ($orders as $index => $order) {
+            $zipCode = substr($order['zip_code'], 0, 5);
             
             if (isset($zipCoordinates[$zipCode])) {
                 $destination = $zipCoordinates[$zipCode];
                 
-                // Calculate travel time from current location
                 $distance = calculateDistance(
                     $currentLocation['lat'], 
                     $currentLocation['lng'],
@@ -789,36 +786,32 @@ function estimateDeliveryTimes($pdo, $riderId, $date) {
                     $destination['lng']
                 );
                 
-                $travelTime = ($distance / 28) * 60; // 28 mph average speed
-                $deliveryTime = 5; // 5 minutes per delivery
+                $travelTime = ($distance / 28) * 60;
+                $deliveryTime = 5;
                 
-                // Get time slot start
-                $timeSlotStart = explode('-', $subscription['delivery_time_slot'])[0];
+                $timeSlotStart = explode('-', $order['delivery_time_slot'])[0];
                 $baseTime = strtotime($date . ' ' . $timeSlotStart);
                 
                 if ($index === 0) {
-                    // First delivery - start from base time + travel time
                     $estimatedArrival = $baseTime + ($travelTime * 60);
                 } else {
-                    // Subsequent deliveries - add travel time to previous departure
                     $estimatedArrival = $previousDeparture + ($travelTime * 60);
                 }
                 
                 $estimatedDeparture = $estimatedArrival + ($deliveryTime * 60);
                 
                 $estimates[] = [
-                    'subscription_id' => $subscription['id'], // เปลี่ยนจาก order_number
-                    'customer' => $subscription['first_name'] . ' ' . $subscription['last_name'],
-                    'address' => $subscription['delivery_address'],
+                    'order_number' => $order['order_number'],
+                    'customer' => $order['first_name'] . ' ' . $order['last_name'],
+                    'address' => $order['delivery_address'],
                     'estimated_arrival' => date('H:i', $estimatedArrival),
                     'estimated_departure' => date('H:i', $estimatedDeparture),
                     'travel_time' => round($travelTime),
                     'distance' => round($distance, 1)
                 ];
                 
-                // Update current location and previous departure for next calculation
                 $currentLocation = $destination;
-                $previousDeparture = $estimatedDeparture; // ✅ แก้ไข undefined variable
+                $previousDeparture = $estimatedDeparture;
             }
         }
         
@@ -2175,6 +2168,57 @@ $totalStats['avgEfficiency'] = $totalStats['totalDistance'] > 0 ?
                 grid-template-columns: 1fr;
             }
         }
+
+        /* 🔧 FIX: Zone Badge in Table */
+.order-table .zone-badge {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    padding: 0.35rem 0.8rem !important;
+    border-radius: 15px !important;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    color: white !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap !important;
+    min-width: 65px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    position: relative;
+    z-index: 5;
+}
+
+/* Zone Cell Fix */
+.order-table td:nth-child(4) {
+    min-width: 90px !important;
+    text-align: center !important;
+    padding: 1rem 0.75rem !important;
+    white-space: nowrap !important;
+}
+
+/* Table Container Fix */
+.order-list {
+    overflow: visible !important;
+}
+
+.order-table {
+    width: 100%;
+    border-collapse: separate !important;
+    border-spacing: 0;
+}
+
+/* Mobile Fix */
+@media (max-width: 768px) {
+    .order-table .zone-badge {
+        font-size: 0.7rem !important;
+        padding: 0.25rem 0.6rem !important;
+        min-width: 55px;
+    }
+    
+    .order-table td:nth-child(4) {
+        min-width: 75px !important;
+    }
+}
     </style>
 </head>
 <body>
@@ -2527,63 +2571,65 @@ $totalStats['avgEfficiency'] = $totalStats['totalDistance'] > 0 ?
                     </div>
                 </div>
             </div>
-
-            <!-- Zone Cards -->
-            <div class="zone-cards">
-                <?php foreach (['A', 'B', 'C', 'D'] as $zone): ?>
-                    <?php if ($zoneStats[$zone]['orderCount'] > 0): ?>
-                        <div class="zone-card zone-<?= $zone ?>">
-                            <div class="zone-header">
-                                <div class="zone-title">Zone <?= $zone ?></div>
-                              <div class="zone-badge zone-<?= $zone ?>">
-                                    <?= $zone === 'A' ? '0-8 miles' : ($zone === 'B' ? '8-15 miles' : ($zone === 'C' ? '15-25 miles' : '25+ miles')) ?>
-                                </div>
-                            </div>
-                            
-                            <div class="zone-stats">
-                                <div class="zone-stat">
-                                    <div class="zone-stat-value"><?= $zoneStats[$zone]['orderCount'] ?></div>
-                                    <div class="zone-stat-label">Orders</div>
-                                </div>
-                                <div class="zone-stat">
-                                    <div class="zone-stat-value"><?= $zoneStats[$zone]['totalBoxes'] ?></div>
-                                    <div class="zone-stat-label">Boxes</div>
-                                </div>
-                                <div class="zone-stat">
-                                    <div class="zone-stat-value"><?= $zoneStats[$zone]['totalDistance'] ?></div>
-                                    <div class="zone-stat-label">Miles</div>
-                                </div>
-                                <div class="zone-stat">
-                                    <div class="zone-stat-value">$<?= $zoneStats[$zone]['totalCost'] ?></div>
-                                    <div class="zone-stat-label">Cost</div>
-                                </div>
-                            </div>
-                            
-                            <div class="efficiency-bar">
-                                <div class="efficiency-fill zone-<?= $zone ?>" 
-                                     style="width: <?= min($zoneStats[$zone]['avgEfficiency'], 100) ?>%"></div>
-                            </div>
-                            <div style="font-size: 0.9rem; color: var(--text-gray); margin-bottom: 1rem;">
-                                Efficiency: <?= $zoneStats[$zone]['avgEfficiency'] ?>% 
-                                (<?= $zoneStats[$zone]['avgBoxesPerMile'] ?> boxes/mile)
-                            </div>
-                            
-                            <?php if ($zoneStats[$zone]['isAssignable']): ?>
-                                <button class="btn btn-primary" style="width: 100%;" 
-                                        onclick="showZoneAssignment('<?= $zone ?>')">
-                                    <i class="fas fa-user-plus"></i>
-                                    Assign Rider to Zone <?= $zone ?>
-                                </button>
-                            <?php else: ?>
-                                <div style="text-align: center; color: var(--sage); font-weight: 500;">
-                                    <i class="fas fa-check-circle"></i>
-                                    All orders assigned
-                                </div>
-                            <?php endif; ?>
-                        </div>
-                    <?php endif; ?>
-                <?php endforeach; ?>
+<!-- Zone Cards -->
+<div class="zone-cards">
+    <?php foreach (['A', 'B', 'C', 'D'] as $zone): ?>
+        <?php if ($zoneStats[$zone]['orderCount'] > 0): ?>
+            <div class="zone-card zone-<?= $zone ?>">
+                <!-- 🔥 แก้ไขส่วนนี้ -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <h3 style="margin: 0; font-size: 1.25rem; font-weight: 600; color: var(--text-dark);">
+                        Zone <?= $zone ?>
+                    </h3>
+                    <div style="background: var(--zone-<?= strtolower($zone) ?>); color: white; padding: 0.4rem 0.8rem; border-radius: 15px; font-size: 0.75rem; font-weight: 600; white-space: nowrap; text-align: center;">
+                        <?= $zone === 'A' ? '0-8 miles' : ($zone === 'B' ? '8-15 miles' : ($zone === 'C' ? '15-25 miles' : '25+ miles')) ?>
+                    </div>
+                </div>
+                
+                <div class="zone-stats">
+                    <div class="zone-stat">
+                        <div class="zone-stat-value"><?= $zoneStats[$zone]['orderCount'] ?></div>
+                        <div class="zone-stat-label">Orders</div>
+                    </div>
+                    <div class="zone-stat">
+                        <div class="zone-stat-value"><?= $zoneStats[$zone]['totalBoxes'] ?></div>
+                        <div class="zone-stat-label">Boxes</div>
+                    </div>
+                    <div class="zone-stat">
+                        <div class="zone-stat-value"><?= $zoneStats[$zone]['totalDistance'] ?></div>
+                        <div class="zone-stat-label">Miles</div>
+                    </div>
+                    <div class="zone-stat">
+                        <div class="zone-stat-value">$<?= $zoneStats[$zone]['totalCost'] ?></div>
+                        <div class="zone-stat-label">Cost</div>
+                    </div>
+                </div>
+                
+                <div class="efficiency-bar">
+                    <div class="efficiency-fill zone-<?= $zone ?>" 
+                         style="width: <?= min($zoneStats[$zone]['avgEfficiency'], 100) ?>%"></div>
+                </div>
+                <div style="font-size: 0.9rem; color: var(--text-gray); margin-bottom: 1rem;">
+                    Efficiency: <?= $zoneStats[$zone]['avgEfficiency'] ?>% 
+                    (<?= $zoneStats[$zone]['avgBoxesPerMile'] ?> boxes/mile)
+                </div>
+                
+                <?php if ($zoneStats[$zone]['isAssignable']): ?>
+                    <button class="btn btn-primary" style="width: 100%;" 
+                            onclick="showZoneAssignment('<?= $zone ?>')">
+                        <i class="fas fa-user-plus"></i>
+                        Assign Rider to Zone <?= $zone ?>
+                    </button>
+                <?php else: ?>
+                    <div style="text-align: center; color: var(--sage); font-weight: 500;">
+                        <i class="fas fa-check-circle"></i>
+                        All orders assigned
+                    </div>
+                <?php endif; ?>
             </div>
+        <?php endif; ?>
+    <?php endforeach; ?>
+</div>
 
             <!-- Order Management Table -->
             <div class="order-list">
@@ -2654,15 +2700,15 @@ $totalStats['avgEfficiency'] = $totalStats['totalDistance'] > 0 ?
                                         <small style="color: var(--text-gray);"><?= htmlspecialchars($order['phone']) ?></small>
                                     </div>
                                 </td>
-                                <td>
-                                    <?php if (isset($order['zone'])): ?>
-                                        <span class="zone-badge zone-<?= $order['zone'] ?>">
-                                            Zone <?= $order['zone'] ?>
-                                        </span>
-                                    <?php else: ?>
-                                        <span style="color: var(--text-gray);">Unknown</span>
-                                    <?php endif; ?>
-                                </td>
+                           <td class="zone-cell">
+    <?php if (isset($order['zone'])): ?>
+        <div class="zone-badge zone-<?= $order['zone'] ?>">
+            Zone <?= $order['zone'] ?>
+        </div>
+    <?php else: ?>
+        <span style="color: var(--text-gray);">Unknown</span>
+    <?php endif; ?>
+</td>
                                 <td>
                                     <span style="font-weight: 600;"><?= $order['total_items'] ?></span>
                                 </td>
