@@ -1006,10 +1006,17 @@ $page_title = "Dashboard";
                                 </span>
                                 <span class="action-text">Payment Status</span>
                             </a>
-                            <a href="subscription-status.php" class="action-button">
-                                <span class="action-icon">🍱</span>
-                                <span class="action-text">My order</span>
-                            </a>
+                           <a href="subscription-status.php" class="action-button">
+    <span class="action-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M6 2L3 6V20C3 21.1 3.9 22 5 22H19C20.1 22 21 21.1 21 20V6L18 2H6Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <line x1="3" y1="6" x2="21" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M16 10C16 11.1046 15.1046 12 14 12C12.8954 12 12 11.1046 12 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M8 10C8 11.1046 8.89543 12 10 12C11.1046 12 12 11.1046 12 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    </span>
+    <span class="action-text">My Orders</span>
+</a>
                       
                         </div>
                     </div>
