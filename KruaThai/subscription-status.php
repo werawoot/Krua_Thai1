@@ -15,6 +15,19 @@ if (!isset($_SESSION['user_id'])) {
 $user_id = $_SESSION['user_id'];
 
 
+// เพิ่มฟังก์ชันตรวจสอบรีวิวที่มีอยู่แล้ว
+function hasExistingReview($pdo, $user_id, $subscription_id) {
+    $stmt = $pdo->prepare("
+        SELECT COUNT(*) 
+        FROM reviews r
+        JOIN orders o ON r.order_id = o.id
+        WHERE r.user_id = ? AND o.subscription_id = ?
+    ");
+    $stmt->execute([$user_id, $subscription_id]);
+    return $stmt->fetchColumn() > 0;
+}
+
+
 // --- Review Submission Function (เวอร์ชันสมบูรณ์) ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'submit_review') {
     $subscription_id = $_POST['subscription_id'];
@@ -23,6 +36,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $comment = $_POST['comment'];
     
     try {
+
+            // ✅ เพิ่มการตรวจสอบว่ามีรีวิวแล้วหรือไม่ (เพิ่มตรงนี้)
+        if (hasExistingReview($pdo, $user_id, $subscription_id)) {
+            $_SESSION['flash_message'] = "คุณได้ทำการรีวิวแพ็กเกจนี้แล้ว";
+            $_SESSION['flash_type'] = 'error';
+            header("Location: subscription-status.php");
+            exit();
+        }
         // หา order_id จาก subscription_id
         $stmt = $pdo->prepare("
             SELECT o.id as order_id 
@@ -187,6 +208,11 @@ $stmt = $pdo->prepare("
 ");
 $stmt->execute([$user_id]);
 $subs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// เพิ่มการตรวจสอบรีวิวสำหรับแต่ละ subscription
+foreach ($subs as &$sub) {
+    $sub['has_review'] = hasExistingReview($pdo, $user_id, $sub['id']);
+}
 
 // --- Fetch selected menus for each subscription ---
 $subscription_menus = [];
@@ -1400,10 +1426,13 @@ function getDayName($day) {
                                         <button onclick="viewDetails('<?= htmlspecialchars($sub['id']) ?>')" class="btn-action btn-view">
                                             <i class="fas fa-eye"></i> View Details
                                         </button>
-
-<?php if ($sub['status'] === 'active' || $sub['status'] === 'completed'): ?>
+<?php if (($sub['status'] === 'active' || $sub['status'] === 'completed') && !$sub['has_review']): ?>
 <button onclick="openReviewModal('<?= htmlspecialchars($sub['id']) ?>', '<?= htmlspecialchars($sub['plan_name']) ?>')" class="btn-action btn-review">
     <i class="fas fa-star"></i> Review
+</button>
+<?php elseif ($sub['has_review']): ?>
+<button disabled class="btn-action btn-disabled">
+    <i class="fas fa-check"></i> Reviewed
 </button>
 <?php endif; ?>
                                         
@@ -1895,6 +1924,15 @@ function getDayName($day) {
             };
             return statusMap[status] || status;
         }
+
+// เพิ่มฟังก์ชันสำหรับ Review Modal
+function resetStarRating() {
+    const stars = document.querySelectorAll('.star');
+    stars.forEach(star => star.classList.remove('active'));
+    document.getElementById('selectedRating').value = '';
+    document.getElementById('ratingText').textContent = 'Click a star to rate';
+    document.getElementById('submitReviewBtn').disabled = true;
+}
 
 
 // เพิ่มฟังก์ชันสำหรับ Review Modal
