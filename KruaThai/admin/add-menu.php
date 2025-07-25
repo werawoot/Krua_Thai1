@@ -39,12 +39,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'sodium_mg' => sanitizeInput($_POST['sodium_mg'] ?? ''),
         'sugar_g' => sanitizeInput($_POST['sugar_g'] ?? ''),
         'spice_level' => sanitizeInput($_POST['spice_level'] ?? 'medium'),
-        'health_benefits' => $_POST['health_benefits'] ?? [],
         'dietary_tags' => $_POST['dietary_tags'] ?? [],
         'is_featured' => isset($_POST['is_featured']) ? 1 : 0,
-        'is_seasonal' => isset($_POST['is_seasonal']) ? 1 : 0,
-        'availability_start' => sanitizeInput($_POST['availability_start'] ?? ''),
-        'availability_end' => sanitizeInput($_POST['availability_end'] ?? ''),
         'meta_description' => sanitizeInput($_POST['meta_description'] ?? '')
     ];
 
@@ -106,7 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $slug = generateSlug($form_data['name']);
 
             // Prepare health benefits and dietary tags as JSON
-            $health_benefits_json = !empty($form_data['health_benefits']) ? json_encode($form_data['health_benefits']) : null;
+            
             $dietary_tags_json = !empty($form_data['dietary_tags']) ? json_encode($form_data['dietary_tags']) : null;
 
             // Insert menu
@@ -115,11 +111,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     id, category_id, name, name_thai, description, ingredients, cooking_method,
                     main_image_url, base_price, portion_size, preparation_time,
                     calories_per_serving, protein_g, carbs_g, fat_g, fiber_g, sodium_mg, sugar_g,
-                    health_benefits, dietary_tags, spice_level, is_featured, is_seasonal,
-                    availability_start, availability_end, slug, meta_description,
+                    dietary_tags, spice_level, is_featured, 
+                     slug, meta_description,
                     is_available, created_at, updated_at
                 ) VALUES (
-                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW(), NOW()
+                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,   1, NOW(), NOW()
                 )
             ";
 
@@ -144,13 +140,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $form_data['fiber_g'] ?: null,
                 $form_data['sodium_mg'] ?: null,
                 $form_data['sugar_g'] ?: null,
-                $health_benefits_json,
                 $dietary_tags_json,
                 $form_data['spice_level'],
                 $form_data['is_featured'],
-                $form_data['is_seasonal'],
-                $form_data['availability_start'] ?: null,
-                $form_data['availability_end'] ?: null,
                 $slug,
                 $form_data['meta_description'] ?: null
             ]);
@@ -222,19 +214,6 @@ try {
     error_log("Error fetching categories: " . $e->getMessage());
 }
 
-// Predefined options
-$health_benefits_options = [
-    'high_protein' => 'High Protein',
-    'low_carb' => 'Low Carb',
-    'high_fiber' => 'High Fiber',
-    'low_sodium' => 'Low Sodium',
-    'antioxidant_rich' => 'Antioxidant Rich',
-    'vitamin_rich' => 'Vitamin Rich',
-    'heart_healthy' => 'Heart Healthy',
-    'immune_boosting' => 'Immune Boosting',
-    'energy_boosting' => 'Energy Boosting',
-    'weight_loss_friendly' => 'Weight Loss Friendly'
-];
 
 $dietary_tags_options = [
     'vegetarian' => 'Vegetarian',
@@ -246,7 +225,8 @@ $dietary_tags_options = [
     'low_carb' => 'Low Carb',
     'high_protein' => 'High Protein',
     'diabetic_friendly' => 'Diabetic-Friendly',
-    'heart_healthy' => 'Heart Healthy'
+    'heart_healthy' => 'Heart Healthy',
+    'Kids_meal' => 'Kids meal'
 ];
 ?>
 
@@ -1318,29 +1298,7 @@ $dietary_tags_options = [
                                     </div>
                                 </div>
 
-                                <!-- Health Benefits -->
-                                <div class="form-section">
-                                    <h3 class="section-title">
-                                        <i class="fas fa-plus-circle"></i>
-                                        Health Benefits
-                                    </h3>
-                                    
-                                    <div class="form-group">
-                                        <label class="form-label">Select Health Benefits</label>
-                                        <div class="checkbox-group">
-                                            <?php foreach ($health_benefits_options as $value => $label): ?>
-                                                <div class="checkbox-item">
-                                                    <input type="checkbox" 
-                                                           id="health_<?= $value ?>" 
-                                                           name="health_benefits[]" 
-                                                           value="<?= $value ?>"
-                                                           <?= in_array($value, $form_data['health_benefits'] ?? []) ? 'checked' : '' ?>>
-                                                    <label for="health_<?= $value ?>"><?= $label ?></label>
-                                                </div>
-                                            <?php endforeach; ?>
-                                        </div>
-                                    </div>
-                                </div>
+                               
 
                                 <!-- Dietary Tags -->
                                 <div class="form-section">
@@ -1387,40 +1345,9 @@ $dietary_tags_options = [
                                                 </label>
                                             </div>
                                         </div>
-                                        <div class="form-group">
-                                            <div class="checkbox-item">
-                                                <input type="checkbox" 
-                                                       id="is_seasonal" 
-                                                       name="is_seasonal" 
-                                                       value="1"
-                                                       <?= ($form_data['is_seasonal'] ?? 0) ? 'checked' : '' ?>
-                                                       onchange="toggleSeasonalDates()">
-                                                <label for="is_seasonal">
-                                                    <strong>Seasonal Item</strong><br>
-                                                    <small>Available only during specific period</small>
-                                                </label>
-                                            </div>
-                                        </div>
+                                
                                     </div>
 
-                                    <div id="seasonalDates" class="form-row" style="display: <?= ($form_data['is_seasonal'] ?? 0) ? 'grid' : 'none' ?>;">
-                                        <div class="form-group">
-                                            <label for="availability_start" class="form-label">Available From</label>
-                                            <input type="date" 
-                                                   id="availability_start" 
-                                                   name="availability_start" 
-                                                   class="form-control"
-                                                   value="<?= htmlspecialchars($form_data['availability_start'] ?? '') ?>">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="availability_end" class="form-label">Available Until</label>
-                                            <input type="date" 
-                                                   id="availability_end" 
-                                                   name="availability_end" 
-                                                   class="form-control"
-                                                   value="<?= htmlspecialchars($form_data['availability_end'] ?? '') ?>">
-                                        </div>
-                                    </div>
 
                                     <div class="form-group">
                                         <label for="meta_description" class="form-label">SEO Description</label>
@@ -1548,19 +1475,7 @@ $dietary_tags_options = [
             }
         }
 
-        // Toggle seasonal dates
-        function toggleSeasonalDates() {
-            const checkbox = document.getElementById('is_seasonal');
-            const datesContainer = document.getElementById('seasonalDates');
-            
-            if (checkbox.checked) {
-                datesContainer.style.display = 'grid';
-            } else {
-                datesContainer.style.display = 'none';
-                document.getElementById('availability_start').value = '';
-                document.getElementById('availability_end').value = '';
-            }
-        }
+
 
         // Initialize checkbox styling
         function initializeCheckboxStyling() {
@@ -1587,7 +1502,7 @@ $dietary_tags_options = [
                 document.getElementById('menuForm').reset();
                 document.getElementById('imagePreviewContainer').classList.add('d-none');
                 document.getElementById('previewImage').innerHTML = '<i class="fas fa-utensils"></i>';
-                document.getElementById('seasonalDates').style.display = 'none';
+                
                 
                 // Reset checkbox styling
                 document.querySelectorAll('.checkbox-item').forEach(item => {

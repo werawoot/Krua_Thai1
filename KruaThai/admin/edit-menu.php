@@ -44,12 +44,10 @@ try {
     }
     
     // Parse JSON fields
-    $health_benefits = $menu['health_benefits'] ? json_decode($menu['health_benefits'], true) : [];
     $dietary_tags = $menu['dietary_tags'] ? json_decode($menu['dietary_tags'], true) : [];
     
     // Set form data to existing values
     $form_data = array_merge($menu, [
-        'health_benefits' => $health_benefits,
         'dietary_tags' => $dietary_tags
     ]);
     
@@ -78,7 +76,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'sodium_mg' => sanitizeInput($_POST['sodium_mg'] ?? ''),
         'sugar_g' => sanitizeInput($_POST['sugar_g'] ?? ''),
         'spice_level' => sanitizeInput($_POST['spice_level'] ?? 'medium'),
-        'health_benefits' => $_POST['health_benefits'] ?? [],
         'dietary_tags' => $_POST['dietary_tags'] ?? [],
         'is_featured' => isset($_POST['is_featured']) ? 1 : 0,
         'is_seasonal' => isset($_POST['is_seasonal']) ? 1 : 0,
@@ -121,7 +118,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $slug = generateSlug($form_data['name']);
             
             // Convert arrays to JSON
-            $health_benefits_json = !empty($form_data['health_benefits']) ? json_encode($form_data['health_benefits']) : null;
             $dietary_tags_json = !empty($form_data['dietary_tags']) ? json_encode($form_data['dietary_tags']) : null;
 
             // Update menu
@@ -130,7 +126,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     category_id = ?, name = ?, name_thai = ?, description = ?, ingredients = ?, 
                     cooking_method = ?, main_image_url = ?, base_price = ?, portion_size = ?, 
                     preparation_time = ?, calories_per_serving = ?, protein_g = ?, carbs_g = ?, 
-                    fat_g = ?, fiber_g = ?, sodium_mg = ?, sugar_g = ?, health_benefits = ?, 
+                    fat_g = ?, fiber_g = ?, sodium_mg = ?, sugar_g = ?, 
                     dietary_tags = ?, spice_level = ?, is_featured = ?, is_seasonal = ?, 
                     is_available = ?, availability_start = ?, availability_end = ?, slug = ?, 
                     meta_description = ?, updated_at = NOW()
@@ -156,7 +152,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $form_data['fiber_g'] ?: null,
                 $form_data['sodium_mg'] ?: null,
                 $form_data['sugar_g'] ?: null,
-                $health_benefits_json,
                 $dietary_tags_json,
                 $form_data['spice_level'],
                 $form_data['is_featured'],
@@ -198,19 +193,7 @@ try {
     error_log("Error fetching categories: " . $e->getMessage());
 }
 
-// Health benefits options
-$health_benefits_options = [
-    'high_protein' => 'High Protein',
-    'low_carb' => 'Low Carb',
-    'high_fiber' => 'High Fiber',
-    'vitamin_rich' => 'Vitamin Rich',
-    'antioxidants' => 'Rich in Antioxidants',
-    'omega3' => 'Omega-3 Fatty Acids',
-    'probiotics' => 'Contains Probiotics',
-    'iron_rich' => 'Iron Rich',
-    'calcium_rich' => 'Calcium Rich',
-    'heart_healthy' => 'Heart Healthy'
-];
+
 
 // Dietary tags options
 $dietary_tags_options = [
@@ -223,7 +206,8 @@ $dietary_tags_options = [
     'paleo' => 'Paleo',
     'organic' => 'Organic',
     'locally_sourced' => 'Locally Sourced',
-    'halal' => 'Halal'
+    'halal' => 'Halal',
+    'Kids_meal' => 'Kids meal'
 ];
 
 // Image upload function
@@ -1177,30 +1161,7 @@ function generateSlug($text) {
                             </div>
                         </div>
 
-                        <!-- Health Benefits -->
-                        <div class="form-section">
-                            <h3 class="section-title">
-                                <i class="fas fa-plus-circle"></i>
-                                Health Benefits
-                            </h3>
-                            
-                            <div class="form-group">
-                                <label class="form-label">Select Health Benefits</label>
-                                <div class="checkbox-group">
-                                    <?php foreach ($health_benefits_options as $value => $label): ?>
-                                        <div class="checkbox-item">
-                                            <input type="checkbox" 
-                                                   id="health_<?= $value ?>" 
-                                                   name="health_benefits[]" 
-                                                   value="<?= $value ?>"
-                                                   <?= in_array($value, $form_data['health_benefits'] ?? []) ? 'checked' : '' ?>>
-                                            <label for="health_<?= $value ?>"><?= $label ?></label>
-                                        </div>
-                                    <?php endforeach; ?>
-                                </div>
-                            </div>
-                        </div>
-
+                     
                         <!-- Dietary Tags -->
                         <div class="form-section">
                             <h3 class="section-title">

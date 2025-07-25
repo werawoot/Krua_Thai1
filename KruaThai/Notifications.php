@@ -1,9 +1,10 @@
 <?php
 /**
- * Krua Thai - Complete Notification Center (FINAL FIX)
+ * Krua Thai - Complete Notification Center (US ENGLISH VERSION)
  * File: notifications.php  
  * Status: ERROR-FREE VERSION ✅
- * Fixed: Column 'data' not found error
+ * Language: English (US)
+ * Market: United States
  */
 
 error_reporting(E_ALL);
@@ -58,7 +59,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
                 
                 $where_clause = implode(' AND ', $where_conditions);
                 
-                // 🔥 FIXED: Removed 'data' column completely
                 $stmt = $pdo->prepare("
                     SELECT id, type, title, message, read_at, created_at 
                     FROM notifications 
@@ -212,11 +212,12 @@ try {
 $page_title = "Notifications";
 ?>
 <!DOCTYPE html>
-<html lang="th">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo htmlspecialchars($page_title); ?> - Krua Thai</title>
+    <title><?php echo htmlspecialchars($page_title); ?> - Krua Thai | Authentic Thai Cuisine</title>
+    <meta name="description" content="Stay updated with your order status, delivery notifications, and account activities">
     
     <!-- BaticaSans Font -->
     <link rel="preconnect" href="https://ydpschool.com">
@@ -816,25 +817,6 @@ $page_title = "Notifications";
                 display: none;
             }
         }
-
-        /* Error Message Styles */
-        .error-message {
-            background: #f8d7da;
-            color: #721c24;
-            padding: 1rem;
-            border-radius: var(--radius-md);
-            margin: 1rem 0;
-            border: 1px solid #f5c6cb;
-        }
-
-        .success-message {
-            background: #d4edda;
-            color: #155724;
-            padding: 1rem;
-            border-radius: var(--radius-md);
-            margin: 1rem 0;
-            border: 1px solid #c3e6cb;
-        }
     </style>
 </head>
 
@@ -865,8 +847,8 @@ $page_title = "Notifications";
         <!-- Notifications Header -->
         <div class="notifications-header">
             <div class="container">
-                <h1>🔔 การแจ้งเตือน</h1>
-                <p>ติดตามความเคลื่อนไหวออเดอร์ การจัดส่ง และกิจกรรมบัญชีของคุณ</p>
+                <h1>🔔 Notifications</h1>
+                <p>Stay updated on your orders, deliveries, payments, and account activities</p>
             </div>
         </div>
 
@@ -876,33 +858,33 @@ $page_title = "Notifications";
                 <aside class="notifications-sidebar">
                     <!-- Stats -->
                     <div class="sidebar-section">
-                        <h3>ภาพรวม</h3>
+                        <h3>Overview</h3>
                         <div class="stats-grid">
                             <div class="stat-item">
                                 <div class="stat-number" id="totalCount"><?= $stats['total'] ?></div>
-                                <div class="stat-label">ทั้งหมด</div>
+                                <div class="stat-label">Total</div>
                             </div>
                             <div class="stat-item">
                                 <div class="stat-number" id="unreadCount"><?= $stats['unread'] ?></div>
-                                <div class="stat-label">ยังไม่อ่าน</div>
+                                <div class="stat-label">Unread</div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Filters -->
                     <div class="sidebar-section">
-                        <h3>กรองตามสถานะ</h3>
+                        <h3>Filter by Status</h3>
                         <div class="filter-buttons">
                             <button class="filter-btn active" data-filter="all">
-                                <span>ทั้งหมด</span>
+                                <span>All</span>
                                 <span class="filter-count" id="allCount"><?= $stats['total'] ?></span>
                             </button>
                             <button class="filter-btn" data-filter="unread">
-                                <span>ยังไม่อ่าน</span>
+                                <span>Unread</span>
                                 <span class="filter-count" id="unreadFilterCount"><?= $stats['unread'] ?></span>
                             </button>
                             <button class="filter-btn" data-filter="read">
-                                <span>อ่านแล้ว</span>
+                                <span>Read</span>
                                 <span class="filter-count" id="readCount"><?= $stats['total'] - $stats['unread'] ?></span>
                             </button>
                         </div>
@@ -910,35 +892,35 @@ $page_title = "Notifications";
 
                     <!-- Type Filters -->
                     <div class="sidebar-section">
-                        <h3>กรองตามประเภท</h3>
+                        <h3>Filter by Type</h3>
                         <div class="filter-buttons">
                             <button class="filter-btn active" data-type="all">
-                                <span>ทุกประเภท</span>
+                                <span>All Types</span>
                             </button>
                             <button class="filter-btn" data-type="order">
-                                <span>📦 คำสั่งซื้อ</span>
+                                <span>📦 Orders</span>
                             </button>
                             <button class="filter-btn" data-type="delivery">
-                                <span>🚚 การจัดส่ง</span>
+                                <span>🚚 Delivery</span>
                             </button>
                             <button class="filter-btn" data-type="payment">
-                                <span>💰 การชำระเงิน</span>
+                                <span>💰 Payment</span>
                             </button>
                             <button class="filter-btn" data-type="system">
-                                <span>⚙️ ระบบ</span>
+                                <span>⚙️ System</span>
                             </button>
                         </div>
                     </div>
 
                     <!-- Quick Actions -->
                     <div class="sidebar-section">
-                        <h3>การดำเนินการ</h3>
+                        <h3>Quick Actions</h3>
                         <div style="display: flex; flex-direction: column; gap: 0.5rem;">
                             <button class="btn btn-primary btn-sm" onclick="markAllAsRead()">
-                                อ่านทั้งหมด
+                                Mark All Read
                             </button>
                             <button class="btn btn-secondary btn-sm" onclick="refreshNotifications()">
-                                รีเฟรช
+                                Refresh
                             </button>
                         </div>
                     </div>
@@ -947,10 +929,10 @@ $page_title = "Notifications";
                 <!-- Main Content -->
                 <main class="notifications-content">
                     <div class="content-header">
-                        <div class="content-title" id="contentTitle">การแจ้งเตือนทั้งหมด</div>
+                        <div class="content-title" id="contentTitle">All Notifications</div>
                         <div class="content-actions">
                             <button class="btn btn-sm btn-secondary" onclick="refreshNotifications()">
-                                🔄 รีเฟรช
+                                🔄 Refresh
                             </button>
                         </div>
                     </div>
@@ -1028,16 +1010,16 @@ $page_title = "Notifications";
 
         // Update content title based on filters
         function updateContentTitle() {
-            const filterText = currentFilter === 'all' ? 'ทั้งหมด' : 
-                              currentFilter === 'unread' ? 'ยังไม่อ่าน' : 'อ่านแล้ว';
-            const typeText = currentType === 'all' ? 'การแจ้งเตือน' :
-                            currentType === 'order' ? 'การแจ้งเตือนคำสั่งซื้อ' :
-                            currentType === 'delivery' ? 'การแจ้งเตือนการจัดส่ง' :
-                            currentType === 'payment' ? 'การแจ้งเตือนการชำระเงิน' :
-                            'การแจ้งเตือนระบบ';
+            const filterText = currentFilter === 'all' ? 'All' : 
+                              currentFilter === 'unread' ? 'Unread' : 'Read';
+            const typeText = currentType === 'all' ? 'Notifications' :
+                            currentType === 'order' ? 'Order Notifications' :
+                            currentType === 'delivery' ? 'Delivery Notifications' :
+                            currentType === 'payment' ? 'Payment Notifications' :
+                            'System Notifications';
             
             document.getElementById('contentTitle').textContent = 
-                currentType === 'all' ? `การแจ้งเตือน${filterText}` : typeText;
+                currentType === 'all' ? `${filterText} Notifications` : typeText;
         }
 
         // Load notifications
@@ -1074,14 +1056,14 @@ $page_title = "Notifications";
                     displayNotifications(data.notifications || []);
                     displayPagination(data.page || 1, data.total_pages || 1, data.total || 0);
                 } else {
-                    const errorMsg = data.errors ? data.errors.join(', ') : 'ไม่สามารถโหลดการแจ้งเตือนได้';
+                    const errorMsg = data.errors ? data.errors.join(', ') : 'Unable to load notifications';
                     showError(errorMsg);
-                    listContainer.innerHTML = `<div class="empty-state"><div class="empty-icon">❌</div><h3>เกิดข้อผิดพลาด</h3><p>${errorMsg}</p></div>`;
+                    listContainer.innerHTML = `<div class="empty-state"><div class="empty-icon">❌</div><h3>Error Occurred</h3><p>${errorMsg}</p></div>`;
                 }
             } catch (error) {
                 console.error('❌ Network error:', error);
-                showError('เกิดข้อผิดพลาดเครือข่าย: ' + error.message);
-                listContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">🔌</div><h3>ปัญหาการเชื่อมต่อ</h3><p>กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต</p></div>';
+                showError('Network error: ' + error.message);
+                listContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">🔌</div><h3>Connection Problem</h3><p>Please check your internet connection</p></div>';
             } finally {
                 isLoading = false;
             }
@@ -1095,8 +1077,8 @@ $page_title = "Notifications";
                 listContainer.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-icon">🔔</div>
-                        <h3>ไม่มีการแจ้งเตือน</h3>
-                        <p>คุณอ่านครบทุกข้อความแล้ว! กลับมาดูใหม่ภายหลัง</p>
+                        <h3>No Notifications</h3>
+                        <p>You're all caught up! Check back later for updates.</p>
                     </div>
                 `;
                 return;
@@ -1105,8 +1087,8 @@ $page_title = "Notifications";
             const notificationsHTML = notifications.map(notification => {
                 // Safely handle null/undefined values
                 const isUnread = !notification.read_at;
-                const title = escapeHtml(notification.title || 'ไม่มีหัวข้อ');
-                const message = escapeHtml(notification.message || 'ไม่มีข้อความ');
+                const title = escapeHtml(notification.title || 'No Subject');
+                const message = escapeHtml(notification.message || 'No message');
                 const type = notification.type || 'system';
                 const id = notification.id || '';
                 const createdAt = notification.created_at || new Date().toISOString();
@@ -1129,11 +1111,11 @@ $page_title = "Notifications";
                             <div class="notification-actions">
                                 ${isUnread ? `
                                     <button class="btn btn-sm btn-success" onclick="markAsRead('${id}')">
-                                        อ่านแล้ว
+                                        Mark Read
                                     </button>
                                 ` : ''}
                                 <button class="btn btn-sm btn-danger" onclick="deleteNotification('${id}')">
-                                    ลบ
+                                    Delete
                                 </button>
                             </div>
                         </div>
@@ -1160,7 +1142,7 @@ $page_title = "Notifications";
             // Previous button
             paginationHTML += `
                 <button ${currentPage === 1 ? 'disabled' : ''} onclick="changePage(${currentPage - 1})">
-                    ← ก่อนหน้า
+                    ← Previous
                 </button>
             `;
 
@@ -1193,7 +1175,7 @@ $page_title = "Notifications";
             // Next button
             paginationHTML += `
                 <button ${currentPage === totalPages ? 'disabled' : ''} onclick="changePage(${currentPage + 1})">
-                    ถัดไป →
+                    Next →
                 </button>
             `;
 
@@ -1217,7 +1199,7 @@ $page_title = "Notifications";
             return icons[type] || '🔔';
         }
 
-        // Format time in Thai
+        // Format time in English
         function formatTime(timestamp) {
             try {
                 const date = new Date(timestamp);
@@ -1227,14 +1209,14 @@ $page_title = "Notifications";
                 const hours = Math.floor(diff / 3600000);
                 const days = Math.floor(diff / 86400000);
 
-                if (minutes < 1) return 'เมื่อสักครู่';
-                if (minutes < 60) return `${minutes} นาทีที่แล้ว`;
-                if (hours < 24) return `${hours} ชั่วโมงที่แล้ว`;
-                if (days < 7) return `${days} วันที่แล้ว`;
+                if (minutes < 1) return 'Just now';
+                if (minutes < 60) return `${minutes} minutes ago`;
+                if (hours < 24) return `${hours} hours ago`;
+                if (days < 7) return `${days} days ago`;
                 
-                return date.toLocaleDateString('th-TH');
+                return date.toLocaleDateString('en-US');
             } catch (error) {
-                return 'ไม่ระบุเวลา';
+                return 'Unknown time';
             }
         }
 
@@ -1249,7 +1231,7 @@ $page_title = "Notifications";
         // Mark notification as read
         async function markAsRead(notificationId) {
             if (!notificationId) {
-                showError('ไม่พบ ID การแจ้งเตือน');
+                showError('Notification ID not found');
                 return;
             }
 
@@ -1280,18 +1262,18 @@ $page_title = "Notifications";
                     }
                     
                     updateStats();
-                    showSuccess('ทำเครื่องหมายอ่านแล้ว');
+                    showSuccess('Marked as read');
                 } else {
-                    showError(data.errors ? data.errors.join(', ') : 'ไม่สามารถทำเครื่องหมายได้');
+                    showError(data.errors ? data.errors.join(', ') : 'Unable to mark as read');
                 }
             } catch (error) {
-                showError('เกิดข้อผิดพลาดเครือข่าย');
+                showError('Network error occurred');
             }
         }
 
         // Mark all as read
         async function markAllAsRead() {
-            if (!confirm('ทำเครื่องหมายการแจ้งเตือนทั้งหมดว่าอ่านแล้ว?')) return;
+            if (!confirm('Mark all notifications as read?')) return;
 
             try {
                 const response = await fetch('notifications.php', {
@@ -1309,23 +1291,23 @@ $page_title = "Notifications";
                 if (data.success) {
                     loadNotifications();
                     updateStats();
-                    showSuccess(data.message || 'ทำเครื่องหมายทั้งหมดแล้ว');
+                    showSuccess(data.message || 'All notifications marked as read');
                 } else {
-                    showError(data.errors ? data.errors.join(', ') : 'ไม่สามารถดำเนินการได้');
+                    showError(data.errors ? data.errors.join(', ') : 'Unable to complete action');
                 }
             } catch (error) {
-                showError('เกิดข้อผิดพลาดเครือข่าย');
+                showError('Network error occurred');
             }
         }
 
         // Delete notification
         async function deleteNotification(notificationId) {
             if (!notificationId) {
-                showError('ไม่พบ ID การแจ้งเตือน');
+                showError('Notification ID not found');
                 return;
             }
 
-            if (!confirm('ลบการแจ้งเตือนนี้?')) return;
+            if (!confirm('Delete this notification?')) return;
 
             try {
                 const response = await fetch('notifications.php', {
@@ -1358,12 +1340,12 @@ $page_title = "Notifications";
                     }
                     
                     updateStats();
-                    showSuccess('ลบการแจ้งเตือนแล้ว');
+                    showSuccess('Notification deleted');
                 } else {
-                    showError(data.errors ? data.errors.join(', ') : 'ไม่สามารถลบได้');
+                    showError(data.errors ? data.errors.join(', ') : 'Unable to delete');
                 }
             } catch (error) {
-                showError('เกิดข้อผิดพลาดเครือข่าย');
+                showError('Network error occurred');
             }
         }
 
@@ -1372,7 +1354,7 @@ $page_title = "Notifications";
             currentPage = 1;
             loadNotifications();
             updateStats();
-            showSuccess('รีเฟรชข้อมูลแล้ว');
+            showSuccess('Data refreshed');
         }
 
         // Update statistics
@@ -1460,14 +1442,14 @@ $page_title = "Notifications";
         console.log('🔔 Krua Thai - Notifications page loaded successfully!');
     </script>
 
-    <!-- Debug Information (ลบออกใน production) -->
+    <!-- Debug Information (remove in production) -->
     <?php if (isset($_GET['debug'])): ?>
     <div style="position: fixed; bottom: 10px; left: 10px; background: rgba(0,0,0,0.8); color: white; padding: 10px; border-radius: 5px; font-size: 12px; z-index: 1000; max-width: 300px;">
         <strong>🔧 Debug Info:</strong><br>
         User ID: <?= htmlspecialchars($user_id) ?><br>
         Total: <?= $stats['total'] ?> | Unread: <?= $stats['unread'] ?><br>
         Database: krua_thai<br>
-        Version: Fixed - No Data Column Error ✅
+        Version: US English ✅
     </div>
     <?php endif; ?>
 </body>
