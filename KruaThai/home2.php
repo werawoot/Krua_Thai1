@@ -632,6 +632,7 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
         font-weight: 700;
         margin-bottom: 0.5rem;
         font-family: 'BaticaSans', sans-serif;
+        color: var(--white) !important;
     }
 
     .meal-card-description {
@@ -1330,17 +1331,6 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
                                         <?php echo htmlspecialchars($description); ?>
                                     </p>
                                     <div class="meal-card-chef">
-                                        <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--white); display: flex; align-items: center; justify-content: center; color: var(--curry); font-weight: bold;">
-                                            👨‍🍳
-                                        </div>
-                                        <div class="chef-info">
-                                            <span>by</span> Somdul Chef
-                                            <?php if ($menu['base_price']): ?>
-                                                <div style="font-weight: 600; color: var(--white); margin-top: 4px;">
-                                                    $<?php echo number_format($menu['base_price'], 2); ?>
-                                                </div>
-                                            <?php endif; ?>
-                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -1392,10 +1382,16 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
             </div>
         </div>
     </section>
-
-    <script>
+<script>
     document.addEventListener('DOMContentLoaded', function() {
         const menuItems = document.querySelectorAll('.menu-nav-item');
+        const mealCardsTrack = document.getElementById('mealCardsTrack');
+        const scrollLeftBtn = document.getElementById('scrollLeft');
+        const scrollRightBtn = document.getElementById('scrollRight');
+        
+        // Initialize scroll tracking
+        let currentScroll = 0;
+        const cardWidth = 320 + 24; // card width + gap
         
         menuItems.forEach(item => {
             item.addEventListener('click', function() {
@@ -1409,23 +1405,258 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
                 const category = this.getAttribute('data-category');
                 console.log('Selected category:', category);
                 
-                // Here you can add AJAX functionality to filter menus by category
+                // Show loading state
+                showLoadingState();
+                
+                // Filter menus by category
                 filterMenusByCategory(category);
             });
         });
         
-        // Function to filter menus by category (placeholder for future AJAX implementation)
-        function filterMenusByCategory(categoryId) {
-            // This is where you would implement AJAX call to filter menus
-            // For now, just log the category selection
-            console.log('Filtering by category:', categoryId);
+        function showLoadingState() {
+            mealCardsTrack.innerHTML = `
+                <div class="loading-container" style="display: flex; justify-content: center; align-items: center; width: 100%; height: 400px;">
+                    <div class="loading-spinner" style="
+                        border: 4px solid #ece8e1;
+                        border-top: 4px solid #cf723a;
+                        border-radius: 50%;
+                        width: 50px;
+                        height: 50px;
+                        animation: spin 1s linear infinite;
+                    "></div>
+                </div>
+            `;
             
-            // You can implement this later to dynamically load menus via AJAX
-            // Example:
-            // fetch(`ajax/filter_menus.php?category=${categoryId}`)
-            //     .then(response => response.json())
-            //     .then(data => updateMenuCards(data.menus));
+            // Add spin animation if not already defined
+            if (!document.querySelector('#spin-animation')) {
+                const style = document.createElement('style');
+                style.id = 'spin-animation';
+                style.textContent = `
+                    @keyframes spin {
+                        0% { transform: rotate(0deg); }
+                        100% { transform: rotate(360deg); }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
         }
+        
+        function filterMenusByCategory(categoryId) {
+            // Make AJAX request to filter menus
+            const url = `ajax/filter_menus.php?category=${encodeURIComponent(categoryId)}&limit=10`;
+            
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        updateMenuCards(data.menus);
+                    } else {
+                        console.error('Filter error:', data.error);
+                        showErrorState(data.error || 'Failed to load menus');
+                    }
+                })
+                .catch(error => {
+                    console.error('Network error:', error);
+                    showErrorState('Network error occurred. Please try again.');
+                });
+        }
+        
+        function updateMenuCards(menus) {
+            if (!menus || menus.length === 0) {
+                showEmptyState();
+                return;
+            }
+            
+            // Generate HTML for menu cards
+            const cardsHTML = menus.map(menu => {
+                // Log debug info to console
+                console.log('Menu:', menu.name, 'Image URL:', menu.image_url, 'Has Image:', menu.has_image);
+                
+                // Determine the complete background style
+                let backgroundStyle = '';
+                if (menu.has_image && menu.image_url) {
+                    // Use background-image with proper sizing and positioning
+                    backgroundStyle = `background-image: url('${menu.image_url}'); background-size: cover; background-position: center; background-repeat: no-repeat;`;
+                } else {
+                    // Use the gradient from the server response
+                    backgroundStyle = menu.background_style;
+                }
+                
+                return `
+                    <div class="meal-card" style="${backgroundStyle}">
+                        <div class="meal-card-content">
+                            <h3 class="meal-card-title">${menu.name}</h3>
+                            <p class="meal-card-description">${menu.description}</p>
+                            <div class="meal-card-chef">
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            // Update the track with new cards
+            mealCardsTrack.innerHTML = cardsHTML;
+            
+            // Reset scroll position
+            currentScroll = 0;
+            mealCardsTrack.style.transform = `translateX(${currentScroll}px)`;
+            
+            // Update scroll buttons
+            updateScrollButtons();
+            
+            // Re-enable touch/swipe functionality for new cards
+            setupTouchEvents();
+        }
+        
+        function showEmptyState() {
+            mealCardsTrack.innerHTML = `
+                <div class="empty-state" style="
+                    display: flex; 
+                    flex-direction: column; 
+                    justify-content: center; 
+                    align-items: center; 
+                    width: 100%; 
+                    height: 400px; 
+                    text-align: center;
+                    color: var(--text-gray);
+                ">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">🍽️</div>
+                    <h3 style="color: var(--text-dark); margin-bottom: 0.5rem;">No meals found</h3>
+                    <p>Try selecting a different category or check back later for new additions.</p>
+                </div>
+            `;
+            updateScrollButtons();
+        }
+        
+        function showErrorState(message) {
+            mealCardsTrack.innerHTML = `
+                <div class="error-state" style="
+                    display: flex; 
+                    flex-direction: column; 
+                    justify-content: center; 
+                    align-items: center; 
+                    width: 100%; 
+                    height: 400px; 
+                    text-align: center;
+                    color: var(--text-gray);
+                ">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">⚠️</div>
+                    <h3 style="color: var(--text-dark); margin-bottom: 0.5rem;">Oops! Something went wrong</h3>
+                    <p>${message}</p>
+                    <button onclick="location.reload()" style="
+                        margin-top: 1rem;
+                        padding: 0.8rem 1.5rem;
+                        background: var(--curry);
+                        color: white;
+                        border: none;
+                        border-radius: 50px;
+                        cursor: pointer;
+                        font-family: 'BaticaSans', sans-serif;
+                        font-weight: 600;
+                    ">Retry</button>
+                </div>
+            `;
+            updateScrollButtons();
+        }
+        
+        function updateScrollButtons() {
+            const visibleCards = Math.floor(window.innerWidth / cardWidth);
+            const maxScroll = -(mealCardsTrack.children.length - visibleCards) * cardWidth;
+            
+            scrollLeftBtn.disabled = currentScroll >= 0;
+            scrollRightBtn.disabled = currentScroll <= maxScroll || mealCardsTrack.children.length <= visibleCards;
+        }
+        
+        function setupTouchEvents() {
+            let startX, currentX, isDragging = false;
+            
+            // Remove existing listeners to avoid duplicates
+            mealCardsTrack.removeEventListener('touchstart', handleTouchStart);
+            mealCardsTrack.removeEventListener('touchmove', handleTouchMove);
+            mealCardsTrack.removeEventListener('touchend', handleTouchEnd);
+            
+            // Add new listeners
+            mealCardsTrack.addEventListener('touchstart', handleTouchStart);
+            mealCardsTrack.addEventListener('touchmove', handleTouchMove);
+            mealCardsTrack.addEventListener('touchend', handleTouchEnd);
+            
+            function handleTouchStart(e) {
+                startX = e.touches[0].clientX;
+                isDragging = true;
+            }
+            
+            function handleTouchMove(e) {
+                if (!isDragging) return;
+                currentX = e.touches[0].clientX;
+                const diffX = currentX - startX;
+                const newScroll = currentScroll + diffX;
+                
+                const visibleCards = Math.floor(window.innerWidth / cardWidth);
+                const maxScroll = -(mealCardsTrack.children.length - visibleCards) * cardWidth;
+                
+                if (newScroll <= 0 && newScroll >= maxScroll) {
+                    mealCardsTrack.style.transform = `translateX(${newScroll}px)`;
+                }
+            }
+            
+            function handleTouchEnd(e) {
+                if (!isDragging) return;
+                isDragging = false;
+                
+                const diffX = currentX - startX;
+                const visibleCards = Math.floor(window.innerWidth / cardWidth);
+                const maxScroll = -(mealCardsTrack.children.length - visibleCards) * cardWidth;
+                
+                if (Math.abs(diffX) > 50) {
+                    if (diffX > 0) {
+                        // Swipe right (scroll left)
+                        currentScroll = Math.min(currentScroll + cardWidth, 0);
+                    } else {
+                        // Swipe left (scroll right)
+                        currentScroll = Math.max(currentScroll - cardWidth, maxScroll);
+                    }
+                    mealCardsTrack.style.transform = `translateX(${currentScroll}px)`;
+                    updateScrollButtons();
+                }
+            }
+        }
+        
+        // Scroll button functionality
+        scrollLeftBtn.addEventListener('click', () => {
+            currentScroll = Math.min(currentScroll + cardWidth * 2, 0);
+            mealCardsTrack.style.transform = `translateX(${currentScroll}px)`;
+            updateScrollButtons();
+        });
+        
+        scrollRightBtn.addEventListener('click', () => {
+            const visibleCards = Math.floor(window.innerWidth / cardWidth);
+            const maxScroll = -(mealCardsTrack.children.length - visibleCards) * cardWidth;
+            currentScroll = Math.max(currentScroll - cardWidth * 2, maxScroll);
+            mealCardsTrack.style.transform = `translateX(${currentScroll}px)`;
+            updateScrollButtons();
+        });
+        
+        // Initialize scroll buttons
+        updateScrollButtons();
+        
+        // Setup initial touch events
+        setupTouchEvents();
+        
+        // Update on window resize
+        window.addEventListener('resize', () => {
+            const visibleCards = Math.floor(window.innerWidth / cardWidth);
+            const maxScroll = -(mealCardsTrack.children.length - visibleCards) * cardWidth;
+            if (currentScroll < maxScroll) {
+                currentScroll = maxScroll;
+                mealCardsTrack.style.transform = `translateX(${currentScroll}px)`;
+            }
+            updateScrollButtons();
+        });
     });
     
     function closePromoBanner() {
@@ -1442,20 +1673,6 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
             heroSection.style.paddingTop = '80px';
         }, 300);
     }
-
-    // Menu navigation functionality
-    document.addEventListener('DOMContentLoaded', function() {
-        const menuButtons = document.querySelectorAll('.menu-nav button');
-        
-        menuButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                // Remove active class from all buttons
-                menuButtons.forEach(btn => btn.classList.remove('active'));
-                // Add active class to clicked button
-                this.classList.add('active');
-            });
-        });
-    });
 
     // Smooth scrolling for navigation links
     document.addEventListener('DOMContentLoaded', function() {
@@ -1486,85 +1703,6 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
             navbar.style.background = 'rgba(255, 255, 255, 0.95)';
         }
     });
-
-// Meal cards scrolling functionality
-const track = document.getElementById('mealCardsTrack');
-const scrollLeftBtn = document.getElementById('scrollLeft');
-const scrollRightBtn = document.getElementById('scrollRight');
-let currentScroll = 0;
-const cardWidth = 320 + 24; // card width + gap
-const visibleCards = Math.floor(window.innerWidth / cardWidth);
-const maxScroll = -(track.children.length - visibleCards) * cardWidth;
-
-function updateScrollButtons() {
-    scrollLeftBtn.disabled = currentScroll >= 0;
-    scrollRightBtn.disabled = currentScroll <= maxScroll;
-}
-
-scrollLeftBtn.addEventListener('click', () => {
-    currentScroll = Math.min(currentScroll + cardWidth * 2, 0);
-    track.style.transform = `translateX(${currentScroll}px)`;
-    updateScrollButtons();
-});
-
-scrollRightBtn.addEventListener('click', () => {
-    currentScroll = Math.max(currentScroll - cardWidth * 2, maxScroll);
-    track.style.transform = `translateX(${currentScroll}px)`;
-    updateScrollButtons();
-});
-
-// Initialize buttons
-updateScrollButtons();
-
-// Update on window resize
-window.addEventListener('resize', () => {
-    const newVisibleCards = Math.floor(window.innerWidth / cardWidth);
-    const newMaxScroll = -(track.children.length - newVisibleCards) * cardWidth;
-    if (currentScroll < newMaxScroll) {
-        currentScroll = newMaxScroll;
-        track.style.transform = `translateX(${currentScroll}px)`;
-    }
-    updateScrollButtons();
-});
-
-// Touch/swipe support for mobile
-let startX;
-let currentX;
-let isDragging = false;
-
-track.addEventListener('touchstart', (e) => {
-    startX = e.touches[0].clientX;
-    isDragging = true;
-});
-
-track.addEventListener('touchmove', (e) => {
-    if (!isDragging) return;
-    currentX = e.touches[0].clientX;
-    const diffX = currentX - startX;
-    const newScroll = currentScroll + diffX;
-    
-    if (newScroll <= 0 && newScroll >= maxScroll) {
-        track.style.transform = `translateX(${newScroll}px)`;
-    }
-});
-
-track.addEventListener('touchend', (e) => {
-    if (!isDragging) return;
-    isDragging = false;
-    
-    const diffX = currentX - startX;
-    if (Math.abs(diffX) > 50) {
-        if (diffX > 0) {
-            // Swipe right (scroll left)
-            currentScroll = Math.min(currentScroll + cardWidth, 0);
-        } else {
-            // Swipe left (scroll right)
-            currentScroll = Math.max(currentScroll - cardWidth, maxScroll);
-        }
-        track.style.transform = `translateX(${currentScroll}px)`;
-        updateScrollButtons();
-    }
-});
     </script>
 </body>
 </html>
