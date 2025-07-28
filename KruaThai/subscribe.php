@@ -26,45 +26,49 @@ try {
     $stmt->execute();
     $plans = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Exception $e) {
+    // Updated fallback plans matching new pricing structure
     $plans = [
         [
-            'id' => 4, 
-            'name_thai' => 'แพ็กเกจเริ่มต้น',
-            'name_english' => 'Starter Package', 
+            'id' => 'essentials-plan-2025', 
+            'name' => 'Essentials',
+            'name_thai' => 'Essentials',
+            'name_english' => 'Essentials', 
             'meals_per_week' => 4, 
-            'final_price' => 2500, 
-            'description' => 'Perfect for beginners'
+            'final_price' => 59.99, 
+            'description' => 'Perfect for individuals who want to try authentic Thai cuisine',
+            'is_popular' => 0,
+            'sort_order' => 1
         ],
         [
-            'id' => 8, 
-            'name_thai' => 'กินดีทุกวัน',
-            'name_english' => 'Daily Delight', 
+            'id' => 'smart-choice-plan-2025', 
+            'name' => 'Smart Choice',
+            'name_thai' => 'Smart Choice',
+            'name_english' => 'Smart Choice', 
             'meals_per_week' => 8, 
-            'final_price' => 4500, 
-            'description' => 'Ideal for regular health maintenance'
+            'final_price' => 87.99, 
+            'description' => 'Balanced value with the best perceived deal',
+            'is_popular' => 1,
+            'sort_order' => 2
         ],
         [
-            'id' => 12, 
-            'name_thai' => 'สุขภาพทั้งครอบครัว',
-            'name_english' => 'Family Wellness', 
+            'id' => 'founding-feast-plan-2025', 
+            'name' => 'Founding Feast',
+            'name_thai' => 'Founding Feast',
+            'name_english' => 'Founding Feast', 
             'meals_per_week' => 12, 
-            'final_price' => 6200, 
-            'description' => 'Perfect for families'
-        ],
-        [
-            'id' => 15, 
-            'name_thai' => 'พรีเมียมโปร',
-            'name_english' => 'Premium Pro', 
-            'meals_per_week' => 15, 
-            'final_price' => 7500, 
-            'description' => 'For serious health enthusiasts'
+            'final_price' => 119.99, 
+            'description' => 'Bulk value perfect for families or serious food enthusiasts',
+            'is_popular' => 0,
+            'sort_order' => 3
         ]
     ];
 }
 
 // Helper function to get plan name with fallback
 function getPlanName($plan) {
-    if (isset($plan['name_english']) && !empty($plan['name_english'])) {
+    if (isset($plan['name']) && !empty($plan['name'])) {
+        return $plan['name'];
+    } elseif (isset($plan['name_english']) && !empty($plan['name_english'])) {
         return $plan['name_english'];
     } elseif (isset($plan['name_thai']) && !empty($plan['name_thai'])) {
         return $plan['name_thai'];
@@ -265,9 +269,7 @@ function getPlanDescription($plan) {
             justify-content: space-between;
             align-items: center;
             padding: 1rem 2rem;
-            /* max-width: 1200px; */ /* Remove this line */
-            /* margin: 0 auto; */ /* Remove this line */
-            width: 100%; /* Add this for full width */
+            width: 100%;
         }
 
         .logo {
@@ -654,6 +656,19 @@ function getPlanDescription($plan) {
             transform: translateY(0);
         }
 
+        /* Price per meal display */
+        .price-per-meal {
+            font-size: 0.9rem;
+            color: var(--text-gray);
+            margin-top: 0.5rem;
+            font-weight: 500;
+        }
+
+        .price-per-meal .highlight {
+            color: var(--curry);
+            font-weight: 600;
+        }
+
         /* Responsive Design */
         @media (max-width: 768px) {
             .promo-banner {
@@ -853,15 +868,19 @@ function getPlanDescription($plan) {
                     $query = "plan=" . urlencode($plan['id']);
                     if ($highlight_menu_id) $query .= "&menu=" . urlencode($highlight_menu_id);
                     
-                    $isPopular = ($plan['meals_per_week'] == 8); // Make 8-meal package popular
+                    $isPopular = (isset($plan['is_popular']) && $plan['is_popular']) || $plan['meals_per_week'] == 8;
+                    $pricePerMeal = $plan['final_price'] / $plan['meals_per_week'];
                 ?>
                 <div class="plan-card<?php echo $isPopular ? ' selected' : ''; ?>">
                     <div class="plan-name"><?php echo htmlspecialchars(getPlanName($plan)); ?></div>
                     <div class="plan-info"><?php echo $plan['meals_per_week']; ?> meals per week</div>
                     <div class="plan-price">
-                        <span class="currency">$</span><?php echo number_format($plan['final_price']/100, 2); ?>
+                        <span class="currency">$</span><?php echo number_format($plan['final_price'], 2); ?>
                     </div>
                     <div class="plan-period">per week</div>
+                    <div class="price-per-meal">
+                        <span class="highlight">$<?php echo number_format($pricePerMeal, 2); ?> per meal</span>
+                    </div>
                     <div class="plan-desc"><?php echo htmlspecialchars(getPlanDescription($plan)); ?></div>
                     
                     <ul class="plan-features">
@@ -885,6 +904,12 @@ function getPlanDescription($plan) {
                         <li>
                             <i class="fas fa-crown"></i>
                             <span>Most popular package</span>
+                        </li>
+                        <?php endif; ?>
+                        <?php if ($plan['meals_per_week'] >= 12): ?>
+                        <li>
+                            <i class="fas fa-gift"></i>
+                            <span>Free Thai snack or drink gift</span>
                         </li>
                         <?php endif; ?>
                     </ul>
