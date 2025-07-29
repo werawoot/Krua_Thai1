@@ -3,6 +3,7 @@
  * Somdul Table - Meal Selection Page
  * File: meal-selection.php
  * Description: Select meals according to package amount (Step 2)
+ * Updated to properly store meal details in session for checkout
  */
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
@@ -159,15 +160,58 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         exit;
     }
     
-    // Store data in session for checkout
+    // **FIX: Fetch meal details from database to store in session**
+    $meal_details = [];
+    if (!empty($selected_meals)) {
+        try {
+            // Create placeholders for the IN clause
+            $placeholders = str_repeat('?,', count($selected_meals) - 1) . '?';
+            
+            $stmt = $pdo->prepare("
+                SELECT m.id, m.name, m.name_thai, m.base_price, m.description, m.main_image_url,
+                       mc.name as category_name, mc.name_thai as category_name_thai
+                FROM menus m 
+                LEFT JOIN menu_categories mc ON m.category_id = mc.id 
+                WHERE m.id IN ($placeholders) AND m.is_available = 1
+            ");
+            
+            $stmt->execute($selected_meals);
+            $meal_results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            // Create associative array with meal ID as key
+            foreach ($meal_results as $meal) {
+                $meal_details[$meal['id']] = $meal;
+            }
+            
+            // Log for debugging
+            error_log("Fetched meal details for checkout: " . json_encode(array_keys($meal_details)));
+            
+        } catch (Exception $e) {
+            error_log("Error fetching meal details: " . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Error retrieving meal information. Please try again.']);
+            exit;
+        }
+    }
+    
+    // Verify all selected meals were found
+    if (count($meal_details) !== count($selected_meals)) {
+        echo json_encode(['success' => false, 'message' => 'Some selected meals are no longer available. Please refresh and try again.']);
+        exit;
+    }
+    
+    // Store data in session for checkout (UPDATED with meal_details)
     $_SESSION['checkout_data'] = [
         'plan' => $plan,
         'selected_meals' => $selected_meals,
+        'meal_details' => $meal_details, // **NEW: Include meal details**
         'total_meals' => count($selected_meals),
         'user_id' => $_SESSION['user_id'],
         'created_at' => time(),
         'source' => 'meal-selection'
     ];
+    
+    // Log for debugging
+    error_log("Stored checkout data with " . count($meal_details) . " meal details");
     
     echo json_encode(['success' => true, 'redirect' => 'checkout.php', 'message' => 'Redirecting to checkout...']);
     exit;
@@ -356,9 +400,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             justify-content: space-between;
             align-items: center;
             padding: 1rem 2rem;
-            /* max-width: 1200px; */ /* Remove this line */
-            /* margin: 0 auto; */ /* Remove this line */
-            width: 100%; /* Add this for full width */
+            width: 100%;
         }
 
         .logo {
@@ -1221,6 +1263,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('✅ Updated meal selection page loaded');
+            
             // Store all meal data
             document.querySelectorAll('.meal-card').forEach(card => {
                 allMeals.push({
@@ -1392,6 +1436,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 return;
             }
             
+            console.log('🚀 Proceeding to checkout with meals:', selectedMeals);
+            
             // Show loading state
             const continueBtn = document.getElementById('continueBtn');
             const originalText = continueBtn.innerHTML;
@@ -1409,9 +1455,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             })
             .then(response => response.json())
             .then(data => {
+                console.log('✅ Server response:', data);
                 if (data.success) {
                     localStorage.removeItem('mealSelection');
-                    window.location.href = data.redirect;
+                    showToast('success', 'Meal selection saved! Redirecting to checkout...');
+                    setTimeout(() => {
+                        window.location.href = data.redirect;
+                    }, 1000);
                 } else {
                     showToast('error', data.message);
                     continueBtn.innerHTML = originalText;
@@ -1419,7 +1469,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 }
             })
             .catch(error => {
-                console.error('Error:', error);
+                console.error('❌ Error:', error);
                 showToast('error', 'An error occurred. Please try again.');
                 continueBtn.innerHTML = originalText;
                 continueBtn.disabled = false;

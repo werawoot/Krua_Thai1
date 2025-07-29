@@ -1,7 +1,7 @@
 <?php
 /**
- * Somdul Table - Improved Checkout System
- * Updated for single date selection and better UI
+ * Somdul Table - Updated Checkout System
+ * Updated for Wednesday/Saturday date selection and meal details fix
  */
 
 session_start();
@@ -15,7 +15,6 @@ $selected_meals = [];
 $meal_details = [];
 $errors = [];
 $success = false;
-$delivery_dates = [];
 $user = null;
 
 // Early session and authentication checks
@@ -89,53 +88,6 @@ class DatabaseConnection {
     }
 }
 
-// Weekend Date Generator (Updated for single selection)
-class DeliveryDateGenerator {
-    
-    public static function getDeliveryDates() {
-        $dates = [];
-        $currentDate = new DateTime();
-        $currentDate->setTimezone(new DateTimeZone('America/New_York'));
-        
-        for ($i = 0; $i < 28; $i++) { 
-            $checkDate = clone $currentDate;
-            $checkDate->modify("+{$i} days");
-            
-            $dayOfWeek = $checkDate->format('N'); // 1=Monday, 3=Wednesday, 6=Saturday
-            
-            // Changed to Wednesday(3) and Saturday(6) delivery days
-            if ($dayOfWeek == 3 || $dayOfWeek == 6) { 
-                $dayName = ($dayOfWeek == 3) ? 'Wednesday' : 'Saturday';
-                $key = strtolower(substr($dayName, 0, 3)) . '_' . floor(count($dates) / 2);
-                
-                $dates[$key] = [
-                    'label' => $checkDate->format('l, M j'),
-                    'day' => $dayName,
-                    'date' => $checkDate->format('Y-m-d'),
-                    'formatted' => $checkDate->format('m/d/Y')
-                ];
-                
-                if (count($dates) >= 8) break; // Get 8 days (4 Wednesdays + 4 Saturdays)
-            }
-        }
-        
-        return $dates;
-    }
-    
-    // Added missing function
-    public static function convertDeliveryKeyToDate($deliveryKey) {
-        $deliveryDates = self::getDeliveryDates();
-        return isset($deliveryDates[$deliveryKey]) ? $deliveryDates[$deliveryKey]['date'] : null;
-    }
-    
-    // Added date validation function
-    public static function isValidDeliveryDate($date) {
-        $dayOfWeek = date('N', strtotime($date)); // 1=Monday, 3=Wednesday, 6=Saturday
-        return in_array($dayOfWeek, [3, 6]); // Only Wednesday(3) and Saturday(6)
-    }
-}
-    
-
 // Checkout Data Manager
 class CheckoutDataManager {
     
@@ -181,9 +133,46 @@ class CheckoutDataManager {
         
         return $errors;
     }
+    
+    /**
+     * NEW FUNCTION: Populate meal details from database based on selected meal IDs
+     */
+    public static function populateMealDetails($db, $selected_meals) {
+        if (empty($selected_meals) || !is_array($selected_meals)) {
+            return [];
+        }
+        
+        try {
+            // Create placeholders for the IN clause
+            $placeholders = str_repeat('?,', count($selected_meals) - 1) . '?';
+            
+            $stmt = $db->prepare("
+                SELECT id, name, name_thai, base_price, description, main_image_url,
+                       mc.name as category_name, mc.name_thai as category_name_thai
+                FROM menus m 
+                LEFT JOIN menu_categories mc ON m.category_id = mc.id 
+                WHERE m.id IN ($placeholders) AND m.is_available = 1
+            ");
+            
+            $stmt->execute($selected_meals);
+            $menus = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            // Create associative array with meal ID as key
+            $meal_details = [];
+            foreach ($menus as $menu) {
+                $meal_details[$menu['id']] = $menu;
+            }
+            
+            return $meal_details;
+            
+        } catch (Exception $e) {
+            error_log("Error fetching meal details: " . $e->getMessage());
+            return [];
+        }
+    }
 }
 
-// Order Processing Engine (Updated for single delivery day)
+// Order Processing Engine (Updated for single delivery date)
 class OrderProcessor {
     
     private $db;
@@ -208,9 +197,33 @@ class OrderProcessor {
             }
         }
         
-        // Updated validation for single delivery day
+        // Updated validation for delivery date
         if (empty($postData['delivery_day'])) {
-            $errors[] = "Please select a delivery day";
+            $errors[] = "Please select a delivery date";
+        } else {
+            $delivery_date = $postData['delivery_day'];
+            $date_obj = DateTime::createFromFormat('Y-m-d', $delivery_date);
+            
+            if (!$date_obj) {
+                $errors[] = "Invalid date format";
+            } else {
+                $day_of_week = $date_obj->format('N'); // 1=Monday, 3=Wednesday, 6=Saturday
+                if ($day_of_week != 3 && $day_of_week != 6) {
+                    $errors[] = "Please select a Wednesday or Saturday for delivery";
+                }
+                
+                // Check if date is not in the past
+                $today = new DateTime();
+                if ($date_obj < $today) {
+                    $errors[] = "Please select a future date for delivery";
+                }
+                
+                // Check if date is not too far in the future (within 4 weeks)
+                $max_date = new DateTime('+4 weeks');
+                if ($date_obj > $max_date) {
+                    $errors[] = "Please select a date within the next 4 weeks";
+                }
+            }
         }
         
         // ZIP code validation
@@ -326,14 +339,10 @@ class OrderProcessor {
         try {
             $plan = $order['plan'];
             $selected_meals = $order['selected_meals'];
-            $delivery_day = $postData['delivery_day']; // Single delivery day
+            $delivery_date = $postData['delivery_day']; // Direct date from form (Y-m-d format)
             
             // Calculate dates
-            $start_date = DeliveryDateGenerator::convertDeliveryKeyToDate($delivery_day);
-            
-            if (!$start_date) {
-                $start_date = date('Y-m-d', strtotime('+1 day'));
-            }
+            $start_date = $delivery_date; // Already in Y-m-d format
             
             $billing_cycle = ($plan['plan_type'] ?? 'weekly') === 'monthly' ? 'monthly' : 'weekly';
             $next_billing_date = $billing_cycle === 'monthly'
@@ -348,7 +357,7 @@ class OrderProcessor {
                 'next_billing_date' => $next_billing_date,
                 'billing_cycle' => $billing_cycle,
                 'total_amount' => $plan['final_price'],
-                'delivery_days' => json_encode([$delivery_day]), // Array with single day
+                'delivery_days' => json_encode([$delivery_date]), // Array with the selected date
                 'preferred_time' => $postData['preferred_time'] ?? 'afternoon',
                 'delivery_instructions' => CheckoutUtils::sanitizeInput($postData['delivery_instructions'] ?? '')
             ];
@@ -368,7 +377,7 @@ class OrderProcessor {
             
             $payment_result = $this->createPayment($payment_data);
             
-            // Create subscription menus for single delivery date
+            // Create subscription menus for delivery date
             $this->createSubscriptionMenus($subscription_id, $selected_meals, $start_date);
             
             // Update user profile
@@ -421,14 +430,22 @@ try {
         }
     }
     
+    // **FIX: Populate meal details if missing (coming from meal-selection.php)**
+    if (isset($order['selected_meals']) && !empty($order['selected_meals']) && 
+        (!isset($order['meal_details']) || empty($order['meal_details']))) {
+        
+        $meal_details = CheckoutDataManager::populateMealDetails($db, $order['selected_meals']);
+        $order['meal_details'] = $meal_details;
+        
+        // Update session with the populated meal details
+        $_SESSION['checkout_data'] = $order;
+    }
+    
     // Extract order components
     $plan = $order['plan'];
     $selected_meals = $order['selected_meals'] ?? [];
     $meal_details = $order['meal_details'] ?? [];
     $total_price = $plan['final_price'];
-    
-    // Get weekend dates
-    $delivery_dates = DeliveryDateGenerator::getDeliveryDates();
     
     // Process form submission
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['submit_order']) || !empty($_POST['payment_method']))) {
@@ -709,6 +726,25 @@ if ($success) {
             border-bottom: none;
         }
 
+        .meal-name {
+            flex: 1;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        .meal-price {
+            color: var(--curry);
+            font-weight: 600;
+        }
+
+        /* Empty meals state */
+        .no-meals-message {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-gray);
+            font-style: italic;
+        }
+
         .total {
             font-size: 1.5rem;
             color: var(--curry);
@@ -826,109 +862,6 @@ if ($success) {
             z-index: 1;
         }
 
-        /* Delivery Day Selection (Improved for single selection) */
-        .delivery-days-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .delivery-day-option {
-            position: relative;
-            cursor: pointer;
-        }
-
-        .delivery-day-option input[type="radio"] {
-            position: absolute;
-            opacity: 0;
-            width: 100%;
-            height: 100%;
-            cursor: pointer;
-        }
-
-        .delivery-day-card {
-            padding: 1.5rem;
-            border: 2px solid var(--border-light);
-            border-radius: var(--radius-lg);
-            transition: var(--transition);
-            background: var(--white);
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .delivery-day-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, rgba(207, 114, 58, 0.1), rgba(189, 147, 121, 0.1));
-            opacity: 0;
-            transition: var(--transition);
-        }
-
-        .delivery-day-option:hover .delivery-day-card {
-            border-color: var(--curry);
-            transform: translateY(-3px);
-            box-shadow: 0 6px 20px rgba(207, 114, 58, 0.2);
-        }
-
-        .delivery-day-option:hover .delivery-day-card::before {
-            opacity: 1;
-        }
-
-        .delivery-day-option input[type="radio"]:checked + .delivery-day-card {
-            border-color: var(--curry);
-            background: linear-gradient(135deg, rgba(207, 114, 58, 0.1), rgba(189, 147, 121, 0.1));
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(207, 114, 58, 0.3);
-        }
-
-        .delivery-day-option input[type="radio"]:checked + .delivery-day-card::after {
-            content: '✓';
-            position: absolute;
-            top: 10px;
-            right: 15px;
-            background: var(--curry);
-            color: var(--white);
-            width: 25px;
-            height: 25px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 14px;
-        }
-
-        .delivery-day-title {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: var(--text-dark);
-            margin-bottom: 0.5rem;
-            z-index: 1;
-            position: relative;
-        }
-
-        .delivery-day-date {
-            color: var(--curry);
-            font-weight: 600;
-            font-size: 0.9rem;
-            z-index: 1;
-            position: relative;
-        }
-
-        .delivery-day-info {
-            color: var(--text-gray);
-            font-size: 0.8rem;
-            margin-top: 0.3rem;
-            z-index: 1;
-            position: relative;
-        }
-
         .error {
             background: linear-gradient(135deg, #ffebee, #fce4ec);
             color: var(--danger);
@@ -982,6 +915,228 @@ if ($success) {
             color: var(--curry);
         }
 
+        /* Date Selection Styles - Custom Calendar */
+        .date-selection-container {
+            position: relative;
+        }
+
+        .custom-calendar {
+            background: var(--white);
+            border: 2px solid var(--border-light);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: var(--shadow-soft);
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--cream);
+        }
+
+        .calendar-nav {
+            background: var(--cream);
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+            color: var(--curry);
+            font-size: 1rem;
+        }
+
+        .calendar-nav:hover {
+            background: var(--curry);
+            color: var(--white);
+            transform: scale(1.1);
+        }
+
+        .calendar-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            text-align: center;
+            flex: 1;
+        }
+
+        .calendar-weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .weekday {
+            text-align: center;
+            font-weight: 600;
+            color: var(--text-gray);
+            padding: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .weekday.highlight {
+            color: var(--curry);
+            font-weight: 700;
+        }
+
+        .calendar-days {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 0.5rem;
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: var(--transition);
+            font-weight: 600;
+            position: relative;
+            background: var(--white);
+            border: 1px solid transparent;
+            min-height: 40px;
+            user-select: none;
+        }
+
+        .calendar-day.other-month {
+            color: var(--text-gray);
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .calendar-day.disabled {
+            color: var(--text-gray);
+            opacity: 0.4;
+            cursor: not-allowed;
+            background: #f8f8f8;
+        }
+
+        .calendar-day.available {
+            color: var(--curry);
+            background: var(--cream);
+            border-color: var(--curry);
+            font-weight: 700;
+        }
+
+        .calendar-day.available:hover {
+            background: var(--curry);
+            color: var(--white);
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(207, 114, 58, 0.3);
+        }
+
+        .calendar-day.selected {
+            background: var(--curry);
+            color: var(--white);
+            transform: scale(1.05);
+            box-shadow: 0 4px 16px rgba(207, 114, 58, 0.4);
+            border-color: var(--brown);
+        }
+
+        .calendar-day.today {
+            position: relative;
+        }
+
+        .calendar-day.today::after {
+            content: '';
+            position: absolute;
+            bottom: 2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 4px;
+            background: var(--sage);
+            border-radius: 50%;
+        }
+
+        .calendar-day.available.today::after {
+            background: var(--curry);
+        }
+
+        .calendar-day.selected.today::after {
+            background: var(--white);
+        }
+
+        /* Calendar animations */
+        .custom-calendar {
+            animation: calendarFadeIn 0.3s ease-out;
+        }
+
+        @keyframes calendarFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .calendar-day {
+            animation: dayFadeIn 0.2s ease-out;
+        }
+
+        @keyframes dayFadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .date-error-message, .date-success-message {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            transition: var(--transition);
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .date-error-message {
+            background: linear-gradient(135deg, #ffebee, #fce4ec);
+            color: var(--danger);
+            border: 2px solid #ffcdd2;
+        }
+
+        .date-success-message {
+            background: linear-gradient(135deg, #e8f5e8, #f0f8f0);
+            color: var(--success);
+            border: 2px solid var(--sage);
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
         .success-message {
             background: linear-gradient(135deg, #d4edda, #c3e6cb);
             color: var(--success);
@@ -1023,12 +1178,23 @@ if ($success) {
                 font-size: 1rem;
             }
 
-            .delivery-days-grid {
+            .payment-methods {
                 grid-template-columns: 1fr;
             }
 
-            .payment-methods {
-                grid-template-columns: 1fr;
+            .custom-calendar {
+                padding: 1rem;
+                max-width: 100%;
+            }
+
+            .calendar-title {
+                font-size: 1.1rem;
+            }
+
+            .calendar-nav {
+                width: 35px;
+                height: 35px;
+                font-size: 0.9rem;
             }
         }
 
@@ -1057,12 +1223,27 @@ if ($success) {
                 gap: 0.5rem;
             }
 
-            .delivery-days-grid {
-                grid-template-columns: 1fr;
+            .custom-calendar {
+                padding: 0.8rem;
             }
 
-            .delivery-day-card {
-                padding: 1rem;
+            .calendar-title {
+                font-size: 1rem;
+            }
+
+            .calendar-nav {
+                width: 30px;
+                height: 30px;
+                font-size: 0.8rem;
+            }
+
+            .weekday {
+                font-size: 0.8rem;
+                padding: 0.3rem;
+            }
+
+            .calendar-day {
+                font-size: 0.9rem;
             }
         }
     </style>
@@ -1136,15 +1317,27 @@ if ($success) {
         <!-- Meals Summary -->
         <div class="section meals-summary">
             <div class="label"><i class="fas fa-utensils"></i> Selected Meals</div>
-            <ul class="meal-list">
-                <?php foreach ($selected_meals as $meal_id): ?>
-                    <?php $meal = $meal_details[$meal_id] ?? null; if (!$meal) continue; ?>
-                    <li>
-                        <span><?php echo htmlspecialchars(CheckoutUtils::getMenuName($meal)); ?></span>
-                        <span style="color: var(--curry); font-weight: 600;">($<?php echo number_format($meal['base_price']/100, 2); ?>)</span>
-                    </li>
-                <?php endforeach; ?>
-            </ul>
+            <?php if (!empty($selected_meals) && !empty($meal_details)): ?>
+                <ul class="meal-list">
+                    <?php foreach ($selected_meals as $meal_id): ?>
+                        <?php $meal = $meal_details[$meal_id] ?? null; if (!$meal) continue; ?>
+                        <li>
+                            <div class="meal-name"><?php echo htmlspecialchars(CheckoutUtils::getMenuName($meal)); ?></div>
+                            <div class="meal-price">$<?php echo number_format($meal['base_price']/100, 2); ?></div>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php else: ?>
+                <div class="no-meals-message">
+                    <i class="fas fa-exclamation-triangle" style="color: var(--warning); margin-right: 0.5rem;"></i>
+                    No meals selected or meal details unavailable. Please go back and select your meals.
+                    <br><br>
+                    <a href="meal-selection.php?plan=<?php echo urlencode($plan['id'] ?? ''); ?>" 
+                       style="color: var(--curry); text-decoration: none; font-weight: 600;">
+                        ← Back to Meal Selection
+                    </a>
+                </div>
+            <?php endif; ?>
         </div>
 
         <!-- Order Form -->
@@ -1166,21 +1359,52 @@ if ($success) {
                 <div class="weekend-info">
                     <i class="fas fa-info-circle"></i>
                     <div class="weekend-info-content">
-                        <strong>Delivery Schedule:</strong> Choose one delivery day from available dates. We deliver fresh Thai meals on Wednesdays and Saturdays only.
+                        <strong>Delivery Schedule:</strong> We deliver fresh Thai meals on <strong>Wednesdays and Saturdays only</strong>. Please select your preferred delivery date below.
                     </div>
                 </div>
                 
-                <div class="delivery-days-grid">
-                    <?php foreach($delivery_dates as $val => $dateInfo): ?>
-                        <div class="delivery-day-option">
-                            <input type="radio" name="delivery_day" value="<?php echo htmlspecialchars($val); ?>" id="delivery_<?php echo htmlspecialchars($val); ?>" required>
-                            <div class="delivery-day-card">
-                                <div class="delivery-day-title"><?php echo htmlspecialchars($dateInfo['day']); ?></div>
-                                <div class="delivery-day-date"><?php echo htmlspecialchars($dateInfo['label']); ?></div>
-                                <div class="delivery-day-info"><?php echo htmlspecialchars($dateInfo['formatted']); ?></div>
+                <div class="date-selection-container">
+                    <!-- Custom Calendar -->
+                    <div class="custom-calendar">
+                        <div class="calendar-header">
+                            <button type="button" class="calendar-nav" id="prev-month">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <div class="calendar-title" id="calendar-title">
+                                <!-- Month Year will be populated by JavaScript -->
                             </div>
+                            <button type="button" class="calendar-nav" id="next-month">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
                         </div>
-                    <?php endforeach; ?>
+                        
+                        <div class="calendar-weekdays">
+                            <div class="weekday">Sun</div>
+                            <div class="weekday">Mon</div>
+                            <div class="weekday">Tue</div>
+                            <div class="weekday highlight">Wed</div>
+                            <div class="weekday">Thu</div>
+                            <div class="weekday">Fri</div>
+                            <div class="weekday highlight">Sat</div>
+                        </div>
+                        
+                        <div class="calendar-days" id="calendar-days">
+                            <!-- Days will be populated by JavaScript -->
+                        </div>
+                    </div>
+                    
+                    <!-- Hidden input to store the selected date -->
+                    <input type="hidden" name="delivery_day" id="delivery_date" required>
+                    
+                    <div id="date-error" class="date-error-message" style="display: none;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Please select a Wednesday or Saturday for delivery.
+                    </div>
+                    
+                    <div id="date-success" class="date-success-message" style="display: none;">
+                        <i class="fas fa-check-circle"></i>
+                        <span id="selected-day-name"></span> delivery selected!
+                    </div>
                 </div>
                 
                 <div class="label" style="margin-top:2rem;"><i class="fas fa-clock"></i> Preferred Delivery Time</div>
@@ -1238,8 +1462,192 @@ if ($success) {
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('✅ Improved checkout page loaded');
+            console.log('✅ Updated checkout page loaded');
             
+            // Calendar functionality
+            class DeliveryCalendar {
+                constructor() {
+                    this.currentDate = new Date();
+                    this.selectedDate = null;
+                    this.calendarTitle = document.getElementById('calendar-title');
+                    this.calendarDays = document.getElementById('calendar-days');
+                    this.deliveryDateInput = document.getElementById('delivery_date');
+                    this.dateError = document.getElementById('date-error');
+                    this.dateSuccess = document.getElementById('date-success');
+                    this.selectedDayName = document.getElementById('selected-day-name');
+                    
+                    this.init();
+                }
+                
+                init() {
+                    this.renderCalendar();
+                    this.attachEventListeners();
+                }
+                
+                attachEventListeners() {
+                    document.getElementById('prev-month')?.addEventListener('click', () => {
+                        this.currentDate.setMonth(this.currentDate.getMonth() - 1);
+                        this.renderCalendar();
+                    });
+                    
+                    document.getElementById('next-month')?.addEventListener('click', () => {
+                        this.currentDate.setMonth(this.currentDate.getMonth() + 1);
+                        this.renderCalendar();
+                    });
+                }
+                
+                renderCalendar() {
+                    const year = this.currentDate.getFullYear();
+                    const month = this.currentDate.getMonth();
+                    
+                    // Update calendar title
+                    const monthNames = [
+                        'January', 'February', 'March', 'April', 'May', 'June',
+                        'July', 'August', 'September', 'October', 'November', 'December'
+                    ];
+                    this.calendarTitle.textContent = `${monthNames[month]} ${year}`;
+                    
+                    // Clear previous days
+                    this.calendarDays.innerHTML = '';
+                    
+                    // Get first day of month and number of days
+                    const firstDay = new Date(year, month, 1);
+                    const lastDay = new Date(year, month + 1, 0);
+                    const firstDayOfWeek = firstDay.getDay();
+                    const daysInMonth = lastDay.getDate();
+                    
+                    // Get previous month's last days to fill the first week
+                    const prevMonth = new Date(year, month - 1, 0);
+                    const daysInPrevMonth = prevMonth.getDate();
+                    
+                    const today = new Date();
+                    const maxDate = new Date();
+                    maxDate.setDate(maxDate.getDate() + 28); // 4 weeks from today
+                    
+                    // Add previous month's trailing days
+                    for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+                        const dayNum = daysInPrevMonth - i;
+                        const dayElement = this.createDayElement(dayNum, 'other-month');
+                        this.calendarDays.appendChild(dayElement);
+                    }
+                    
+                    // Add current month's days
+                    for (let day = 1; day <= daysInMonth; day++) {
+                        const currentDayDate = new Date(year, month, day);
+                        const dayOfWeek = currentDayDate.getDay(); // 0=Sunday, 3=Wednesday, 6=Saturday
+                        const isToday = this.isSameDate(currentDayDate, today);
+                        
+                        let dayClass = '';
+                        let isClickable = false;
+                        
+                        // Check if it's Wednesday (3) or Saturday (6)
+                        if (dayOfWeek === 3 || dayOfWeek === 6) {
+                            // Check if it's not in the past and within 4 weeks
+                            if (currentDayDate >= today && currentDayDate <= maxDate) {
+                                dayClass = 'available';
+                                isClickable = true;
+                            } else if (currentDayDate < today) {
+                                dayClass = 'disabled';
+                            } else {
+                                dayClass = 'disabled';
+                            }
+                        } else {
+                            dayClass = 'disabled';
+                        }
+                        
+                        if (isToday) {
+                            dayClass += ' today';
+                        }
+                        
+                        // Check if this day is selected
+                        if (this.selectedDate && this.isSameDate(currentDayDate, this.selectedDate)) {
+                            dayClass += ' selected';
+                        }
+                        
+                        const dayElement = this.createDayElement(day, dayClass, isClickable, currentDayDate);
+                        this.calendarDays.appendChild(dayElement);
+                    }
+                    
+                    // Add next month's leading days to complete the grid
+                    const totalCells = this.calendarDays.children.length;
+                    const remainingCells = 42 - totalCells; // 6 rows × 7 days = 42
+                    
+                    for (let day = 1; day <= remainingCells && day <= 14; day++) {
+                        const dayElement = this.createDayElement(day, 'other-month');
+                        this.calendarDays.appendChild(dayElement);
+                    }
+                }
+                
+                createDayElement(dayNum, className = '', isClickable = false, date = null) {
+                    const dayElement = document.createElement('div');
+                    dayElement.className = `calendar-day ${className}`;
+                    dayElement.textContent = dayNum;
+                    
+                    if (isClickable && date) {
+                        dayElement.style.cursor = 'pointer';
+                        dayElement.addEventListener('click', () => {
+                            this.selectDate(date, dayElement);
+                        });
+                    }
+                    
+                    return dayElement;
+                }
+                
+                selectDate(date, element) {
+                    // Remove previous selection
+                    const previousSelected = this.calendarDays.querySelector('.calendar-day.selected');
+                    if (previousSelected) {
+                        previousSelected.classList.remove('selected');
+                    }
+                    
+                    // Add selection to clicked element
+                    element.classList.add('selected');
+                    
+                    // Update selected date
+                    this.selectedDate = new Date(date);
+                    
+                    // Format date for form input (YYYY-MM-DD)
+                    const formattedDate = this.formatDateForInput(date);
+                    this.deliveryDateInput.value = formattedDate;
+                    
+                    // Show success message
+                    const dayOfWeek = date.getDay();
+                    const dayName = dayOfWeek === 3 ? 'Wednesday' : 'Saturday';
+                    const formattedDisplay = this.formatDateForDisplay(date);
+                    
+                    this.selectedDayName.textContent = `${dayName}, ${formattedDisplay}`;
+                    this.dateError.style.display = 'none';
+                    this.dateSuccess.style.display = 'flex';
+                    
+                    console.log('✅ Date selected:', formattedDate, dayName);
+                }
+                
+                formatDateForInput(date) {
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    return `${year}-${month}-${day}`;
+                }
+                
+                formatDateForDisplay(date) {
+                    const monthNames = [
+                        'January', 'February', 'March', 'April', 'May', 'June',
+                        'July', 'August', 'September', 'October', 'November', 'December'
+                    ];
+                    return `${monthNames[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+                }
+                
+                isSameDate(date1, date2) {
+                    return date1.getFullYear() === date2.getFullYear() &&
+                           date1.getMonth() === date2.getMonth() &&
+                           date1.getDate() === date2.getDate();
+                }
+            }
+            
+            // Initialize calendar
+            const calendar = new DeliveryCalendar();
+            
+            // Form validation and submission
             const form = document.getElementById('checkout-form');
             const submitBtn = document.getElementById('main-submit-btn');
             
@@ -1274,10 +1682,24 @@ if ($success) {
                         errors.push('Please select a payment method');
                     }
                     
-                    // Delivery day validation (single selection)
-                    const deliveryDay = document.querySelector('input[name="delivery_day"]:checked');
-                    if (!deliveryDay) {
-                        errors.push('Please select a delivery day');
+                    // Delivery date validation
+                    const deliveryDate = document.querySelector('input[name="delivery_day"]');
+                    if (!deliveryDate || !deliveryDate.value) {
+                        errors.push('Please select a delivery date');
+                    } else {
+                        const selectedDate = new Date(deliveryDate.value);
+                        const dayOfWeek = selectedDate.getDay();
+                        if (dayOfWeek !== 3 && dayOfWeek !== 6) {
+                            errors.push('Please select a Wednesday or Saturday for delivery');
+                        }
+                        
+                        // Check if date is not in the past
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        selectedDate.setHours(0, 0, 0, 0);
+                        if (selectedDate < today) {
+                            errors.push('Please select a future date for delivery');
+                        }
                     }
                     
                     return errors;
@@ -1319,28 +1741,6 @@ if ($success) {
                     return true;
                 });
                 
-                // Delivery day selection enhancement
-                const deliveryDayOptions = document.querySelectorAll('.delivery-day-option');
-                deliveryDayOptions.forEach(option => {
-                    const radio = option.querySelector('input[type="radio"]');
-                    const card = option.querySelector('.delivery-day-card');
-                    
-                    option.addEventListener('click', function() {
-                        // Remove selection from all other options
-                        deliveryDayOptions.forEach(opt => {
-                            opt.querySelector('input[type="radio"]').checked = false;
-                        });
-                        
-                        // Select this option
-                        radio.checked = true;
-                        
-                        // Trigger change event for validation
-                        radio.dispatchEvent(new Event('change'));
-                        
-                        console.log('📅 Delivery day selected:', radio.value);
-                    });
-                });
-                
                 // Payment method selection enhancement
                 const paymentOptions = document.querySelectorAll('.payment-methods label');
                 paymentOptions.forEach(label => {
@@ -1357,12 +1757,14 @@ if ($success) {
                         const firstPayment = document.querySelector('input[name="payment_method"]');
                         if (firstPayment) firstPayment.checked = true;
                         
-                        // Auto-select first delivery day
-                        const firstDelivery = document.querySelector('input[name="delivery_day"]');
-                        if (firstDelivery) firstDelivery.checked = true;
+                        // Auto-select the first available delivery date
+                        const firstAvailableDay = document.querySelector('.calendar-day.available');
+                        if (firstAvailableDay) {
+                            firstAvailableDay.click();
+                        }
                         
                         console.log('🧪 Demo data auto-filled');
-                    }, 500);
+                    }, 1000);
                 }
                 
                 // Real-time validation feedback
@@ -1377,7 +1779,7 @@ if ($success) {
                     });
                     
                     input.addEventListener('input', function() {
-                        if (this.style.borderColor === 'rgb(231, 76, 60)') { // var(--danger)
+                        if (this.style.borderColor === 'rgb(231, 76, 60)') {
                             this.style.borderColor = 'var(--border-light)';
                         }
                     });
