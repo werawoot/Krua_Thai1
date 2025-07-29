@@ -128,6 +128,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $response['message'] = 'Cart cleared';
             $response['cart_totals'] = CartManager::calculateCartTotals([]);
             break;
+
+
+                case 'prepare_guest_checkout':
+        // Ensure cart is properly stored in session
+        if (!empty($_SESSION['cart'])) {
+            $response['success'] = true;
+            $response['message'] = 'Cart prepared for guest checkout';
+            $response['cart_items'] = count($_SESSION['cart']);
+        } else {
+            $response['message'] = 'Cart is empty';
+        }
+        break;
     }
     
     echo json_encode($response);
@@ -1078,21 +1090,46 @@ if (isset($_GET['added']) && $_GET['added'] == '1') {
             }
         }
 
-        // Proceed as guest
-        function proceedAsGuest() {
-            // Transfer cart data to guest checkout
-            showLoading(true);
-            
-            // For guest users, we'll redirect to guest-checkout with cart data
-            const cartData = <?php echo json_encode($cart_items); ?>;
-            
-            // Store cart in sessionStorage for guest checkout
-            sessionStorage.setItem('guest_cart', JSON.stringify(cartData));
-            sessionStorage.setItem('cart_totals', JSON.stringify(<?php echo json_encode($cart_totals); ?>));
-            
-            // Redirect to guest checkout
+ // Proceed as guest
+function proceedAsGuest() {
+    // Show loading state
+    showLoading(true);
+    
+    // Get current cart from PHP (already available)
+    const cartData = <?php echo json_encode($cart_items); ?>;
+    const cartTotals = <?php echo json_encode($cart_totals); ?>;
+    
+    // Validate cart is not empty
+    if (!cartData || cartData.length === 0) {
+        alert('Your cart is empty. Please add items first.');
+        showLoading(false);
+        return;
+    }
+    
+    // Store cart data in PHP session via AJAX
+    fetch(window.location.href, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'action=prepare_guest_checkout'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Redirect to guest checkout with cart source
             window.location.href = 'guest-checkout.php?source=cart';
+        } else {
+            alert('Error preparing checkout: ' + data.message);
+            showLoading(false);
         }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while preparing checkout.');
+        showLoading(false);
+    });
+}
 
         // Update cart totals display
         function updateCartTotals(totals) {
