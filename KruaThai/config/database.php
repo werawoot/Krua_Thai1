@@ -7,9 +7,9 @@
 
 // Database configuration
 define('DB_HOST', 'localhost');
-define('DB_NAME', 'krua_thai');
+define('DB_NAME', 'kruathai');
 define('DB_USER', 'root');
-define('DB_PASS', ''); // Change to 'root' for MAMP or your password
+define('DB_PASS', 'root'); // Change to 'root' for MAMP or your password
 
 class Database {
     private $host = DB_HOST;
