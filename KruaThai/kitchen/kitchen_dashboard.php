@@ -322,6 +322,7 @@ if ($export_type === 'json') {
     <title>Kitchen Dashboard - Somdul Table</title>
     <link href="https://ydpschool.com/fonts/BaticaSans.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
         :root {
             /* Somdul Table Brand Colors */
@@ -923,6 +924,266 @@ if ($export_type === 'json') {
                 flex-direction: column;
             }
         }
+
+/* Full Calendar Grid Styles */
+.calendar-dropdown {
+    position: relative;
+    width: 100%;
+}
+
+.calendar-trigger {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 2px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    background: white;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: var(--transition);
+    font-family: inherit;
+    font-size: 1rem;
+}
+
+.calendar-trigger:hover,
+.calendar-trigger.active {
+    border-color: var(--curry);
+    box-shadow: 0 0 0 3px rgba(207, 114, 58, 0.1);
+}
+
+.calendar-trigger-content {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.calendar-trigger-icon {
+    color: var(--curry);
+    font-size: 1.1rem;
+}
+
+.calendar-trigger-text {
+    font-weight: 500;
+    color: var(--text-dark);
+}
+
+.calendar-trigger-arrow {
+    color: var(--text-gray);
+    transition: transform 0.3s ease;
+}
+
+.calendar-trigger.active .calendar-trigger-arrow {
+    transform: rotate(180deg);
+}
+
+.calendar-dropdown-panel {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 2px solid var(--curry);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-medium);
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+    min-width: 320px;
+}
+
+.calendar-dropdown-panel.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: linear-gradient(135deg, var(--cream), #f8f6f3);
+    border-bottom: 1px solid var(--border-light);
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+
+.calendar-nav-btn {
+    background: none;
+    border: none;
+    color: var(--curry);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 50%;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+}
+
+.calendar-nav-btn:hover {
+    background: var(--curry);
+    color: white;
+    transform: scale(1.1);
+}
+
+.calendar-title {
+    font-weight: 600;
+    color: var(--curry);
+    font-size: 1.1rem;
+    min-width: 140px;
+    text-align: center;
+}
+
+.calendar-grid {
+    padding: 1rem;
+}
+
+.calendar-days-header {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0.25rem;
+    margin-bottom: 0.5rem;
+}
+
+.calendar-day-header {
+    text-align: center;
+    font-weight: 600;
+    color: var(--text-gray);
+    font-size: 0.8rem;
+    padding: 0.5rem;
+}
+
+.calendar-days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0.25rem;
+}
+
+.calendar-day {
+    aspect-ratio: 1;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--transition);
+    position: relative;
+    min-height: 40px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    background: #f8f9fa;
+}
+
+.calendar-day.other-month {
+    color: #ccc;
+    cursor: not-allowed;
+    background: transparent;
+}
+
+.calendar-day.current-month {
+    color: var(--text-dark);
+    background: white;
+    border-color: var(--border-light);
+}
+
+.calendar-day.delivery-day {
+    background: linear-gradient(135deg, var(--sage), #27ae60);
+    color: white;
+    border-color: var(--sage);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.calendar-day.delivery-day:hover {
+    background: linear-gradient(135deg, #27ae60, var(--sage));
+    transform: scale(1.05);
+    box-shadow: var(--shadow-soft);
+}
+
+.calendar-day.selected {
+    background: linear-gradient(135deg, var(--curry), var(--brown));
+    color: white;
+    border-color: var(--curry);
+    transform: scale(1.05);
+    box-shadow: var(--shadow-soft);
+}
+
+.calendar-day.today {
+    border: 2px solid var(--curry);
+    font-weight: 700;
+}
+
+.calendar-day.disabled {
+    color: #ddd;
+    cursor: not-allowed;
+    background: #f8f9fa;
+}
+
+.calendar-footer {
+    padding: 1rem;
+    border-top: 1px solid var(--border-light);
+    background: var(--cream);
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
+}
+
+.calendar-legend {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.8rem;
+    justify-content: center;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    color: var(--text-gray);
+}
+
+.legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+
+.delivery-dot {
+    background: linear-gradient(135deg, var(--sage), #27ae60);
+}
+
+.selected-dot {
+    background: linear-gradient(135deg, var(--curry), var(--brown));
+}
+
+@media (max-width: 768px) {
+    .calendar-dropdown-panel {
+        left: -1rem;
+        right: -1rem;
+        min-width: auto;
+    }
+    
+    .calendar-grid {
+        padding: 0.75rem;
+    }
+    
+    .calendar-day {
+        min-height: 36px;
+        font-size: 0.8rem;
+    }
+    
+    .calendar-legend {
+        flex-direction: column;
+        gap: 0.5rem;
+        align-items: center;
+    }
+}
+
     </style>
 </head>
 <body>
@@ -975,20 +1236,92 @@ if ($export_type === 'json') {
             </div>
         <?php endif; ?>
 
-        <!-- Dashboard Controls -->
-        <div class="dashboard-controls">
-           <div class="control-group">
-                <label class="control-label">Select Delivery Date (Wed & Sat Only)</label>
-                <select class="control-input" onchange="filterByDate(this.value)">
-                    <?php foreach ($available_delivery_days as $day): ?>
-                        <option value="<?php echo $day['date']; ?>" 
-                                <?php echo ($day['date'] === $selected_date) ? 'selected' : ''; ?>>
-                            <?php echo $day['display']; ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
+  
+<!-- แทนที่ Dashboard Controls Section -->
+<div class="dashboard-controls">
+   <div class="control-group">
+        <label class="control-label">Select Delivery Date (Wed & Sat Only)</label>
+        
+        <!-- Full Calendar Grid แบบใหม่ -->
+        <div class="calendar-dropdown">
+            <div class="calendar-trigger" onclick="toggleCalendar()">
+                <div class="calendar-trigger-content">
+                    <i class="fas fa-calendar-alt calendar-trigger-icon"></i>
+                    <span class="calendar-trigger-text" id="selectedDateText">
+                        <?php echo !empty($selected_date) ? date('D, M j, Y', strtotime($selected_date)) : 'Select Date'; ?>
+                    </span>
+                </div>
+                <i class="fas fa-chevron-down calendar-trigger-arrow"></i>
             </div>
             
+            <div class="calendar-dropdown-panel" id="calendarPanel">
+                <!-- Calendar Header with Navigation -->
+                <div class="calendar-header">
+                    <button type="button" class="calendar-nav-btn" onclick="changeMonth(-1)">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <div class="calendar-title" id="calendarTitle">
+                        January 2025
+                    </div>
+                    <button type="button" class="calendar-nav-btn" onclick="changeMonth(1)">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+                
+                <!-- Days of Week Header -->
+                <div class="calendar-grid">
+                    <div class="calendar-days-header">
+                        <div class="calendar-day-header">S</div>
+                        <div class="calendar-day-header">M</div>
+                        <div class="calendar-day-header">T</div>
+                        <div class="calendar-day-header">W</div>
+                        <div class="calendar-day-header">T</div>
+                        <div class="calendar-day-header">F</div>
+                        <div class="calendar-day-header">S</div>
+                    </div>
+                    
+                    <!-- Calendar Days Grid -->
+                    <div class="calendar-days" id="calendarDays">
+                        <!-- JavaScript จะสร้าง calendar days ที่นี่ -->
+                    </div>
+                </div>
+                
+                <!-- Legend -->
+                <div class="calendar-footer">
+                    <div class="calendar-legend">
+                        <div class="legend-item">
+                            <span class="legend-dot delivery-dot"></span>
+                            <span>Delivery Days (Wed & Sat)</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-dot selected-dot"></span>
+                            <span>Selected Date</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- ส่วนอื่น ๆ เหมือนเดิม -->
+    <div class="control-group">
+        <label class="control-label">Status Filter</label>
+        <select class="control-input" onchange="filterByStatus(this.value)">
+            <option value="all" <?php echo ($status_filter === 'all') ? 'selected' : ''; ?>>All Orders</option>
+            <option value="scheduled" <?php echo ($status_filter === 'scheduled') ? 'selected' : ''; ?>>Scheduled</option>
+            <option value="in_progress" <?php echo ($status_filter === 'in_progress') ? 'selected' : ''; ?>>In Progress</option>
+            <option value="completed" <?php echo ($status_filter === 'completed') ? 'selected' : ''; ?>>Completed</option>
+        </select>
+    </div>
+   
+    <div class="control-group">
+        <label class="control-label">Quick Actions</label>
+        <button class="btn btn-primary" onclick="refreshData()">
+            <i class="fas fa-sync-alt"></i> Refresh
+        </button>
+    </div>
+</div>
+
             <div class="control-group">
                 <label class="control-label">Status Filter</label>
                 <select class="control-input" onchange="filterByStatus(this.value)">
@@ -1623,6 +1956,172 @@ if ($export_type === 'json') {
             link.click();
             document.body.removeChild(link);
         }
+
+
+        let calendarOpen = false;
+let currentCalendarDate = new Date();
+let availableDeliveryDates = <?php echo json_encode($available_delivery_days); ?>;
+let selectedDateValue = '<?php echo $selected_date; ?>';
+
+function toggleCalendar() {
+    const trigger = document.querySelector('.calendar-trigger');
+    const panel = document.getElementById('calendarPanel');
+    
+    calendarOpen = !calendarOpen;
+    
+    if (calendarOpen) {
+        trigger.classList.add('active');
+        panel.classList.add('active');
+        generateCalendar();
+    } else {
+        trigger.classList.remove('active');
+        panel.classList.remove('active');
+    }
+}
+
+function changeMonth(direction) {
+    currentCalendarDate.setMonth(currentCalendarDate.getMonth() + direction);
+    generateCalendar();
+}
+
+function generateCalendar() {
+    const year = currentCalendarDate.getFullYear();
+    const month = currentCalendarDate.getMonth();
+    
+    // Update calendar title
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'];
+    document.getElementById('calendarTitle').textContent = `${monthNames[month]} ${year}`;
+    
+    // Get first day of month and number of days
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDayOfWeek = firstDay.getDay(); // 0 = Sunday
+    
+    // Get previous month's last days
+    const prevMonth = new Date(year, month, 0);
+    const daysInPrevMonth = prevMonth.getDate();
+    
+    let calendarHTML = '';
+    let dayCount = 1;
+    let nextMonthDay = 1;
+    
+    // Generate 6 weeks (42 days) to fill calendar grid
+    for (let week = 0; week < 6; week++) {
+        for (let day = 0; day < 7; day++) {
+            const cellIndex = week * 7 + day;
+            let dayNumber, cellClass, cellDate, isClickable = false;
+            
+            if (cellIndex < startingDayOfWeek) {
+                // Previous month days
+                dayNumber = daysInPrevMonth - startingDayOfWeek + cellIndex + 1;
+                cellClass = 'calendar-day other-month';
+                cellDate = new Date(year, month - 1, dayNumber);
+            } else if (dayCount <= daysInMonth) {
+                // Current month days
+                dayNumber = dayCount;
+                cellClass = 'calendar-day current-month';
+                cellDate = new Date(year, month, dayNumber);
+                
+                // Check if it's today
+                const today = new Date();
+                if (cellDate.toDateString() === today.toDateString()) {
+                    cellClass += ' today';
+                }
+                
+                // Check if it's a delivery day (Wednesday = 3, Saturday = 6)
+                const dayOfWeek = cellDate.getDay();
+                if (dayOfWeek === 3 || dayOfWeek === 6) { // Wednesday or Saturday
+                    const dateString = cellDate.getFullYear() + '-' + 
+                        String(cellDate.getMonth() + 1).padStart(2, '0') + '-' + 
+                        String(cellDate.getDate()).padStart(2, '0');
+                    
+                    // Check if this delivery date has available orders
+                    const hasDelivery = availableDeliveryDates.some(d => d.date === dateString);
+                    
+                    if (hasDelivery) {
+                        cellClass += ' delivery-day';
+                        isClickable = true;
+                        
+                        // Check if selected
+                        if (dateString === selectedDateValue) {
+                            cellClass += ' selected';
+                        }
+                    } else {
+                        cellClass += ' disabled';
+                    }
+                } else {
+                    cellClass += ' disabled';
+                }
+                
+                dayCount++;
+            } else {
+                // Next month days
+                dayNumber = nextMonthDay;
+                cellClass = 'calendar-day other-month';
+                cellDate = new Date(year, month + 1, nextMonthDay);
+                nextMonthDay++;
+            }
+            
+            const clickHandler = isClickable ? 
+                `onclick="selectCalendarDate('${cellDate.getFullYear()}-${String(cellDate.getMonth() + 1).padStart(2, '0')}-${String(cellDate.getDate()).padStart(2, '0')}')"` : '';
+            
+            calendarHTML += `<div class="${cellClass}" ${clickHandler}>${dayNumber}</div>`;
+        }
+        
+        // Stop generating weeks if we've shown all days of current month and next month days
+        if (dayCount > daysInMonth && nextMonthDay > 7) break;
+    }
+    
+    document.getElementById('calendarDays').innerHTML = calendarHTML;
+}
+
+function selectCalendarDate(dateString) {
+    // Find the delivery date object
+    const deliveryDate = availableDeliveryDates.find(d => d.date === dateString);
+    
+    if (deliveryDate) {
+        // Update display text
+        const date = new Date(dateString);
+        const displayText = deliveryDate.display;
+        document.getElementById('selectedDateText').textContent = displayText;
+        
+        // Close calendar
+        document.querySelector('.calendar-trigger').classList.remove('active');
+        document.getElementById('calendarPanel').classList.remove('active');
+        calendarOpen = false;
+        
+        // Navigate to selected date (ใช้ฟังก์ชันเดิม)
+        filterByDate(dateString);
+    }
+}
+
+// Close calendar when clicking outside
+document.addEventListener('click', function(event) {
+    const dropdown = document.querySelector('.calendar-dropdown');
+    
+    if (calendarOpen && !dropdown.contains(event.target)) {
+        document.querySelector('.calendar-trigger').classList.remove('active');
+        document.getElementById('calendarPanel').classList.remove('active');
+        calendarOpen = false;
+    }
+});
+
+// Keyboard support
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape' && calendarOpen) {
+        toggleCalendar();
+    }
+});
+
+// Initialize calendar when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Set current calendar date to selected date or current month
+    if (selectedDateValue) {
+        currentCalendarDate = new Date(selectedDateValue);
+    }
+});
     </script>
 </body>
 </html>

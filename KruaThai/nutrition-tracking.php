@@ -1,9 +1,11 @@
 <?php
 /**
- * Krua Thai - Nutrition Tracking System
+ * Krua Thai - Nutrition Tracking System (US ENGLISH VERSION)
  * File: nutrition-tracking.php
  * Features: Track daily nutrition, set goals, view progress, meal analysis
  * Status: PRODUCTION READY ✅
+ * Language: English (US)
+ * Market: United States
  */
 
 error_reporting(E_ALL);
@@ -70,7 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
                 }
                 
                 $response['success'] = true;
-                $response['message'] = 'เป้าหมายโภชนาการได้รับการอัพเดทแล้ว';
+                $response['message'] = 'Nutrition goals updated successfully';
                 break;
                 
             case 'get_nutrition_data':
@@ -225,7 +227,7 @@ try {
 $page_title = "Nutrition Tracking";
 ?>
 <!DOCTYPE html>
-<html lang="th">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -762,8 +764,8 @@ $page_title = "Nutrition Tracking";
         <!-- Nutrition Header -->
         <div class="nutrition-header">
             <div class="container">
-                <h1>🍽️ ติดตามโภชนาการ</h1>
-                <p>ติดตามและวิเคราะห์โภชนาการจากอาหารไทยเพื่อสุขภาพของคุณ</p>
+                <h1>🍽️ Nutrition Tracking</h1>
+                <p>Track and analyze nutrition from your healthy Thai meals</p>
             </div>
         </div>
 
@@ -772,33 +774,33 @@ $page_title = "Nutrition Tracking";
             <div class="summary-grid">
                 <div class="summary-card">
                     <div class="summary-value" id="todayCalories"><?= number_format($today_data['total_calories']) ?></div>
-                    <div class="summary-label">แคลอรี่วันนี้</div>
+                    <div class="summary-label">Today's Calories</div>
                     <div class="summary-progress">
-                        <?= $nutrition_goals['target_calories'] ? round(($today_data['total_calories'] / $nutrition_goals['target_calories']) * 100) : 0 ?>% จากเป้าหมาย
+                        <?= $nutrition_goals['target_calories'] ? round(($today_data['total_calories'] / $nutrition_goals['target_calories']) * 100) : 0 ?>% of goal
                     </div>
                 </div>
                 
                 <div class="summary-card">
                     <div class="summary-value" id="todayProtein"><?= number_format($today_data['total_protein_g'], 1) ?>g</div>
-                    <div class="summary-label">โปรตีน</div>
+                    <div class="summary-label">Protein</div>
                     <div class="summary-progress">
-                        <?= $nutrition_goals['target_protein_g'] ? round(($today_data['total_protein_g'] / $nutrition_goals['target_protein_g']) * 100) : 0 ?>% จากเป้าหมาย
+                        <?= $nutrition_goals['target_protein_g'] ? round(($today_data['total_protein_g'] / $nutrition_goals['target_protein_g']) * 100) : 0 ?>% of goal
                     </div>
                 </div>
                 
                 <div class="summary-card">
                     <div class="summary-value" id="todayCarbs"><?= number_format($today_data['total_carbs_g'], 1) ?>g</div>
-                    <div class="summary-label">คาร์โบไฮเดรต</div>
+                    <div class="summary-label">Carbohydrates</div>
                     <div class="summary-progress">
-                        <?= $nutrition_goals['target_carbs_g'] ? round(($today_data['total_carbs_g'] / $nutrition_goals['target_carbs_g']) * 100) : 0 ?>% จากเป้าหมาย
+                        <?= $nutrition_goals['target_carbs_g'] ? round(($today_data['total_carbs_g'] / $nutrition_goals['target_carbs_g']) * 100) : 0 ?>% of goal
                     </div>
                 </div>
                 
                 <div class="summary-card">
                     <div class="summary-value" id="todayFat"><?= number_format($today_data['total_fat_g'], 1) ?>g</div>
-                    <div class="summary-label">ไขมัน</div>
+                    <div class="summary-label">Fat</div>
                     <div class="summary-progress">
-                        <?= $nutrition_goals['target_fat_g'] ? round(($today_data['total_fat_g'] / $nutrition_goals['target_fat_g']) * 100) : 0 ?>% จากเป้าหมาย
+                        <?= $nutrition_goals['target_fat_g'] ? round(($today_data['total_fat_g'] / $nutrition_goals['target_fat_g']) * 100) : 0 ?>% of goal
                     </div>
                 </div>
             </div>
@@ -809,15 +811,15 @@ $page_title = "Nutrition Tracking";
                 <div class="nutrition-card">
                     <div class="card-header">
                         <div>
-                            <h3 class="card-title">ความคืบหน้าวันนี้</h3>
-                            <p class="card-subtitle"><?= date('d/m/Y') ?></p>
+                            <h3 class="card-title">Today's Progress</h3>
+                            <p class="card-subtitle"><?= date('m/d/Y') ?></p>
                         </div>
-                        <button class="btn btn-sm btn-secondary" onclick="refreshTodayData()">🔄 รีเฟรช</button>
+                        <button class="btn btn-sm btn-secondary" onclick="refreshTodayData()">🔄 Refresh</button>
                     </div>
                     
                     <div class="progress-container">
                         <div class="progress-header">
-                            <span class="progress-label">แคลอรี่</span>
+                            <span class="progress-label">Calories</span>
                             <span class="progress-value">
                                 <?= number_format($today_data['total_calories']) ?> / <?= number_format($nutrition_goals['target_calories']) ?> kcal
                             </span>
@@ -830,7 +832,7 @@ $page_title = "Nutrition Tracking";
                     
                     <div class="progress-container">
                         <div class="progress-header">
-                            <span class="progress-label">โปรตีน</span>
+                            <span class="progress-label">Protein</span>
                             <span class="progress-value">
                                 <?= number_format($today_data['total_protein_g'], 1) ?> / <?= number_format($nutrition_goals['target_protein_g'], 1) ?> g
                             </span>
@@ -843,7 +845,7 @@ $page_title = "Nutrition Tracking";
                     
                     <div class="progress-container">
                         <div class="progress-header">
-                            <span class="progress-label">คาร์โบไฮเดรต</span>
+                            <span class="progress-label">Carbohydrates</span>
                             <span class="progress-value">
                                 <?= number_format($today_data['total_carbs_g'], 1) ?> / <?= number_format($nutrition_goals['target_carbs_g'], 1) ?> g
                             </span>
@@ -856,7 +858,7 @@ $page_title = "Nutrition Tracking";
                     
                     <div class="progress-container">
                         <div class="progress-header">
-                            <span class="progress-label">ไขมัน</span>
+                            <span class="progress-label">Fat</span>
                             <span class="progress-value">
                                 <?= number_format($today_data['total_fat_g'], 1) ?> / <?= number_format($nutrition_goals['target_fat_g'], 1) ?> g
                             </span>
@@ -869,7 +871,7 @@ $page_title = "Nutrition Tracking";
                     
                     <div class="progress-container">
                         <div class="progress-header">
-                            <span class="progress-label">ไฟเบอร์</span>
+                            <span class="progress-label">Fiber</span>
                             <span class="progress-value">
                                 <?= number_format($today_data['total_fiber_g'], 1) ?> / <?= number_format($nutrition_goals['target_fiber_g'], 1) ?> g
                             </span>
@@ -882,7 +884,7 @@ $page_title = "Nutrition Tracking";
                     
                     <div class="progress-container">
                         <div class="progress-header">
-                            <span class="progress-label">โซเดียม</span>
+                            <span class="progress-label">Sodium</span>
                             <span class="progress-value">
                                 <?= number_format($today_data['total_sodium_mg']) ?> / <?= number_format($nutrition_goals['target_sodium_mg']) ?> mg
                             </span>
@@ -898,51 +900,51 @@ $page_title = "Nutrition Tracking";
                 <div class="nutrition-card">
                     <div class="card-header">
                         <div>
-                            <h3 class="card-title">เป้าหมายโภชนาการ</h3>
-                            <p class="card-subtitle">ตั้งค่าเป้าหมายรายวันของคุณ</p>
+                            <h3 class="card-title">Nutrition Goals</h3>
+                            <p class="card-subtitle">Set your daily nutrition targets</p>
                         </div>
                     </div>
                     
                     <form id="goalsForm" class="goals-form" style="padding: 0;">
                         <div class="form-grid">
                             <div class="form-group">
-                                <label class="form-label">แคลอรี่ (kcal)</label>
+                                <label class="form-label">Calories (kcal)</label>
                                 <input type="number" id="targetCalories" class="form-input" 
                                        value="<?= $nutrition_goals['target_calories'] ?>" min="1200" max="5000">
                             </div>
                             
                             <div class="form-group">
-                                <label class="form-label">โปรตีน (g)</label>
+                                <label class="form-label">Protein (g)</label>
                                 <input type="number" id="targetProtein" class="form-input" 
                                        value="<?= $nutrition_goals['target_protein_g'] ?>" min="50" max="300" step="0.1">
                             </div>
                             
                             <div class="form-group">
-                                <label class="form-label">คาร์โบไฮเดรต (g)</label>
+                                <label class="form-label">Carbohydrates (g)</label>
                                 <input type="number" id="targetCarbs" class="form-input" 
                                        value="<?= $nutrition_goals['target_carbs_g'] ?>" min="100" max="500" step="0.1">
                             </div>
                             
                             <div class="form-group">
-                                <label class="form-label">ไขมัน (g)</label>
+                                <label class="form-label">Fat (g)</label>
                                 <input type="number" id="targetFat" class="form-input" 
                                        value="<?= $nutrition_goals['target_fat_g'] ?>" min="30" max="200" step="0.1">
                             </div>
                             
                             <div class="form-group">
-                                <label class="form-label">ไฟเบอร์ (g)</label>
+                                <label class="form-label">Fiber (g)</label>
                                 <input type="number" id="targetFiber" class="form-input" 
                                        value="<?= $nutrition_goals['target_fiber_g'] ?>" min="15" max="50" step="0.1">
                             </div>
                             
                             <div class="form-group">
-                                <label class="form-label">โซเดียม (mg)</label>
+                                <label class="form-label">Sodium (mg)</label>
                                 <input type="number" id="targetSodium" class="form-input" 
                                        value="<?= $nutrition_goals['target_sodium_mg'] ?>" min="1000" max="4000">
                             </div>
                         </div>
                         
-                        <button type="submit" class="btn btn-primary">💾 บันทึกเป้าหมาย</button>
+                        <button type="submit" class="btn btn-primary">💾 Save Goals</button>
                     </form>
                 </div>
             </div>
@@ -951,10 +953,10 @@ $page_title = "Nutrition Tracking";
             <div class="nutrition-card">
                 <div class="card-header">
                     <div>
-                        <h3 class="card-title">ประวัติ 7 วันที่ผ่านมา</h3>
-                        <p class="card-subtitle">ติดตามความคืบหน้าของคุณ</p>
+                        <h3 class="card-title">Last 7 Days History</h3>
+                        <p class="card-subtitle">Track your nutrition progress</p>
                     </div>
-                    <button class="btn btn-sm btn-secondary" onclick="loadNutritionHistory()">📊 รีเฟรช</button>
+                    <button class="btn btn-sm btn-secondary" onclick="loadNutritionHistory()">📊 Refresh</button>
                 </div>
                 
                 <div id="historyTable">
@@ -962,20 +964,20 @@ $page_title = "Nutrition Tracking";
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>วันที่</th>
-                                <th>แคลอรี่</th>
-                                <th>โปรตีน (g)</th>
-                                <th>คาร์บ (g)</th>
-                                <th>ไขมัน (g)</th>
-                                <th>ไฟเบอร์ (g)</th>
-                                <th>โซเดียม (mg)</th>
-                                <th>% เป้าหมาย</th>
+                                <th>Date</th>
+                                <th>Calories</th>
+                                <th>Protein (g)</th>
+                                <th>Carbs (g)</th>
+                                <th>Fat (g)</th>
+                                <th>Fiber (g)</th>
+                                <th>Sodium (mg)</th>
+                                <th>% Goal</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php foreach ($tracking_data as $day): ?>
                             <tr>
-                                <td><?= date('d/m/Y', strtotime($day['tracking_date'])) ?></td>
+                                <td><?= date('m/d/Y', strtotime($day['tracking_date'])) ?></td>
                                 <td><?= number_format($day['total_calories']) ?></td>
                                 <td><?= number_format($day['total_protein_g'], 1) ?></td>
                                 <td><?= number_format($day['total_carbs_g'], 1) ?></td>
@@ -994,8 +996,8 @@ $page_title = "Nutrition Tracking";
                     <?php else: ?>
                     <div class="empty-state">
                         <div class="empty-icon">📊</div>
-                        <h3>ยังไม่มีข้อมูลประวัติ</h3>
-                        <p>เริ่มสั่งอาหารและติดตามโภชนาการของคุณวันนี้!</p>
+                        <h3>No history data yet</h3>
+                        <p>Start ordering meals and track your nutrition today!</p>
                     </div>
                     <?php endif; ?>
                 </div>
@@ -1005,10 +1007,10 @@ $page_title = "Nutrition Tracking";
             <div class="nutrition-card">
                 <div class="card-header">
                     <div>
-                        <h3 class="card-title">วิเคราะห์มื้ออาหารวันนี้</h3>
-                        <p class="card-subtitle">ดูรายละเอียดโภชนาการแต่ละมื้อ</p>
+                        <h3 class="card-title">Today's Meal Analysis</h3>
+                        <p class="card-subtitle">View detailed nutrition per meal</p>
                     </div>
-                    <button class="btn btn-sm btn-secondary" onclick="loadMealAnalysis()">🔍 วิเคราะห์</button>
+                    <button class="btn btn-sm btn-secondary" onclick="loadMealAnalysis()">🔍 Analyze</button>
                 </div>
                 
                 <div id="mealAnalysis">
@@ -1021,21 +1023,21 @@ $page_title = "Nutrition Tracking";
             <!-- Quick Tips -->
             <div class="nutrition-card">
                 <div class="card-header">
-                    <h3 class="card-title">💡 เคล็ดลับโภชนาการ</h3>
+                    <h3 class="card-title">💡 Nutrition Tips</h3>
                 </div>
                 
                 <div style="display: grid; gap: 1rem;">
                     <div style="padding: 1rem; background: var(--cream); border-radius: var(--radius-sm); border-left: 4px solid var(--curry);">
-                        <strong>เป้าหมายแคลอรี่:</strong> สำหรับคนทั่วไป ผู้หญิง 1,800-2,000 kcal/วัน ผู้ชาย 2,200-2,500 kcal/วัน
+                        <strong>Calorie Goals:</strong> Generally, women need 1,800-2,000 kcal/day, men need 2,200-2,500 kcal/day
                     </div>
                     <div style="padding: 1rem; background: var(--cream); border-radius: var(--radius-sm); border-left: 4px solid var(--sage);">
-                        <strong>โปรตีน:</strong> ควรได้รับ 0.8-1.2 กรัมต่อน้ำหนักตัว 1 กิโลกรัม
+                        <strong>Protein:</strong> Aim for 0.8-1.2 grams per kilogram of body weight daily
                     </div>
                     <div style="padding: 1rem; background: var(--cream); border-radius: var(--radius-sm); border-left: 4px solid var(--brown);">
-                        <strong>ไฟเบอร์:</strong> ควรได้รับอย่างน้อย 25-35 กรัมต่อวัน จากผักและผลไม้
+                        <strong>Fiber:</strong> Get at least 25-35 grams daily from vegetables and fruits
                     </div>
                     <div style="padding: 1rem; background: var(--cream); border-radius: var(--radius-sm); border-left: 4px solid var(--curry);">
-                        <strong>โซเดียม:</strong> ไม่ควรเกิน 2,300 มิลลิกรัมต่อวัน เพื่อป้องกันความดันโลหิตสูง
+                        <strong>Sodium:</strong> Keep intake under 2,300 mg per day to maintain healthy blood pressure
                     </div>
                 </div>
             </div>
@@ -1089,16 +1091,16 @@ $page_title = "Nutrition Tracking";
                     const data = await response.json();
                     
                     if (data.success) {
-                        showSuccess(data.message || 'เป้าหมายได้รับการอัพเดทแล้ว');
+                        showSuccess(data.message || 'Goals updated successfully');
                         // Refresh the page to show updated progress
                         setTimeout(() => {
                             window.location.reload();
                         }, 1000);
                     } else {
-                        showError(data.errors ? data.errors.join(', ') : 'ไม่สามารถอัพเดทเป้าหมายได้');
+                        showError(data.errors ? data.errors.join(', ') : 'Unable to update goals');
                     }
                 } catch (error) {
-                    showError('เกิดข้อผิดพลาดเครือข่าย');
+                    showError('Network error occurred');
                 } finally {
                     isLoading = false;
                 }
@@ -1135,12 +1137,12 @@ $page_title = "Nutrition Tracking";
                     // Update progress bars
                     updateProgressBars(today, goals);
                     
-                    showSuccess('ข้อมูลได้รับการรีเฟรชแล้ว');
+                    showSuccess('Data refreshed successfully');
                 } else {
-                    showError('ไม่สามารถรีเฟรชข้อมูลได้');
+                    showError('Unable to refresh data');
                 }
             } catch (error) {
-                showError('เกิดข้อผิดพลาดเครือข่าย');
+                showError('Network error occurred');
             } finally {
                 isLoading = false;
             }
@@ -1188,12 +1190,12 @@ $page_title = "Nutrition Tracking";
                 
                 if (data.success) {
                     displayHistoryTable(data.tracking_data);
-                    showSuccess('ประวัติได้รับการรีเฟรชแล้ว');
+                    showSuccess('History refreshed successfully');
                 } else {
-                    historyContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">❌</div><h3>ไม่สามารถโหลดประวัติได้</h3></div>';
+                    historyContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">❌</div><h3>Unable to load history</h3></div>';
                 }
             } catch (error) {
-                historyContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">🔌</div><h3>เกิดข้อผิดพลาดเครือข่าย</h3></div>';
+                historyContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">🔌</div><h3>Network error occurred</h3></div>';
             }
         }
 
@@ -1205,8 +1207,8 @@ $page_title = "Nutrition Tracking";
                 historyContainer.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-icon">📊</div>
-                        <h3>ยังไม่มีข้อมูลประวัติ</h3>
-                        <p>เริ่มสั่งอาหารและติดตามโภชนาการของคุณวันนี้!</p>
+                        <h3>No history data yet</h3>
+                        <p>Start ordering meals and track your nutrition today!</p>
                     </div>
                 `;
                 return;
@@ -1216,14 +1218,14 @@ $page_title = "Nutrition Tracking";
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th>วันที่</th>
-                            <th>แคลอรี่</th>
-                            <th>โปรตีน (g)</th>
-                            <th>คาร์บ (g)</th>
-                            <th>ไขมัน (g)</th>
-                            <th>ไฟเบอร์ (g)</th>
-                            <th>โซเดียม (mg)</th>
-                            <th>% เป้าหมาย</th>
+                            <th>Date</th>
+                            <th>Calories</th>
+                            <th>Protein (g)</th>
+                            <th>Carbs (g)</th>
+                            <th>Fat (g)</th>
+                            <th>Fiber (g)</th>
+                            <th>Sodium (mg)</th>
+                            <th>% Goal</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -1237,7 +1239,7 @@ $page_title = "Nutrition Tracking";
                 
                 tableHTML += `
                     <tr>
-                        <td>${date.toLocaleDateString('th-TH')}</td>
+                        <td>${date.toLocaleDateString('en-US')}</td>
                         <td>${Number(day.total_calories).toLocaleString()}</td>
                         <td>${Number(day.total_protein_g).toFixed(1)}</td>
                         <td>${Number(day.total_carbs_g).toFixed(1)}</td>
@@ -1277,10 +1279,10 @@ $page_title = "Nutrition Tracking";
                 if (data.success) {
                     displayMealAnalysis(data.meals);
                 } else {
-                    analysisContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">🍽️</div><h3>ยังไม่มีมื้ออาหารวันนี้</h3><p>สั่งอาหารเพื่อดูการวิเคราะห์โภชนาการ</p></div>';
+                    analysisContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">🍽️</div><h3>No meals today yet</h3><p>Order meals to see nutrition analysis</p></div>';
                 }
             } catch (error) {
-                analysisContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">❌</div><h3>ไม่สามารถโหลดข้อมูลได้</h3></div>';
+                analysisContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">❌</div><h3>Unable to load data</h3></div>';
             }
         }
 
@@ -1292,9 +1294,9 @@ $page_title = "Nutrition Tracking";
                 analysisContainer.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-icon">🍽️</div>
-                        <h3>ยังไม่มีมื้ออาหารวันนี้</h3>
-                        <p>สั่งอาหารเพื่อดูการวิเคราะห์โภชนาการ</p>
-                        <a href="menus.php" class="btn btn-primary" style="margin-top: 1rem;">🍜 ดูเมนูอาหาร</a>
+                        <h3>No meals today yet</h3>
+                        <p>Order meals to see nutrition analysis</p>
+                        <a href="menus.php" class="btn btn-primary" style="margin-top: 1rem;">🍜 View Menu</a>
                     </div>
                 `;
                 return;
@@ -1313,7 +1315,7 @@ $page_title = "Nutrition Tracking";
                         <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
                             <div>
                                 <h4 style="color: var(--curry); margin-bottom: 0.25rem;">${escapeHtml(meal.name_thai || meal.menu_name)}</h4>
-                                <p style="color: var(--text-gray); font-size: 0.9rem;">จำนวน: ${meal.quantity} หน่วย</p>
+                                <p style="color: var(--text-gray); font-size: 0.9rem;">Quantity: ${meal.quantity} serving(s)</p>
                             </div>
                             <div style="text-align: right;">
                                 <div style="font-weight: 600; color: var(--curry);">${calories.toFixed(0)} kcal</div>
@@ -1323,15 +1325,15 @@ $page_title = "Nutrition Tracking";
                         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; font-size: 0.85rem;">
                             <div style="text-align: center;">
                                 <div style="font-weight: 600;">${protein.toFixed(1)}g</div>
-                                <div style="color: var(--text-gray);">โปรตีน</div>
+                                <div style="color: var(--text-gray);">Protein</div>
                             </div>
                             <div style="text-align: center;">
                                 <div style="font-weight: 600;">${carbs.toFixed(1)}g</div>
-                                <div style="color: var(--text-gray);">คาร์บ</div>
+                                <div style="color: var(--text-gray);">Carbs</div>
                             </div>
                             <div style="text-align: center;">
                                 <div style="font-weight: 600;">${fat.toFixed(1)}g</div>
-                                <div style="color: var(--text-gray);">ไขมัน</div>
+                                <div style="color: var(--text-gray);">Fat</div>
                             </div>
                         </div>
                     </div>
@@ -1388,7 +1390,7 @@ $page_title = "Nutrition Tracking";
         console.log('🍽️ Krua Thai - Nutrition Tracking page loaded successfully!');
     </script>
 
-    <!-- Debug Information (ลบออกใน production) -->
+    <!-- Debug Information (remove in production) -->
     <?php if (isset($_GET['debug'])): ?>
     <div style="position: fixed; bottom: 10px; left: 10px; background: rgba(0,0,0,0.8); color: white; padding: 10px; border-radius: 5px; font-size: 12px; z-index: 1000; max-width: 300px;">
         <strong>🔧 Debug Info:</strong><br>

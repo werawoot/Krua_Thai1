@@ -788,6 +788,244 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['resend_verification'])
                 font-size: 0.9rem;
             }
         }
+
+.social-login-section {
+            margin: 2rem 0 1.5rem;
+        }
+
+        .social-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 0.9rem;
+        }
+
+        .social-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            width: 100%;
+            padding: 1rem 1.5rem;
+            border: 2px solid;
+            border-radius: 12px;
+            font-family: 'BaticaSans', sans-serif;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-decoration: none;
+            position: relative;
+            overflow: hidden;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .social-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .social-btn:hover::before {
+            left: 100%;
+        }
+
+        .social-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .social-btn:active {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+        }
+
+        .social-icon {
+            width: 22px;
+            height: 22px;
+            flex-shrink: 0;
+            transition: transform 0.3s ease;
+        }
+
+        .social-btn:hover .social-icon {
+            transform: scale(1.1);
+        }
+
+        /* Facebook Button - Official Blue */
+        .facebook-btn {
+            background: linear-gradient(135deg, #1877f2 0%, #4267B2 100%);
+            border-color: #1877f2;
+            color: white;
+            position: relative;
+        }
+
+        .facebook-btn:hover {
+            background: linear-gradient(135deg, #166fe5 0%, #365899 100%);
+            border-color: #166fe5;
+            color: white;
+        }
+
+        .facebook-btn::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
+        }
+
+  
+  /* Google Button - Pure Clean Style */
+        .google-btn {
+            background: white;
+            border-color: #dadce0;
+            color: #3c4043;
+            box-shadow: 0 1px 2px 0 rgba(60,64,67,.30), 0 1px 3px 1px rgba(60,64,67,.15);
+            font-weight: 500;
+        }
+
+        .google-btn:hover {
+            background: #f9f9f9;
+            border-color: #dadce0;
+            color: #3c4043;
+            box-shadow: 0 1px 2px 0 rgba(60,64,67,.30), 0 2px 6px 2px rgba(60,64,67,.15);
+            transform: translateY(-1px);
+        }
+
+        .google-btn .social-icon {
+            /* ใช้ Google G icon แท้ๆ */
+            background: none;
+            border-radius: 0;
+            padding: 0;
+            color: transparent;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%234285F4' d='M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z'/%3E%3Cpath fill='%2334A853' d='M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z'/%3E%3Cpath fill='%23FBBC04' d='M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z'/%3E%3Cpath fill='%23EA4335' d='M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z'/%3E%3C/svg%3E");
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+
+        /* Apple Button - Sleek Black */
+        .apple-btn {
+            background: linear-gradient(135deg, #000000 0%, #333333 100%);
+            border-color: #000000;
+            color: white;
+        }
+
+        .apple-btn:hover {
+            background: linear-gradient(135deg, #1a1a1a 0%, #444444 100%);
+            border-color: #333333;
+            color: white;
+        }
+
+        /* Premium Loading Animation */
+        .social-btn.loading {
+            pointer-events: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .social-btn.loading::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            margin: -10px 0 0 -10px;
+            border: 2px solid transparent;
+            border-top: 2px solid currentColor;
+            border-radius: 50%;
+            animation: socialSpin 1s linear infinite;
+            opacity: 0.8;
+        }
+
+        @keyframes socialSpin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .social-btn.loading .social-icon,
+        .social-btn.loading span {
+            opacity: 0.4;
+        }
+
+        /* Disabled State */
+        .social-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .social-btn:disabled:hover {
+            transform: none;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Premium Responsive */
+        @media (max-width: 600px) {
+            .social-btn {
+                font-size: 0.95rem;
+                padding: 0.9rem 1.2rem;
+                gap: 0.8rem;
+            }
+            
+            .social-icon {
+                width: 20px;
+                height: 20px;
+            }
+        }
+
+        /* Focus States for Accessibility */
+        .social-btn:focus-visible {
+            outline: 3px solid rgba(207, 114, 58, 0.5);
+            outline-offset: 2px;
+        }
+
+        /* Horizontal Layout for Desktop (Optional) */
+        @media (min-width: 600px) {
+            .social-buttons-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 1rem;
+            }
+            
+            .social-buttons-grid .apple-btn {
+                grid-column: 1 / -1;
+            }
+        }
+
+        /* Premium Divider */
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 2rem 0 1.5rem;
+            color: var(--text-gray);
+            font-size: 0.9rem;
+            font-family: 'BaticaSans', sans-serif;
+            font-weight: 500;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--border-light), transparent);
+        }
+
+        .divider span {
+            padding: 0 1.5rem;
+            background: var(--white);
+            color: var(--text-gray);
+        }
+    
     </style>
 </head>
 <body>
@@ -872,6 +1110,38 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['resend_verification'])
                     <span id="login_text">Sign In</span>
                 </button>
             </form>
+<!-- 🆕 Social Login Section - เวอร์ชันสวย -->
+            <div class="social-login-section">
+                <div class="divider">
+                    <span>Or continue with</span>
+                </div>
+
+                <div class="social-buttons">
+                    <button type="button" class="social-btn facebook-btn" onclick="loginWithFacebook()">
+                        <svg class="social-icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                        </svg>
+                        <span>Continue with Facebook</span>
+                    </button>
+
+                    <button type="button" class="social-btn google-btn" onclick="loginWithGoogle()">
+                        <svg class="social-icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                        </svg>
+                        <span>Continue with Google</span>
+                    </button>
+
+                    <button type="button" class="social-btn apple-btn" onclick="loginWithApple()">
+                        <svg class="social-icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/>
+                        </svg>
+                        <span>Continue with Apple</span>
+                    </button>
+                </div>
+            </div>
 
             <?php if ($show_verification_resend): ?>
                 <div class="verification-section">
@@ -1135,6 +1405,70 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['resend_verification'])
             }
             formSubmitted = true;
         });
+
+        // Social Login Functions (Placeholder สำหรับขณะนี้)
+        function loginWithFacebook() {
+            const btn = document.querySelector('.facebook-btn');
+            showSocialLoading(btn, 'Connecting to Facebook...');
+            
+            // TODO: ให้หัวหน้าต่อส่วนนี้ - Facebook SDK integration
+            setTimeout(() => {
+                alert('Facebook login will be implemented by your boss!\n\nFor now, this is just the UI.');
+                hideSocialLoading(btn, 'Continue with Facebook');
+            }, 2000);
+        }
+
+        function loginWithGoogle() {
+            const btn = document.querySelector('.google-btn');
+            showSocialLoading(btn, 'Connecting to Google...');
+            
+            // TODO: ให้หัวหน้าต่อส่วนนี้ - Google OAuth integration
+            setTimeout(() => {
+                alert('Google login will be implemented by your boss!\n\nFor now, this is just the UI.');
+                hideSocialLoading(btn, 'Continue with Google');
+            }, 2000);
+        }
+
+        function loginWithApple() {
+            const btn = document.querySelector('.apple-btn');
+            showSocialLoading(btn, 'Connecting to Apple...');
+            
+            // TODO: ให้หัวหน้าต่อส่วนนี้ - Apple Sign In integration
+            setTimeout(() => {
+                alert('Apple login will be implemented by your boss!\n\nFor now, this is just the UI.');
+                hideSocialLoading(btn, 'Continue with Apple');
+            }, 2000);
+        }
+
+        // Helper functions for loading states
+        function showSocialLoading(button, text) {
+            button.disabled = true;
+            button.classList.add('loading');
+            const textSpan = button.querySelector('span') || button.childNodes[2];
+            if (textSpan) {
+                textSpan.textContent = text;
+            }
+        }
+
+        function hideSocialLoading(button, originalText) {
+            button.disabled = false;
+            button.classList.remove('loading');
+            const textSpan = button.querySelector('span') || button.childNodes[2];
+            if (textSpan) {
+                textSpan.textContent = originalText;
+            }
+        }
+
+        // Keyboard navigation for social buttons
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                if (e.target.classList.contains('social-btn')) {
+                    e.preventDefault();
+                    e.target.click();
+                }
+            }
+        });
+
     </script>
 </body>
 </html>
