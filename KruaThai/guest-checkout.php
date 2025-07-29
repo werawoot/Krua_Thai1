@@ -143,8 +143,19 @@ try {
     $tax_amount = $subtotal * $tax_rate;
     $total = $subtotal + $delivery_fee + $tax_amount;
     
+    // Check for free delivery
+    if ($subtotal >= 25) {
+        $delivery_fee = 0;
+        $total = $subtotal + $tax_amount; // Recalculate without delivery fee
+    }
+    
 } catch (Exception $e) {
     $errors[] = $e->getMessage();
+    // Set default values if there's an error
+    $subtotal = 0;
+    $delivery_fee = 3.99;
+    $tax_amount = 0;
+    $total = 0;
 }
 
 // Process form submission
@@ -794,7 +805,7 @@ for ($i = 1; $i <= 7; $i++) {
                 <img src="./assets/image/LOGO_BG.png" alt="Krua Thai" style="height: 40px; width: auto;">
                 <span class="logo-text">Krua Thai</span>
             </a>
-            <a href="meal-kit.php" class="back-link">← Back to Meal Kits</a>
+            <a href="meal-kits.php" class="back-link">← Back to Meal Kits</a>
         </div>
     </nav>
 
@@ -965,7 +976,7 @@ for ($i = 1; $i <= 7; $i++) {
 
                         <!-- Submit Button -->
                         <button type="submit" name="place_order" class="btn btn-primary" id="submitBtn">
-                            Place Order - <?php echo GuestCheckoutUtils::formatPrice($total); ?>
+                            Place Order - <?php echo isset($total) ? GuestCheckoutUtils::formatPrice($total) : '$0.00'; ?>
                         </button>
                     </form>
                 </div>
@@ -1114,7 +1125,7 @@ for ($i = 1; $i <= 7; $i++) {
                     
                     if (!isValid) {
                         e.preventDefault();
-                        submitBtn.textContent = 'Place Order - <?php echo GuestCheckoutUtils::formatPrice($total); ?>';
+                        submitBtn.textContent = 'Place Order - <?php echo isset($total) ? GuestCheckoutUtils::formatPrice($total) : "$0.00"; ?>';
                         submitBtn.disabled = false;
                         form.classList.remove('loading');
                         
