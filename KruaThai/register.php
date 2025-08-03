@@ -1,8 +1,8 @@
 <?php
 /**
- * Somdul Table - User Registration Page
+ * Somdul Table - User Registration Page with Facebook Integration (Fixed)
  * File: register.php
- * Description: Complete registration form with validation and email verification
+ * Description: Complete registration form with Facebook Sign-In (works without email permission)
  */
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
@@ -19,6 +19,10 @@ require_once 'config/database.php';
 require_once 'includes/functions.php';
 require_once 'classes/User.php';
 
+// Facebook Configuration - Replace with your actual App ID and App Secret
+$facebook_app_id = '631595452837020';
+$facebook_app_secret = '482f136ed9104737a847a6df73a0d034';
+
 $database = new Database();
 $db = $database->getConnection();
 
@@ -26,8 +30,92 @@ $errors = [];
 $success_message = '';
 $form_data = [];
 
-// Process form submission
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+// Handle Facebook Registration
+if (isset($_POST['facebook_signup']) && $_POST['facebook_signup'] === '1') {
+    $facebook_access_token = $_POST['facebook_access_token'] ?? '';
+    $facebook_user_id = $_POST['facebook_user_id'] ?? '';
+    
+    if ($facebook_access_token && $facebook_user_id) {
+        // Verify Facebook access token (without email field since it may not be available)
+        $verify_url = "https://graph.facebook.com/me?access_token=" . urlencode($facebook_access_token) . "&fields=id,first_name,last_name,name";
+        
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $verify_url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        $response = curl_exec($ch);
+        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        if ($http_code === 200) {
+            $facebook_data = json_decode($response, true);
+            
+            if ($facebook_data && isset($facebook_data['id']) && $facebook_data['id'] === $facebook_user_id) {
+                $user = new User($db);
+                
+                // Check if user already exists by Facebook ID
+                $stmt = $db->prepare("SELECT * FROM users WHERE facebook_id = :facebook_id");
+                $stmt->bindParam(':facebook_id', $facebook_user_id);
+                $stmt->execute();
+                $existing_user = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+                if ($existing_user) {
+                    // User already exists, log them in
+                    $_SESSION['user_id'] = $existing_user['id'];
+                    $_SESSION['user_email'] = $existing_user['email'];
+                    $_SESSION['user_name'] = $existing_user['first_name'] . ' ' . $existing_user['last_name'];
+                    $_SESSION['login_method'] = 'facebook';
+                    
+                    header('Location: dashboard.php?welcome=1');
+                    exit();
+                } else {
+                    // Create new user account with Facebook data
+                    $user->first_name = $facebook_data['first_name'] ?? '';
+                    $user->last_name = $facebook_data['last_name'] ?? '';
+                    
+                    // Generate a temporary email using Facebook ID if no email available
+                    $user->email = 'facebook_' . $facebook_user_id . '@temp.somdultable.com';
+                    $user->facebook_id = $facebook_user_id;
+                    $user->is_email_verified = 0; // Will be updated when they provide real email
+                    $user->registration_method = 'facebook';
+                    
+                    // These will be required to complete during profile setup
+                    $user->phone = null;
+                    $user->password_hash = null;
+                    $user->delivery_address = null;
+                    $user->zip_code = null;
+                    $user->spice_level = 'medium';
+                    
+                    if ($user->create()) {
+                        // Log the user in
+                        $_SESSION['user_id'] = $user->id;
+                        $_SESSION['user_email'] = $user->email;
+                        $_SESSION['user_name'] = $user->first_name . ' ' . $user->last_name;
+                        $_SESSION['login_method'] = 'facebook';
+                        $_SESSION['facebook_user'] = true;
+                        $_SESSION['needs_email_update'] = true; // Flag to require real email
+                        
+                        // Redirect to complete profile page
+                        header('Location: complete-profile.php?facebook=1&step=email');
+                        exit();
+                    } else {
+                        $errors[] = "Failed to create your account. Please try again or contact support.";
+                    }
+                }
+            } else {
+                $errors[] = "Facebook verification failed. Please try again.";
+            }
+        } else {
+            $errors[] = "Unable to verify Facebook account. Please try again.";
+        }
+    } else {
+        $errors[] = "Facebook authentication data is missing. Please try again.";
+    }
+}
+
+// Process regular form submission
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['facebook_signup'])) {
     // Get and sanitize form data
     $form_data = [
         'first_name' => sanitizeInput($_POST['first_name'] ?? ''),
@@ -137,6 +225,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $user->zip_code = $form_data['zip_code'];
         $user->spice_level = $form_data['spice_level'];
         $user->delivery_instructions = $form_data['delivery_instructions'];
+        $user->registration_method = 'email';
         
         // Handle dietary preferences
         if (!empty($form_data['dietary_preferences']) && is_array($form_data['dietary_preferences'])) {
@@ -185,6 +274,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <title>Join Somdul Table - Authentic Thai Meals Delivered</title>
     <meta name="description" content="Join Somdul Table for authentic, healthy Thai meals delivered to your door. Fresh ingredients, traditional recipes, modern nutrition.">
     <meta name="keywords" content="Thai food delivery, healthy meals, authentic Thai cuisine, meal subscription">
+    
+    <!-- Facebook SDK -->
+    <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v18.0&appId=<?php echo $facebook_app_id; ?>&autoLogAppEvents=1"></script>
     
     <!-- BaticaSans Font Import -->
     <link rel="preconnect" href="https://ydpschool.com">
@@ -783,6 +875,95 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             100% { transform: rotate(360deg); }
         }
 
+        /* Social Login Styles */
+        .social-login-section {
+            margin: 2rem 0 1.5rem;
+        }
+        
+        .social-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 0.9rem;
+        }
+        
+        .social-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            width: 100%;
+            padding: 1rem 1.5rem;
+            border: 2px solid;
+            border-radius: 12px;
+            font-family: 'BaticaSans', sans-serif;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-decoration: none;
+            position: relative;
+            overflow: hidden;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+        
+        .social-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .social-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .social-icon {
+            width: 22px;
+            height: 22px;
+            flex-shrink: 0;
+        }
+        
+        .facebook-btn {
+            background: linear-gradient(135deg, #1877f2 0%, #4267B2 100%);
+            border-color: #1877f2;
+            color: white;
+        }
+        
+        /* Google Button - Pure Clean Style */
+        .google-btn {
+            background: white;
+            border-color: #dadce0;
+            color: #3c4043;
+            box-shadow: 0 1px 2px 0 rgba(60,64,67,.30), 0 1px 3px 1px rgba(60,64,67,.15);
+            font-weight: 500;
+        }
+
+        .google-btn:hover {
+            background: #f9f9f9;
+            border-color: #dadce0;
+            color: #3c4043;
+            box-shadow: 0 1px 2px 0 rgba(60,64,67,.30), 0 2px 6px 2px rgba(60,64,67,.15);
+            transform: translateY(-1px);
+        }
+
+        .google-btn .social-icon {
+            background: none;
+            border-radius: 0;
+            padding: 0;
+            color: transparent;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%234285F4' d='M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z'/%3E%3Cpath fill='%2334A853' d='M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z'/%3E%3Cpath fill='%23FBBC04' d='M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z'/%3E%3Cpath fill='%23EA4335' d='M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z'/%3E%3C/svg%3E");
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+
+        .apple-btn {
+            background: linear-gradient(135deg, #000000 0%, #333333 100%);
+            border-color: #000000;
+            color: white;
+        }
+
         /* Mobile Responsive */
         @media (max-width: 768px) {
             .back-to-home {
@@ -862,88 +1043,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
         }
 
-        /* 🆕 Social Login Styles - Copy จาก login.php */
-        .social-login-section {
-            margin: 2rem 0 1.5rem;
-        }
-        
-        .social-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 0.9rem;
-        }
-        
-        .social-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 1rem;
-            width: 100%;
-            padding: 1rem 1.5rem;
-            border: 2px solid;
-            border-radius: 12px;
+        /* Facebook notice */
+        .facebook-notice {
+            background: rgba(24, 119, 242, 0.1);
+            border: 1px solid rgba(24, 119, 242, 0.3);
+            border-radius: var(--radius-md);
+            padding: 1rem;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            color: #1877f2;
             font-family: 'BaticaSans', sans-serif;
-            font-weight: 600;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            text-decoration: none;
-            position: relative;
-            overflow: hidden;
-            background: white;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        }
-        
-        .social-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-        }
-        
-        .social-icon {
-            width: 22px;
-            height: 22px;
-            flex-shrink: 0;
-        }
-        
-        .facebook-btn {
-            background: linear-gradient(135deg, #1877f2 0%, #4267B2 100%);
-            border-color: #1877f2;
-            color: white;
-        }
-        
-    /* Google Button - Pure Clean Style */
-        .google-btn {
-            background: white;
-            border-color: #dadce0;
-            color: #3c4043;
-            box-shadow: 0 1px 2px 0 rgba(60,64,67,.30), 0 1px 3px 1px rgba(60,64,67,.15);
-            font-weight: 500;
-        }
-
-        .google-btn:hover {
-            background: #f9f9f9;
-            border-color: #dadce0;
-            color: #3c4043;
-            box-shadow: 0 1px 2px 0 rgba(60,64,67,.30), 0 2px 6px 2px rgba(60,64,67,.15);
-            transform: translateY(-1px);
-        }
-
-        .google-btn .social-icon {
-            /* ใช้ Google G icon แท้ๆ */
-            background: none;
-            border-radius: 0;
-            padding: 0;
-            color: transparent;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%234285F4' d='M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z'/%3E%3Cpath fill='%2334A853' d='M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z'/%3E%3Cpath fill='%23FBBC04' d='M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z'/%3E%3Cpath fill='%23EA4335' d='M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z'/%3E%3C/svg%3E");
-            background-size: contain;
-            background-repeat: no-repeat;
-            background-position: center;
-        }
-
-        .apple-btn {
-            background: linear-gradient(135deg, #000000 0%, #333333 100%);
-            border-color: #000000;
-            color: white;
         }
     </style>
 </head>
@@ -999,6 +1108,43 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         </p>
                     </div>
                 <?php else: ?>
+
+                <!-- Social Login Section -->
+                <div class="social-login-section">
+                    <div class="facebook-notice">
+                        <strong>Quick Sign-up:</strong> Use Facebook to create your account instantly! You'll complete your delivery details in the next step.
+                    </div>
+                    
+                    <div class="social-buttons">
+                        <button type="button" class="social-btn facebook-btn" id="facebookSignupBtn" onclick="signupWithFacebook()">
+                            <svg class="social-icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                            </svg>
+                            <span>Continue with Facebook</span>
+                        </button>
+
+                        <button type="button" class="social-btn google-btn" onclick="signupWithGoogle()">
+                            <svg class="social-icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                            </svg>
+                            <span>Continue with Google</span>
+                        </button>
+
+                        <button type="button" class="social-btn apple-btn" onclick="signupWithApple()">
+                            <svg class="social-icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/>
+                            </svg>
+                            <span>Sign up with Apple</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="divider">
+                    <span>Or register with email</span>
+                </div>
 
                 <form method="POST" action="" id="registrationForm" novalidate>
                     <!-- Personal Information -->
@@ -1273,41 +1419,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
                 <?php endif; ?>
 
-
-                                <!-- 🆕 เพิ่มส่วนนี้ -->
-                <div class="social-login-section">
-                    <div class="divider">
-                        <span>Or sign up with</span>
-                    </div>
-
-                    <div class="social-buttons">
-                        <button type="button" class="social-btn facebook-btn" onclick="signupWithFacebook()">
-                            <svg class="social-icon" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                            </svg>
-                            <span>Sign up with Facebook</span>
-                        </button>
-
-                           <button type="button" class="social-btn google-btn" onclick="loginWithGoogle()">
-                        <svg class="social-icon" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                        </svg>
-                        <span>Continue with Google</span>
-                    </button>
-
-                        <button type="button" class="social-btn apple-btn" onclick="signupWithApple()">
-                            <svg class="social-icon" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/>
-                            </svg>
-                            <span>Sign up with Apple</span>
-                        </button>
-                    </div>
-                </div>
-
-
                 <div class="divider">
                     <span>Already have an account?</span>
                 </div>
@@ -1326,7 +1437,79 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         </div>
     </div>
 
+    <!-- Hidden form for Facebook signup -->
+    <form id="facebookSignupForm" method="POST" action="" style="display: none;">
+        <input type="hidden" name="facebook_signup" value="1">
+        <input type="hidden" name="facebook_access_token" id="facebook_access_token">
+        <input type="hidden" name="facebook_user_id" id="facebook_user_id">
+    </form>
+
     <script>
+        // Initialize Facebook SDK
+        window.fbAsyncInit = function() {
+            FB.init({
+                appId: '<?php echo $facebook_app_id; ?>',
+                cookie: true,
+                xfbml: true,
+                version: 'v18.0'
+            });
+            
+            // Enable Facebook signup button
+            document.getElementById('facebookSignupBtn').disabled = false;
+        };
+
+        // Facebook signup function - Updated to work without email permission
+        function signupWithFacebook() {
+            const facebookBtn = document.getElementById('facebookSignupBtn');
+            
+            // Show loading state
+            facebookBtn.disabled = true;
+            facebookBtn.innerHTML = '<svg class="social-icon" style="animation: spin 1s linear infinite;" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none" opacity="0.25"/><path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg><span>Connecting to Facebook...</span>';
+            
+            // Only request public_profile (no email permission needed)
+            FB.login(function(response) {
+                if (response.authResponse) {
+                    // User granted permissions
+                    const accessToken = response.authResponse.accessToken;
+                    const userID = response.authResponse.userID;
+                    
+                    // Get user info (no email field)
+                    FB.api('/me', {fields: 'id,first_name,last_name,name'}, function(userInfo) {
+                        console.log('Facebook user info:', userInfo);
+                        
+                        if (userInfo.id) {
+                            // Fill hidden form and submit
+                            document.getElementById('facebook_access_token').value = accessToken;
+                            document.getElementById('facebook_user_id').value = userID;
+                            document.getElementById('facebookSignupForm').submit();
+                        } else {
+                            alert('Unable to get your Facebook information. Please try again.');
+                            resetFacebookButton();
+                        }
+                    });
+                } else {
+                    // User cancelled login or didn't grant permissions
+                    console.log('Facebook login cancelled');
+                    resetFacebookButton();
+                }
+            }, {scope: 'public_profile'}); // Only request public profile
+        }
+
+        function resetFacebookButton() {
+            const facebookBtn = document.getElementById('facebookSignupBtn');
+            facebookBtn.disabled = false;
+            facebookBtn.innerHTML = '<svg class="social-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg><span>Continue with Facebook</span>';
+        }
+
+        // Google and Apple signup functions (placeholders)
+        function signupWithGoogle() {
+            alert('Google signup will be implemented soon! For now, please use the email registration form below.');
+        }
+        
+        function signupWithApple() {
+            alert('Apple signup will be implemented soon! For now, please use the email registration form below.');
+        }
+
         // Password strength checker
         const passwordInput = document.getElementById('password');
         const strengthDiv = document.getElementById('passwordStrength');
@@ -1517,6 +1700,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         // Auto-focus on first empty required field
         document.addEventListener('DOMContentLoaded', function() {
+            // Disable Facebook button until SDK loads
+            document.getElementById('facebookSignupBtn').disabled = true;
+            
             const firstEmptyRequired = document.querySelector('input[required]:not([value]), input[required][value=""]');
             if (firstEmptyRequired) {
                 firstEmptyRequired.focus();
@@ -1598,23 +1784,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
             formSubmitted = true;
         });
-
-
-
-        // 🆕 เพิ่มส่วนนี้
-        // Social Signup Functions
-        function signupWithFacebook() {
-            alert('Facebook signup coming soon!');
-        }
-        
-        function signupWithGoogle() {
-            alert('Google signup coming soon!');
-        }
-        
-        function signupWithApple() {
-            alert('Apple signup coming soon!');
-        }
-
     </script>
 </body>
 </html>
