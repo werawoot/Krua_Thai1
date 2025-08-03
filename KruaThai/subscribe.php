@@ -90,7 +90,7 @@ function getPlanDescription($plan) {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Choose Your Meal Package | Somdul Table</title>
     <meta name="description" content="Choose your perfect meal package from Somdul Table - Authentic Thai cuisine delivered fresh to your door">
     
