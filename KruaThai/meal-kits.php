@@ -9,6 +9,7 @@ error_reporting(E_ALL);
 ini_set('display_errors', 1);
 session_start();
 
+require_once 'includes/cart_functions.php';
 require_once 'config/database.php';
 
 try {
@@ -712,7 +713,18 @@ $is_logged_in = isset($_SESSION['user_id']);
                 <?php if ($is_logged_in): ?>
                     <a href="cart.php" class="btn btn-secondary">
                         🛒 Cart 
-                        <span class="cart-counter" style="background: var(--curry); color: var(--white); border-radius: 50%; padding: 2px 6px; font-size: 0.8rem; margin-left: 5px; display: none;">0</span>
+                        <?php
+// คำนวณ cart count แบบเดียวกับ cart.php
+$cart_count = 0;
+if (isset($_SESSION['cart']) && is_array($_SESSION['cart'])) {
+    foreach ($_SESSION['cart'] as $item) {
+        $cart_count += isset($item['quantity']) ? intval($item['quantity']) : 1;
+    }
+}
+?>
+<span class="cart-counter" id="cartCounter" style="background: var(--curry); color: var(--white); border-radius: 50%; padding: 2px 6px; font-size: 0.8rem; margin-left: 5px; <?php echo $cart_count > 0 ? 'display: inline-block;' : 'display: none;'; ?>">
+    <?php echo $cart_count; ?>
+</span>
                     </a>
                     <a href="dashboard.php" class="btn btn-primary">My Account</a>
                 <?php else: ?>
@@ -927,161 +939,625 @@ $is_logged_in = isset($_SESSION['user_id']);
         </div>
     </section>
 
-    <script>
-        // Close promotional banner
-        function closePromoBanner() {
-            const promoBanner = document.getElementById('promoBanner');
-            const navbar = document.querySelector('.navbar');
-            const heroSection = document.querySelector('.hero-section');
-            
-            promoBanner.style.transform = 'translateY(-100%)';
-            promoBanner.style.opacity = '0';
-            
-            setTimeout(() => {
-                promoBanner.style.display = 'none';
-                navbar.style.top = '0';
-            }, 300);
-        }
 
-        // View kit details
-        function viewKitDetails(kitId) {
-            // In a real application, this would open a modal or navigate to a details page
-            console.log('View details for kit:', kitId);
-            alert('Kit details functionality would be implemented here.');
-        }
+<script>
 
-        // Add to cart
-        function addToCart(kitId) {
-            <?php if ($is_logged_in): ?>
-                // Logged in user - add to cart and continue shopping
-                fetch('ajax/add_to_cart.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        kit_id: kitId,
-                        quantity: 1,
-                        type: 'meal_kit'
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // Show success message
-                        const button = event.target;
-                        const originalText = button.textContent;
-                        button.textContent = 'Added!';
-                        button.style.background = 'var(--sage)';
-                        
-                        setTimeout(() => {
-                            button.textContent = originalText;
-                            button.style.background = '';
-                        }, 1500);
-                        
-                        // Update cart counter if exists
-                        updateCartCounter(data.cart_count);
-                    } else {
-                        alert('Error adding to cart: ' + data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Error adding to cart. Please try again.');
-                });
-            <?php else: ?>
-                // Guest user - redirect to address form
-                sessionStorage.setItem('selected_kit', kitId);
-                sessionStorage.setItem('checkout_action', 'add_to_cart');
-                window.location.href = 'guest-checkout.php?kit=' + kitId;
-            <?php endif; ?>
-        }
+// =================================================================
+// NOTIFICATION SYSTEM
+// =================================================================
 
-        // Quick order
-        function quickOrder(kitId) {
-            <?php if ($is_logged_in): ?>
-                // Logged in user - go directly to checkout
-                if (confirm('Proceed to checkout for this meal kit?')) {
-                    window.location.href = 'checkout.php?kit=' + kitId + '&action=quick_order';
-                }
-            <?php else: ?>
-                // Guest user - redirect to address form first
-                if (confirm('You will need to provide delivery details. Continue?')) {
-                    sessionStorage.setItem('selected_kit', kitId);
-                    sessionStorage.setItem('checkout_action', 'quick_order');
-                    window.location.href = 'guest-checkout.php?kit=' + kitId + '&action=quick_order';
-                }
-            <?php endif; ?>
-        }
+function showNotification(message, type = 'success') {
+    // Remove existing notification
+    const existingNotification = document.querySelector('.notification');
+    if (existingNotification) {
+        existingNotification.remove();
+    }
+    
+    // Add styles if not already added
+    if (!document.getElementById('notification-styles')) {
+        const styles = document.createElement('style');
+        styles.id = 'notification-styles';
+        styles.textContent = `
+            .notification {
+                position: fixed;
+                top: 100px;
+                right: 20px;
+                z-index: 9999;
+                padding: 15px 20px;
+                border-radius: 8px;
+                color: white;
+                font-weight: 500;
+                min-width: 300px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                transform: translateX(100%);
+                transition: transform 0.3s ease;
+                font-family: 'BaticaSans', sans-serif;
+            }
+            .notification-success {
+                background: linear-gradient(135deg, #28a745, #20c997);
+            }
+            .notification-error {
+                background: linear-gradient(135deg, #dc3545, #fd7e14);
+            }
+            .notification-content {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            .notification-icon {
+                font-size: 18px;
+            }
+            .notification.show {
+                transform: translateX(0);
+            }
+        `;
+        document.head.appendChild(styles);
+    }
+    
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.innerHTML = `
+        <div class="notification-content">
+            <span class="notification-icon">${type === 'success' ? '✅' : '❌'}</span>
+            <span class="notification-message">${message}</span>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Show notification
+    setTimeout(() => notification.classList.add('show'), 100);
+    
+    // Auto hide after 4 seconds
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => notification.remove(), 300);
+    }, 4000);
+}
+    
+// =================================================================
+// CART FUNCTIONS - EXISTING (แก้ไขให้ใช้ syncCartFromServer)
+// =================================================================
+function updateCartCounter(count) {
+    const cartCounter = document.querySelector('.cart-counter');
+    if (cartCounter) {
+        cartCounter.textContent = count;
+        cartCounter.style.display = count > 0 ? 'inline-block' : 'none';
+        
+        // Animation
+        cartCounter.style.transform = 'scale(1.3)';
+        cartCounter.style.background = '#28a745';
+        
+        setTimeout(() => {
+            cartCounter.style.transform = 'scale(1)';
+            cartCounter.style.background = 'var(--curry)';
+        }, 300);
+    }
+    
+    // Sync with server after update
+    setTimeout(() => {
+        syncCartFromServer();
+    }, 1000);
+}
 
-        // Update cart counter (for logged in users)
-        function updateCartCounter(count) {
+// =================================================================
+// 🛒 CART AUTO-SYNC SYSTEM - เพิ่มใหม่
+// =================================================================
+
+/**
+ * Sync cart counter from server
+ */
+function syncCartFromServer() {
+    fetch('ajax/sync_cart.php', {
+        method: 'GET',
+        headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
             const cartCounter = document.querySelector('.cart-counter');
             if (cartCounter) {
-                cartCounter.textContent = count;
-                if (count > 0) {
+                // Update counter display
+                cartCounter.textContent = data.count;
+                
+                if (data.count > 0) {
                     cartCounter.style.display = 'inline-block';
+                    cartCounter.classList.add('has-items');
                 } else {
                     cartCounter.style.display = 'none';
+                    cartCounter.classList.remove('has-items');
                 }
             }
-        }
-
-        // Smooth scrolling for navigation links
-        document.addEventListener('DOMContentLoaded', function() {
-            const navLinks = document.querySelectorAll('a[href^="#"]');
             
-            navLinks.forEach(link => {
-                link.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const targetId = this.getAttribute('href');
-                    const targetSection = document.querySelector(targetId);
-                    
-                    if (targetSection) {
-                        targetSection.scrollIntoView({
-                            behavior: 'smooth',
-                            block: 'start'
-                        });
-                    }
-                });
+            // Update any other cart displays on the page
+            const cartTotalElements = document.querySelectorAll('.cart-total');
+            cartTotalElements.forEach(element => {
+                element.textContent = `$${data.formatted_total}`;
             });
-        });
+            
+            // Update cart icon badge if exists
+            const cartBadge = document.querySelector('.cart-badge');
+            if (cartBadge) {
+                cartBadge.textContent = data.count;
+                cartBadge.style.display = data.count > 0 ? 'inline-block' : 'none';
+            }
+            
+            console.log('✅ Cart synced:', data);
+            return data;
+        } else {
+            console.warn('⚠️ Cart sync failed:', data);
+            return null;
+        }
+    })
+    .catch(error => {
+        console.error('❌ Error syncing cart:', error);
+        // Don't show error to user for background sync
+        return null;
+    });
+}
 
-        // Navbar background on scroll
-        window.addEventListener('scroll', function() {
-            const navbar = document.querySelector('.navbar');
-            if (window.scrollY > 100) {
-                navbar.style.background = 'rgba(255, 255, 255, 0.98)';
-            } else {
-                navbar.style.background = 'rgba(255, 255, 255, 0.95)';
+/**
+ * Show toast notification
+ */
+function showToast(message, type = 'info') {
+    // Remove existing toasts
+    const existingToasts = document.querySelectorAll('.toast-notification');
+    existingToasts.forEach(toast => toast.remove());
+    
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = `toast-notification toast-${type}`;
+    toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : '#17a2b8'};
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        z-index: 9999;
+        transform: translateX(100%);
+        transition: transform 0.3s ease-in-out;
+        max-width: 300px;
+        font-family: 'BaticaSans', sans-serif;
+    `;
+    
+    const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+    toast.innerHTML = `${icon} ${message}`;
+    
+    document.body.appendChild(toast);
+    
+    // Slide in
+    setTimeout(() => {
+        toast.style.transform = 'translateX(0)';
+    }, 100);
+    
+    // Slide out and remove
+    setTimeout(() => {
+        toast.style.transform = 'translateX(100%)';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+/**
+ * Initialize cart sync system
+ */
+function initCartSync() {
+    // Load existing cart count on page load
+    <?php if ($is_logged_in && isset($_SESSION['cart_summary']['count'])): ?>
+        updateCartCounter(<?php echo $_SESSION['cart_summary']['count']; ?>);
+    <?php endif; ?>
+    
+    // Initial sync
+    syncCartFromServer();
+    
+    // Periodic sync every 30 seconds
+    setInterval(syncCartFromServer, 30000);
+    
+    // Sync when page becomes visible (user switches back to tab)
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+            syncCartFromServer();
+        }
+    });
+    
+    // Sync when user clicks on cart-related elements
+    document.addEventListener('click', (e) => {
+        if (e.target.closest('.cart-counter') || 
+            e.target.closest('a[href="cart.php"]') ||
+            e.target.closest('.cart-link')) {
+            syncCartFromServer();
+        }
+    });
+    
+    // Handle return from login with add_kit parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const addKit = urlParams.get('add_kit');
+    if (addKit) {
+        setTimeout(() => {
+            addToCart(addKit);
+            // Clean URL
+            window.history.replaceState({}, '', window.location.pathname);
+        }, 500);
+    }
+    
+    console.log('🛒 Cart Auto-Sync System Initialized');
+}
+
+// =================================================================
+// ADD TO CART FUNCTION - ปรับปรุงให้ใช้ Auto-Sync
+// =================================================================
+
+function addToCart(kitId, event) {
+    // Prevent event bubbling
+    if (event) {
+        event.stopPropagation();
+    }
+    
+    const button = event ? event.target : null;
+    const originalText = button ? button.textContent : '';
+    
+    // Show loading state
+    if (button) {
+        button.textContent = 'Adding...';
+        button.disabled = true;
+        button.style.opacity = '0.7';
+    }
+    
+    <?php if ($is_logged_in): ?>
+        // Logged in user - AJAX call
+        fetch('ajax/add_to_cart.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                kit_id: kitId,
+                quantity: 1,
+                type: 'meal_kit'
+            })
+        })
+        .then(response => {
+            console.log('Response status:', response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.text(); // Get as text first
+        })
+        .then(text => {
+            console.log('Raw response:', text);
+            try {
+                const data = JSON.parse(text);
+                console.log('Parsed data:', data);
+                
+                if (data.success) {
+                    // Success handling
+                    if (button) {
+                        button.textContent = '✅ Added!';
+                        button.style.background = 'var(--sage)';
+                        button.style.color = 'var(--white)';
+                        button.style.opacity = '1';
+                    }
+                    
+                    showNotification(`${data.item_added.name} added to cart!`, 'success');
+                    updateCartCounter(data.cart_count);
+                    
+                    // Reset button after 2 seconds
+                    setTimeout(() => {
+                        if (button) {
+                            button.textContent = originalText;
+                            button.style.background = '';
+                            button.style.color = '';
+                            button.disabled = false;
+                            button.style.opacity = '1';
+                        }
+                    }, 2000);
+                    
+                } else {
+                    throw new Error(data.message || 'Unknown error occurred');
+                }
+            } catch (parseError) {
+                console.error('JSON parse error:', parseError);
+                console.error('Raw response was:', text);
+                throw new Error('Invalid response from server');
+            }
+        })
+        .catch(error => {
+            console.error('Add to cart error:', error);
+            showNotification('Error: ' + error.message, 'error');
+            
+            // Reset button on error
+            if (button) {
+                button.textContent = originalText;
+                button.disabled = false;
+                button.style.opacity = '1';
             }
         });
+    <?php else: ?>
+        // Guest user - redirect to login
+        showNotification('Please log in to add items to cart', 'error');
+        
+        setTimeout(() => {
+            const returnUrl = encodeURIComponent(window.location.pathname + '?add_kit=' + kitId);
+            window.location.href = 'login.php?return=' + returnUrl;
+        }, 1500);
+        
+        if (button) {
+            button.textContent = originalText;
+            button.disabled = false;
+            button.style.opacity = '1';
+        }
+    <?php endif; ?>
+}
 
-        // Add loading animation for kit cards
-        document.addEventListener('DOMContentLoaded', function() {
-            const kitCards = document.querySelectorAll('.meal-kit-card');
+// =================================================================
+// KIT DETAILS MODAL - EXISTING (ไม่ต้องแก้ไข)
+// =================================================================
+
+function viewKitDetails(kitId) {
+    console.log('Opening details for kit:', kitId);
+    
+    // Sample kit details data
+    const kitDetailsData = {
+        'green-curry-kit': {
+            name: 'Green Curry Kit',
+            price: '$18.99',
+            description: 'Authentic Thai Green Curry with fresh ingredients',
+            details: ['Serves 2-3 people', '25 minutes prep time', 'Medium spice level']
+        },
+        'panang-kit': {
+            name: 'Panang Curry Kit', 
+            price: '$21.99',
+            description: 'Rich and creamy Panang curry with tender beef',
+            details: ['Serves 2-3 people', '30 minutes prep time', 'Mild spice level']
+        },
+        'pad-thai-kit': {
+            name: 'Pad Thai Kit',
+            price: '$16.99', 
+            description: 'Classic Thai noodle dish made simple',
+            details: ['Serves 2 people', '20 minutes prep time', 'Mild spice level']
+        },
+        'tom-yum-kit': {
+            name: 'Tom Yum Soup Kit',
+            price: '$17.99',
+            description: 'Hot and sour soup with fresh shrimp',
+            details: ['Serves 2-3 people', '15 minutes prep time', 'Hot spice level']
+        }
+    };
+    
+    const kit = kitDetailsData[kitId];
+    if (!kit) {
+        showNotification('Kit details not available', 'error');
+        return;
+    }
+    
+    // Create modal content
+    const modalHtml = `
+        <div style="max-width: 450px; background: white; color: var(--text-dark); border-radius: 12px; overflow: hidden;">
+            <div style="padding: 20px; border-bottom: 1px solid #eee;">
+                <h3 style="margin: 0 0 10px 0; color: var(--curry); font-size: 1.5rem;">${kit.name}</h3>
+                <p style="margin: 0 0 10px 0; font-size: 1.3rem; font-weight: bold; color: var(--curry);">${kit.price}</p>
+                <p style="margin: 0; line-height: 1.5; color: var(--text-gray);">${kit.description}</p>
+            </div>
+            <div style="padding: 20px;">
+                <h4 style="margin: 0 0 10px 0; color: var(--text-dark);">What's Included:</h4>
+                <ul style="margin: 0 0 20px 0; padding-left: 20px;">
+                    ${kit.details.map(detail => `<li style="margin-bottom: 5px;">${detail}</li>`).join('')}
+                </ul>
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="addToCart('${kitId}'); closeModal();" style="
+                        background: var(--curry); 
+                        color: white; 
+                        border: none; 
+                        padding: 12px 20px; 
+                        border-radius: 25px; 
+                        cursor: pointer;
+                        font-family: 'BaticaSans', sans-serif;
+                        font-weight: 600;
+                        flex: 1;
+                    ">Add to Cart</button>
+                    <button onclick="closeModal()" style="
+                        background: transparent; 
+                        color: var(--curry); 
+                        border: 2px solid var(--curry); 
+                        padding: 12px 20px; 
+                        border-radius: 25px; 
+                        cursor: pointer;
+                        font-family: 'BaticaSans', sans-serif;
+                        font-weight: 600;
+                    ">Close</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modal
+    closeModal();
+    
+    // Create modal overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'kitModal';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    `;
+    
+    overlay.innerHTML = modalHtml;
+    
+    // Close on overlay click
+    overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) {
+            closeModal();
+        }
+    });
+    
+    document.body.appendChild(overlay);
+    
+    // Show modal
+    setTimeout(() => {
+        overlay.style.opacity = '1';
+    }, 10);
+}
+
+function closeModal() {
+    const modal = document.getElementById('kitModal');
+    if (modal) {
+        modal.style.opacity = '0';
+        setTimeout(() => modal.remove(), 300);
+    }
+}
+
+// =================================================================
+// QUICK ORDER - EXISTING (ไม่ต้องแก้ไข)
+// =================================================================
+
+function quickOrder(kitId) {
+    <?php if ($is_logged_in): ?>
+        if (confirm('Proceed to checkout for this meal kit?')) {
+            window.location.href = 'checkout.php?kit=' + kitId + '&action=quick_order';
+        }
+    <?php else: ?>
+        if (confirm('You will need to provide delivery details. Continue?')) {
+            sessionStorage.setItem('selected_kit', kitId);
+            sessionStorage.setItem('checkout_action', 'quick_order');
+            window.location.href = 'guest-checkout.php?kit=' + kitId + '&action=quick_order';
+        }
+    <?php endif; ?>
+}
+
+// =================================================================
+// UTILITY FUNCTIONS - EXISTING (ไม่ต้องแก้ไข)
+// =================================================================
+
+function closePromoBanner() {
+    const promoBanner = document.getElementById('promoBanner');
+    const navbar = document.querySelector('.navbar');
+    
+    promoBanner.style.transform = 'translateY(-100%)';
+    promoBanner.style.opacity = '0';
+    
+    setTimeout(() => {
+        promoBanner.style.display = 'none';
+        navbar.style.top = '0';
+    }, 300);
+}
+
+// =================================================================
+// EVENT LISTENERS - ปรับปรุงให้รวม Auto-Sync
+// =================================================================
+
+// Smooth scrolling for navigation links
+document.addEventListener('DOMContentLoaded', function() {
+    // 🛒 Initialize cart sync system
+    initCartSync();
+    
+    // Smooth scrolling
+    const navLinks = document.querySelectorAll('a[href^="#"]');
+    navLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const targetId = this.getAttribute('href');
+            const targetSection = document.querySelector(targetId);
             
-            const observerOptions = {
-                threshold: 0.1,
-                rootMargin: '0px 0px -50px 0px'
-            };
-
-            const observer = new IntersectionObserver(function(entries) {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        entry.target.style.opacity = '1';
-                        entry.target.style.transform = 'translateY(0)';
-                    }
+            if (targetSection) {
+                targetSection.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
                 });
-            }, observerOptions);
-
-            kitCards.forEach(card => {
-                card.style.opacity = '0';
-                card.style.transform = 'translateY(20px)';
-                card.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-                observer.observe(card);
-            });
+            }
         });
-    </script>
+    });
+    
+    // Card animation on scroll
+    const kitCards = document.querySelectorAll('.meal-kit-card');
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver(function(entries) {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+            }
+        });
+    }, observerOptions);
+
+    kitCards.forEach(card => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        card.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+        observer.observe(card);
+    });
+});
+
+// Navbar background on scroll
+window.addEventListener('scroll', function() {
+    const navbar = document.querySelector('.navbar');
+    if (window.scrollY > 100) {
+        navbar.style.background = 'rgba(255, 255, 255, 0.98)';
+    } else {
+        navbar.style.background = 'rgba(255, 255, 255, 0.95)';
+    }
+});
+
+// Close modal on ESC key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeModal();
+    }
+});
+
+// =================================================================
+// CSS Styles for enhanced cart counter
+// =================================================================
+const style = document.createElement('style');
+style.textContent = `
+    .cart-counter {
+        animation: pulse 2s infinite;
+    }
+    
+    .cart-counter.has-items {
+        background: var(--curry) !important;
+        color: white;
+        font-weight: bold;
+    }
+    
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+    
+    .toast-notification {
+        font-size: 14px;
+        line-height: 1.4;
+    }
+`;
+document.head.appendChild(style);
+
+</script>
+    
 </body>
 </html>

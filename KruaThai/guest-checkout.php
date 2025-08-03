@@ -15,11 +15,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     echo "<p>No POST data</p>";
     echo "</div>";
 }
+
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
 require_once 'config/database.php';
-
 
 // Utility Functions
 class GuestCheckoutUtils {
@@ -98,8 +98,6 @@ $checkout_action = '';
 $errors = [];
 $order_id = null;
 $order_number = '';
-
-// แทนที่ส่วน try-catch block ในไฟล์ guest-checkout.php ด้วยโค้ดนี้
 
 try {
     // Get database connection
@@ -246,8 +244,13 @@ try {
     $tax_amount = 0;
     $total = 0;
 }
-// Process form submission
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['place_order'])) {
+
+// Process form submission - FIXED VERSION
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
+    
+    // 🔧 Debug: ตรวจสอบว่า Form ถูกส่งมาจริง
+    error_log("🔥 GUEST CHECKOUT: Form submitted with place_order button");
+    error_log("POST keys: " . implode(', ', array_keys($_POST)));
     
     // Validate form data
     $first_name = GuestCheckoutUtils::sanitizeInput($_POST['first_name'] ?? '');
@@ -261,6 +264,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['place_order'])) {
     $delivery_instructions = GuestCheckoutUtils::sanitizeInput($_POST['delivery_instructions'] ?? '');
     $payment_method = $_POST['payment_method'] ?? '';
     $delivery_date = $_POST['delivery_date'] ?? '';
+    
+    // 🔧 Debug: แสดงข้อมูลที่ได้รับ
+    error_log("Customer: $first_name $last_name");
+    error_log("Email: $email");
+    error_log("Payment: $payment_method");
+    error_log("Delivery Date: $delivery_date");
     
     // Validation
     if (empty($first_name)) $errors[] = "First name is required.";
@@ -279,9 +288,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['place_order'])) {
         $errors[] = "Delivery date must be at least tomorrow.";
     }
     
+    // 🔧 Debug: แสดงผลการตรวจสอบ
+    if (!empty($errors)) {
+        error_log("❌ Validation errors: " . implode(', ', $errors));
+    } else {
+        error_log("✅ Validation passed, proceeding with order creation");
+    }
+    
     if (empty($errors)) {
         try {
             $pdo->beginTransaction();
+            error_log("🔄 Database transaction started");
             
             // Create or find guest user
             $user_id = GuestCheckoutUtils::generateUUID();
@@ -293,6 +310,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['place_order'])) {
             
             if ($existing_user) {
                 $user_id = $existing_user['id'];
+                error_log("👤 Using existing user: $user_id");
                 
                 // Update existing user's information
                 $stmt = $pdo->prepare("
@@ -308,6 +326,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['place_order'])) {
                     $delivery_instructions, $user_id
                 ]);
             } else {
+                error_log("👤 Creating new user: $user_id");
+                
                 // Create new guest user
                 $stmt = $pdo->prepare("
                     INSERT INTO users (
@@ -325,6 +345,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['place_order'])) {
             // Create order
             $order_id = GuestCheckoutUtils::generateUUID();
             $order_number = GuestCheckoutUtils::generateOrderNumber();
+            
+            error_log("📝 Creating order: $order_number ($order_id)");
             
             $stmt = $pdo->prepare("
                 INSERT INTO orders (
@@ -353,6 +375,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['place_order'])) {
                     }
                 }
                 
+                error_log("🍛 Adding item: " . $item['name'] . " (Qty: " . $item['quantity'] . ", Total: $" . number_format($item_total, 2) . ")");
+                
                 $stmt = $pdo->prepare("
                     INSERT INTO order_items (
                         id, order_id, menu_id, quantity, unit_price, total_price,
@@ -371,6 +395,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['place_order'])) {
             $payment_id = GuestCheckoutUtils::generateUUID();
             $transaction_id = 'TXN-' . date('Ymd-His') . '-' . substr($order_id, 0, 6);
             
+            error_log("💳 Creating payment: $transaction_id ($payment_id)");
+            
             $stmt = $pdo->prepare("
                 INSERT INTO payments (
                     id, user_id, transaction_id, amount, currency, status,
@@ -386,50 +412,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['place_order'])) {
                 $payment_id, $user_id, $transaction_id, $total, $payment_method, $description
             ]);
             
-   $pdo->commit();
+            $pdo->commit();
+            error_log("✅ Order processing complete!");
 
+            // Store success data in session
+            $_SESSION['order_success'] = [
+                'order_number' => $order_number,
+                'total' => $total,
+                'items' => $cart_items,
+                'email' => $email,
+                'delivery_date' => $delivery_date,
+                'source' => $checkout_source
+            ];
 
-// 🔥 เพิ่ม Debug Messages ชั่วคราว 🔥
-echo "<div style='background: #d4edda; padding: 15px; margin: 10px; border-radius: 5px; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 9999; width: 80%; max-width: 500px;'>";
-echo "<h3>✅ Order Processing Complete!</h3>";
-echo "<p><strong>Order ID:</strong> " . $order_id . "</p>";
-echo "<p><strong>Order Number:</strong> " . $order_number . "</p>";
-echo "<p><strong>Total:</strong> $" . number_format($total, 2) . "</p>";
-echo "<p><strong>Redirecting to:</strong> order-confirmation.php?order=" . $order_id . "</p>";
-echo "<p>Click <a href='order-confirmation.php?order=" . $order_id . "'>here</a> if not redirected automatically.</p>";
-echo "</div>";
+            // Clear cart data
+            if ($checkout_source === 'cart') {
+                $_SESSION['cart'] = [];
+            } else {
+                unset($_SESSION['selected_kit']);
+                unset($_SESSION['checkout_action']);
+            }
 
-
-// Store success data in session
-$_SESSION['order_success'] = [
-    'order_number' => $order_number,
-    'total' => $total,
-    'items' => $cart_items,
-    'email' => $email,
-    'delivery_date' => $delivery_date,
-    'source' => $checkout_source
-];
-
-// Clear cart data
-if ($checkout_source === 'cart') {
-    $_SESSION['cart'] = [];
-} else {
-    unset($_SESSION['selected_kit']);
-    unset($_SESSION['checkout_action']);
-}
-
-// JavaScript redirect with delay to see the message
-echo "<script>
-setTimeout(function() {
-    window.location.href = 'order-confirmation.php?order=" . $order_id . "';
-}, 3000);
-</script>";
-
-// Stop execution here to prevent further processing
-exit;
+            // Redirect to confirmation page
+            header("Location: order-confirmation.php?order=" . $order_id);
+            exit;
             
         } catch (Exception $e) {
             $pdo->rollBack();
+            error_log("❌ Order creation failed: " . $e->getMessage());
             $errors[] = "Failed to place order: " . $e->getMessage();
         }
     }
@@ -453,6 +463,7 @@ for ($i = 1; $i <= 7; $i++) {
     
     <!-- BaticaSans Font Import -->
     <link rel="preconnect" href="https://ydpschool.com">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         @font-face {
             font-family: 'BaticaSans';
@@ -828,15 +839,10 @@ for ($i = 1; $i <= 7; $i++) {
             box-shadow: var(--shadow-medium);
         }
 
-        .btn-secondary {
-            background: transparent;
-            color: var(--curry);
-            border: 2px solid var(--curry);
-        }
-
-        .btn-secondary:hover {
-            background: var(--curry);
-            color: var(--white);
+        .btn-primary:disabled {
+            background: var(--text-gray);
+            cursor: not-allowed;
+            transform: none;
         }
 
         /* Messages */
@@ -862,27 +868,6 @@ for ($i = 1; $i <= 7; $i++) {
         .error-list {
             margin: 0;
             padding-left: 1.5rem;
-        }
-
-        /* Success Page */
-        .success-container {
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 3rem 2rem;
-            text-align: center;
-        }
-
-        .success-icon {
-            width: 100px;
-            height: 100px;
-            background: var(--success-color);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 2rem;
-            color: var(--white);
-            font-size: 3rem;
         }
 
         /* Responsive Design */
@@ -949,339 +934,329 @@ for ($i = 1; $i <= 7; $i++) {
     </nav>
 
     <div class="main-container">
-    
-            <!-- Checkout Form -->
-            <div class="checkout-container">
-                <div class="checkout-form">
-                    <h1 class="section-title">Complete Your Order</h1>
+        <div class="checkout-container">
+            <div class="checkout-form">
+                <h1 class="section-title">Complete Your Order</h1>
+                
+                <?php if (!empty($errors)): ?>
+                    <div class="message error">
+                        <strong>Please fix the following errors:</strong>
+                        <ul class="error-list">
+                            <?php foreach ($errors as $error): ?>
+                                <li><?php echo htmlspecialchars($error); ?></li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </div>
+                <?php endif; ?>
+
+                <form method="POST" action="" id="guestCheckoutForm" autocomplete="on">
+                    <!-- Contact Information -->
+                    <div class="form-section">
+                        <h2 class="form-section-title">Contact Information</h2>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="first_name" class="form-label">First Name *</label>
+                                <input type="text" id="first_name" name="first_name" class="form-input" 
+                                       value="<?php echo htmlspecialchars($_POST['first_name'] ?? ''); ?>" 
+                                       autocomplete="given-name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="last_name" class="form-label">Last Name *</label>
+                                <input type="text" id="last_name" name="last_name" class="form-input" 
+                                       value="<?php echo htmlspecialchars($_POST['last_name'] ?? ''); ?>" 
+                                       autocomplete="family-name" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="email" class="form-label">Email Address *</label>
+                                <input type="email" id="email" name="email" class="form-input" 
+                                       value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>" 
+                                       autocomplete="email" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="phone" class="form-label">Phone Number *</label>
+                                <input type="tel" id="phone" name="phone" class="form-input" 
+                                       value="<?php echo htmlspecialchars($_POST['phone'] ?? ''); ?>" 
+                                       placeholder="(555) 123-4567" autocomplete="tel" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Delivery Information -->
+                    <div class="form-section">
+                        <h2 class="form-section-title">Delivery Information</h2>
+                        <div class="form-group">
+                            <label for="delivery_address" class="form-label">Street Address *</label>
+                            <input type="text" id="delivery_address" name="delivery_address" class="form-input" 
+                                   value="<?php echo htmlspecialchars($_POST['delivery_address'] ?? ''); ?>" 
+                                   placeholder="123 Main Street, Apt 4B" autocomplete="street-address" required>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="city" class="form-label">City *</label>
+                                <input type="text" id="city" name="city" class="form-input" 
+                                       value="<?php echo htmlspecialchars($_POST['city'] ?? ''); ?>" 
+                                       autocomplete="address-level2" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="state" class="form-label">State *</label>
+                                <select id="state" name="state" class="form-select" autocomplete="address-level1" required>
+                                    <option value="">Select State</option>
+                                    <option value="TX" <?php echo ($_POST['state'] ?? '') === 'TX' ? 'selected' : ''; ?>>Texas</option>
+                                    <option value="CA" <?php echo ($_POST['state'] ?? '') === 'CA' ? 'selected' : ''; ?>>California</option>
+                                    <option value="NY" <?php echo ($_POST['state'] ?? '') === 'NY' ? 'selected' : ''; ?>>New York</option>
+                                    <option value="FL" <?php echo ($_POST['state'] ?? '') === 'FL' ? 'selected' : ''; ?>>Florida</option>
+                                    <option value="IL" <?php echo ($_POST['state'] ?? '') === 'IL' ? 'selected' : ''; ?>>Illinois</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="zip_code" class="form-label">ZIP Code *</label>
+                                <input type="text" id="zip_code" name="zip_code" class="form-input" 
+                                       value="<?php echo htmlspecialchars($_POST['zip_code'] ?? ''); ?>" 
+                                       placeholder="12345" pattern="[0-9]{5}" maxlength="5" 
+                                       autocomplete="postal-code" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="delivery_date" class="form-label">Delivery Date *</label>
+                                <select id="delivery_date" name="delivery_date" class="form-select" required>
+                                    <option value="">Select Date</option>
+                                    <?php foreach ($delivery_date_options as $date => $label): ?>
+                                        <option value="<?php echo $date; ?>" 
+                                                <?php echo ($_POST['delivery_date'] ?? '') === $date ? 'selected' : ''; ?>>
+                                            <?php echo $label; ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="delivery_instructions" class="form-label">Delivery Instructions (Optional)</label>
+                            <textarea id="delivery_instructions" name="delivery_instructions" class="form-textarea" 
+                                      placeholder="e.g., Leave at front door, Ring doorbell, etc." 
+                                      autocomplete="off"><?php echo htmlspecialchars($_POST['delivery_instructions'] ?? ''); ?></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Payment Information -->
+                    <div class="form-section">
+                        <h2 class="form-section-title">Payment Method</h2>
+                        <div class="payment-methods">
+                            <label class="payment-option" for="credit_card">
+                                <input type="radio" id="credit_card" name="payment_method" value="credit_card" 
+                                       class="payment-radio" <?php echo ($_POST['payment_method'] ?? '') === 'credit_card' ? 'checked' : ''; ?> required>
+                                <div>
+                                    <div class="payment-label">💳 Credit/Debit Card</div>
+                                    <div class="payment-description">Visa, Mastercard, American Express</div>
+                                </div>
+                            </label>
+                            
+                            <label class="payment-option" for="apple_pay">
+                                <input type="radio" id="apple_pay" name="payment_method" value="apple_pay" 
+                                       class="payment-radio" <?php echo ($_POST['payment_method'] ?? '') === 'apple_pay' ? 'checked' : ''; ?>>
+                                <div>
+                                    <div class="payment-label">🍎 Apple Pay</div>
+                                    <div class="payment-description">Fast and secure payment with Touch ID</div>
+                                </div>
+                            </label>
+                            
+                            <label class="payment-option" for="google_pay">
+                                <input type="radio" id="google_pay" name="payment_method" value="google_pay" 
+                                       class="payment-radio" <?php echo ($_POST['payment_method'] ?? '') === 'google_pay' ? 'checked' : ''; ?>>
+                                <div>
+                                    <div class="payment-label">🅖 Google Pay</div>
+                                    <div class="payment-description">Quick checkout with your Google account</div>
+                                </div>
+                            </label>
+                            
+                            <label class="payment-option" for="paypal">
+                                <input type="radio" id="paypal" name="payment_method" value="paypal" 
+                                       class="payment-radio" <?php echo ($_POST['payment_method'] ?? '') === 'paypal' ? 'checked' : ''; ?>>
+                                <div>
+                                    <div class="payment-label">🅿️ PayPal</div>
+                                    <div class="payment-description">Pay with your PayPal account</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button - FIXED SINGLE BUTTON -->
+                    <button type="submit" name="place_order" value="1" class="btn btn-primary" id="placeOrderBtn">
+                        <i class="fas fa-credit-card"></i> Place Order - <?php echo GuestCheckoutUtils::formatPrice($total); ?>
+                    </button>
                     
-                    <?php if (!empty($errors)): ?>
-                        <div class="message error">
-                            <strong>Please fix the following errors:</strong>
-                            <ul class="error-list">
-                                <?php foreach ($errors as $error): ?>
-                                    <li><?php echo htmlspecialchars($error); ?></li>
-                                <?php endforeach; ?>
-                            </ul>
+                    <!-- Security fields -->
+                    <input type="hidden" name="form_token" value="<?php echo hash('sha256', session_id() . time()); ?>">
+                    <input type="hidden" name="checkout_source" value="<?php echo htmlspecialchars($checkout_source); ?>">
+                    <input type="hidden" name="timestamp" value="<?php echo time(); ?>">
+                </form>
+            </div>
+
+            <!-- Order Summary Sidebar -->
+            <div class="order-summary">
+                <h2 class="section-title">Order Summary</h2>
+                
+                <?php if ($checkout_source === 'cart' && count($cart_items) > 1): ?>
+                    <!-- CART CHECKOUT: Multiple Items -->
+                    <div style="margin-bottom: 1.5rem;">
+                        <h4 style="margin-bottom: 1rem; color: var(--text-dark);">🛒 Cart Items (<?php echo count($cart_items); ?>)</h4>
+                        
+                        <?php foreach ($cart_items as $item): ?>
+                            <div style="display: flex; gap: 0.75rem; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-light);">
+                                <div style="width: 50px; height: 50px; background: linear-gradient(45deg, var(--curry), var(--brown)); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; color: var(--white); font-size: 1rem;">
+                                    🍛
+                                </div>
+                                <div style="flex: 1;">
+                                    <h5 style="font-size: 0.95rem; margin-bottom: 0.25rem; font-family: 'BaticaSans', sans-serif;">
+                                        <?php echo htmlspecialchars($item['name']); ?>
+                                    </h5>
+                                    <div style="font-size: 0.8rem; color: var(--text-gray);">
+                                        Qty: <?php echo $item['quantity']; ?> × <?php echo GuestCheckoutUtils::formatPrice($item['base_price']); ?>
+                                    </div>
+                                    <div style="font-size: 0.9rem; font-weight: 600; color: var(--curry);">
+                                        <?php 
+                                        $item_total = $item['base_price'] * $item['quantity'];
+                                        // Add customization costs if any
+                                        if (isset($item['customizations'])) {
+                                            if (isset($item['customizations']['extra_protein']) && $item['customizations']['extra_protein']) {
+                                                $item_total += 2.99 * $item['quantity'];
+                                            }
+                                            if (isset($item['customizations']['extra_vegetables']) && $item['customizations']['extra_vegetables']) {
+                                                $item_total += 1.99 * $item['quantity'];
+                                            }
+                                        }
+                                        echo GuestCheckoutUtils::formatPrice($item_total);
+                                        ?>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                    
+                <?php else: ?>
+                    <!-- SINGLE KIT CHECKOUT: One Item -->
+                    <?php 
+                    $display_item = $checkout_source === 'cart' ? $cart_items[0] : $selected_kit;
+                    if ($display_item): ?>
+                        <div class="kit-summary">
+                            <div class="kit-image">🍛</div>
+                            <div class="kit-details">
+                                <h3><?php echo htmlspecialchars($display_item['name']); ?></h3>
+                                <div class="kit-meta">
+                                    <?php if (isset($display_item['prep_time'])): ?>
+                                        ⏱️ <?php echo $display_item['prep_time']; ?> mins
+                                    <?php endif; ?>
+                                    <?php if (isset($display_item['serves'])): ?>
+                                        • 👥 <?php echo htmlspecialchars($display_item['serves']); ?>
+                                    <?php endif; ?>
+                                    <?php if (isset($display_item['spice_level'])): ?>
+                                        • 🌶️ <?php echo htmlspecialchars($display_item['spice_level']); ?>
+                                    <?php endif; ?>
+                                    <?php if ($checkout_source === 'cart' && isset($display_item['quantity']) && $display_item['quantity'] > 1): ?>
+                                        • Qty: <?php echo $display_item['quantity']; ?>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="kit-price">
+                                    <?php echo GuestCheckoutUtils::formatPrice($display_item['base_price']); ?>
+                                    <?php if ($checkout_source === 'cart' && isset($display_item['quantity']) && $display_item['quantity'] > 1): ?>
+                                        <span style="font-size: 0.9rem; color: var(--text-gray);"> each</span>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
                         </div>
                     <?php endif; ?>
+                <?php endif; ?>
 
-                    <form method="POST" id="checkoutForm">
-                        <!-- Contact Information -->
-                        <div class="form-section">
-                            <h2 class="form-section-title">Contact Information</h2>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="first_name" class="form-label">First Name *</label>
-                                    <input type="text" id="first_name" name="first_name" class="form-input" 
-                                           value="<?php echo htmlspecialchars($_POST['first_name'] ?? ''); ?>" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="last_name" class="form-label">Last Name *</label>
-                                    <input type="text" id="last_name" name="last_name" class="form-input" 
-                                           value="<?php echo htmlspecialchars($_POST['last_name'] ?? ''); ?>" required>
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="email" class="form-label">Email Address *</label>
-                                    <input type="email" id="email" name="email" class="form-input" 
-                                           value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="phone" class="form-label">Phone Number *</label>
-                                    <input type="tel" id="phone" name="phone" class="form-input" 
-                                           value="<?php echo htmlspecialchars($_POST['phone'] ?? ''); ?>" 
-                                           placeholder="(555) 123-4567" required>
-                                </div>
-                            </div>
+                <!-- Price Breakdown -->
+                <div class="price-breakdown">
+                    <div class="price-row">
+                        <span>Subtotal<?php if ($checkout_source === 'cart'): ?> (<?php echo array_sum(array_column($cart_items, 'quantity')); ?> items)<?php endif; ?>:</span>
+                        <span><?php echo GuestCheckoutUtils::formatPrice($subtotal); ?></span>
+                    </div>
+                    <div class="price-row">
+                        <span>Delivery Fee:</span>
+                        <span style="<?php echo $delivery_fee == 0 ? 'color: var(--success-color); font-weight: 600;' : ''; ?>">
+                            <?php echo $delivery_fee == 0 ? 'FREE' : GuestCheckoutUtils::formatPrice($delivery_fee); ?>
+                        </span>
+                    </div>
+                    <?php if ($subtotal < 25 && $delivery_fee > 0): ?>
+                        <div style="font-size: 0.9rem; color: var(--text-gray); margin-bottom: 0.5rem; font-style: italic;">
+                            💡 Add <?php echo GuestCheckoutUtils::formatPrice(25 - $subtotal); ?> more for free delivery!
                         </div>
-
-                        <!-- Delivery Information -->
-                        <div class="form-section">
-                            <h2 class="form-section-title">Delivery Information</h2>
-                            <div class="form-group">
-                                <label for="delivery_address" class="form-label">Street Address *</label>
-                                <input type="text" id="delivery_address" name="delivery_address" class="form-input" 
-                                       value="<?php echo htmlspecialchars($_POST['delivery_address'] ?? ''); ?>" 
-                                       placeholder="123 Main Street, Apt 4B" required>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="city" class="form-label">City *</label>
-                                    <input type="text" id="city" name="city" class="form-input" 
-                                           value="<?php echo htmlspecialchars($_POST['city'] ?? ''); ?>" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="state" class="form-label">State *</label>
-                                    <select id="state" name="state" class="form-select" required>
-                                        <option value="">Select State</option>
-                                        <option value="TX" <?php echo ($_POST['state'] ?? '') === 'TX' ? 'selected' : ''; ?>>Texas</option>
-                                        <option value="CA" <?php echo ($_POST['state'] ?? '') === 'CA' ? 'selected' : ''; ?>>California</option>
-                                        <option value="NY" <?php echo ($_POST['state'] ?? '') === 'NY' ? 'selected' : ''; ?>>New York</option>
-                                        <option value="FL" <?php echo ($_POST['state'] ?? '') === 'FL' ? 'selected' : ''; ?>>Florida</option>
-                                        <option value="IL" <?php echo ($_POST['state'] ?? '') === 'IL' ? 'selected' : ''; ?>>Illinois</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="zip_code" class="form-label">ZIP Code *</label>
-                                    <input type="text" id="zip_code" name="zip_code" class="form-input" 
-                                           value="<?php echo htmlspecialchars($_POST['zip_code'] ?? ''); ?>" 
-                                           placeholder="12345" pattern="[0-9]{5}" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="delivery_date" class="form-label">Delivery Date *</label>
-                                    <select id="delivery_date" name="delivery_date" class="form-select" required>
-                                        <option value="">Select Date</option>
-                                        <?php foreach ($delivery_date_options as $date => $label): ?>
-                                            <option value="<?php echo $date; ?>" 
-                                                    <?php echo ($_POST['delivery_date'] ?? '') === $date ? 'selected' : ''; ?>>
-                                                <?php echo $label; ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label for="delivery_instructions" class="form-label">Delivery Instructions (Optional)</label>
-                                <textarea id="delivery_instructions" name="delivery_instructions" class="form-textarea" 
-                                          placeholder="e.g., Leave at front door, Ring doorbell, etc."><?php echo htmlspecialchars($_POST['delivery_instructions'] ?? ''); ?></textarea>
-                            </div>
-                        </div>
-
-                        <!-- Payment Information -->
-                        <div class="form-section">
-                            <h2 class="form-section-title">Payment Method</h2>
-                            <div class="payment-methods">
-                                <label class="payment-option" for="credit_card">
-                                    <input type="radio" id="credit_card" name="payment_method" value="credit_card" 
-                                           class="payment-radio" <?php echo ($_POST['payment_method'] ?? '') === 'credit_card' ? 'checked' : ''; ?>>
-                                    <div>
-                                        <div class="payment-label">💳 Credit/Debit Card</div>
-                                        <div class="payment-description">Visa, Mastercard, American Express</div>
-                                    </div>
-                                </label>
-                                
-                                <label class="payment-option" for="apple_pay">
-                                    <input type="radio" id="apple_pay" name="payment_method" value="apple_pay" 
-                                           class="payment-radio" <?php echo ($_POST['payment_method'] ?? '') === 'apple_pay' ? 'checked' : ''; ?>>
-                                    <div>
-                                        <div class="payment-label">🍎 Apple Pay</div>
-                                        <div class="payment-description">Fast and secure payment with Touch ID</div>
-                                    </div>
-                                </label>
-                                
-                                <label class="payment-option" for="google_pay">
-                                    <input type="radio" id="google_pay" name="payment_method" value="google_pay" 
-                                           class="payment-radio" <?php echo ($_POST['payment_method'] ?? '') === 'google_pay' ? 'checked' : ''; ?>>
-                                    <div>
-                                        <div class="payment-label">🅖 Google Pay</div>
-                                        <div class="payment-description">Quick checkout with your Google account</div>
-                                    </div>
-                                </label>
-                                
-                                <label class="payment-option" for="paypal">
-                                    <input type="radio" id="paypal" name="payment_method" value="paypal" 
-                                           class="payment-radio" <?php echo ($_POST['payment_method'] ?? '') === 'paypal' ? 'checked' : ''; ?>>
-                                    <div>
-                                        <div class="payment-label">🅿️ PayPal</div>
-                                        <div class="payment-description">Pay with your PayPal account</div>
-                                    </div>
-                                </label>
-                            </div>
-                        </div>
-
-                        <!-- Submit Button -->
-                        <button type="submit" name="place_order" class="btn btn-primary" id="submitBtn">
-                            Place Order - <?php echo GuestCheckoutUtils::formatPrice($total); ?>
-                        </button>
-                    </form>
+                    <?php endif; ?>
+                    <div class="price-row">
+                        <span>Tax (8.25%):</span>
+                        <span><?php echo GuestCheckoutUtils::formatPrice($tax_amount); ?></span>
+                    </div>
+                    <div class="price-row total">
+                        <span>Total:</span>
+                        <span><?php echo GuestCheckoutUtils::formatPrice($total); ?></span>
+                    </div>
                 </div>
 
-                <!-- Order Summary Sidebar - FIXED VERSION -->
-                <div class="order-summary">
-                    <h2 class="section-title">Order Summary</h2>
-                    
-                    <?php if ($checkout_source === 'cart' && count($cart_items) > 1): ?>
-                        <!-- CART CHECKOUT: Multiple Items -->
-                        <div style="margin-bottom: 1.5rem;">
-                            <h4 style="margin-bottom: 1rem; color: var(--text-dark);">🛒 Cart Items (<?php echo count($cart_items); ?>)</h4>
-                            
-                            <?php foreach ($cart_items as $item): ?>
-                                <div style="display: flex; gap: 0.75rem; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-light);">
-                                    <div style="width: 50px; height: 50px; background: linear-gradient(45deg, var(--curry), var(--brown)); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; color: var(--white); font-size: 1rem;">
-                                        🍛
-                                    </div>
-                                    <div style="flex: 1;">
-                                        <h5 style="font-size: 0.95rem; margin-bottom: 0.25rem; font-family: 'BaticaSans', sans-serif;">
-                                            <?php echo htmlspecialchars($item['name']); ?>
-                                        </h5>
-                                        <div style="font-size: 0.8rem; color: var(--text-gray);">
-                                            Qty: <?php echo $item['quantity']; ?> × <?php echo GuestCheckoutUtils::formatPrice($item['base_price']); ?>
-                                        </div>
-                                        <div style="font-size: 0.9rem; font-weight: 600; color: var(--curry);">
-                                            <?php 
-                                            $item_total = $item['base_price'] * $item['quantity'];
-                                            // Add customization costs if any
-                                            if (isset($item['customizations'])) {
-                                                if (isset($item['customizations']['extra_protein']) && $item['customizations']['extra_protein']) {
-                                                    $item_total += 2.99 * $item['quantity'];
-                                                }
-                                                if (isset($item['customizations']['extra_vegetables']) && $item['customizations']['extra_vegetables']) {
-                                                    $item_total += 1.99 * $item['quantity'];
-                                                }
-                                            }
-                                            echo GuestCheckoutUtils::formatPrice($item_total);
-                                            ?>
-                                        </div>
-                                    </div>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
-                        
+                <!-- What's Included Section -->
+                <div style="background: var(--cream); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1rem;">
+                    <?php if ($checkout_source === 'cart'): ?>
+                        <h4 style="margin-bottom: 0.5rem; color: var(--text-dark);">📦 What's Included:</h4>
+                        <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.9rem; color: var(--text-gray);">
+                            <li>✓ All selected meal kits</li>
+                            <li>✓ Fresh ingredients & proteins</li>
+                            <li>✓ Step-by-step recipe cards</li>
+                            <li>✓ Authentic Thai curry pastes</li>
+                            <li>✓ Traditional garnishes & rice</li>
+                        </ul>
                     <?php else: ?>
-                        <!-- SINGLE KIT CHECKOUT: One Item -->
-                        <?php 
-                        $display_item = $checkout_source === 'cart' ? $cart_items[0] : $selected_kit;
-                        if ($display_item): ?>
-                            <div class="kit-summary">
-                                <div class="kit-image">🍛</div>
-                                <div class="kit-details">
-                                    <h3><?php echo htmlspecialchars($display_item['name']); ?></h3>
-                                    <div class="kit-meta">
-                                        <?php if (isset($display_item['prep_time'])): ?>
-                                            ⏱️ <?php echo $display_item['prep_time']; ?> mins
-                                        <?php endif; ?>
-                                        <?php if (isset($display_item['serves'])): ?>
-                                            • 👥 <?php echo htmlspecialchars($display_item['serves']); ?>
-                                        <?php endif; ?>
-                                        <?php if (isset($display_item['spice_level'])): ?>
-                                            • 🌶️ <?php echo htmlspecialchars($display_item['spice_level']); ?>
-                                        <?php endif; ?>
-                                        <?php if ($checkout_source === 'cart' && isset($display_item['quantity']) && $display_item['quantity'] > 1): ?>
-                                            • Qty: <?php echo $display_item['quantity']; ?>
-                                        <?php endif; ?>
-                                    </div>
-                                    <div class="kit-price">
-                                        <?php echo GuestCheckoutUtils::formatPrice($display_item['base_price']); ?>
-                                        <?php if ($checkout_source === 'cart' && isset($display_item['quantity']) && $display_item['quantity'] > 1): ?>
-                                            <span style="font-size: 0.9rem; color: var(--text-gray);"> each</span>
-                                        <?php endif; ?>
-                                    </div>
-                                </div>
-                            </div>
-                        <?php endif; ?>
+                        <h4 style="margin-bottom: 0.5rem; color: var(--text-dark);">📦 What's Included:</h4>
+                        <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.9rem; color: var(--text-gray);">
+                            <li>✓ Pre-made authentic curry paste</li>
+                            <li>✓ Fresh ingredients & proteins</li>
+                            <li>✓ Step-by-step recipe card</li>
+                            <li>✓ Jasmine rice (where applicable)</li>
+                            <li>✓ Traditional garnishes</li>
+                        </ul>
                     <?php endif; ?>
+                </div>
 
-                    <!-- Price Breakdown -->
-                    <div class="price-breakdown">
-                        <div class="price-row">
-                            <span>Subtotal<?php if ($checkout_source === 'cart'): ?> (<?php echo array_sum(array_column($cart_items, 'quantity')); ?> items)<?php endif; ?>:</span>
-                            <span><?php echo GuestCheckoutUtils::formatPrice($subtotal); ?></span>
-                        </div>
-                        <div class="price-row">
-                            <span>Delivery Fee:</span>
-                            <span style="<?php echo $delivery_fee == 0 ? 'color: var(--success-color); font-weight: 600;' : ''; ?>">
-                                <?php echo $delivery_fee == 0 ? 'FREE' : GuestCheckoutUtils::formatPrice($delivery_fee); ?>
-                            </span>
-                        </div>
-                        <?php if ($subtotal < 25 && $delivery_fee > 0): ?>
-                            <div style="font-size: 0.9rem; color: var(--text-gray); margin-bottom: 0.5rem; font-style: italic;">
-                                💡 Add <?php echo GuestCheckoutUtils::formatPrice(25 - $subtotal); ?> more for free delivery!
-                            </div>
-                        <?php endif; ?>
-                        <div class="price-row">
-                            <span>Tax (8.25%):</span>
-                            <span><?php echo GuestCheckoutUtils::formatPrice($tax_amount); ?></span>
-                        </div>
-                        <div class="price-row total">
-                            <span>Total:</span>
-                            <span><?php echo GuestCheckoutUtils::formatPrice($total); ?></span>
-                        </div>
-                    </div>
-
-                    <!-- What's Included Section -->
-                    <div style="background: var(--cream); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1rem;">
-                        <?php if ($checkout_source === 'cart'): ?>
-                            <h4 style="margin-bottom: 0.5rem; color: var(--text-dark);">📦 What's Included:</h4>
-                            <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.9rem; color: var(--text-gray);">
-                                <li>✓ All selected meal kits</li>
-                                <li>✓ Fresh ingredients & proteins</li>
-                                <li>✓ Step-by-step recipe cards</li>
-                                <li>✓ Authentic Thai curry pastes</li>
-                                <li>✓ Traditional garnishes & rice</li>
-                            </ul>
-                        <?php else: ?>
-                            <h4 style="margin-bottom: 0.5rem; color: var(--text-dark);">📦 What's Included:</h4>
-                            <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.9rem; color: var(--text-gray);">
-                                <li>✓ Pre-made authentic curry paste</li>
-                                <li>✓ Fresh ingredients & proteins</li>
-                                <li>✓ Step-by-step recipe card</li>
-                                <li>✓ Jasmine rice (where applicable)</li>
-                                <li>✓ Traditional garnishes</li>
-                            </ul>
-                        <?php endif; ?>
-                    </div>
-
-                    <!-- Additional Info -->
-                    <div style="font-size: 0.85rem; color: var(--text-gray); text-align: center; line-height: 1.4;">
-                        <p>🚚 <strong>Free delivery</strong> on orders over $25</p>
-                        <p>❄️ All ingredients arrive fresh & chilled</p>
-                        <p>📞 24/7 customer support</p>
-                        <?php if ($checkout_source === 'cart'): ?>
-                            <p style="margin-top: 0.5rem; font-weight: 500;">🎉 Bundle discount applied!</p>
-                        <?php endif; ?>
-                    </div>
+                <!-- Additional Info -->
+                <div style="font-size: 0.85rem; color: var(--text-gray); text-align: center; line-height: 1.4;">
+                    <p>🚚 <strong>Free delivery</strong> on orders over $25</p>
+                    <p>❄️ All ingredients arrive fresh & chilled</p>
+                    <p>📞 24/7 customer support</p>
+                    <?php if ($checkout_source === 'cart'): ?>
+                        <p style="margin-top: 0.5rem; font-weight: 500;">🎉 Bundle discount applied!</p>
+                    <?php endif; ?>
                 </div>
             </div>
-    
+        </div>
     </div>
 
     <script>
-        // Form validation and interaction
+        // Form validation and interaction - COMPLETE FIXED VERSION
         document.addEventListener('DOMContentLoaded', function() {
-            const form = document.getElementById('checkoutForm');
-            const submitBtn = document.getElementById('submitBtn');
-// Debug button click
-    if (submitBtn) {
-        submitBtn.addEventListener('click', function(e) {
-            console.log('🔥 Submit button clicked!');
-            console.log('Form element:', form);
-            console.log('Form method:', form ? form.method : 'No form');
-            console.log('Form action:', form ? form.action : 'No action');
+            console.log('✅ Guest checkout page loaded - FIXED VERSION');
             
-            // Check if form is valid
-            if (form) {
-                console.log('Form valid:', form.checkValidity());
-                const requiredFields = form.querySelectorAll('[required]');
-                console.log('Required fields count:', requiredFields.length);
-                
-                let emptyFields = [];
-                requiredFields.forEach(field => {
-                    if (!field.value.trim()) {
-                        emptyFields.push(field.name);
-                    }
-                });
-                console.log('Empty required fields:', emptyFields);
+            const form = document.getElementById('guestCheckoutForm');
+            const submitBtn = document.getElementById('placeOrderBtn');
+            
+            if (!form) {
+                console.error('❌ Form not found! Looking for: guestCheckoutForm');
+                return;
             }
-        });
-    } else {
-        console.log('❌ Submit button not found!');
-    }
-    
-    // Debug form submission
-    if (form) {
-        form.addEventListener('submit', function(e) {
-            console.log('🚀 Form submitting!');
-            console.log('Event:', e);
-        });
-    } else {
-        console.log('❌ Form not found!');
-    }
-
-
+            
+            if (!submitBtn) {
+                console.error('❌ Submit button not found! Looking for: placeOrderBtn');
+                return;
+            }
+            
+            console.log('✅ Form and submit button found');
+            console.log('🔍 Button details:', {
+                name: submitBtn.name,
+                value: submitBtn.value,
+                type: submitBtn.type
+            });
+            
             const paymentOptions = document.querySelectorAll('.payment-option');
             const phoneInput = document.getElementById('phone');
             const zipInput = document.getElementById('zip_code');
@@ -1289,8 +1264,15 @@ for ($i = 1; $i <= 7; $i++) {
             // Payment option selection
             paymentOptions.forEach(option => {
                 option.addEventListener('click', function() {
+                    console.log('💳 Payment option clicked');
                     paymentOptions.forEach(opt => opt.classList.remove('selected'));
                     this.classList.add('selected');
+                    
+                    const radio = this.querySelector('input[type="radio"]');
+                    if (radio) {
+                        radio.checked = true;
+                        console.log('✅ Payment method selected:', radio.value);
+                    }
                 });
             });
 
@@ -1314,78 +1296,233 @@ for ($i = 1; $i <= 7; $i++) {
                 });
             }
 
-            // Form submission
-            if (form) {
-                form.addEventListener('submit', function(e) {
-                    // Show loading state
-                    submitBtn.textContent = 'Processing Order...';
-                    submitBtn.disabled = true;
-                    form.classList.add('loading');
-                    
-                    // Validate required fields
-                    const requiredFields = form.querySelectorAll('[required]');
-                    let isValid = true;
-                    
-                    requiredFields.forEach(field => {
-                        if (!field.value.trim()) {
-                            isValid = false;
-                            field.style.borderColor = 'var(--error-color)';
-                        } else {
-                            field.style.borderColor = 'var(--border-light)';
-                        }
-                    });
-                    
-                    // Validate email
-                    const emailField = document.getElementById('email');
-                    if (emailField && emailField.value) {
-                        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                        if (!emailRegex.test(emailField.value)) {
-                            isValid = false;
-                            emailField.style.borderColor = 'var(--error-color)';
-                        }
-                    }
-                    
-                    // Validate phone
-                    if (phoneInput && phoneInput.value) {
-                        const phoneRegex = /^\(\d{3}\) \d{3}-\d{4}$/;
-                        if (!phoneRegex.test(phoneInput.value)) {
-                            isValid = false;
-                            phoneInput.style.borderColor = 'var(--error-color)';
-                        }
-                    }
-                    
-                    if (!isValid) {
-                        e.preventDefault();
-                        submitBtn.textContent = 'Place Order - <?php echo GuestCheckoutUtils::formatPrice($total); ?>';
-                        submitBtn.disabled = false;
-                        form.classList.remove('loading');
-                        
-                        // Scroll to first error
-                        const firstError = form.querySelector('[style*="border-color: var(--error-color)"]');
-                        if (firstError) {
-                            firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            firstError.focus();
-                        }
+            // Enhanced form validation function
+            function validateForm() {
+                console.log('🔍 Validating form...');
+                const errors = [];
+                
+                const requiredFields = [
+                    { id: 'first_name', name: 'First name' },
+                    { id: 'last_name', name: 'Last name' },
+                    { id: 'email', name: 'Email address' },
+                    { id: 'phone', name: 'Phone number' },
+                    { id: 'delivery_address', name: 'Delivery address' },
+                    { id: 'city', name: 'City' },
+                    { id: 'zip_code', name: 'ZIP code' }
+                ];
+                
+                requiredFields.forEach(field => {
+                    const input = document.getElementById(field.id);
+                    if (!input || !input.value.trim()) {
+                        errors.push(`${field.name} is required`);
+                        if (input) input.style.borderColor = 'var(--error-color)';
+                    } else {
+                        if (input) input.style.borderColor = 'var(--border-light)';
                     }
                 });
+                
+                const stateSelect = document.getElementById('state');
+                if (!stateSelect || !stateSelect.value) {
+                    errors.push('Please select a state');
+                    if (stateSelect) stateSelect.style.borderColor = 'var(--error-color)';
+                }
+                
+                const deliveryDate = document.getElementById('delivery_date');
+                if (!deliveryDate || !deliveryDate.value) {
+                    errors.push('Please select a delivery date');
+                    if (deliveryDate) deliveryDate.style.borderColor = 'var(--error-color)';
+                }
+                
+                const emailField = document.getElementById('email');
+                if (emailField && emailField.value) {
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!emailRegex.test(emailField.value)) {
+                        errors.push('Please enter a valid email address');
+                        emailField.style.borderColor = 'var(--error-color)';
+                    }
+                }
+                
+                if (phoneInput && phoneInput.value) {
+                    const phoneRegex = /^\(\d{3}\) \d{3}-\d{4}$/;
+                    if (!phoneRegex.test(phoneInput.value)) {
+                        errors.push('Please enter a valid phone number');
+                        phoneInput.style.borderColor = 'var(--error-color)';
+                    }
+                }
+                
+                if (zipInput && zipInput.value) {
+                    const zipRegex = /^\d{5}$/;
+                    if (!zipRegex.test(zipInput.value)) {
+                        errors.push('ZIP code must be 5 digits');
+                        zipInput.style.borderColor = 'var(--error-color)';
+                    }
+                }
+                
+                const paymentMethod = document.querySelector('input[name="payment_method"]:checked');
+                if (!paymentMethod) {
+                    errors.push('Please select a payment method');
+                }
+                
+                console.log(errors.length > 0 ? '❌ Validation errors:' : '✅ Validation passed', errors);
+                return errors;
             }
 
-            // Auto-scroll to errors
+            // Form submission handler
+            form.addEventListener('submit', function(e) {
+                console.log('🚀 Form submission started');
+                
+                if (submitBtn.disabled) {
+                    console.log('⚠️ Double submission prevented');
+                    e.preventDefault();
+                    return false;
+                }
+                
+                const validationErrors = validateForm();
+                
+                if (validationErrors.length > 0) {
+                    console.log('❌ Form validation failed');
+                    e.preventDefault();
+                    
+                    alert('Please fix the following issues:\n\n' + validationErrors.join('\n'));
+                    
+                    const firstErrorField = form.querySelector('[style*="border-color: var(--error-color)"]');
+                    if (firstErrorField) {
+                        firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        firstErrorField.focus();
+                    }
+                    
+                    return false;
+                }
+                
+                console.log('✅ Form validation passed, submitting...');
+                
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing Order...';
+                submitBtn.disabled = true;
+                form.classList.add('loading');
+                
+                const formData = new FormData(form);
+                console.log('📝 Form data being submitted:');
+                for (let [key, value] of formData.entries()) {
+                    if(key !== 'form_token') {
+                        console.log(`  ${key}: ${value}`);
+                    }
+                }
+                
+                // ✅ FINAL CHECK: ให้แน่ใจว่า place_order ถูกส่งไป
+                console.log('🔥 CRITICAL CHECK - place_order field:', form.querySelector('[name="place_order"]') ? 'FOUND' : 'NOT FOUND');
+                
+                return true;
+            });
+
+            // Real-time validation feedback
+            const allInputs = form.querySelectorAll('input, select, textarea');
+            allInputs.forEach(input => {
+                input.addEventListener('blur', function() {
+                    if (this.hasAttribute('required') && this.value.trim()) {
+                        this.style.borderColor = 'var(--success-color)';
+                    }
+                });
+                
+                input.addEventListener('input', function() {
+                    if (this.style.borderColor === 'rgb(231, 76, 60)') {
+                        this.style.borderColor = 'var(--border-light)';
+                    }
+                });
+            });
+
+            // Test button functionality
+            submitBtn.addEventListener('click', function(e) {
+                console.log('🔥 Submit button clicked!', {
+                    buttonType: this.type,
+                    buttonName: this.name,
+                    buttonValue: this.value,
+                    formAction: form.action || 'current page',
+                    formMethod: form.method
+                });
+            });
+
+            // Auto-scroll to errors on page load
             const errorMessage = document.querySelector('.message.error');
             if (errorMessage) {
+                console.log('⚠️ Errors detected on page load, scrolling to view');
                 errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            console.log('✅ All event handlers attached successfully');
+        });
+
+        // Global error handling
+        window.addEventListener('error', function(e) {
+            console.error('❌ JavaScript error:', e.error);
+            
+            const submitBtn = document.getElementById('placeOrderBtn');
+            if (submitBtn && submitBtn.disabled) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-credit-card"></i> Place Order - <?php echo GuestCheckoutUtils::formatPrice($total); ?>';
             }
         });
 
-        // Prevent double submission
-        let isSubmitting = false;
-        document.getElementById('checkoutForm')?.addEventListener('submit', function(e) {
-            if (isSubmitting) {
-                e.preventDefault();
-                return false;
+        // Prevent double submission on page unload
+        let isFormSubmitting = false;
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('guestCheckoutForm');
+            if (form) {
+                form.addEventListener('submit', function() {
+                    isFormSubmitting = true;
+                });
             }
-            isSubmitting = true;
         });
+
+        window.addEventListener('beforeunload', function(e) {
+            if (isFormSubmitting) {
+                e.preventDefault();
+                e.returnValue = 'Your order is being processed. Please wait...';
+                return 'Your order is being processed. Please wait...';
+            }
+        });
+
+        // Debug helper function - สามารถเรียกใช้ใน console ได้
+        function debugFormState() {
+            const form = document.getElementById('guestCheckoutForm');
+            const submitBtn = document.getElementById('placeOrderBtn');
+            
+            console.log('🔍 FORM DEBUG INFO:');
+            console.log('Form found:', !!form);
+            console.log('Submit button found:', !!submitBtn);
+            
+            if (form) {
+                console.log('Form action:', form.action);
+                console.log('Form method:', form.method);
+                console.log('Form elements count:', form.elements.length);
+                
+                const requiredFields = form.querySelectorAll('[required]');
+                console.log('Required fields count:', requiredFields.length);
+                
+                const paymentMethod = form.querySelector('input[name="payment_method"]:checked');
+                console.log('Payment method selected:', paymentMethod ? paymentMethod.value : 'none');
+                
+                const placeOrderBtn = form.querySelector('[name="place_order"]');
+                console.log('place_order button found:', !!placeOrderBtn);
+                if (placeOrderBtn) {
+                    console.log('place_order button details:', {
+                        name: placeOrderBtn.name,
+                        value: placeOrderBtn.value,
+                        type: placeOrderBtn.type
+                    });
+                }
+            }
+            
+            if (submitBtn) {
+                console.log('Submit button name:', submitBtn.name);
+                console.log('Submit button value:', submitBtn.value);
+                console.log('Submit button disabled:', submitBtn.disabled);
+            }
+        }
+
+        // Test function for debugging
+        console.log('🧪 Debug functions available:');
+        console.log('- debugFormState() - ตรวจสอบสถานะของ form');
+        console.log('- Call these functions in browser console for debugging');
     </script>
 </body>
 </html>
