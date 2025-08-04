@@ -68,9 +68,10 @@ try {
 
     $where_clause = "WHERE " . implode(" AND ", $where_conditions);
 
-    // Get menus
+    // Get menus with additional images
     $sql = "
-        SELECT m.*, c.name AS category_name, c.name_thai AS category_name_thai
+        SELECT m.*, c.name AS category_name, c.name_thai AS category_name_thai,
+               m.main_image_url, m.additional_images
         FROM menus m 
         LEFT JOIN menu_categories c ON m.category_id = c.id 
         $where_clause 
@@ -213,13 +214,12 @@ try {
         }
 
         .promo-banner-content {
-            /* max-width: 1200px; */  /* Remove this line */
             margin: 0 auto;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 10px;
-            width: 100%; /* Add this for full width */
+            width: 100%;
         }
 
         .promo-icon {
@@ -288,9 +288,7 @@ try {
             justify-content: space-between;
             align-items: center;
             padding: 1rem 2rem;
-            /* max-width: 1200px; */ /* Remove this line */
-            /* margin: 0 auto; */ /* Remove this line */
-            width: 100%; /* Add this for full width */
+            width: 100%;
         }
 
         .logo {
@@ -410,70 +408,158 @@ try {
             font-family: 'BaticaSans', sans-serif;
         }
 
-        /* Filters */
-        .filters-section {
+        /* Category Navigation Filters with Arrow Navigation */
+        .category-nav-section {
             background: var(--white);
             padding: 2rem;
             border-radius: var(--radius-lg);
             margin-bottom: 3rem;
             box-shadow: var(--shadow-soft);
             border: 1px solid var(--border-light);
+            position: relative;
         }
 
-        .filters-title {
-            font-size: 1.3rem;
-            font-weight: 700;
-            margin-bottom: 1.5rem;
-            color: var(--text-dark);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-family: 'BaticaSans', sans-serif;
+        .category-nav-container {
+            overflow-x: auto;
+            scroll-behavior: smooth;
+            /* Hide scrollbar but keep functionality */
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* Internet Explorer 10+ */
         }
 
-        .filters-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 1.5rem;
+        .category-nav-container::-webkit-scrollbar {
+            display: none; /* Safari and Chrome */
         }
 
-        .filter-group {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .filter-label {
-            font-weight: 600;
-            color: var(--text-dark);
-            margin-bottom: 0.5rem;
-            font-size: 0.95rem;
-            font-family: 'BaticaSans', sans-serif;
-        }
-
-        .filter-input,
-        .filter-select {
-            padding: 0.8rem 1rem;
-            border: 2px solid var(--border-light);
-            border-radius: var(--radius-sm);
-            font-size: 1rem;
-            font-family: 'BaticaSans', sans-serif;
-            transition: var(--transition);
-            background: var(--white);
-        }
-
-        .filter-input:focus,
-        .filter-select:focus {
-            outline: none;
-            border-color: var(--curry);
-            box-shadow: 0 0 10px rgba(207, 114, 58, 0.2);
-        }
-
-        .filter-actions {
+        .category-nav-wrapper {
             display: flex;
             gap: 1rem;
+            padding: 0 1rem;
+            min-width: fit-content;
+        }
+
+        /* Arrow Navigation Buttons */
+        .category-nav-arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 45px;
+            height: 45px;
+            background: var(--white);
+            border: 2px solid var(--border-light);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
             justify-content: center;
-            margin-top: 1rem;
+            cursor: pointer;
+            font-size: 1.2rem;
+            color: var(--text-gray);
+            transition: var(--transition);
+            z-index: 10;
+            box-shadow: var(--shadow-soft);
+            font-family: 'BaticaSans', sans-serif;
+            font-weight: 700;
+        }
+
+        .category-nav-arrow:hover {
+            background: var(--curry);
+            color: var(--white);
+            border-color: var(--curry);
+            transform: translateY(-50%) scale(1.1);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .category-nav-arrow:active {
+            transform: translateY(-50%) scale(0.95);
+        }
+
+        .category-nav-arrow.left {
+            left: 10px;
+        }
+
+        .category-nav-arrow.right {
+            right: 10px;
+        }
+
+        /* Hide arrows on small screens where they might interfere */
+        @media (max-width: 768px) {
+            .category-nav-arrow {
+                display: none;
+            }
+        }
+
+        .category-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem 1.5rem;
+            background: var(--white);
+            border: 2px solid var(--border-light);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: var(--transition);
+            text-decoration: none;
+            color: var(--text-dark);
+            font-family: 'BaticaSans', sans-serif;
+            min-width: 100px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .category-nav-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            transition: left 0.5s;
+        }
+
+        .category-nav-item:hover::before {
+            left: 100%;
+        }
+
+        .category-nav-item:hover {
+            border-color: var(--curry);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-soft);
+        }
+
+        .category-nav-item.active {
+            background: linear-gradient(135deg, var(--curry), var(--brown));
+            border-color: var(--curry);
+            color: var(--white);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .category-nav-icon {
+            font-size: 2rem;
+            margin-bottom: 0.2rem;
+            filter: grayscale(0.3);
+            transition: var(--transition);
+        }
+
+        .category-nav-item:hover .category-nav-icon,
+        .category-nav-item.active .category-nav-icon {
+            filter: grayscale(0);
+            transform: scale(1.1);
+        }
+
+        .category-nav-text {
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-align: center;
+            transition: var(--transition);
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+        }
+
+        .category-nav-item.active .category-nav-text {
+            color: var(--white);
         }
 
         /* Results Header */
@@ -534,6 +620,12 @@ try {
             font-size: 1rem;
             font-weight: 600;
             font-family: 'BaticaSans', sans-serif;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .menu-image:hover {
+            transform: scale(1.02);
         }
 
         .menu-image img {
@@ -717,7 +809,7 @@ try {
             font-family: 'BaticaSans', sans-serif;
         }
 
-        /* Modal */
+        /* Updated Modal Styles for Image Gallery */
         .modal {
             display: none;
             position: fixed;
@@ -738,7 +830,8 @@ try {
         .modal-content {
             background: var(--white);
             border-radius: var(--radius-lg);
-            max-width: 600px;
+            max-width: 900px; /* Made wider for desktop */
+            width: 90%;
             max-height: 90vh;
             overflow-y: auto;
             margin: 2rem;
@@ -770,6 +863,88 @@ try {
 
         .modal-body {
             padding: 1.5rem;
+        }
+
+        /* Modal Image Gallery */
+        .modal-image-gallery {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            height: 400px;
+        }
+
+        .modal-main-image-container {
+            flex: 5;
+            position: relative;
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            background: linear-gradient(135deg, var(--cream), #e8dcc0);
+        }
+
+        .modal-main-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: var(--transition);
+        }
+
+        .modal-main-image-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-gray);
+            font-size: 1.5rem;
+            font-weight: 600;
+            font-family: 'BaticaSans', sans-serif;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .modal-thumbnail-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .modal-thumbnail {
+            flex: 1;
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            cursor: pointer;
+            transition: var(--transition);
+            position: relative;
+            background: linear-gradient(135deg, #f8f4f0, #e8dcc0);
+            border: 2px solid transparent;
+        }
+
+        .modal-thumbnail:hover {
+            transform: scale(1.02);
+            box-shadow: var(--shadow-soft);
+        }
+
+        .modal-thumbnail.active {
+            border-color: var(--curry);
+            transform: scale(1.02);
+        }
+
+        .modal-thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .modal-thumbnail-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-gray);
+            font-size: 1.2rem;
+            opacity: 0.5;
         }
 
         /* CTA Section */
@@ -874,13 +1049,26 @@ try {
                 font-size: 1rem;
             }
 
-            .filters-grid {
-                grid-template-columns: 1fr;
-                gap: 1rem;
+            .category-nav-section {
+                padding: 1rem;
             }
 
-            .filter-actions {
-                flex-direction: column;
+            .category-nav-wrapper {
+                gap: 0.5rem;
+                padding: 0;
+            }
+
+            .category-nav-item {
+                min-width: 80px;
+                padding: 0.8rem 1rem;
+            }
+
+            .category-nav-icon {
+                font-size: 1.5rem;
+            }
+
+            .category-nav-text {
+                font-size: 0.8rem;
             }
 
             .results-header {
@@ -903,6 +1091,21 @@ try {
 
             .modal-content {
                 margin: 1rem;
+                max-width: 95%;
+            }
+
+            .modal-image-gallery {
+                flex-direction: column;
+                height: auto;
+            }
+
+            .modal-main-image-container {
+                height: 280px;
+            }
+
+            .modal-thumbnail-container {
+                flex-direction: row;
+                height: 80px;
             }
 
             .cta-section {
@@ -1015,81 +1218,89 @@ try {
                 </p>
             </div>
 
-            <!-- Filters Section -->
-            <div class="filters-section">
-                <h2 class="filters-title">
-                    🔍 Search & Filter Menu
-                </h2>
+            <!-- Category Navigation with Arrow Controls -->
+            <div class="category-nav-section">
+                <!-- Left Arrow -->
+                <button class="category-nav-arrow left" onclick="scrollCategories('left')" title="Scroll Left">
+                    ‹
+                </button>
                 
-                <form method="GET" action="" id="filterForm">
-                    <div class="filters-grid">
-                        <div class="filter-group">
-                            <label class="filter-label">Search Menu</label>
-                            <input type="text" 
-                                   name="search" 
-                                   class="filter-input" 
-                                   placeholder="Dish name, description..." 
-                                   value="<?php echo htmlspecialchars($search); ?>">
-                        </div>
-
-                        <div class="filter-group">
-                            <label class="filter-label">Category</label>
-                            <select name="category_id" class="filter-select">
-                                <option value="">All Categories</option>
-                                <?php foreach ($categories as $cat): ?>
-                                    <option value="<?php echo $cat['id']; ?>" 
-                                            <?php echo ($category_id == $cat['id']) ? 'selected' : ''; ?>>
-                                        <?php echo htmlspecialchars($cat['name'] ?: $cat['name_thai']); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-
-                        <div class="filter-group">
-                            <label class="filter-label">Diet Type</label>
-                            <select name="diet" class="filter-select">
-                                <option value="">All Types</option>
-                                <?php foreach ($available_diets as $diet_option): ?>
-                                    <option value="<?php echo htmlspecialchars($diet_option); ?>" 
-                                            <?php echo ($diet == $diet_option) ? 'selected' : ''; ?>>
-                                        <?php echo htmlspecialchars($diet_option); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-
-                        <div class="filter-group">
-                            <label class="filter-label">Spice Level</label>
-                            <select name="spice" class="filter-select">
-                                <option value="">All Levels</option>
-                                <option value="mild" <?php echo ($spice == 'mild') ? 'selected' : ''; ?>>Mild</option>
-                                <option value="medium" <?php echo ($spice == 'medium') ? 'selected' : ''; ?>>Medium</option>
-                                <option value="hot" <?php echo ($spice == 'hot') ? 'selected' : ''; ?>>Hot</option>
-                                <option value="extra_hot" <?php echo ($spice == 'extra_hot') ? 'selected' : ''; ?>>Extra Hot</option>
-                            </select>
-                        </div>
-
-                        <div class="filter-group">
-                            <label class="filter-label">Max Price ($)</label>
-                            <input type="number" 
-                                   name="max_price" 
-                                   class="filter-input" 
-                                   placeholder="e.g. 15" 
-                                   min="0" 
-                                   max="<?php echo $max_menu_price; ?>"
-                                   value="<?php echo htmlspecialchars($max_price); ?>">
-                        </div>
-                    </div>
-
-                    <div class="filter-actions">
-                        <button type="submit" class="btn btn-primary">
-                            🔍 Search
-                        </button>
-                        <a href="menus.php" class="btn btn-secondary">
-                            🔄 Clear Filters
+                <!-- Right Arrow -->
+                <button class="category-nav-arrow right" onclick="scrollCategories('right')" title="Scroll Right">
+                    ›
+                </button>
+                
+                <div class="category-nav-container" id="categoryNavContainer">
+                    <div class="category-nav-wrapper">
+                        <!-- All Items -->
+                        <a href="menus.php" class="category-nav-item <?php echo empty($category_id) ? 'active' : ''; ?>">
+                            <div class="category-nav-icon">🍽️</div>
+                            <span class="category-nav-text">All Items</span>
                         </a>
+                        
+                        <?php if (empty($categories)): ?>
+                            <!-- Fallback categories if database is empty -->
+                            <a href="menus.php?category_id=rice_bowls" class="category-nav-item">
+                                <div class="category-nav-icon">🍚</div>
+                                <span class="category-nav-text">Rice Bowls</span>
+                            </a>
+                            <a href="menus.php?category_id=curries" class="category-nav-item">
+                                <div class="category-nav-icon">🍛</div>
+                                <span class="category-nav-text">Thai Curries</span>
+                            </a>
+                            <a href="menus.php?category_id=noodles" class="category-nav-item">
+                                <div class="category-nav-icon">🍜</div>
+                                <span class="category-nav-text">Noodle Dishes</span>
+                            </a>
+                            <a href="menus.php?category_id=stir_fry" class="category-nav-item">
+                                <div class="category-nav-icon">🥘</div>
+                                <span class="category-nav-text">Stir Fry</span>
+                            </a>
+                            <a href="menus.php?category_id=soups" class="category-nav-item">
+                                <div class="category-nav-icon">🍲</div>
+                                <span class="category-nav-text">Soups</span>
+                            </a>
+                            <a href="menus.php?category_id=salads" class="category-nav-item">
+                                <div class="category-nav-icon">🥗</div>
+                                <span class="category-nav-text">Salads</span>
+                            </a>
+                            <a href="menus.php?category_id=desserts" class="category-nav-item">
+                                <div class="category-nav-icon">🍮</div>
+                                <span class="category-nav-text">Desserts</span>
+                            </a>
+                            <a href="menus.php?category_id=beverages" class="category-nav-item">
+                                <div class="category-nav-icon">🧋</div>
+                                <span class="category-nav-text">Beverages</span>
+                            </a>
+                        <?php else: ?>
+                            <!-- Dynamic categories from database -->
+                            <?php 
+                            $category_icons = [
+                                'Rice Bowls' => '🍚',
+                                'Thai Curries' => '🍛',
+                                'Noodle Dishes' => '🍜',
+                                'Stir Fry' => '🥘',
+                                'Rice Dishes' => '🍱',
+                                'Soups' => '🍲',
+                                'Salads' => '🥗',
+                                'Desserts' => '🍮',
+                                'Beverages' => '🧋'
+                            ];
+                            
+                            foreach ($categories as $category): 
+                                $cat_name = $category['name'] ?: $category['name_thai'];
+                                $icon = $category_icons[$cat_name] ?? '🍽️';
+                                $is_active = ($category_id == $category['id']) ? 'active' : '';
+                            ?>
+                                <a href="menus.php?category_id=<?php echo $category['id']; ?>" 
+                                   class="category-nav-item <?php echo $is_active; ?>">
+                                    <div class="category-nav-icon"><?php echo $icon; ?></div>
+                                    <span class="category-nav-text"><?php echo htmlspecialchars($cat_name); ?></span>
+                                </a>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
                     </div>
-                </form>
+                </div>
             </div>
 
             <!-- Results Header -->
@@ -1138,7 +1349,7 @@ try {
                                 <div class="featured-badge">Featured</div>
                             <?php endif; ?>
                             
-                            <div class="menu-image">
+                            <div class="menu-image" onclick="showMenuModal('<?php echo $menu['id']; ?>')" title="Click to view details">
                                 <?php if ($menu['main_image_url']): ?>
                                     <img src="<?php echo htmlspecialchars($menu['main_image_url']); ?>" 
                                          alt="<?php echo htmlspecialchars($menu['name']); ?>" 
@@ -1235,7 +1446,7 @@ try {
                                         <button type="button" 
                                                 class="btn btn-secondary btn-sm"
                                                 onclick="showMenuModal('<?php echo $menu['id']; ?>')">
-                                            ℹ️ Details
+                                            Details
                                         </button>
                                         
                                         <?php if ($is_logged_in): ?>
@@ -1246,7 +1457,7 @@ try {
                                         <?php else: ?>
                                             <a href="register.php?menu=<?php echo $menu['id']; ?>" 
                                                class="btn btn-primary btn-sm">
-                                                👤 Sign Up
+                                                Add to cart
                                             </a>
                                         <?php endif; ?>
                                     </div>
@@ -1272,7 +1483,7 @@ try {
         </div>
     </main>
 
-    <!-- Menu Detail Modal -->
+    <!-- Menu Detail Modal with Image Gallery -->
     <div id="menuModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1307,6 +1518,56 @@ try {
     </footer>
 
     <script>
+        // Category Navigation Scroll Functions
+        function scrollCategories(direction) {
+            const navContainer = document.getElementById('categoryNavContainer');
+            const scrollAmount = 200; // pixels to scroll
+            
+            if (direction === 'left') {
+                navContainer.scrollBy({
+                    left: -scrollAmount,
+                    behavior: 'smooth'
+                });
+            } else {
+                navContainer.scrollBy({
+                    left: scrollAmount,
+                    behavior: 'smooth'
+                });
+            }
+        }
+
+        // Modal Image Gallery Functions
+        function changeModalImage(menuId, imageIndex, clickedThumbnail) {
+            const mainImageElement = document.getElementById(`modal-main-image-${menuId}`);
+            const imageUrl = clickedThumbnail.getAttribute('data-image-url');
+            
+            // Remove active class from all thumbnails in this modal
+            const thumbnailContainer = clickedThumbnail.parentElement;
+            thumbnailContainer.querySelectorAll('.modal-thumbnail').forEach(thumb => {
+                thumb.classList.remove('active');
+            });
+            
+            // Add active class to clicked thumbnail
+            clickedThumbnail.classList.add('active');
+            
+            // Change main image
+            if (imageUrl && imageUrl.trim() !== '') {
+                if (mainImageElement.tagName === 'IMG') {
+                    mainImageElement.src = imageUrl;
+                } else {
+                    // Replace placeholder with actual image
+                    const newImg = document.createElement('img');
+                    newImg.src = imageUrl;
+                    newImg.alt = 'Menu Image';
+                    newImg.className = 'modal-main-image';
+                    newImg.id = `modal-main-image-${menuId}`;
+                    newImg.loading = 'lazy';
+                    
+                    mainImageElement.parentElement.replaceChild(newImg, mainImageElement);
+                }
+            }
+        }
+
         // Close promotional banner function
         function closePromoBanner() {
             const promoBanner = document.getElementById('promoBanner');
@@ -1369,6 +1630,35 @@ try {
             const dietaryTags = menu.dietary_tags ? JSON.parse(menu.dietary_tags) : [];
             const healthBenefits = menu.health_benefits ? JSON.parse(menu.health_benefits) : [];
             
+            // Parse additional images
+            const additionalImages = menu.additional_images ? JSON.parse(menu.additional_images) : [];
+            
+            // Create image array with main image first, then additional images (or mock images for demo)
+            const allImages = [];
+            if (menu.main_image_url) {
+                allImages.push(menu.main_image_url);
+            }
+            
+            // Add additional images or create mock images for demonstration
+            if (additionalImages.length > 0) {
+                allImages.push(...additionalImages);
+            } else {
+                // Mock additional images for demonstration (remove this in production)
+                const mockImages = [
+                    'assets/image/sample1.jpg',
+                    'assets/image/sample2.jpg',
+                    'assets/image/sample3.jpg',
+                    'assets/image/sample4.jpg'
+                ];
+                allImages.push(...mockImages);
+            }
+            
+            // Fill up to 5 images with placeholders if needed
+            while (allImages.length < 5) {
+                allImages.push(null);
+            }
+            allImages.splice(5); // Limit to 5 images
+            
             const spiceLabels = {
                 'mild': 'Mild',
                 'medium': 'Medium', 
@@ -1377,19 +1667,42 @@ try {
             };
             
             return `
+                <!-- Image Gallery -->
+                <div class="modal-image-gallery">
+                    <!-- Main Image -->
+                    <div class="modal-main-image-container">
+                        ${allImages[0] ? 
+                            `<img src="${allImages[0]}" alt="${menu.name}" class="modal-main-image" id="modal-main-image-${menu.id}" loading="lazy">` :
+                            `<div class="modal-main-image-placeholder" id="modal-main-image-${menu.id}">
+                                <div style="font-size: 3rem; margin-bottom: 0.5rem; opacity: 0.5;">🍽️</div>
+                                <div>${menu.name || menu.name_thai}</div>
+                            </div>`
+                        }
+                    </div>
+                    
+                    <!-- Thumbnail Images -->
+                    <div class="modal-thumbnail-container">
+                        ${allImages.slice(1, 5).map((imageUrl, index) => `
+                            <div class="modal-thumbnail ${index === 0 ? 'active' : ''}" 
+                                 onclick="changeModalImage('${menu.id}', ${index + 1}, this)"
+                                 data-image-url="${imageUrl || ''}">
+                                ${imageUrl ? 
+                                    `<img src="${imageUrl}" alt="${menu.name} - Image ${index + 2}" loading="lazy">` :
+                                    `<div class="modal-thumbnail-placeholder">📷</div>`
+                                }
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <!-- Menu Information -->
                 <div style="text-align: center; margin-bottom: 2rem;">
-                    ${menu.main_image_url ? 
-                        `<img src="${menu.main_image_url}" alt="${menu.name}" style="width: 100%; max-width: 400px; height: 200px; object-fit: cover; border-radius: 12px; margin-bottom: 1rem;">` :
-                        `<div style="width: 100%; height: 200px; background: var(--cream); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 1rem; color: var(--text-gray);">
-                            <div style="font-size: 3rem;">🍽️</div>
-                        </div>`
-                    }
-                    <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--text-dark); margin-bottom: 0.5rem;">
+                    <h2 style="font-size: 1.8rem; font-weight: 700; color: var(--text-dark); margin-bottom: 0.5rem;">
                         ${menu.name || menu.name_thai}
                     </h2>
                     ${menu.name && menu.name_thai ? `<p style="color: var(--text-gray); margin-bottom: 1rem;">${menu.name_thai}</p>` : ''}
-                    <div style="font-size: 1.3rem; font-weight: 700; color: var(--curry);">
-                        $${parseFloat(menu.base_price).toFixed(2)}
+                    <div style="font-size: 1.5rem; font-weight: 700; color: var(--curry);">
+                        ${parseFloat(menu.base_price).toFixed(2)}
                     </div>
                 </div>
 
@@ -1509,31 +1822,6 @@ try {
                 closeMenuModal();
             }
         });
-
-        // Filter form auto-submit on change
-        document.addEventListener('DOMContentLoaded', function() {
-            const filterForm = document.getElementById('filterForm');
-            const selectElements = filterForm.querySelectorAll('select');
-            
-            selectElements.forEach(select => {
-                select.addEventListener('change', function() {
-                    // Auto-submit form when filters change
-                    filterForm.submit();
-                });
-            });
-        });
-
-        // Search input debounce
-        let searchTimeout;
-        const searchInput = document.querySelector('input[name="search"]');
-        if (searchInput) {
-            searchInput.addEventListener('input', function() {
-                clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(() => {
-                    document.getElementById('filterForm').submit();
-                }, 1000); // Submit after 1 second of no typing
-            });
-        }
 
         // Navbar background on scroll
         window.addEventListener('scroll', function() {

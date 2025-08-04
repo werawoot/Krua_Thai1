@@ -45,6 +45,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $result = removeRiderFromCustomer($pdo, $_POST['subscription_id']);
                 echo json_encode($result);
                 exit;
+                
+            case 'save_delivery_sequence':
+                $result = saveDeliverySequence($pdo, $_POST['rider_id'], $_POST['sequence_data'], $_POST['date']);
+                echo json_encode($result);
+                exit;
         }
     } catch (Exception $e) {
         echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
@@ -187,7 +192,8 @@ function calculateRiderRouteDistance($riderOrders, $shopLocation) {
                 'lat' => $order['latitude'],
                 'lng' => $order['longitude'],
                 'distance_from_previous' => round($distance, 2),
-                'total_items' => $order['total_items']
+                'total_items' => $order['total_items'],
+                'subscription_id' => $order['subscription_id']
             ];
             
             // Update current position for next calculation
@@ -528,6 +534,59 @@ function removeRiderFromCustomer($pdo, $subscriptionId) {
     }
 }
 
+// NEW FUNCTION: Save Delivery Sequence
+function saveDeliverySequence($pdo, $riderId, $sequenceData, $date) {
+    try {
+        // Parse the sequence data
+        $sequences = json_decode($sequenceData, true);
+        
+        if (!$sequences || !is_array($sequences)) {
+            return ['success' => false, 'message' => 'Invalid sequence data'];
+        }
+        
+        // Begin transaction
+        $pdo->beginTransaction();
+        
+        // Update each subscription with its new delivery sequence
+        foreach ($sequences as $sequence) {
+            if (!isset($sequence['subscription_id']) || !isset($sequence['position'])) {
+                continue;
+            }
+            
+            // Update the subscription with delivery sequence and date
+            $stmt = $pdo->prepare("
+                UPDATE subscriptions 
+                SET delivery_sequence = ?, delivery_sequence_date = ?, updated_at = NOW()
+                WHERE id = ? AND assigned_rider_id = ?
+            ");
+            $stmt->execute([
+                $sequence['position'], 
+                $date, 
+                $sequence['subscription_id'], 
+                $riderId
+            ]);
+        }
+        
+        // Commit transaction
+        $pdo->commit();
+        
+        return [
+            'success' => true,
+            'message' => 'Delivery sequence saved successfully',
+            'updated_count' => count($sequences)
+        ];
+        
+    } catch (Exception $e) {
+        // Rollback transaction on error
+        $pdo->rollback();
+        
+        return [
+            'success' => false,
+            'message' => 'Error saving delivery sequence: ' . $e->getMessage()
+        ];
+    }
+}
+
 // ======================================================================
 // FETCH DATA
 // ======================================================================
@@ -536,7 +595,7 @@ try {
     // Get subscriptions for the delivery date (not orders)
     $stmt = $pdo->prepare("
         SELECT s.id, s.user_id, s.status, s.assigned_rider_id, s.delivery_days,
-               s.preferred_delivery_time, s.start_date, s.end_date,
+               s.preferred_delivery_time, s.start_date, s.end_date, s.delivery_sequence,
                u.id as user_id, u.first_name, u.last_name, u.phone, 
                u.delivery_address, u.city, u.state, u.zip_code,
                r.first_name as rider_first_name, r.last_name as rider_last_name,
@@ -552,11 +611,11 @@ try {
         AND s.start_date <= ?
         AND (s.end_date IS NULL OR s.end_date >= ?)
         GROUP BY s.id, s.user_id, s.status, s.assigned_rider_id, s.delivery_days,
-                 s.preferred_delivery_time, s.start_date, s.end_date,
+                 s.preferred_delivery_time, s.start_date, s.end_date, s.delivery_sequence,
                  u.id, u.first_name, u.last_name, u.phone, 
                  u.delivery_address, u.city, u.state, u.zip_code,
                  r.first_name, r.last_name
-        ORDER BY s.created_at
+        ORDER BY s.delivery_sequence ASC, s.created_at ASC
     ");
     $stmt->execute([$deliveryDate, $deliveryDate, $deliveryDate]);
     $subscriptions = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -588,6 +647,7 @@ try {
                 'rider_last_name' => $subscription['rider_last_name'],
                 'delivery_date' => $deliveryDate,
                 'delivery_time_slot' => $subscription['preferred_delivery_time'],
+                'delivery_sequence' => $subscription['delivery_sequence'],
                 'created_at' => $subscription['start_date']
             ];
             $orders[] = $order;
@@ -687,7 +747,7 @@ foreach ($orders as &$order) {
     }
 }
 
-// Calculate rider routes and distances
+// Calculate rider routes and distances - sort by delivery_sequence
 $riderRoutes = [];
 foreach ($riders as $rider) {
     $riderOrders = array_filter($orders, function($order) use ($rider) {
@@ -695,6 +755,14 @@ foreach ($riders as $rider) {
     });
     
     if (!empty($riderOrders)) {
+        // Sort by delivery_sequence, then by created_at as fallback
+        usort($riderOrders, function($a, $b) {
+            if ($a['delivery_sequence'] == $b['delivery_sequence']) {
+                return strtotime($a['created_at']) - strtotime($b['created_at']);
+            }
+            return ($a['delivery_sequence'] ?? 999) - ($b['delivery_sequence'] ?? 999);
+        });
+        
         $routeInfo = calculateRiderRouteDistance($riderOrders, $shopLocation);
         $riderRoutes[$rider['id']] = [
             'rider' => $rider,
@@ -775,12 +843,33 @@ foreach ($riders as $rider) {
         .route-stop {
             display: flex;
             align-items: center;
-            padding: 0.5rem 0;
-            border-bottom: 1px dashed #dee2e6;
+            padding: 0.75rem;
+            margin: 0.5rem 0;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            background: white;
+            cursor: move;
+            transition: all 0.3s ease;
+        }
+        
+        .route-stop:hover {
+            border-color: #bd9379;
+            box-shadow: 0 2px 8px rgba(189, 147, 121, 0.2);
+        }
+        
+        .route-stop.dragging {
+            opacity: 0.5;
+            transform: rotate(2deg);
+        }
+        
+        .route-stop.drag-over {
+            border-color: #cf723a;
+            border-style: dashed;
+            background: #fff8f0;
         }
         
         .route-stop:last-child {
-            border-bottom: none;
+            border-bottom: 1px solid #dee2e6;
         }
         
         .stop-number {
@@ -795,6 +884,7 @@ foreach ($riders as $rider) {
             font-weight: bold;
             margin-right: 1rem;
             font-size: 0.9rem;
+            min-width: 30px;
         }
         
         .stop-info {
@@ -805,6 +895,17 @@ foreach ($riders as $rider) {
             color: #6c757d;
             font-size: 0.9rem;
             margin-left: auto;
+        }
+        
+        .drag-handle {
+            color: #6c757d;
+            margin-right: 1rem;
+            cursor: grab;
+            font-size: 1.2rem;
+        }
+        
+        .drag-handle:active {
+            cursor: grabbing;
         }
         
         .no-riders-assigned {
@@ -837,6 +938,63 @@ foreach ($riders as $rider) {
         .rider-name {
             display: flex;
             align-items: center;
+        }
+        
+        .save-sequence-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            margin-top: 1rem;
+            display: none;
+            transition: all 0.3s ease;
+        }
+        
+        .save-sequence-btn:hover {
+            background: #218838;
+        }
+        
+        .save-sequence-btn.show {
+            display: inline-block;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .route-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .sequence-changed-indicator {
+            background: #ffc107;
+            color: #212529;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            display: none;
+        }
+        
+        .sequence-changed-indicator.show {
+            display: inline-block;
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+        
+        .sortable-list {
+            min-height: 50px;
         }
     </style>
 </head>
@@ -930,28 +1088,6 @@ foreach ($riders as $rider) {
                         <div style="background: #f8d7da; color: #721c24; padding: 1rem; margin: 1rem 0; border-radius: 4px;">
                             <h5>❌ Error Detected:</h5>
                             <p><?= htmlspecialchars($debugInfo['error']) ?></p>
-                        </div>
-                    <?php endif; ?>
-                    
-                    <div style="background: white; padding: 1rem; margin: 1rem 0; border-radius: 4px;">
-                        <h5>Manual Test Queries (for Subscriptions):</h5>
-                        <p><strong>Test Connection:</strong><br>
-                        <code>SELECT 1 as test;</code></p>
-                        
-                        <p><strong>Count Subscriptions for Date:</strong><br>
-                        <code>SELECT COUNT(*) FROM subscriptions s JOIN subscription_menus sm ON s.id = sm.subscription_id WHERE sm.delivery_date = '<?= $deliveryDate ?>' AND s.status = 'active' AND sm.status = 'scheduled';</code></p>
-                        
-                        <p><strong>Count Active Riders:</strong><br>
-                        <code>SELECT COUNT(*) FROM users WHERE role = 'rider' AND status = 'active';</code></p>
-                        
-                        <p><strong>Show Tables:</strong><br>
-                        <code>SHOW TABLES;</code></p>
-                    </div>
-                    
-                    <?php if (!empty($orders)): ?>
-                        <div style="background: #d4edda; color: #155724; padding: 1rem; margin: 1rem 0; border-radius: 4px;">
-                            <h5>✅ Sample Order Found:</h5>
-                            <pre><?= htmlspecialchars(json_encode($orders[0], JSON_PRETTY_PRINT)) ?></pre>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -1081,59 +1217,95 @@ foreach ($riders as $rider) {
                         <?php endif; ?>
                     </div>
                 </div>
-            <!-- Rider Routes Section -->
+            
+            <!-- Enhanced Rider Routes Section with Drag & Drop -->
             <?php if (!empty($riderRoutes)): ?>
                 <div class="rider-routes-section">
                     <h3><i class="fas fa-route"></i> Rider Route Summary</h3>
                     
                     <?php foreach ($riderRoutes as $riderId => $routeData): ?>
-                        <div class="rider-route-card">
+                        <div class="rider-route-card" data-rider-id="<?= $riderId ?>">
                             <div class="rider-route-header">
                                 <div class="rider-info">
                                     <h4><?= safeHtmlSpecialChars($routeData['rider']['first_name'] . ' ' . $routeData['rider']['last_name']) ?></h4>
                                     <p><i class="fas fa-phone"></i> <?= safeHtmlSpecialChars($routeData['rider']['phone'] ?? 'No phone') ?></p>
                                 </div>
-                                <div class="route-stats">
-                                    <div class="route-stat">
-                                        <div class="stat-value"><?= $routeData['route_info']['stops'] ?></div>
-                                        <div class="stat-label">Stops</div>
+                                <div class="route-header-actions">
+                                    <div class="sequence-changed-indicator" id="indicator-<?= $riderId ?>">
+                                        <i class="fas fa-exclamation-triangle"></i> Order Changed
                                     </div>
-                                    <div class="route-stat">
-                                        <div class="stat-value"><?= $routeData['route_info']['totalDistance'] ?></div>
-                                        <div class="stat-label">Miles</div>
-                                    </div>
-                                    <div class="route-stat">
-                                        <div class="stat-value"><?= $routeData['route_info']['estimatedTime'] ?></div>
-                                        <div class="stat-label">Minutes</div>
-                                    </div>
-                                    <div class="route-stat">
-                                        <div class="stat-value"><?= array_sum(array_column($routeData['orders'], 'total_items')) ?></div>
-                                        <div class="stat-label">Meals</div>
+                                    <div class="route-stats">
+                                        <div class="route-stat">
+                                            <div class="stat-value"><?= $routeData['route_info']['stops'] ?></div>
+                                            <div class="stat-label">Stops</div>
+                                        </div>
+                                        <div class="route-stat">
+                                            <div class="stat-value"><?= $routeData['route_info']['totalDistance'] ?></div>
+                                            <div class="stat-label">Miles</div>
+                                        </div>
+                                        <div class="route-stat">
+                                            <div class="stat-value"><?= $routeData['route_info']['estimatedTime'] ?></div>
+                                            <div class="stat-label">Minutes</div>
+                                        </div>
+                                        <div class="route-stat">
+                                            <div class="stat-value"><?= array_sum(array_column($routeData['orders'], 'total_items')) ?></div>
+                                            <div class="stat-label">Meals</div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                             
                             <div class="route-details">
-                                <h5><i class="fas fa-map-marked-alt"></i> Route Details:</h5>
-                                <?php foreach ($routeData['route_info']['route'] as $index => $stop): ?>
-                                    <div class="route-stop">
-                                        <div class="stop-number"><?= $index + 1 ?></div>
-                                        <div class="stop-info">
-                                            <strong><?= safeHtmlSpecialChars($stop['name']) ?></strong>
-                                            <br>
-                                            <small><?= safeHtmlSpecialChars($stop['address']) ?></small>
-                                            <?php if (isset($stop['total_items'])): ?>
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                                    <h5><i class="fas fa-map-marked-alt"></i> Route Details (Drag to Reorder):</h5>
+                                    <button class="save-sequence-btn" id="save-btn-<?= $riderId ?>" onclick="saveDeliverySequence(<?= $riderId ?>)">
+                                        <i class="fas fa-save"></i> Save New Order
+                                    </button>
+                                </div>
+                                
+                                <div class="sortable-list" id="sortable-<?= $riderId ?>">
+                                    <?php 
+                                    // Start from shop (non-draggable)
+                                    $routeStops = $routeData['route_info']['route'];
+                                    foreach ($routeStops as $index => $stop): 
+                                        if ($index === 0): // Shop location - not draggable
+                                    ?>
+                                        <div class="route-stop" style="background: #f0f0f0; cursor: not-allowed;">
+                                            <div class="stop-number" style="background: #6c757d;">🏪</div>
+                                            <div class="stop-info">
+                                                <strong><?= safeHtmlSpecialChars($stop['name']) ?></strong>
                                                 <br>
-                                                <small><i class="fas fa-box"></i> <?= $stop['total_items'] ?> meals</small>
+                                                <small><?= safeHtmlSpecialChars($stop['address']) ?></small>
+                                            </div>
+                                        </div>
+                                    <?php 
+                                        else: // Customer stops - draggable
+                                    ?>
+                                        <div class="route-stop" draggable="true" data-subscription-id="<?= $stop['subscription_id'] ?? '' ?>" data-original-position="<?= $index ?>">
+                                            <div class="drag-handle">
+                                                <i class="fas fa-grip-vertical"></i>
+                                            </div>
+                                            <div class="stop-number"><?= $index ?></div>
+                                            <div class="stop-info">
+                                                <strong><?= safeHtmlSpecialChars($stop['name']) ?></strong>
+                                                <br>
+                                                <small><?= safeHtmlSpecialChars($stop['address']) ?></small>
+                                                <?php if (isset($stop['total_items'])): ?>
+                                                    <br>
+                                                    <small><i class="fas fa-box"></i> <?= $stop['total_items'] ?> meals</small>
+                                                <?php endif; ?>
+                                            </div>
+                                            <?php if ($stop['distance_from_previous'] > 0): ?>
+                                                <div class="stop-distance">
+                                                    <i class="fas fa-arrow-right"></i> <?= $stop['distance_from_previous'] ?> mi
+                                                </div>
                                             <?php endif; ?>
                                         </div>
-                                        <?php if ($stop['distance_from_previous'] > 0): ?>
-                                            <div class="stop-distance">
-                                                <i class="fas fa-arrow-right"></i> <?= $stop['distance_from_previous'] ?> mi
-                                            </div>
-                                        <?php endif; ?>
-                                    </div>
-                                <?php endforeach; ?>
+                                    <?php 
+                                        endif;
+                                    endforeach; 
+                                    ?>
+                                </div>
                             </div>
                         </div>
                     <?php endforeach; ?>
@@ -1170,6 +1342,210 @@ foreach ($riders as $rider) {
             shopLocation: <?= json_encode($shopLocation) ?>,
             riderRoutes: <?= json_encode($riderRoutes) ?>
         };
+        
+        // Drag and Drop Functionality
+        let draggedElement = null;
+        let currentRiderId = null;
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeDragAndDrop();
+        });
+        
+        function initializeDragAndDrop() {
+            const sortableLists = document.querySelectorAll('.sortable-list');
+            
+            sortableLists.forEach(list => {
+                const riderId = list.id.replace('sortable-', '');
+                initializeListEvents(list, riderId);
+            });
+        }
+        
+        function initializeListEvents(list, riderId) {
+            const draggableItems = list.querySelectorAll('.route-stop[draggable="true"]');
+            
+            draggableItems.forEach(item => {
+                item.addEventListener('dragstart', function(e) {
+                    draggedElement = this;
+                    currentRiderId = riderId;
+                    this.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/html', this.outerHTML);
+                });
+                
+                item.addEventListener('dragend', function(e) {
+                    this.classList.remove('dragging');
+                    draggedElement = null;
+                });
+                
+                item.addEventListener('dragover', function(e) {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                });
+                
+                item.addEventListener('dragenter', function(e) {
+                    e.preventDefault();
+                    this.classList.add('drag-over');
+                });
+                
+                item.addEventListener('dragleave', function(e) {
+                    this.classList.remove('drag-over');
+                });
+                
+                item.addEventListener('drop', function(e) {
+                    e.preventDefault();
+                    this.classList.remove('drag-over');
+                    
+                    if (draggedElement !== this) {
+                        // Get the container
+                        const container = this.parentNode;
+                        const allItems = Array.from(container.querySelectorAll('.route-stop[draggable="true"]'));
+                        
+                        // Find positions
+                        const draggedIndex = allItems.indexOf(draggedElement);
+                        const targetIndex = allItems.indexOf(this);
+                        
+                        // Move the element
+                        if (draggedIndex < targetIndex) {
+                            container.insertBefore(draggedElement, this.nextSibling);
+                        } else {
+                            container.insertBefore(draggedElement, this);
+                        }
+                        
+                        // Update the visual sequence numbers
+                        updateSequenceNumbers(riderId);
+                        
+                        // Show save button and indicator
+                        showSaveButton(riderId);
+                    }
+                });
+            });
+        }
+        
+        function updateSequenceNumbers(riderId) {
+            const container = document.getElementById(`sortable-${riderId}`);
+            const draggableItems = container.querySelectorAll('.route-stop[draggable="true"]');
+            
+            draggableItems.forEach((item, index) => {
+                const numberElement = item.querySelector('.stop-number');
+                numberElement.textContent = index + 1; // Start from 1 (shop is 0)
+            });
+        }
+        
+        function showSaveButton(riderId) {
+            const saveBtn = document.getElementById(`save-btn-${riderId}`);
+            const indicator = document.getElementById(`indicator-${riderId}`);
+            
+            if (saveBtn) {
+                saveBtn.classList.add('show');
+            }
+            
+            if (indicator) {
+                indicator.classList.add('show');
+            }
+        }
+        
+        function hideSaveButton(riderId) {
+            const saveBtn = document.getElementById(`save-btn-${riderId}`);
+            const indicator = document.getElementById(`indicator-${riderId}`);
+            
+            if (saveBtn) {
+                saveBtn.classList.remove('show');
+            }
+            
+            if (indicator) {
+                indicator.classList.remove('show');
+            }
+        }
+        
+        function saveDeliverySequence(riderId) {
+            const container = document.getElementById(`sortable-${riderId}`);
+            const draggableItems = container.querySelectorAll('.route-stop[draggable="true"]');
+            
+            // Build sequence data
+            const sequenceData = [];
+            draggableItems.forEach((item, index) => {
+                const subscriptionId = item.getAttribute('data-subscription-id');
+                if (subscriptionId) {
+                    sequenceData.push({
+                        subscription_id: subscriptionId,
+                        position: index + 1 // Position starts from 1
+                    });
+                }
+            });
+            
+            if (sequenceData.length === 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'No Changes',
+                    text: 'No changes to save'
+                });
+                return;
+            }
+            
+            // Show confirmation
+            Swal.fire({
+                title: 'Save Delivery Sequence?',
+                text: `This will save the new delivery order for rider ${riderId}`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Save Order',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    showLoading();
+                    
+                    fetch('delivery-management.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: new URLSearchParams({
+                            'action': 'save_delivery_sequence',
+                            'rider_id': riderId,
+                            'sequence_data': JSON.stringify(sequenceData),
+                            'date': window.deliveryData.date
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        hideLoading();
+                        
+                        if (data.success) {
+                            // Hide save button and indicator
+                            hideSaveButton(riderId);
+                            
+                            // Show success message
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Order Saved!',
+                                text: data.message,
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
+                            
+                            // Optional: Refresh route calculations
+                            // location.reload();
+                            
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Save Failed',
+                                text: data.message
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        hideLoading();
+                        console.error('Error:', error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Failed to save delivery sequence'
+                        });
+                    });
+                }
+            });
+        }
         
         // Add function to remove rider
         function removeRider(subscriptionId) {
