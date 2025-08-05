@@ -38,7 +38,7 @@ if (!isset($_SESSION['user_role']) || !in_array($_SESSION['user_role'], ['kitche
         <h3>🚫 Access Denied</h3>
         <p>You do not have permission to access the kitchen dashboard.</p>
         <p>Required roles: Kitchen Staff or Admin</p>
-        <a href="../dashboard.php" style="background: #007bff; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px;">← Back to Dashboard</a>
+        <a href="../admin/dashboard.php" style="background: #007bff; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px;">← Back to Dashboard</a>
     </div>');
 }
 
@@ -435,6 +435,116 @@ if ($export_type === 'json') {
             color: white;
         }
 
+        /* Print & Export Dropdown Styles */
+        .print-export-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown-trigger {
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 0.6rem 1.2rem;
+            border-radius: 25px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: var(--transition);
+            backdrop-filter: blur(10px);
+        }
+
+        .dropdown-trigger:hover {
+            background: rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: translateY(-1px);
+        }
+
+        .dropdown-trigger.active {
+            background: rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .dropdown-arrow {
+            transition: transform 0.3s ease;
+        }
+
+        .dropdown-trigger.active .dropdown-arrow {
+            transform: rotate(180deg);
+        }
+
+        .dropdown-panel {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-medium);
+            min-width: 220px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+            z-index: 1000;
+            margin-top: 0.5rem;
+        }
+
+        .dropdown-panel.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .dropdown-header {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-light);
+            background: linear-gradient(135deg, var(--cream), #f8f6f3);
+            border-radius: var(--radius-md) var(--radius-md) 0 0;
+        }
+
+        .dropdown-title {
+            font-weight: 600;
+            color: var(--curry);
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .dropdown-options {
+            padding: 0.5rem 0;
+        }
+
+        .dropdown-option {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            color: var(--text-dark);
+            text-decoration: none;
+            transition: var(--transition);
+            cursor: pointer;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            font-family: inherit;
+            font-size: 0.9rem;
+        }
+
+        .dropdown-option:hover {
+            background: var(--cream);
+            color: var(--curry);
+        }
+
+        .dropdown-option i {
+            width: 18px;
+            color: var(--curry);
+        }
+
         .main-container {
             max-width: 1400px;
             margin: 0 auto;
@@ -528,53 +638,54 @@ if ($export_type === 'json') {
         }
 
         .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            display: flex;
             gap: 2rem;
-            margin-bottom: 2rem;
+            margin-bottom: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
         }
 
         .stat-card {
-            background: white;
-            padding: 2rem;
-            border-radius: var(--radius-lg);
-            box-shadow: var(--shadow-soft);
+            background: transparent;
+            padding: 0.75rem 1rem;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-light);
             text-align: center;
             position: relative;
             overflow: hidden;
             transition: var(--transition);
-        }
-
-        .stat-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, var(--curry), var(--brown));
+            min-width: 120px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         .stat-card:hover {
-            transform: translateY(-4px);
-            box-shadow: var(--shadow-medium);
+            transform: translateY(-2px);
+            border-color: var(--curry);
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        .stat-top {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.25rem;
         }
 
         .stat-icon {
-            font-size: 3rem;
-            margin-bottom: 1rem;
+            font-size: 1.2rem;
             color: var(--curry);
         }
 
         .stat-number {
-            font-size: 2.5rem;
+            font-size: 1.5rem;
             font-weight: 700;
             color: var(--curry);
-            margin-bottom: 0.5rem;
         }
 
         .stat-label {
-            font-size: 1.1rem;
+            font-size: 0.8rem;
             color: var(--text-gray);
             font-weight: 500;
         }
@@ -626,13 +737,75 @@ if ($export_type === 'json') {
         }
 
         .customer-card {
-            padding: 1.5rem 2rem;
             border-bottom: 1px solid #f3f4f6;
             transition: var(--transition);
+            cursor: pointer;
         }
 
         .customer-card:hover {
             background: var(--cream);
+        }
+
+        .customer-card-header {
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(135deg, var(--cream) 0%, #f8f6f3 100%);
+            border-left: 4px solid var(--curry);
+            user-select: none;
+        }
+
+        .customer-card-header:hover {
+            background: linear-gradient(135deg, #e6ddd4 0%, #f0ede8 100%);
+        }
+
+        .customer-card-content {
+            padding: 1.5rem 2rem;
+            display: none;
+            background: white;
+        }
+
+        .customer-card.expanded .customer-card-content {
+            display: block;
+        }
+
+        .customer-card-toggle {
+            color: var(--curry);
+            font-size: 1.2rem;
+            transition: transform 0.3s ease;
+        }
+
+        .customer-card.expanded .customer-card-toggle {
+            transform: rotate(180deg);
+        }
+
+        .customer-name-compact {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--curry);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .customer-meal-count {
+            background: var(--curry);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .customer-card-header .delivery-time {
+            background: linear-gradient(135deg, var(--sage), #27ae60);
+            color: white;
+            padding: 0.4rem 0.8rem;
+            border-radius: 16px;
+            font-size: 0.8rem;
+            font-weight: 500;
         }
 
         .customer-header {
@@ -726,12 +899,11 @@ if ($export_type === 'json') {
         }
 
         .prep-item {
-            background: linear-gradient(135deg, var(--cream), white);
             border: 1px solid var(--border-light);
             border-radius: var(--radius-md);
-            padding: 1.5rem;
             margin-bottom: 1rem;
             transition: var(--transition);
+            overflow: hidden;
         }
 
         .prep-item:hover {
@@ -739,26 +911,45 @@ if ($export_type === 'json') {
             transform: translateY(-2px);
         }
 
-        .prep-header {
+        .prep-item-header {
+            background: linear-gradient(135deg, var(--cream), white);
+            padding: 1rem 1.5rem;
+            cursor: pointer;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1rem;
+            border-left: 4px solid var(--curry);
+            user-select: none;
         }
 
-        .prep-name {
+        .prep-item-header:hover {
+            background: linear-gradient(135deg, #e6ddd4, #f8f6f3);
+        }
+
+        .prep-item-content {
+            padding: 1.5rem;
+            display: none;
+            background: white;
+        }
+
+        .prep-item.expanded .prep-item-content {
+            display: block;
+        }
+
+        .prep-item-toggle {
+            color: var(--curry);
+            font-size: 1.1rem;
+            transition: transform 0.3s ease;
+        }
+
+        .prep-item.expanded .prep-item-toggle {
+            transform: rotate(180deg);
+        }
+
+        .prep-name-compact {
             font-weight: 600;
             color: var(--curry);
             font-size: 1.1rem;
-        }
-
-        .prep-quantity {
-            background: linear-gradient(135deg, var(--curry), var(--brown));
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            font-weight: 600;
-            font-size: 1rem;
         }
 
         .prep-meta {
@@ -775,20 +966,6 @@ if ($export_type === 'json') {
             margin-top: 0.5rem;
             font-weight: 500;
             color: var(--sage);
-        }
-
-        .print-section {
-            background: white;
-            border-radius: var(--radius-lg);
-            box-shadow: var(--shadow-soft);
-            padding: 2rem;
-            margin-top: 2rem;
-        }
-
-        .print-buttons {
-            display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
         }
 
         .empty-state {
@@ -912,16 +1089,19 @@ if ($export_type === 'json') {
             }
             
             .stats-grid {
-                grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
                 gap: 1rem;
+                margin-bottom: 1rem;
             }
             
             .stat-card {
-                padding: 1.5rem;
+                min-width: 100px;
+                padding: 0.5rem 0.75rem;
             }
             
-            .print-buttons {
-                flex-direction: column;
+            .dropdown-panel {
+                left: -50px;
+                right: auto;
+                min-width: 200px;
             }
         }
 
@@ -1218,10 +1398,58 @@ if ($export_type === 'json') {
                     <span><?php echo htmlspecialchars($_SESSION['first_name'] ?? 'Kitchen Staff'); ?></span>
                 </div>
                 <div class="meta-item">
-                    <a href="../dashboard.php" class="btn-back">
+                    <a href="../admin/dashboard.php" class="btn-back">
                         <i class="fas fa-arrow-left"></i>
                         <span>Back to Dashboard</span>
                     </a>
+                </div>
+                <!-- Print & Export Dropdown -->
+                <div class="print-export-dropdown">
+                    <div class="dropdown-trigger" onclick="togglePrintDropdown()">
+                        <i class="fas fa-print"></i>
+                        <span>Print & Export</span>
+                        <i class="fas fa-chevron-down dropdown-arrow"></i>
+                    </div>
+                    
+                    <div class="dropdown-panel" id="printDropdownPanel">
+                        <div class="dropdown-header">
+                            <div class="dropdown-title">
+                                <i class="fas fa-download"></i>
+                                Export Options
+                            </div>
+                        </div>
+                        <div class="dropdown-options">
+                            <button class="dropdown-option" onclick="printPrepSheet()">
+                                <i class="fas fa-clipboard-list"></i>
+                                <span>Print Prep Sheet</span>
+                            </button>
+                            
+                            <button class="dropdown-option" onclick="printDeliverySheet()">
+                                <i class="fas fa-truck"></i>
+                                <span>Print Delivery Sheet</span>
+                            </button>
+                            
+                            <button class="dropdown-option" onclick="printIngredientsList()">
+                                <i class="fas fa-carrot"></i>
+                                <span>Print Ingredients List</span>
+                            </button>
+                            
+                            <a href="?date=<?php echo $selected_date; ?>&export=csv" class="dropdown-option">
+                                <i class="fas fa-file-csv"></i>
+                                <span>Export CSV</span>
+                            </a>
+                            
+                            <a href="?date=<?php echo $selected_date; ?>&export=json" class="dropdown-option">
+                                <i class="fas fa-file-code"></i>
+                                <span>Export JSON</span>
+                            </a>
+                            
+                            <button class="dropdown-option" onclick="exportToExcel()">
+                                <i class="fas fa-file-excel"></i>
+                                <span>Export Excel</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1237,12 +1465,12 @@ if ($export_type === 'json') {
         <?php endif; ?>
 
   
-<!-- แทนที่ Dashboard Controls Section -->
+<!-- Dashboard Controls Section -->
 <div class="dashboard-controls">
    <div class="control-group">
         <label class="control-label">Select Delivery Date (Wed & Sat Only)</label>
         
-        <!-- Full Calendar Grid แบบใหม่ -->
+        <!-- Full Calendar Grid -->
         <div class="calendar-dropdown">
             <div class="calendar-trigger" onclick="toggleCalendar()">
                 <div class="calendar-trigger-content">
@@ -1282,7 +1510,7 @@ if ($export_type === 'json') {
                     
                     <!-- Calendar Days Grid -->
                     <div class="calendar-days" id="calendarDays">
-                        <!-- JavaScript จะสร้าง calendar days ที่นี่ -->
+                        <!-- JavaScript will generate calendar days here -->
                     </div>
                 </div>
                 
@@ -1303,7 +1531,6 @@ if ($export_type === 'json') {
         </div>
     </div>
     
-    <!-- ส่วนอื่น ๆ เหมือนเดิม -->
     <div class="control-group">
         <label class="control-label">Status Filter</label>
         <select class="control-input" onchange="filterByStatus(this.value)">
@@ -1322,56 +1549,45 @@ if ($export_type === 'json') {
     </div>
 </div>
 
-            <div class="control-group">
-                <label class="control-label">Status Filter</label>
-                <select class="control-input" onchange="filterByStatus(this.value)">
-                    <option value="all" <?php echo ($status_filter === 'all') ? 'selected' : ''; ?>>All Orders</option>
-                    <option value="scheduled" <?php echo ($status_filter === 'scheduled') ? 'selected' : ''; ?>>Scheduled</option>
-                    <option value="in_progress" <?php echo ($status_filter === 'in_progress') ? 'selected' : ''; ?>>In Progress</option>
-                    <option value="completed" <?php echo ($status_filter === 'completed') ? 'selected' : ''; ?>>Completed</option>
-                </select>
-            </div>
-           
-            
-            <div class="control-group">
-                <label class="control-label">Quick Actions</label>
-                <button class="btn btn-primary" onclick="refreshData()">
-                    <i class="fas fa-sync-alt"></i> Refresh
-                </button>
-            </div>
-        </div>
-
         <!-- Statistics Cards -->
         <div class="stats-grid">
             <div class="stat-card">
-                <div class="stat-icon">
-                    <i class="fas fa-users"></i>
+                <div class="stat-top">
+                    <div class="stat-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-number"><?php echo $total_customers; ?></div>
                 </div>
-                <div class="stat-number"><?php echo $total_customers; ?></div>
-                <div class="stat-label">Total Customers</div>
+                <div class="stat-label">Customers</div>
             </div>
             
             <div class="stat-card">
-                <div class="stat-icon">
-                    <i class="fas fa-bowl-food"></i>
+                <div class="stat-top">
+                    <div class="stat-icon">
+                        <i class="fas fa-bowl-food"></i>
+                    </div>
+                    <div class="stat-number"><?php echo $total_meals; ?></div>
                 </div>
-                <div class="stat-number"><?php echo $total_meals; ?></div>
-                <div class="stat-label">Total Meals</div>
+                <div class="stat-label">Meals</div>
             </div>
             
             <div class="stat-card">
-                <div class="stat-icon">
-                    <i class="fas fa-clock"></i>
+                <div class="stat-top">
+                    <div class="stat-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stat-number"><?php echo count($meal_summary); ?></div>
                 </div>
-                <div class="stat-number"><?php echo count($meal_summary); ?></div>
-                <div class="stat-label">Menu Items to Prep</div>
+                <div class="stat-label">Menu Items</div>
             </div>
             
             <div class="stat-card">
-                <div class="stat-icon">
-                    <i class="fas fa-calendar-weekend"></i>
+                <div class="stat-top">
+                    <div class="stat-icon">
+                        <i class="fas fa-calendar-weekend"></i>
+                    </div>
+                    <div class="stat-number"><?php echo date('N', strtotime($selected_date)) == 3 ? 'WED' : 'SAT'; ?></div>
                 </div>
-                <div class="stat-number"><?php echo date('N', strtotime($selected_date)) == 3 ? 'WED' : 'SAT'; ?></div>
                 <div class="stat-label">Delivery Day</div>
             </div>
         </div>
@@ -1386,6 +1602,9 @@ if ($export_type === 'json') {
                         Delivery Schedule - <?php echo !empty($selected_date) ? date('l, M j', strtotime($selected_date)) : 'Date not selected'; ?>
                     </h2>
                     <div style="display: flex; gap: 1rem;">
+                        <button class="btn btn-outline" onclick="toggleAllCustomerCards()" style="font-size: 0.85rem; padding: 0.5rem 1rem;">
+                            <i class="fas fa-expand-arrows-alt"></i> Toggle All
+                        </button>
                         <button class="btn btn-primary" onclick="markAllCompleted()">
                             <i class="fas fa-check-circle"></i> Mark All Complete
                         </button>
@@ -1403,57 +1622,72 @@ if ($export_type === 'json') {
                     <?php else: ?>
                         <?php foreach ($delivery_orders as $index => $customer): ?>
                             <div class="customer-card" id="customer-<?php echo $customer['user_id']; ?>">
-                                <div class="customer-header">
-                                    <div class="customer-info">
-                                        <h3><?php echo htmlspecialchars($customer['first_name'] . ' ' . $customer['last_name']); ?></h3>
-                                        <div class="customer-details">
-                                            <div><i class="fas fa-phone"></i> <?php echo htmlspecialchars($customer['phone'] ?? 'No phone provided'); ?></div>
-                                            <div><i class="fas fa-map-marker-alt"></i> <?php echo htmlspecialchars(($customer['delivery_address'] ?? 'No address') . ', ' . ($customer['city'] ?? '')); ?></div>
-                                            <div><i class="fas fa-tag"></i> Plan: <?php echo htmlspecialchars($customer['plan_name'] ?? 'Standard Plan'); ?></div>
-                                            <div><i class="fas fa-utensils"></i> Total Meals Today: <?php echo count($customer['meals']); ?></div>
-                                            <?php if (!empty($customer['dietary_preferences'])): ?>
-                                                <div><i class="fas fa-leaf"></i> Diet: <?php echo htmlspecialchars($customer['dietary_preferences']); ?></div>
-                                            <?php endif; ?>
-                                            <?php if (!empty($customer['allergies'])): ?>
-                                                <div><i class="fas fa-exclamation-triangle"></i> Allergies: <?php echo htmlspecialchars($customer['allergies']); ?></div>
-                                            <?php endif; ?>
-                                            <?php if (!empty($customer['subscription_notes'])): ?>
-                                                <div><i class="fas fa-sticky-note"></i> Notes: <?php echo htmlspecialchars($customer['subscription_notes']); ?></div>
-                                            <?php endif; ?>
-                                        </div>
+                                <div class="customer-card-header" onclick="toggleCustomerCard('<?php echo $customer['user_id']; ?>')">
+                                    <div class="customer-name-compact">
+                                        <i class="fas fa-user"></i>
+                                        <?php echo htmlspecialchars($customer['first_name'] . ' ' . $customer['last_name']); ?>
+                                        <span class="customer-meal-count"><?php echo count($customer['meals']); ?> meals</span>
+                                        <span class="delivery-time">
+                                            <i class="fas fa-clock"></i>
+                                            <?php echo htmlspecialchars($customer['preferred_delivery_time'] ?? '3:00 PM - 6:00 PM'); ?>
+                                        </span>
                                     </div>
-                                    <div class="delivery-time">
-                                        <i class="fas fa-clock"></i>
-                                        <?php echo htmlspecialchars($customer['preferred_delivery_time'] ?? '3:00 PM - 6:00 PM'); ?>
-                                    </div>
+                                    <i class="fas fa-chevron-down customer-card-toggle"></i>
                                 </div>
                                 
-                                <div class="meals-list">
-                                    <?php foreach ($customer['meals'] as $meal): ?>
-                                        <div class="meal-item">
-                                            <div class="meal-header">
-                                                <div class="meal-name"><?php echo htmlspecialchars($meal['menu_name']); ?></div>
-                                                <div class="meal-quantity">x<?php echo $meal['quantity']; ?></div>
-                                            </div>
-                                            <div class="meal-meta">
-                                                <?php if (!empty($meal['category_name'])): ?>
-                                                    <div><strong>Category:</strong> <?php echo htmlspecialchars($meal['category_name']); ?></div>
+                                <div class="customer-card-content">
+                                    <div class="customer-header">
+                                        <div class="customer-info">
+                                            <h3><?php echo htmlspecialchars($customer['first_name'] . ' ' . $customer['last_name']); ?></h3>
+                                            <div class="customer-details">
+                                                <div><i class="fas fa-phone"></i> <?php echo htmlspecialchars($customer['phone'] ?? 'No phone provided'); ?></div>
+                                                <div><i class="fas fa-map-marker-alt"></i> <?php echo htmlspecialchars(($customer['delivery_address'] ?? 'No address') . ', ' . ($customer['city'] ?? '')); ?></div>
+                                                <div><i class="fas fa-tag"></i> Plan: <?php echo htmlspecialchars($customer['plan_name'] ?? 'Standard Plan'); ?></div>
+                                                <div><i class="fas fa-utensils"></i> Total Meals Today: <?php echo count($customer['meals']); ?></div>
+                                                <?php if (!empty($customer['dietary_preferences'])): ?>
+                                                    <div><i class="fas fa-leaf"></i> Diet: <?php echo htmlspecialchars($customer['dietary_preferences']); ?></div>
                                                 <?php endif; ?>
-                                                <?php if (!empty($meal['preparation_time'])): ?>
-                                                    <div><strong>Prep Time:</strong> <?php echo $meal['preparation_time']; ?> minutes</div>
+                                                <?php if (!empty($customer['allergies'])): ?>
+                                                    <div><i class="fas fa-exclamation-triangle"></i> Allergies: <?php echo htmlspecialchars($customer['allergies']); ?></div>
                                                 <?php endif; ?>
-                                                <?php if (!empty($meal['menu_spice_level'])): ?>
-                                                    <div><strong>Spice Level:</strong> <?php echo ucfirst($meal['menu_spice_level']); ?></div>
-                                                <?php endif; ?>
-                                                <?php if (!empty($meal['customizations'])): ?>
-                                                    <div><strong>Customizations:</strong> <?php echo htmlspecialchars($meal['customizations']); ?></div>
-                                                <?php endif; ?>
-                                                <?php if (!empty($meal['special_requests'])): ?>
-                                                    <div><strong>Special Requests:</strong> <?php echo htmlspecialchars($meal['special_requests']); ?></div>
+                                                <?php if (!empty($customer['subscription_notes'])): ?>
+                                                    <div><i class="fas fa-sticky-note"></i> Notes: <?php echo htmlspecialchars($customer['subscription_notes']); ?></div>
                                                 <?php endif; ?>
                                             </div>
                                         </div>
-                                    <?php endforeach; ?>
+                                        <div class="delivery-time">
+                                            <i class="fas fa-clock"></i>
+                                            <?php echo htmlspecialchars($customer['preferred_delivery_time'] ?? '3:00 PM - 6:00 PM'); ?>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="meals-list">
+                                        <?php foreach ($customer['meals'] as $meal): ?>
+                                            <div class="meal-item">
+                                                <div class="meal-header">
+                                                    <div class="meal-name"><?php echo htmlspecialchars($meal['menu_name']); ?></div>
+                                                    <div class="meal-quantity">x<?php echo $meal['quantity']; ?></div>
+                                                </div>
+                                                <div class="meal-meta">
+                                                    <?php if (!empty($meal['category_name'])): ?>
+                                                        <div><strong>Category:</strong> <?php echo htmlspecialchars($meal['category_name']); ?></div>
+                                                    <?php endif; ?>
+                                                    <?php if (!empty($meal['preparation_time'])): ?>
+                                                        <div><strong>Prep Time:</strong> <?php echo $meal['preparation_time']; ?> minutes</div>
+                                                    <?php endif; ?>
+                                                    <?php if (!empty($meal['menu_spice_level'])): ?>
+                                                        <div><strong>Spice Level:</strong> <?php echo ucfirst($meal['menu_spice_level']); ?></div>
+                                                    <?php endif; ?>
+                                                    <?php if (!empty($meal['customizations'])): ?>
+                                                        <div><strong>Customizations:</strong> <?php echo htmlspecialchars($meal['customizations']); ?></div>
+                                                    <?php endif; ?>
+                                                    <?php if (!empty($meal['special_requests'])): ?>
+                                                        <div><strong>Special Requests:</strong> <?php echo htmlspecialchars($meal['special_requests']); ?></div>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
                                 </div>
                             </div>
                         <?php endforeach; ?>
@@ -1466,6 +1700,9 @@ if ($export_type === 'json') {
                 <div class="prep-summary-title">
                     <i class="fas fa-clipboard-list"></i>
                     Kitchen Prep Summary
+                    <button class="btn btn-outline" onclick="toggleAllPrepItems()" style="font-size: 0.8rem; padding: 0.4rem 0.8rem; margin-left: auto;">
+                        <i class="fas fa-expand-arrows-alt"></i> Toggle All
+                    </button>
                 </div>
                 
                 <?php if (empty($meal_summary)): ?>
@@ -1476,83 +1713,46 @@ if ($export_type === 'json') {
                     </div>
                 <?php else: ?>
                     <?php foreach ($meal_summary as $meal): ?>
-                        <div class="prep-item">
-                            <div class="prep-header">
-                                <div class="prep-name"><?php echo htmlspecialchars($meal['name']); ?></div>
-                                <div class="prep-quantity"><?php echo $meal['total_quantity']; ?> portions</div>
+                        <div class="prep-item" id="prep-<?php echo $meal['menu_id']; ?>">
+                            <div class="prep-item-header" onclick="togglePrepItem('<?php echo $meal['menu_id']; ?>')">
+                                <div class="prep-name-compact"><?php echo htmlspecialchars($meal['name']); ?></div>
+                                <div style="display: flex; align-items: center; gap: 1rem;">
+                                    <div class="prep-quantity"><?php echo $meal['total_quantity']; ?> portions</div>
+                                    <i class="fas fa-chevron-down prep-item-toggle"></i>
+                                </div>
                             </div>
-                            <div class="prep-meta">
-                                <?php if (!empty($meal['category'])): ?>
-                                    <div><strong>Category:</strong> <?php echo htmlspecialchars($meal['category']); ?></div>
-                                <?php endif; ?>
-                                <?php if (!empty($meal['prep_time'])): ?>
-                                    <div><strong>Prep Time:</strong> <?php echo $meal['prep_time']; ?> min/portion</div>
-                                    <div><strong>Total Time:</strong> <?php echo ($meal['prep_time'] * $meal['total_quantity']); ?> minutes</div>
-                                <?php endif; ?>
-                                <?php if (!empty($meal['spice_level'])): ?>
-                                    <div><strong>Spice Level:</strong> <?php echo ucfirst($meal['spice_level']); ?></div>
-                                <?php endif; ?>
-                                <?php if (!empty($meal['cooking_method'])): ?>
-                                    <div><strong>Cooking Method:</strong> <?php echo htmlspecialchars($meal['cooking_method']); ?></div>
-                                <?php endif; ?>
-                                <?php if (!empty($meal['ingredients'])): ?>
-                                    <div><strong>Key Ingredients:</strong> <?php echo htmlspecialchars($meal['ingredients']); ?></div>
-                                <?php endif; ?>
-                                <?php if (!empty($meal['customizations'])): ?>
-                                    <div><strong>Customizations:</strong> <?php echo implode(', ', $meal['customizations']); ?></div>
-                                <?php endif; ?>
-                                <?php if (!empty($meal['special_requests'])): ?>
-                                    <div><strong>Special Requests:</strong> <?php echo implode(', ', $meal['special_requests']); ?></div>
-                                <?php endif; ?>
-                                <div class="prep-customers">
-                                    <strong>For Customers:</strong> <?php echo implode(', ', array_unique($meal['customers'])); ?>
+                            <div class="prep-item-content">
+                                <div class="prep-meta">
+                                    <?php if (!empty($meal['category'])): ?>
+                                        <div><strong>Category:</strong> <?php echo htmlspecialchars($meal['category']); ?></div>
+                                    <?php endif; ?>
+                                    <?php if (!empty($meal['prep_time'])): ?>
+                                        <div><strong>Prep Time:</strong> <?php echo $meal['prep_time']; ?> min/portion</div>
+                                        <div><strong>Total Time:</strong> <?php echo ($meal['prep_time'] * $meal['total_quantity']); ?> minutes</div>
+                                    <?php endif; ?>
+                                    <?php if (!empty($meal['spice_level'])): ?>
+                                        <div><strong>Spice Level:</strong> <?php echo ucfirst($meal['spice_level']); ?></div>
+                                    <?php endif; ?>
+                                    <?php if (!empty($meal['cooking_method'])): ?>
+                                        <div><strong>Cooking Method:</strong> <?php echo htmlspecialchars($meal['cooking_method']); ?></div>
+                                    <?php endif; ?>
+                                    <?php if (!empty($meal['ingredients'])): ?>
+                                        <div><strong>Key Ingredients:</strong> <?php echo htmlspecialchars($meal['ingredients']); ?></div>
+                                    <?php endif; ?>
+                                    <?php if (!empty($meal['customizations'])): ?>
+                                        <div><strong>Customizations:</strong> <?php echo implode(', ', $meal['customizations']); ?></div>
+                                    <?php endif; ?>
+                                    <?php if (!empty($meal['special_requests'])): ?>
+                                        <div><strong>Special Requests:</strong> <?php echo implode(', ', $meal['special_requests']); ?></div>
+                                    <?php endif; ?>
+                                    <div class="prep-customers">
+                                        <strong>For Customers:</strong> <?php echo implode(', ', array_unique($meal['customers'])); ?>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     <?php endforeach; ?>
                 <?php endif; ?>
-            </div>
-        </div>
-
-        <!-- Print Section -->
-        <div class="print-section no-print">
-            <div class="section-header">
-                <h2 class="section-title">
-                    <i class="fas fa-print"></i>
-                    Print & Export Options
-                </h2>
-            </div>
-            
-            <div class="print-buttons">
-                <button class="btn btn-primary" onclick="printPrepSheet()">
-                    <i class="fas fa-clipboard-list"></i>
-                    Print Prep Sheet
-                </button>
-                
-                <button class="btn btn-secondary" onclick="printDeliverySheet()">
-                    <i class="fas fa-truck"></i>
-                    Print Delivery Sheet
-                </button>
-                
-                <button class="btn btn-outline" onclick="printIngredientsList()">
-                    <i class="fas fa-carrot"></i>
-                    Print Ingredients List
-                </button>
-                
-                <a href="?date=<?php echo $selected_date; ?>&export=csv" class="btn btn-secondary">
-                    <i class="fas fa-file-csv"></i>
-                    Export CSV
-                </a>
-                
-                <a href="?date=<?php echo $selected_date; ?>&export=json" class="btn btn-outline">
-                    <i class="fas fa-file-code"></i>
-                    Export JSON
-                </a>
-                
-                <button class="btn btn-outline" onclick="exportToExcel()">
-                    <i class="fas fa-file-excel"></i>
-                    Export Excel
-                </button>
             </div>
         </div>
     </div>
@@ -1597,6 +1797,87 @@ if ($export_type === 'json') {
     </div>
 
     <script>
+        // Print & Export Dropdown Functions
+        let printDropdownOpen = false;
+
+        function togglePrintDropdown() {
+            const trigger = document.querySelector('.dropdown-trigger');
+            const panel = document.getElementById('printDropdownPanel');
+            
+            printDropdownOpen = !printDropdownOpen;
+            
+            if (printDropdownOpen) {
+                trigger.classList.add('active');
+                panel.classList.add('active');
+            } else {
+                trigger.classList.remove('active');
+                panel.classList.remove('active');
+            }
+        }
+
+        // Customer Card Toggle Functions
+        function toggleCustomerCard(customerId) {
+            console.log('Toggling customer card:', customerId); // Debug log
+            const card = document.getElementById(`customer-${customerId}`);
+            if (card) {
+                card.classList.toggle('expanded');
+                console.log('Card expanded:', card.classList.contains('expanded')); // Debug log
+            } else {
+                console.error('Customer card not found:', `customer-${customerId}`);
+            }
+        }
+
+        // Prep Item Toggle Functions
+        function togglePrepItem(menuId) {
+            console.log('Toggling prep item:', menuId); // Debug log
+            const item = document.getElementById(`prep-${menuId}`);
+            if (item) {
+                item.classList.toggle('expanded');
+                console.log('Item expanded:', item.classList.contains('expanded')); // Debug log
+            } else {
+                console.error('Prep item not found:', `prep-${menuId}`);
+            }
+        }
+
+        // Toggle All Customer Cards
+        function toggleAllCustomerCards() {
+            const cards = document.querySelectorAll('.customer-card');
+            const expandedCards = document.querySelectorAll('.customer-card.expanded');
+            
+            if (expandedCards.length === cards.length) {
+                // All are expanded, collapse all
+                cards.forEach(card => card.classList.remove('expanded'));
+            } else {
+                // Some are collapsed, expand all
+                cards.forEach(card => card.classList.add('expanded'));
+            }
+        }
+
+        // Toggle All Prep Items
+        function toggleAllPrepItems() {
+            const items = document.querySelectorAll('.prep-item');
+            const expandedItems = document.querySelectorAll('.prep-item.expanded');
+            
+            if (expandedItems.length === items.length) {
+                // All are expanded, collapse all
+                items.forEach(item => item.classList.remove('expanded'));
+            } else {
+                // Some are collapsed, expand all
+                items.forEach(item => item.classList.add('expanded'));
+            }
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const dropdown = document.querySelector('.print-export-dropdown');
+            
+            if (printDropdownOpen && !dropdown.contains(event.target)) {
+                document.querySelector('.dropdown-trigger').classList.remove('active');
+                document.getElementById('printDropdownPanel').classList.remove('active');
+                printDropdownOpen = false;
+            }
+        });
+
         function filterByDate(date) {
             if (date) {
                 window.location.href = `?date=${date}&status=<?php echo $status_filter; ?>`;
@@ -1614,76 +1895,60 @@ if ($export_type === 'json') {
         }
 
         function printPrepSheet() {
-            const printArea = document.getElementById('prep-print-area');
-            if (!printArea) {
-                // If print area doesn't exist, create dynamic content
-                const mealSummary = <?php echo json_encode($meal_summary, JSON_UNESCAPED_UNICODE); ?>;
+            const mealSummary = <?php echo json_encode($meal_summary, JSON_UNESCAPED_UNICODE); ?>;
+            
+            let prepContent = `
+                <div style="text-align: center; margin-bottom: 2rem;">
+                    <h1 style="color: #cf723a; margin-bottom: 0.5rem;">Somdul Table - Kitchen Prep Sheet</h1>
+                    <h2 style="color: #6c757d;">Delivery Date: <?php echo !empty($selected_date) ? date('l, F j, Y', strtotime($selected_date)) : 'Date not selected'; ?></h2>
+                    <p style="color: #666;">Printed: ${new Date().toLocaleString('en-US')} (Eastern Time)</p>
+                </div>
                 
-                let prepContent = `
-                    <div style="text-align: center; margin-bottom: 2rem;">
-                        <h1 style="color: #cf723a; margin-bottom: 0.5rem;">Somdul Table - Kitchen Prep Sheet</h1>
-                        <h2 style="color: #6c757d;">Delivery Date: <?php echo !empty($selected_date) ? date('l, F j, Y', strtotime($selected_date)) : 'Date not selected'; ?></h2>
-                        <p style="color: #666;">Printed: ${new Date().toLocaleString('en-US')} (Eastern Time)</p>
-                    </div>
-                    
-                    <div style="margin-bottom: 2rem;">
-                        <h3 style="background: #ece8e1; padding: 1rem; border-radius: 8px; color: #cf723a;">
-                            Prep Summary - Total ${Object.keys(mealSummary).length} items / <?php echo $total_meals; ?> portions
-                        </h3>
+                <div style="margin-bottom: 2rem;">
+                    <h3 style="background: #ece8e1; padding: 1rem; border-radius: 8px; color: #cf723a;">
+                        Prep Summary - Total ${Object.keys(mealSummary).length} items / <?php echo $total_meals; ?> portions
+                    </h3>
+                </div>
+                
+                <div style="font-size: 1.2rem; line-height: 2;">
+            `;
+            
+            let counter = 1;
+            Object.values(mealSummary).forEach(meal => {
+                prepContent += `
+                    <div style="margin-bottom: 0.5rem; padding: 0.5rem; border-bottom: 1px solid #eee;">
+                        ${counter}. ${meal.name} - ${meal.total_quantity} portions
                     </div>
                 `;
-                
-                Object.values(mealSummary).forEach(meal => {
-                    prepContent += `
-                        <div style="border: 1px solid #ddd; margin-bottom: 1rem; border-radius: 8px; overflow: hidden;">
-                            <div style="background: #cf723a; color: white; padding: 1rem; font-weight: bold; font-size: 1.2rem;">
-                                ${meal.name} - ${meal.total_quantity} portions
-                            </div>
-                            <div style="padding: 1rem;">
-                                <p><strong>Category:</strong> ${meal.category || 'Not specified'}</p>
-                                <p><strong>Prep Time:</strong> ${meal.prep_time || 'Not specified'} min/portion</p>
-                                <p><strong>Total Time:</strong> ${(meal.prep_time || 0) * meal.total_quantity} minutes</p>
-                                <p><strong>Cooking Method:</strong> ${meal.cooking_method || 'Standard recipe'}</p>
-                                ${meal.ingredients ? `<p><strong>Ingredients:</strong> ${meal.ingredients}</p>` : ''}
-                                ${meal.customizations && meal.customizations.length > 0 ? `<p><strong>Customizations:</strong> ${meal.customizations.join(', ')}</p>` : ''}
-                                ${meal.special_requests && meal.special_requests.length > 0 ? `<p><strong>Special Requests:</strong> ${meal.special_requests.join(', ')}</p>` : ''}
-                                <p><strong>Customers:</strong> ${[...new Set(meal.customers)].join(', ')}</p>
-                            </div>
-                        </div>
-                    `;
-                });
-                
-                const printWindow = window.open('', '_blank');
-                printWindow.document.write(`
-                    <html>
-                        <head>
-                            <title>Kitchen Prep Sheet - <?php echo !empty($selected_date) ? date('m/d/Y', strtotime($selected_date)) : 'Date not selected'; ?></title>
-                            <style>
-                                body { font-family: 'BaticaSans', 'Inter', sans-serif; margin: 20px; }
-                                h1 { margin-bottom: 10px; }
-                                h2 { margin-bottom: 20px; }
-                                @media print {
-                                    body { margin: 0; }
-                                    div { page-break-inside: avoid; }
-                                }
-                            </style>
-                        </head>
-                        <body>${prepContent}</body>
-                    </html>
-                `);
-                printWindow.document.close();
-                printWindow.print();
-            } else {
-                // Use existing print area
-                const originalDisplay = printArea.style.display;
-                printArea.style.display = 'block';
-                window.print();
-                printArea.style.display = originalDisplay;
-            }
-        }
-
-        function printCustomerList() {
-            window.print();
+                counter++;
+            });
+            
+            prepContent += `</div>`;
+            
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <html>
+                    <head>
+                        <title>Kitchen Prep Sheet - <?php echo !empty($selected_date) ? date('m/d/Y', strtotime($selected_date)) : 'Date not selected'; ?></title>
+                        <style>
+                            body { 
+                                font-family: 'BaticaSans', 'Inter', sans-serif; 
+                                margin: 20px; 
+                                font-size: 14px;
+                            }
+                            h1 { margin-bottom: 10px; }
+                            h2 { margin-bottom: 20px; }
+                            @media print {
+                                body { margin: 0; }
+                                div { page-break-inside: avoid; }
+                            }
+                        </style>
+                    </head>
+                    <body>${prepContent}</body>
+                </html>
+            `);
+            printWindow.document.close();
+            printWindow.print();
         }
 
         function printDeliverySheet() {
@@ -1755,6 +2020,9 @@ if ($export_type === 'json') {
             `);
             printWindow.document.close();
             printWindow.print();
+
+            // Close dropdown after printing
+            togglePrintDropdown();
         }
 
         function printIngredientsList() {
@@ -1849,6 +2117,9 @@ if ($export_type === 'json') {
             `);
             printWindow.document.close();
             printWindow.print();
+
+            // Close dropdown after printing
+            togglePrintDropdown();
         }
 
         function markAllCompleted() {
@@ -1904,6 +2175,14 @@ if ($export_type === 'json') {
                         e.preventDefault();
                         refreshData();
                         break;
+                    case '1':
+                        e.preventDefault();
+                        toggleAllCustomerCards();
+                        break;
+                    case '2':
+                        e.preventDefault();
+                        toggleAllPrepItems();
+                        break;
                 }
             }
         });
@@ -1955,6 +2234,9 @@ if ($export_type === 'json') {
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+
+            // Close dropdown after export
+            togglePrintDropdown();
         }
 
 
@@ -2092,7 +2374,7 @@ function selectCalendarDate(dateString) {
         document.getElementById('calendarPanel').classList.remove('active');
         calendarOpen = false;
         
-        // Navigate to selected date (ใช้ฟังก์ชันเดิม)
+        // Navigate to selected date
         filterByDate(dateString);
     }
 }
@@ -2112,6 +2394,9 @@ document.addEventListener('click', function(event) {
 document.addEventListener('keydown', function(event) {
     if (event.key === 'Escape' && calendarOpen) {
         toggleCalendar();
+    }
+    if (event.key === 'Escape' && printDropdownOpen) {
+        togglePrintDropdown();
     }
 });
 
