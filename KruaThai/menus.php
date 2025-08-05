@@ -1517,7 +1517,7 @@ try {
         </div>
     </footer>
 
-    <script>
+<script>
         // Category Navigation Scroll Functions
         function scrollCategories(direction) {
             const navContainer = document.getElementById('categoryNavContainer');
@@ -1702,7 +1702,7 @@ try {
                     </h2>
                     ${menu.name && menu.name_thai ? `<p style="color: var(--text-gray); margin-bottom: 1rem;">${menu.name_thai}</p>` : ''}
                     <div style="font-size: 1.5rem; font-weight: 700; color: var(--curry);">
-                        ${parseFloat(menu.base_price).toFixed(2)}
+                        $${parseFloat(menu.base_price).toFixed(2)}
                     </div>
                 </div>
 
@@ -1820,6 +1820,29 @@ try {
         document.getElementById('menuModal').addEventListener('click', function(e) {
             if (e.target === this) {
                 closeMenuModal();
+            }
+        });
+
+        // 🆕 NEW: Check for show_menu parameter and automatically open modal
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const showMenuId = urlParams.get('show_menu');
+            
+            if (showMenuId) {
+                console.log('Auto-opening modal for menu ID:', showMenuId);
+                // Wait a brief moment for the page to fully load, then show the modal
+                setTimeout(() => {
+                    showMenuModal(showMenuId);
+                    // Remove the parameter from the URL without reloading the page
+                    const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+                    urlParams.delete('show_menu');
+                    const remainingParams = urlParams.toString();
+                    if (remainingParams) {
+                        window.history.replaceState({}, document.title, newUrl + '?' + remainingParams);
+                    } else {
+                        window.history.replaceState({}, document.title, newUrl);
+                    }
+                }, 500);
             }
         });
 
