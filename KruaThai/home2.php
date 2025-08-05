@@ -192,6 +192,287 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
             font-size: 0.85rem;
         }
     }
+
+    /* Meet the Chefs Section */
+    .chefs-section {
+        padding: 5rem 2rem;
+        background: linear-gradient(135deg, var(--cream) 0%, #f8f9fa 100%);
+    }
+
+    .chefs-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        text-align: center;
+    }
+
+    .chefs-title {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        color: var(--text-dark);
+        font-family: 'BaticaSans', sans-serif;
+        font-weight: 700;
+    }
+
+    .chefs-subtitle {
+        font-size: 1.2rem;
+        color: var(--text-gray);
+        margin-bottom: 3rem;
+        font-family: 'BaticaSans', sans-serif;
+        font-weight: 400;
+    }
+
+    .chefs-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 2.5rem;
+        margin-top: 3rem;
+    }
+
+    .chef-card {
+        background: var(--white);
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: var(--shadow-soft);
+        transition: var(--transition);
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .chef-card:hover {
+        transform: translateY(-10px);
+        box-shadow: var(--shadow-medium);
+    }
+
+    .chef-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(135deg, var(--curry), var(--brown));
+    }
+
+    .chef-image {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin: 0 auto 1.5rem;
+        border: 4px solid var(--cream);
+        transition: var(--transition);
+    }
+
+    .chef-card:hover .chef-image {
+        border-color: var(--curry);
+        transform: scale(1.05);
+    }
+
+    .chef-name {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: var(--text-dark);
+        margin-bottom: 0.5rem;
+        font-family: 'BaticaSans', sans-serif;
+    }
+
+    .chef-title {
+        font-size: 1rem;
+        color: var(--curry);
+        margin-bottom: 1rem;
+        font-family: 'BaticaSans', sans-serif;
+        font-weight: 600;
+    }
+
+    .chef-description {
+        color: var(--text-gray);
+        line-height: 1.6;
+        margin-bottom: 1.5rem;
+        font-family: 'BaticaSans', sans-serif;
+        font-size: 0.95rem;
+    }
+
+    .chef-credentials {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        justify-content: center;
+    }
+
+    .credential-badge {
+        background: linear-gradient(135deg, var(--sage), var(--brown));
+        color: var(--white);
+        padding: 0.3rem 0.8rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        font-family: 'BaticaSans', sans-serif;
+    }
+
+    /* Reviews Section */
+    .reviews-section {
+        padding: 5rem 2rem;
+        background: var(--white);
+    }
+
+    .reviews-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        text-align: center;
+    }
+
+    .reviews-title {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        color: var(--text-dark);
+        font-family: 'BaticaSans', sans-serif;
+        font-weight: 700;
+    }
+
+    .reviews-subtitle {
+        font-size: 1.2rem;
+        color: var(--text-gray);
+        margin-bottom: 3rem;
+        font-family: 'BaticaSans', sans-serif;
+        font-weight: 400;
+    }
+
+    .reviews-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 2rem;
+        margin-top: 3rem;
+    }
+
+    .review-card {
+        background: var(--white);
+        border-radius: 15px;
+        padding: 2rem;
+        box-shadow: var(--shadow-soft);
+        transition: var(--transition);
+        text-align: left;
+        border: 2px solid var(--cream);
+        position: relative;
+    }
+
+    .review-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-medium);
+        border-color: var(--curry);
+    }
+
+    .review-stars {
+        display: flex;
+        gap: 0.2rem;
+        margin-bottom: 1rem;
+    }
+
+    .star {
+        color: #ffc107;
+        font-size: 1.2rem;
+    }
+
+    .review-text {
+        color: var(--text-dark);
+        line-height: 1.6;
+        margin-bottom: 1.5rem;
+        font-family: 'BaticaSans', sans-serif;
+        font-size: 1rem;
+        font-style: italic;
+        position: relative;
+    }
+
+    .review-text::before {
+        content: '"';
+        font-size: 2rem;
+        color: var(--curry);
+        position: absolute;
+        top: -0.5rem;
+        left: -0.5rem;
+        font-weight: 700;
+    }
+
+    .review-text::after {
+        content: '"';
+        font-size: 2rem;
+        color: var(--curry);
+        font-weight: 700;
+    }
+
+    .reviewer-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .reviewer-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--curry), var(--brown));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--white);
+        font-weight: 700;
+        font-family: 'BaticaSans', sans-serif;
+        font-size: 1.2rem;
+    }
+
+    .reviewer-details h4 {
+        color: var(--text-dark);
+        margin: 0;
+        font-family: 'BaticaSans', sans-serif;
+        font-weight: 600;
+        font-size: 1rem;
+    }
+
+    .reviewer-details p {
+        color: var(--text-gray);
+        margin: 0;
+        font-family: 'BaticaSans', sans-serif;
+        font-size: 0.9rem;
+    }
+
+    .review-platform {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        background: var(--cream);
+        color: var(--text-gray);
+        padding: 0.3rem 0.8rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        font-family: 'BaticaSans', sans-serif;
+    }
+
+    /* Responsive Design for New Sections */
+    @media (max-width: 768px) {
+        .chefs-title, .reviews-title {
+            font-size: 2rem;
+        }
+
+        .chefs-subtitle, .reviews-subtitle {
+            font-size: 1rem;
+        }
+
+        .chefs-grid, .reviews-grid {
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+
+        .chef-card, .review-card {
+            padding: 1.5rem;
+        }
+
+        .chef-image {
+            width: 100px;
+            height: 100px;
+        }
+    }
+
         @font-face {
             font-family: 'BaticaSans';
             src: url('https://ydpschool.com/fonts/BaticaSans-Regular.woff2') format('woff2'),
@@ -1382,6 +1663,195 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
             </div>
         </div>
     </section>
+
+    <!-- Meet the Chefs Section -->
+    <section class="chefs-section" id="chefs">
+        <div class="chefs-container">
+            <h2 class="chefs-title">Meet Our Expert Chefs</h2>
+            <p class="chefs-subtitle">Our culinary masters bring authentic Thai flavors from Bangkok's finest restaurants directly to your table</p>
+            
+            <div class="chefs-grid">
+                <div class="chef-card">
+                    <img src="assets/image/chef1.jpg" alt="Chef Siriporn Thanakit" class="chef-image">
+                    <h3 class="chef-name">Chef Siriporn Thanakit</h3>
+                    <p class="chef-title">Head Chef & Thai Cuisine Master</p>
+                    <p class="chef-description">
+                        With over 15 years of experience in Bangkok's prestigious Blue Elephant restaurant, Chef Siriporn specializes in royal Thai cuisine and traditional cooking techniques passed down through generations.
+                    </p>
+                    <div class="chef-credentials">
+                        <span class="credential-badge">Le Cordon Bleu Bangkok</span>
+                        <span class="credential-badge">15+ Years Experience</span>
+                        <span class="credential-badge">Royal Thai Certified</span>
+                    </div>
+                </div>
+
+                <div class="chef-card">
+                    <img src="assets/image/chef2.jpg" alt="Chef Narong Srisawang" class="chef-image">
+                    <h3 class="chef-name">Chef Narong Srisawang</h3>
+                    <p class="chef-title">Specialty Chef & Curry Expert</p>
+                    <p class="chef-description">
+                        Former chef at Michelin-starred Gaggan in Bangkok, Chef Narong brings innovative techniques to traditional Thai curries and street food favorites, ensuring authentic flavors in every dish.
+                    </p>
+                    <div class="chef-credentials">
+                        <span class="credential-badge">Michelin Restaurant</span>
+                        <span class="credential-badge">Curry Specialist</span>
+                        <span class="credential-badge">12+ Years Experience</span>
+                    </div>
+                </div>
+
+                <div class="chef-card">
+                    <img src="assets/image/chef3.jpg" alt="Chef Malee Chansiri" class="chef-image">
+                    <h3 class="chef-name">Chef Malee Chansiri</h3>
+                    <p class="chef-title">Pastry Chef & Dessert Specialist</p>
+                    <p class="chef-description">
+                        Trained in both French patisserie and traditional Thai desserts, Chef Malee creates unique fusion desserts that blend modern techniques with authentic Thai ingredients and flavors.
+                    </p>
+                    <div class="chef-credentials">
+                        <span class="credential-badge">French Patisserie</span>
+                        <span class="credential-badge">Thai Dessert Master</span>
+                        <span class="credential-badge">10+ Years Experience</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Customer Reviews Section -->
+    <section class="reviews-section" id="reviews">
+        <div class="reviews-container">
+            <h2 class="reviews-title">What Our Customers Say</h2>
+            <p class="reviews-subtitle">Join thousands of satisfied customers who trust Somdul Table for authentic Thai cuisine</p>
+            
+            <div class="reviews-grid">
+                <div class="review-card">
+                    <div class="review-platform">Google</div>
+                    <div class="review-stars">
+                        <span class="star">★</span>
+                        <span class="star">★</span>
+                        <span class="star">★</span>
+                        <span class="star">★</span>
+                        <span class="star">★</span>
+                    </div>
+                    <p class="review-text">
+                        The Pad Thai is absolutely incredible! It tastes exactly like what I had in Bangkok. The delivery is always on time and the packaging keeps everything fresh. I've been ordering for 6 months now and never disappointed.
+                    </p>
+                    <div class="reviewer-info">
+                        <div class="reviewer-avatar">SM</div>
+                        <div class="reviewer-details">
+                            <h4>Sarah Mitchell</h4>
+                            <p>Regular Customer • Los Angeles, CA</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="review-card">
+                    <div class="review-platform">Yelp</div>
+                    <div class="review-stars">
+                        <span class="star">★</span>
+                        <span class="star">★</span>
+                        <span class="star">★</span>
+                        <span class="star">★</span>
+                        <span class="star">★</span>
+                    </div>
+                    <p class="review-text">
+                        As someone who lived in Thailand for 3 years, I can say this is the most authentic Thai food I've found in the US. The green curry is phenomenal and the spice levels are perfect. Highly recommend!
+                    </p>
+                    <div class="reviewer-info">
+                        <div class="reviewer-avatar">DJ</div>
+                        <div class="reviewer-details">
+                            <h4>David Johnson</h4>
+                            <p>Food Enthusiast • New York, NY</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="review-card">
+                    <div class="review-platform">TrustPilot</div>
+                    <div class="review-stars">
+                        <span class="star">★</span>
+                        <span class="star">★</span>
+                        <span class="star">★</span>
+                        <span class="star">★</span>
+                        <span class="star">★</span>
+                    </div>
+                    <p class="review-text">
+                        Amazing quality and portion sizes! The mango sticky rice dessert is to die for. Customer service is excellent too - they accommodated my dietary restrictions perfectly. Will definitely order again!
+                    </p>
+                    <div class="reviewer-info">
+                        <div class="reviewer-avatar">ER</div>
+                        <div class="reviewer-details">
+                            <h4>Emily Rodriguez</h4>
+                            <p>Verified Customer • Chicago, IL</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="review-card">
+                    <div class="review-platform">Google</div>
+                    <div class="review-stars">
+                        <span class="star">★</span>
+                        <span class="star">★</span>
+                        <span class="star">★</span>
+                        <span class="star">★</span>
+                        <span class="star">★</span>
+                    </div>
+                    <p class="review-text">
+                        The convenience of having restaurant-quality Thai food delivered weekly is unmatched. The flavors are complex and authentic, and I love trying new dishes each week. The packaging is eco-friendly too!
+                    </p>
+                    <div class="reviewer-info">
+                        <div class="reviewer-avatar">MT</div>
+                        <div class="reviewer-details">
+                            <h4>Michael Thompson</h4>
+                            <p>Busy Professional • Miami, FL</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="review-card">
+                    <div class="review-platform">Facebook</div>
+                    <div class="review-stars">
+                        <span class="star">★</span>
+                        <span class="star">★</span>
+                        <span class="star">★</span>
+                        <span class="star">★</span>
+                        <span class="star">★</span>
+                    </div>
+                    <p class="review-text">
+                        I ordered for a dinner party and everyone was blown away! The Tom Yum soup was perfectly balanced and the presentation was beautiful. My Thai friends were impressed with the authenticity. 5 stars!
+                    </p>
+                    <div class="reviewer-info">
+                        <div class="reviewer-avatar">LC</div>
+                        <div class="reviewer-details">
+                            <h4>Lisa Chen</h4>
+                            <p>Event Host • San Francisco, CA</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="review-card">
+                    <div class="review-platform">Google</div>
+                    <div class="review-stars">
+                        <span class="star">★</span>
+                        <span class="star">★</span>
+                        <span class="star">★</span>
+                        <span class="star">★</span>
+                        <span class="star">★</span>
+                    </div>
+                    <p class="review-text">
+                        Been ordering from Somdul Table for over a year. The consistency in quality is remarkable. Each dish is packed with flavor and arrives hot. The subscription model makes meal planning so easy!
+                    </p>
+                    <div class="reviewer-info">
+                        <div class="reviewer-avatar">RK</div>
+                        <div class="reviewer-details">
+                            <h4>Robert Kim</h4>
+                            <p>Loyal Customer • Seattle, WA</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const menuItems = document.querySelectorAll('.menu-nav-item');

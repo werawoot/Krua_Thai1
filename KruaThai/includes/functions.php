@@ -325,22 +325,104 @@ function isEmailDomainAllowed($email) {
 }
 
 /**
- * Validate Thai phone number (ฟังก์ชันใหม่)
+ * Validate US phone number
+ * Accepts formats like: (555) 123-4567, 555-123-4567, 555.123.4567, 5551234567, +15551234567
  */
 function validatePhone($phone) {
-    // Remove any non-digits
+    if (empty($phone)) {
+        return false;
+    }
+    
+    // Remove all non-digits
     $clean_phone = preg_replace('/\D/', '', $phone);
     
-    // Check if it's a valid Thai phone number format
-    // Thai mobile: 08x-xxx-xxxx or 09x-xxx-xxxx (10 digits)
-    return preg_match('/^0[89]\d{8}$/', $clean_phone);
+    // Check for US phone number formats
+    // 10 digits: 5551234567 (without country code)
+    // 11 digits: 15551234567 (with country code +1)
+    if (strlen($clean_phone) === 10) {
+        // 10-digit US number, first digit should be 2-9 (area code cannot start with 0 or 1)
+        return preg_match('/^[2-9]\d{9}$/', $clean_phone);
+    } elseif (strlen($clean_phone) === 11) {
+        // 11-digit with country code, should start with 1 and area code 2-9
+        return preg_match('/^1[2-9]\d{9}$/', $clean_phone);
+    }
+    
+    return false;
 }
 
 /**
- * Clean phone number for storage (ฟังก์ชันใหม่)
+ * Clean phone number for storage (US format)
+ * Stores as 10-digit format: 5551234567
  */
 function cleanPhoneNumber($phone) {
-    return preg_replace('/\D/', '', $phone);
+    if (empty($phone)) {
+        return '';
+    }
+    
+    // Remove all non-digits
+    $clean_phone = preg_replace('/\D/', '', $phone);
+    
+    // If it's 11 digits starting with 1, remove the 1 (US country code)
+    if (strlen($clean_phone) === 11 && substr($clean_phone, 0, 1) === '1') {
+        $clean_phone = substr($clean_phone, 1);
+    }
+    
+    return $clean_phone;
+}
+
+/**
+ * Format phone number for display (US format)
+ * Converts 5551234567 to (555) 123-4567
+ */
+function formatPhoneNumber($phone) {
+    if (empty($phone)) {
+        return 'N/A';
+    }
+    
+    // Clean the phone number first
+    $clean_phone = cleanPhoneNumber($phone);
+    
+    // Format as (555) 123-4567
+    if (strlen($clean_phone) === 10) {
+        return sprintf('(%s) %s-%s', 
+            substr($clean_phone, 0, 3),
+            substr($clean_phone, 3, 3), 
+            substr($clean_phone, 6, 4)
+        );
+    }
+    
+    return $phone; // Return original if can't format
+}
+
+/**
+ * Alternative phone validation function with more detailed feedback
+ * Returns array with 'valid' boolean and 'message' string
+ */
+function validatePhoneDetailed($phone) {
+    if (empty($phone)) {
+        return ['valid' => false, 'message' => 'Phone number is required'];
+    }
+    
+    // Remove all non-digits
+    $clean_phone = preg_replace('/\D/', '', $phone);
+    
+    if (strlen($clean_phone) < 10) {
+        return ['valid' => false, 'message' => 'Phone number is too short'];
+    } elseif (strlen($clean_phone) > 11) {
+        return ['valid' => false, 'message' => 'Phone number is too long'];
+    } elseif (strlen($clean_phone) === 10) {
+        // 10-digit format
+        if (!preg_match('/^[2-9]\d{9}$/', $clean_phone)) {
+            return ['valid' => false, 'message' => 'Invalid area code (must start with 2-9)'];
+        }
+    } elseif (strlen($clean_phone) === 11) {
+        // 11-digit format
+        if (!preg_match('/^1[2-9]\d{9}$/', $clean_phone)) {
+            return ['valid' => false, 'message' => 'Invalid format (must be 1 + valid US number)'];
+        }
+    }
+    
+    return ['valid' => true, 'message' => 'Valid phone number'];
 }
 
 /**
