@@ -52,7 +52,7 @@ $current_page = basename($_SERVER['PHP_SELF'], '.php');
                 <i class="nav-icon fas fa-fire"></i>
                 <span>Kitchen Dashboard</span>
             </a>
-            <a href="users.php" class="nav-item <?= $current_page === 'users' ? 'active' : '' ?>">
+            <a href="workinprogress.php" class="nav-item <?= $current_page === 'users' ? 'active' : '' ?>">
                 <i class="nav-icon fas fa-users"></i>
                 <span>Users</span>
             </a>
@@ -101,11 +101,11 @@ $current_page = basename($_SERVER['PHP_SELF'], '.php');
         
         <div class="nav-section">
             <div class="nav-section-title">Content</div>
-            <a href="promotions.php" class="nav-item <?= $current_page === 'promotions' ? 'active' : '' ?>">
+            <a href="workinprogress.php" class="nav-item <?= $current_page === 'promotions' ? 'active' : '' ?>">
                 <i class="nav-icon fas fa-percent"></i>
                 <span>Promotions</span>
             </a>
-            <a href="notifications.php" class="nav-item <?= $current_page === 'notifications' ? 'active' : '' ?>">
+            <a href="workinprogress.php" class="nav-item <?= $current_page === 'notifications' ? 'active' : '' ?>">
                 <i class="nav-icon fas fa-bell"></i>
                 <span>Notifications</span>
             </a>
@@ -116,10 +116,6 @@ $current_page = basename($_SERVER['PHP_SELF'], '.php');
             <a href="settings.php" class="nav-item <?= $current_page === 'settings' ? 'active' : '' ?>">
                 <i class="nav-icon fas fa-cog"></i>
                 <span>Settings</span>
-            </a>
-            <a href="backups.php" class="nav-item <?= $current_page === 'backups' ? 'active' : '' ?>">
-                <i class="nav-icon fas fa-database"></i>
-                <span>Backups</span>
             </a>
             <a href="logs.php" class="nav-item <?= $current_page === 'logs' ? 'active' : '' ?>">
                 <i class="nav-icon fas fa-file-alt"></i>
