@@ -2,7 +2,7 @@
 /**
  * Dashboard with Error Handling - Updated with Somdul Table Theme
  * File: dashboard.php
- */
+ *///
 
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
