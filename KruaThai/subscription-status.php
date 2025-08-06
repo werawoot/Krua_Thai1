@@ -2094,10 +2094,35 @@ tbody tr:hover {
                                         <form method="post" style="display:inline;">
                                             <input type="hidden" name="id" value="<?= htmlspecialchars($sub['id']) ?>">
                                             <?php if ($sub['status'] === 'active'): ?>
-                                                <button name="action" value="cancel" class="btn-action btn-cancel" onclick="return confirm('Are you sure you want to cancel this order plan?')">
-                                                    <i class="fas fa-times"></i> Cancel
-                                                </button>
-                                            <?php elseif ($sub['status'] === 'cancelled'): ?>
+    <?php
+    // เช็คว่ายังยกเลิกได้หรือไม่
+    $canCancel = true;
+    $cutoffMessage = '';
+    
+    // ดึงออเดอร์ล่าสุดของ subscription นี้
+    $stmt = $pdo->prepare("SELECT cutoff_time FROM orders WHERE subscription_id = ? ORDER BY delivery_date ASC LIMIT 1");
+    $stmt->execute([$sub['id']]);
+    $nextOrder = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if ($nextOrder && $nextOrder['cutoff_time']) {
+        $now = new DateTime('now', new DateTimeZone('Asia/Bangkok'));
+        $cutoff = new DateTime($nextOrder['cutoff_time']);
+        $canCancel = ($now <= $cutoff);
+        if (!$canCancel) {
+            $cutoffMessage = 'Cannot cancel (past cutoff: ' . $cutoff->format('M j, g:i A') . ')';
+        }
+    }
+    ?>
+    
+    <?php if ($canCancel): ?>
+        <button name="action" value="cancel" class="btn-action btn-cancel" onclick="return confirm('Are you sure you want to cancel this order plan?')">
+            <i class="fas fa-times"></i> Cancel
+        </button>
+    <?php else: ?>
+        <button disabled class="btn-action btn-disabled" title="<?= $cutoffMessage ?>">
+            <i class="fas fa-ban"></i> <?= $cutoffMessage ? 'Cannot Cancel' : 'Cannot Cancel' ?>
+        </button>
+    <?php endif; ?>
                                                 <button name="action" value="renew" class="btn-action btn-renew" onclick="return confirm('Do you want to renew this order plan?')">
                                                     <i class="fas fa-redo"></i> Renew
                                                 </button>
