@@ -2093,35 +2093,55 @@ tbody tr:hover {
                                         <!-- Management Buttons -->
                                         <form method="post" style="display:inline;">
                                             <input type="hidden" name="id" value="<?= htmlspecialchars($sub['id']) ?>">
-                                            <?php if ($sub['status'] === 'active'): ?>
+                         <?php if ($sub['status'] === 'active'): ?>
     <?php
-    // เช็คว่ายังยกเลิกได้หรือไม่
-    $canCancel = true;
-    $cutoffMessage = '';
+    // เช็คว่า subscription นี้มี orders ที่เลย cutoff แล้วไหม
+    $canCancelSubscription = true;
+    $blockingReason = '';
     
-    // ดึงออเดอร์ล่าสุดของ subscription นี้
-    $stmt = $pdo->prepare("SELECT cutoff_time FROM orders WHERE subscription_id = ? ORDER BY delivery_date ASC LIMIT 1");
+    // ดึง orders ที่ยังไม่ส่ง
+    $stmt = $pdo->prepare("
+        SELECT delivery_date,
+               CASE 
+                   WHEN DAYOFWEEK(delivery_date) = 4 THEN 
+                       DATE_FORMAT(DATE_SUB(delivery_date, INTERVAL 2 DAY), '%Y-%m-%d 08:00:00')
+                   WHEN DAYOFWEEK(delivery_date) = 7 THEN 
+                       DATE_FORMAT(DATE_SUB(delivery_date, INTERVAL 2 DAY), '%Y-%m-%d 08:00:00')
+                   ELSE NULL 
+               END as cutoff_time
+        FROM subscription_menus 
+        WHERE subscription_id = ? 
+        AND delivery_date >= CURDATE() 
+        ORDER BY delivery_date ASC 
+        LIMIT 1
+    ");
     $stmt->execute([$sub['id']]);
-    $nextOrder = $stmt->fetch(PDO::FETCH_ASSOC);
+    $nextDelivery = $stmt->fetch(PDO::FETCH_ASSOC);
     
-    if ($nextOrder && $nextOrder['cutoff_time']) {
+    if ($nextDelivery && $nextDelivery['cutoff_time']) {
         $now = new DateTime('now', new DateTimeZone('Asia/Bangkok'));
-        $cutoff = new DateTime($nextOrder['cutoff_time']);
-        $canCancel = ($now <= $cutoff);
-        if (!$canCancel) {
-            $cutoffMessage = 'Cannot cancel (past cutoff: ' . $cutoff->format('M j, g:i A') . ')';
+        $cutoff = new DateTime($nextDelivery['cutoff_time']);
+        
+        if ($now > $cutoff) {
+            $canCancelSubscription = false;
+            $blockingReason = 'Next delivery (' . date('M j', strtotime($nextDelivery['delivery_date'])) . ') past cutoff time';
         }
     }
     ?>
     
-    <?php if ($canCancel): ?>
-        <button name="action" value="cancel" class="btn-action btn-cancel" onclick="return confirm('Are you sure you want to cancel this order plan?')">
+    <?php if ($canCancelSubscription): ?>
+        <button name="action" value="cancel" class="btn-action btn-cancel" 
+                onclick="return confirm('Are you sure you want to cancel this subscription?')">
             <i class="fas fa-times"></i> Cancel
         </button>
     <?php else: ?>
-        <button disabled class="btn-action btn-disabled" title="<?= $cutoffMessage ?>">
-            <i class="fas fa-ban"></i> <?= $cutoffMessage ? 'Cannot Cancel' : 'Cannot Cancel' ?>
+        <button disabled class="btn-action btn-disabled" 
+                title="<?= $blockingReason ?>">
+            <i class="fas fa-ban"></i> Cannot Cancel
         </button>
+        <small style="color: #999; font-size: 0.8em; display: block; margin-top: 0.3rem;">
+            <?= $blockingReason ?>
+        </small>
     <?php endif; ?>
                                                 <button name="action" value="renew" class="btn-action btn-renew" onclick="return confirm('Do you want to renew this order plan?')">
                                                     <i class="fas fa-redo"></i> Renew
