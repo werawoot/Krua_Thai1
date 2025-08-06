@@ -1554,7 +1554,7 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
                 <div class="meal-cards-track" id="mealCardsTrack">
                     <?php if (empty($featured_menus)): ?>
                         <!-- Fallback content if no menus in database -->
-                        <div class="meal-card" style="background: linear-gradient(45deg, var(--curry), var(--brown));">
+                        <div class="meal-card" style="background: linear-gradient(45deg, var(--curry), var(--brown));" data-menu-id="fallback-1" onclick="openMenuDetails('fallback-1')">
                             <div class="meal-card-content">
                                 <h3 class="meal-card-title">Thai Green Curry</h3>
                                 <p class="meal-card-description">Aromatic green curry with Thai basil and coconut milk</p>
@@ -1567,7 +1567,7 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
                             </div>
                         </div>
                         
-                        <div class="meal-card" style="background: linear-gradient(45deg, var(--brown), var(--sage));">
+                        <div class="meal-card" style="background: linear-gradient(45deg, var(--brown), var(--sage));" data-menu-id="fallback-2" onclick="openMenuDetails('fallback-2')">
                             <div class="meal-card-content">
                                 <h3 class="meal-card-title">Pad Thai Classic</h3>
                                 <p class="meal-card-description">Traditional stir-fried rice noodles with tamarind sauce</p>
@@ -1603,7 +1603,10 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
                                 $background_style = "background: $gradient;";
                             }
                             ?>
-                            <div class="meal-card" style="<?php echo $background_style; ?>">
+                            <div class="meal-card" 
+                                 style="<?php echo $background_style; ?>" 
+                                 data-menu-id="<?php echo htmlspecialchars($menu['id']); ?>" 
+                                 onclick="openMenuDetails('<?php echo htmlspecialchars($menu['id']); ?>')">
                                 <div class="meal-card-content">
                                     <h3 class="meal-card-title">
                                         <?php echo htmlspecialchars($menu_name); ?>
@@ -1658,58 +1661,6 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
                     <div data-testid="hiw-step-text" class="hiw-step-text">
                         <p class="font-bold">Sit back and enjoy</p>
                         <p data-testid="step-text" class="step-text">Delivered fresh every week, enjoy chef-crafted meals in minutes with no prep or cleanup.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Meet the Chefs Section -->
-    <section class="chefs-section" id="chefs">
-        <div class="chefs-container">
-            <h2 class="chefs-title">Meet Our Expert Chefs</h2>
-            <p class="chefs-subtitle">Our culinary masters bring authentic Thai flavors from Bangkok's finest restaurants directly to your table</p>
-            
-            <div class="chefs-grid">
-                <div class="chef-card">
-                    <img src="assets/image/chef1.jpg" alt="Chef Siriporn Thanakit" class="chef-image">
-                    <h3 class="chef-name">Chef Siriporn Thanakit</h3>
-                    <p class="chef-title">Head Chef & Thai Cuisine Master</p>
-                    <p class="chef-description">
-                        With over 15 years of experience in Bangkok's prestigious Blue Elephant restaurant, Chef Siriporn specializes in royal Thai cuisine and traditional cooking techniques passed down through generations.
-                    </p>
-                    <div class="chef-credentials">
-                        <span class="credential-badge">Le Cordon Bleu Bangkok</span>
-                        <span class="credential-badge">15+ Years Experience</span>
-                        <span class="credential-badge">Royal Thai Certified</span>
-                    </div>
-                </div>
-
-                <div class="chef-card">
-                    <img src="assets/image/chef2.jpg" alt="Chef Narong Srisawang" class="chef-image">
-                    <h3 class="chef-name">Chef Narong Srisawang</h3>
-                    <p class="chef-title">Specialty Chef & Curry Expert</p>
-                    <p class="chef-description">
-                        Former chef at Michelin-starred Gaggan in Bangkok, Chef Narong brings innovative techniques to traditional Thai curries and street food favorites, ensuring authentic flavors in every dish.
-                    </p>
-                    <div class="chef-credentials">
-                        <span class="credential-badge">Michelin Restaurant</span>
-                        <span class="credential-badge">Curry Specialist</span>
-                        <span class="credential-badge">12+ Years Experience</span>
-                    </div>
-                </div>
-
-                <div class="chef-card">
-                    <img src="assets/image/chef3.jpg" alt="Chef Malee Chansiri" class="chef-image">
-                    <h3 class="chef-name">Chef Malee Chansiri</h3>
-                    <p class="chef-title">Pastry Chef & Dessert Specialist</p>
-                    <p class="chef-description">
-                        Trained in both French patisserie and traditional Thai desserts, Chef Malee creates unique fusion desserts that blend modern techniques with authentic Thai ingredients and flavors.
-                    </p>
-                    <div class="chef-credentials">
-                        <span class="credential-badge">French Patisserie</span>
-                        <span class="credential-badge">Thai Dessert Master</span>
-                        <span class="credential-badge">10+ Years Experience</span>
                     </div>
                 </div>
             </div>
@@ -1853,6 +1804,12 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
     </section>
 
 <script>
+    // Function to handle meal card clicks - redirects to menus.php with menu ID
+    function openMenuDetails(menuId) {
+        // Redirect to menus.php with the menu ID as a parameter
+        window.location.href = `menus.php?show_menu=${encodeURIComponent(menuId)}`;
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
         const menuItems = document.querySelectorAll('.menu-nav-item');
         const mealCardsTrack = document.getElementById('mealCardsTrack');
@@ -1958,7 +1915,10 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
                 }
                 
                 return `
-                    <div class="meal-card" style="${backgroundStyle}">
+                    <div class="meal-card" 
+                         style="${backgroundStyle}" 
+                         data-menu-id="${menu.id}" 
+                         onclick="openMenuDetails('${menu.id}')">
                         <div class="meal-card-content">
                             <h3 class="meal-card-title">${menu.name}</h3>
                             <p class="meal-card-description">${menu.description}</p>

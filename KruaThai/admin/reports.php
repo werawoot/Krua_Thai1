@@ -572,102 +572,6 @@ try {
             min-height: 100vh;
         }
 
-        /* Sidebar */
-        .sidebar {
-            width: 280px;
-            background: linear-gradient(135deg, var(--brown) 0%, var(--curry) 100%);
-            color: var(--white);
-            position: fixed;
-            height: 100vh;
-            overflow-y: auto;
-            z-index: 1000;
-            transition: var(--transition);
-            box-shadow: var(--shadow-medium);
-        }
-
-        .sidebar-header {
-            padding: 2rem;
-            text-align: center;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-        .logo {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin-bottom: 0.5rem;
-        }
-
-        .logo-image {
-            max-width: 80px;
-            max-height: 80px;
-            width: auto;
-            height: auto;
-            object-fit: contain;
-            filter: brightness(1.1) contrast(1.2);
-            transition: transform 0.3s ease;
-        }
-
-        .logo-image:hover {
-            transform: scale(1.05);
-        }
-
-        .sidebar-title {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 0.25rem;
-        }
-
-        .sidebar-subtitle {
-            font-size: 0.9rem;
-            opacity: 0.8;
-        }
-
-        .sidebar-nav {
-            padding: 1rem 0;
-        }
-
-        .nav-section {
-            margin-bottom: 1.5rem;
-        }
-
-        .nav-section-title {
-            padding: 0 1.5rem 0.5rem;
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            opacity: 0.7;
-            font-weight: 600;
-        }
-
-        .nav-item {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            padding: 0.75rem 1.5rem;
-            color: rgba(255, 255, 255, 0.9);
-            text-decoration: none;
-            transition: var(--transition);
-            border-left: 3px solid transparent;
-            cursor: pointer;
-        }
-
-        .nav-item:hover {
-            background: rgba(255, 255, 255, 0.1);
-            border-left-color: var(--white);
-        }
-
-        .nav-item.active {
-            background: rgba(255, 255, 255, 0.15);
-            border-left-color: var(--white);
-            font-weight: 600;
-        }
-
-        .nav-icon {
-            font-size: 1.2rem;
-            width: 24px;
-            text-align: center;
-        }
-
         /* Main Content */
         .main-content {
             margin-left: 280px;
@@ -1186,14 +1090,6 @@ try {
 
         /* Responsive Design */
         @media (max-width: 768px) {
-            .sidebar {
-                width: 260px;
-                transform: translateX(-100%);
-            }
-
-            .sidebar.show {
-                transform: translateX(0);
-            }
 
             .main-content {
                 margin-left: 0;
@@ -1241,90 +1137,7 @@ try {
 </head>
 <body>
     <div class="admin-layout">
-        <!-- Sidebar -->
-        <div class="sidebar">
-            <div class="sidebar-header">
-                  <div class="logo">
-                    <img src="../assets/image/LOGO_White Trans.png" 
-                         alt="Krua Thai Logo" 
-                         class="logo-image"
-                         loading="lazy">
-                </div>
-                <div class="sidebar-title">Krua Thai</div>
-                <div class="sidebar-subtitle">Admin Panel</div>
-            </div>
-            
-            <nav class="sidebar-nav">
-                <div class="nav-section">
-                    <div class="nav-section-title">Main</div>
-                    <a href="dashboard.php" class="nav-item">
-                        <i class="nav-icon fas fa-tachometer-alt"></i>
-                        <span>Dashboard</span>
-                    </a>
-                    <a href="orders.php" class="nav-item">
-                        <i class="nav-icon fas fa-shopping-cart"></i>
-                        <span>Orders</span>
-                    </a>
-                    <a href="menus.php" class="nav-item">
-                        <i class="nav-icon fas fa-utensils"></i>
-                        <span>Menus</span>
-                    </a>
-                    <a href="subscriptions.php" class="nav-item">
-                        <i class="nav-icon fas fa-calendar-alt"></i>
-                        <span>Subscriptions</span>
-                    </a>
-                </div>
-                
-                <div class="nav-section">
-                    <div class="nav-section-title">Management</div>
-                    <a href="users.php" class="nav-item">
-                        <i class="nav-icon fas fa-users"></i>
-                        <span>Users</span>
-                    </a>
-                    <a href="inventory.php" class="nav-item">
-                        <i class="nav-icon fas fa-boxes"></i>
-                        <span>Inventory</span>
-                    </a>
-                    <a href="delivery-zones.php" class="nav-item">
-                        <i class="nav-icon fas fa-map-marked-alt"></i>
-                        <span>Delivery Zones</span>
-                    </a>
-                    <a href="reviews.php" class="nav-item">
-                        <i class="nav-icon fas fa-star"></i>
-                        <span>Reviews</span>
-                    </a>
-                    <a href="complaints.php" class="nav-item">
-                        <i class="nav-icon fas fa-exclamation-triangle"></i>
-                        <span>Complaints</span>
-                    </a>
-                </div>
-                
-                <div class="nav-section">
-                    <div class="nav-section-title">Financial</div>
-                    <a href="payments.php" class="nav-item">
-                        <i class="nav-icon fas fa-credit-card"></i>
-                        <span>Payments</span>
-                    </a>
-                    <a href="reports.php" class="nav-item active">
-                        <i class="nav-icon fas fa-chart-bar"></i>
-                        <span>Reports</span>
-                    </a>
-                </div>
-                
-                <div class="nav-section">
-                    <div class="nav-section-title">System</div>
-                    <a href="settings.php" class="nav-item">
-                        <i class="nav-icon fas fa-cog"></i>
-                        <span>Settings</span>
-                    </a>
-                        <a href="../logout.php" class="nav-item" onclick="logout()" style="color: rgba(255, 255, 255, 0.9);">
-                        <i class="nav-icon fas fa-sign-out-alt"></i>
-                        <span>Logout</span>
-                    </a>
-                </div>
-            </nav>
-        </div>
-
+        <?php include 'includes/sidebar.php'; ?>
         <!-- Main Content -->
         <div class="main-content">
             <!-- Page Header -->
@@ -2305,11 +2118,6 @@ try {
             window.print();
         }
 
-        // Mobile sidebar toggle
-        function toggleSidebar() {
-            const sidebar = document.querySelector('.sidebar');
-            sidebar.classList.toggle('show');
-        }
 
         // Add mobile menu button for small screens
         if (window.innerWidth <= 768) {
@@ -2317,16 +2125,12 @@ try {
             const mobileMenuBtn = document.createElement('button');
             mobileMenuBtn.className = 'btn btn-secondary d-md-none';
             mobileMenuBtn.innerHTML = '<i class="fas fa-bars"></i>';
-            mobileMenuBtn.onclick = toggleSidebar;
             headerActions.insertBefore(mobileMenuBtn, headerActions.firstChild);
         }
 
         // Handle window resize
         window.addEventListener('resize', function() {
-            if (window.innerWidth > 768) {
-                document.querySelector('.sidebar').classList.remove('show');
-            }
-            
+
             // Resize charts
             Object.values(charts).forEach(chart => {
                 if (chart) chart.resize();

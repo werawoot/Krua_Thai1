@@ -1000,35 +1000,7 @@ foreach ($riders as $rider) {
 </head>
 <body>
     <div class="admin-layout">
-        <!-- Sidebar -->
-        <div class="sidebar">
-            <div class="sidebar-header">
-                <h2>Somdul Table</h2>
-                <p>Admin Panel</p>
-            </div>
-            <nav class="sidebar-nav">
-                <a href="dashboard.php" class="nav-item">
-                    <i class="fas fa-tachometer-alt"></i>
-                    <span>Dashboard</span>
-                </a>
-                <a href="orders.php" class="nav-item">
-                    <i class="fas fa-shopping-cart"></i>
-                    <span>Orders</span>
-                </a>
-                <a href="delivery-management.php" class="nav-item active">
-                    <i class="fas fa-truck"></i>
-                    <span>Delivery Management</span>
-                </a>
-                <a href="users.php" class="nav-item">
-                    <i class="fas fa-users"></i>
-                    <span>Users</span>
-                </a>
-                <a href="../logout.php" class="nav-item">
-                    <i class="fas fa-sign-out-alt"></i>
-                    <span>Logout</span>
-                </a>
-            </nav>
-        </div>
+        <?php include 'includes/sidebar.php'; ?>
 
         <!-- Main Content -->
         <div class="main-content">
