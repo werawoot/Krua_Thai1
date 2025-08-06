@@ -42,6 +42,7 @@ try {
 
 // Handle AJAX requests
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    
     header('Content-Type: application/json');
     
     try {
@@ -1520,9 +1521,9 @@ $stats = $stats_result ? mysqli_fetch_assoc($stats_result) : [
                                             <button class="btn btn-icon btn-warning btn-sm" onclick="editUser('<?= $user['id'] ?>')" title="Edit User">
                                                 <i class="fas fa-edit"></i>
                                             </button>
-                                            <button class="btn btn-icon btn-success btn-sm" onclick="resetPassword('<?= $user['id'] ?>')" title="Reset Password">
+                                            <!-- <button class="btn btn-icon btn-success btn-sm" onclick="resetPassword('<?= $user['id'] ?>')" title="Reset Password">
                                                 <i class="fas fa-key"></i>
-                                            </button>
+                                            </button> -->
                                             <?php if ($user['role'] !== 'admin'): ?>
                                             <button class="btn btn-icon btn-danger btn-sm" onclick="deleteUser('<?= $user['id'] ?>')" title="Deactivate">
                                                 <i class="fas fa-trash"></i>
