@@ -824,7 +824,7 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
             height: 200px; /* Fixed height instead of min-height */
             max-width: 200px; /* Adjust based on your layout needs */
             overflow: hidden;
-            border-radius: 12px;
+            border-radius: 0px;
             background: linear-gradient(45deg, var(--curry), var(--brown));
             display: flex;
             align-items: center;

@@ -2091,15 +2091,15 @@ tbody tr:hover {
                                         </button>
                                         
                                         <!-- Management Buttons -->
-                                        <form method="post" style="display:inline;">
+<form method="post" style="display: contents;">
                                             <input type="hidden" name="id" value="<?= htmlspecialchars($sub['id']) ?>">
-                         <?php if ($sub['status'] === 'active'): ?>
+           <?php if ($sub['status'] === 'active'): ?>
     <?php
     // เช็คว่า subscription นี้มี orders ที่เลย cutoff แล้วไหม
     $canCancelSubscription = true;
     $blockingReason = '';
     
-    // ดึง orders ที่ยังไม่ส่ง
+    // ✅ แก้ไข: ดู delivery_date ถัดไปจาก subscription_menus
     $stmt = $pdo->prepare("
         SELECT delivery_date,
                CASE 
@@ -2118,9 +2118,20 @@ tbody tr:hover {
     $stmt->execute([$sub['id']]);
     $nextDelivery = $stmt->fetch(PDO::FETCH_ASSOC);
     
+    // Debug info
+    echo "<!-- DEBUG: Current Bangkok time: " . (new DateTime('now', new DateTimeZone('Asia/Bangkok')))->format('Y-m-d H:i:s') . " -->";
+    if ($nextDelivery) {
+        echo "<!-- DEBUG: Next delivery: " . $nextDelivery['delivery_date'] . " -->";
+        echo "<!-- DEBUG: Cutoff time: " . $nextDelivery['cutoff_time'] . " -->";
+    } else {
+        echo "<!-- DEBUG: No next delivery found -->";
+    }
+    
     if ($nextDelivery && $nextDelivery['cutoff_time']) {
         $now = new DateTime('now', new DateTimeZone('Asia/Bangkok'));
-        $cutoff = new DateTime($nextDelivery['cutoff_time']);
+        $cutoff = new DateTime($nextDelivery['cutoff_time'], new DateTimeZone('Asia/Bangkok'));
+        
+        echo "<!-- DEBUG: Now > Cutoff? " . ($now > $cutoff ? 'YES' : 'NO') . " -->";
         
         if ($now > $cutoff) {
             $canCancelSubscription = false;
@@ -2143,15 +2154,19 @@ tbody tr:hover {
             <?= $blockingReason ?>
         </small>
     <?php endif; ?>
-                                                <button name="action" value="renew" class="btn-action btn-renew" onclick="return confirm('Do you want to renew this order plan?')">
-                                                    <i class="fas fa-redo"></i> Renew
-                                                </button>
-                                            <?php else: ?>
-                                                <button disabled class="btn-action btn-disabled">
-                                                    <i class="fas fa-ban"></i> Cannot Manage
-                                                </button>
-                                            <?php endif; ?>
-                                        </form>
+    
+    <!-- ✅ ปุ่ม Renew อยู่ใน if statement ที่ถูกต้อง -->
+    <button name="action" value="renew" class="btn-action btn-renew" 
+            onclick="return confirm('Do you want to renew this order plan?')">
+        <i class="fas fa-redo"></i> Renew
+    </button>
+    
+<?php else: ?>
+    <button disabled class="btn-action btn-disabled">
+        <i class="fas fa-ban"></i> Cannot Manage
+    </button>
+<?php endif; ?>
+                                        </form>  <!-- ✅ ปิด form ตรงนี้ -->
                                     </div>
                                 </td>
                             </tr>
@@ -2160,7 +2175,6 @@ tbody tr:hover {
                     </table>
                 </div>
             <?php endif; ?>
-
             <div class="bottom-nav">
                 <a href="dashboard.php" class="back-link">
                     <i class="fas fa-arrow-left"></i>
