@@ -1436,7 +1436,7 @@ if ($export_type === 'json') {
                             
                             <a href="?date=<?php echo $selected_date; ?>&export=csv" class="dropdown-option">
                                 <i class="fas fa-file-csv"></i>
-                                <span>Export CSV</span>
+                                <span>Export </span>
                             </a>
                             
                             <a href="?date=<?php echo $selected_date; ?>&export=json" class="dropdown-option">
