@@ -1338,6 +1338,65 @@ select {
     }
 }
 
+
+/* ========================================================================
+   DESKTOP CALENDAR OPTIMIZATION - เพิ่มใหม่
+   ======================================================================== */
+
+/* Desktop และ Large Tablets - ปรับ Calendar ให้เล็กลง */
+@media (min-width: 769px) {
+    .custom-calendar {
+        max-width: 420px !important;
+        margin: 0 auto;
+        padding: 1.2rem;
+    }
+    
+    .calendar-nav {
+        width: 36px;
+        height: 36px;
+        font-size: 0.85rem;
+    }
+    
+    .calendar-title {
+        font-size: 1.1rem;
+        margin: 0 0.8rem;
+    }
+    
+    .calendar-days {
+        gap: 0.3rem;
+    }
+    
+    .calendar-day {
+        min-height: 36px;
+        font-size: 0.85rem;
+        aspect-ratio: 1;
+    }
+    
+    .weekday {
+        font-size: 0.8rem;
+        padding: 0.3rem;
+    }
+}
+
+/* Large Desktop - ขนาดใหญ่มาก */
+@media (min-width: 1200px) {
+    .custom-calendar {
+        max-width: 400px !important;
+        padding: 1rem;
+    }
+    
+    .calendar-day {
+        min-height: 32px;
+        font-size: 0.8rem;
+    }
+    
+    .calendar-nav {
+        width: 32px;
+        height: 32px;
+        font-size: 0.8rem;
+    }
+}
+
 /* Tablets */
 @media (max-width: 768px) {
     :root {
