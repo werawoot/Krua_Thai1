@@ -39,7 +39,7 @@ function sendRealEmail($to, $subject, $body) {
 }
 
 function sendPasswordResetEmailReal($email, $firstName, $resetToken) {
-    $resetLink = 'http://' . $_SERVER['HTTP_HOST'] . '/reset_password.php?token=' . urlencode($resetToken);
+    $resetLink = 'http://' . $_SERVER['HTTP_HOST'] . '/Krua_Thai1/KruaThai/reset_password.php?token=' . urlencode($resetToken);
     $subject = 'Password Reset - Krua Thai Restaurant';
     
     $body = '<!DOCTYPE html>

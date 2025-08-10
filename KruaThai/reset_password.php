@@ -6,11 +6,14 @@
  */
 
 session_start();
-error_reporting(E_ALL);
 ini_set('display_errors', 1);
-
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+ 
 require_once 'config/database.php';
 require_once 'includes/functions.php';
+
+// ลบฟังก์ชัน isLoggedIn() ออกแล้ว เพราะมีใน includes/functions.php แล้ว
 
 // Redirect if already logged in
 if (isLoggedIn()) {
@@ -47,13 +50,14 @@ if (empty($token)) {
         }
     } catch (Exception $e) {
         $errors[] = "System error. Please try again later.";
+        error_log("Token validation error: " . $e->getMessage());
     }
 }
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $user) {
-    $new_password = $_POST['password'] ?? '';
-    $confirm_password = $_POST['confirm_password'] ?? '';
+    $new_password = trim($_POST['password'] ?? '');
+    $confirm_password = trim($_POST['confirm_password'] ?? '');
     
     // Validate passwords
     if (empty($new_password)) {
@@ -64,33 +68,71 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $user) {
         $errors[] = "Passwords do not match";
     } else {
         try {
-            // Update password and clear reset token
-            $password_hash = password_hash($new_password, PASSWORD_DEFAULT);
-            
-            $update_stmt = $pdo->prepare("
-                UPDATE users 
-                SET password_hash = ?, 
-                    password_reset_token = NULL, 
-                    password_reset_expires = NULL,
-                    status = 'active'
-                WHERE id = ?
+            // Double-check token is still valid
+            $check_stmt = $pdo->prepare("
+                SELECT id FROM users 
+                WHERE password_reset_token = ? 
+                AND password_reset_expires > NOW()
+                AND status IN ('active', 'pending_verification')
             ");
+            $check_stmt->execute([$token]);
             
-            if ($update_stmt->execute([$password_hash, $user['id']])) {
-                $success_message = "Your password has been successfully reset! You can now log in with your new password.";
-                
-                // Log activity
-                if (function_exists('logActivity')) {
-                    logActivity($user['id'], 'password_reset_completed', 'Password successfully reset');
-                }
-                
-                // Clear user data for security
-                $user = null;
+            if (!$check_stmt->fetch()) {
+                $errors[] = "Token expired during processing. Please request a new reset link.";
             } else {
-                $errors[] = "Failed to update password. Please try again.";
+                // Update password and clear reset token
+                $password_hash = password_hash($new_password, PASSWORD_DEFAULT);
+                
+                $update_stmt = $pdo->prepare("
+                    UPDATE users 
+                    SET password_hash = ?, 
+                        password_reset_token = NULL, 
+                        password_reset_expires = NULL,
+                        status = 'active',
+                        failed_login_attempts = 0,
+                        locked_until = NULL,
+                        updated_at = NOW()
+                    WHERE id = ?
+                ");
+                
+                if ($update_stmt->execute([$password_hash, $user['id']])) {
+                    $success_message = "Your password has been successfully reset! You can now log in with your new password.";
+                    
+                    // Log activity
+                    if (function_exists('logActivity')) {
+                        logActivity($user['id'], 'password_reset_completed', 'Password successfully reset via email token');
+                    }
+                    
+                    // Send confirmation email
+                    try {
+                        $email_subject = "Password Changed Successfully - Krua Thai";
+                        $email_body = "
+                        <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
+                            <h2 style='color: #cf723a;'>Password Changed Successfully</h2>
+                            <p>Hi " . htmlspecialchars($user['first_name']) . ",</p>
+                            <p>Your password has been successfully changed for your Krua Thai account.</p>
+                            <p><strong>Email:</strong> " . htmlspecialchars($user['email']) . "<br>
+                               <strong>Date:</strong> " . date('Y-m-d H:i:s') . "</p>
+                            <p>If you did not make this change, please contact our support team immediately.</p>
+                            <p>Best regards,<br>Krua Thai Team</p>
+                        </div>";
+                        
+                        if (function_exists('sendEmail')) {
+                            sendEmail($user['email'], $email_subject, $email_body);
+                        }
+                    } catch (Exception $e) {
+                        error_log("Failed to send password change confirmation email: " . $e->getMessage());
+                    }
+                    
+                    // Clear user data for security
+                    $user = null;
+                } else {
+                    $errors[] = "Failed to update password. Please try again.";
+                }
             }
         } catch (Exception $e) {
             $errors[] = "System error. Please try again later.";
+            error_log("Password update error: " . $e->getMessage());
         }
     }
 }
@@ -276,6 +318,7 @@ $page_title = "Reset Password";
             z-index: 2;
             font-size: 1.2rem;
             opacity: 0.7;
+            pointer-events: none;
         }
 
         .form-input {
@@ -421,6 +464,11 @@ $page_title = "Reset Password";
                                     <li><?php echo htmlspecialchars($error); ?></li>
                                 <?php endforeach; ?>
                             </ul>
+                            <?php if (!$user): ?>
+                                <div style="margin-top: 1rem; text-align: center;">
+                                    <a href="forgot_password.php" class="auth-link">Request New Reset Link</a>
+                                </div>
+                            <?php endif; ?>
                         </div>
                     </div>
                 <?php endif; ?>
@@ -514,19 +562,21 @@ $page_title = "Reset Password";
             const matchReq = document.getElementById('match-req');
 
             function validatePassword() {
-                const password = passwordField.value;
-                const confirm = confirmField.value;
+                const password = passwordField ? passwordField.value : '';
+                const confirm = confirmField ? confirmField.value : '';
                 
                 // Check length
                 const hasLength = password.length >= 8;
-                updateRequirement(lengthReq, hasLength);
+                if (lengthReq) updateRequirement(lengthReq, hasLength);
                 
                 // Check match
                 const hasMatch = password && confirm && password === confirm;
-                updateRequirement(matchReq, hasMatch);
+                if (matchReq) updateRequirement(matchReq, hasMatch);
                 
                 // Enable/disable submit button
-                submitBtn.disabled = !(hasLength && hasMatch);
+                if (submitBtn) {
+                    submitBtn.disabled = !(hasLength && hasMatch);
+                }
             }
 
             function updateRequirement(element, isValid) {
@@ -535,11 +585,11 @@ $page_title = "Reset Password";
                 if (isValid) {
                     element.classList.add('valid');
                     element.classList.remove('invalid');
-                    icon.textContent = '✅';
+                    if (icon) icon.textContent = '✅';
                 } else {
                     element.classList.add('invalid');
                     element.classList.remove('valid');
-                    icon.textContent = '❌';
+                    if (icon) icon.textContent = '❌';
                 }
             }
 
@@ -551,6 +601,27 @@ $page_title = "Reset Password";
             // Auto-focus password field
             if (passwordField) {
                 setTimeout(() => passwordField.focus(), 100);
+            }
+
+            // Form submission handling
+            const form = document.getElementById('resetPasswordForm');
+            if (form && submitBtn) {
+                form.addEventListener('submit', function(e) {
+                    if (submitBtn.disabled) {
+                        e.preventDefault();
+                        return false;
+                    }
+                    
+                    // Show loading state
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = 'Resetting Password...';
+                    
+                    // Restore button after 10 seconds (fallback)
+                    setTimeout(() => {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Reset Password';
+                    }, 10000);
+                });
             }
         });
     </script>
