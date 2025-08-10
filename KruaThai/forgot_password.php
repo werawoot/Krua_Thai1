@@ -4,15 +4,16 @@
  * File: forgot_password.php
  * Description: Modern, responsive forgot password page with beautiful UI
  */
-
+// subscription-status.php
 session_start();
+date_default_timezone_set('Asia/Bangkok'); // 👈 เพิ่มบรรทัดนี้
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 require_once 'config/database.php';
 require_once 'includes/functions.php';
 
-// Redirect if already logged in
-function isLoggedIn() {
-    return isset($_SESSION['user_id']) && !empty($_SESSION['user_id']);
-}
+
 
 if (isLoggedIn()) {
     header("Location: dashboard.php");
@@ -54,12 +55,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         "UPDATE users SET password_reset_token = ?, password_reset_expires = ? WHERE id = ?");
                     $update_stmt->execute([$reset_token, $reset_expires, $user['id']]);
                     
-                    $success_message = "We've sent a password reset link to your email. Please check your inbox.";
-                    
-                    // Log activity if function exists
-                    if (function_exists('logActivity')) {
-                        logActivity($user['id'], 'password_reset_requested', 'Password reset token generated');
-                    }
+                  // ส่งอีเมลรีเซ็ตรหัสผ่าน
+$emailSent = sendPasswordResetEmail($email, $user['first_name'], $reset_token);
+
+if ($emailSent) {
+    $success_message = "We've sent a password reset link to your email. Please check your inbox.";
+} else {
+    $success_message = "Password reset link has been generated. Check test emails if in development mode.";
+}
+
+// Log activity if function exists
+if (function_exists('logActivity')) {
+    logActivity($user['id'], 'password_reset_requested', 'Password reset token generated');
+}
                 }
             } else {
                 // Don't reveal if email exists or not for security
@@ -873,14 +881,8 @@ $page_title = "Forgot Password";
                             this.style.borderColor = 'var(--border-light)';
                         this.style.boxShadow = '';
                     }
-            
-
-                // Clear validation on focus
-                emailField.addEventListener('focus', function() {
-                    this.style.borderColor = 'var(--curry)';
-                    this.style.boxShadow = '0 0 0 4px rgba(207, 114, 58, 0.1)';
-                });
-            }
+                
+                }
 
             // Keyboard shortcuts
             document.addEventListener('keydown', function(e) {

@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/email_functions.php';
+
 /**
  * Complete Helper Functions for Krua Thai
  * File: includes/functions.php
@@ -459,4 +461,183 @@ function validateZipCode($zip) {
     // Thai postal code is 5 digits
     return preg_match('/^\d{5}$/', $zip);
 }
+
+
+/**
+ * ตรวจสอบว่าเป็น localhost หรือไม่
+ */
+function isLocalhost() {
+    return in_array($_SERVER['HTTP_HOST'], ['localhost', '127.0.0.1']) || 
+           strpos($_SERVER['HTTP_HOST'], 'localhost:') === 0;
+}
+
+/**
+ * ส่งอีเมลรีเซ็ตรหัสผ่าน (สำหรับ forgot_password.php)
+ */
+function sendPasswordResetEmail($email, $firstName, $resetToken) {
+    return sendPasswordResetEmailReal($email, $firstName, $resetToken);
+}
+
+/**
+ * บันทึกอีเมลเป็นไฟล์ (สำหรับทดสอบ)
+ */
+function sendEmailForTesting($to, $subject, $body) {
+    
+    // สร้างโฟลเดอร์ test_emails
+    $email_dir = __DIR__ . '/../test_emails';
+    if (!is_dir($email_dir)) {
+        mkdir($email_dir, 0755, true);
+    }
+    
+    // สร้างชื่อไฟล์
+    $filename = 'email_' . date('Y-m-d_H-i-s') . '_' . md5($to . time()) . '.html';
+    $filepath = $email_dir . '/' . $filename;
+    
+    // เนื้อหาอีเมล
+    $emailContent = "
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='UTF-8'>
+    <title>Test Email - {$subject}</title>
+</head>
+<body style='margin: 20px; background: #f5f5f5; font-family: Arial, sans-serif;'>
+    <div style='background: #e8f5e8; padding: 20px; margin-bottom: 20px; border-left: 5px solid #28a745; border-radius: 5px;'>
+        <h2>📧 Email Test Preview - Krua Thai</h2>
+        <p><strong>To:</strong> {$to}</p>
+        <p><strong>Subject:</strong> {$subject}</p>
+        <p><strong>Generated:</strong> " . date('Y-m-d H:i:s', time() + 7*3600) . " (Thailand Time)</p> 
+        <p><strong>Status:</strong> ✅ Email would be sent in production</p>
+    </div>
+    
+    <div style='border: 1px solid #ddd; border-radius: 8px; overflow: hidden;'>
+        {$body}
+    </div>
+</body>
+</html>";
+    
+    // บันทึกไฟล์
+    $saved = file_put_contents($filepath, $emailContent);
+    
+    if ($saved) {
+        error_log("=== EMAIL SENT (TEST MODE) ===");
+        error_log("To: " . $to);
+        error_log("Subject: " . $subject);
+error_log("View at: http://localhost/Krua_Thai1/KruaThai/test_emails/" . $filename);
+        error_log("===============================");
+        return true;
+    }
+    
+    return false;
+}
+
+/**
+ * Template อีเมลรีเซ็ตรหัสผ่าน
+ */
+function generatePasswordResetEmailTemplate($firstName, $resetLink) {
+    return "
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <title>Password Reset - Krua Thai</title>
+</head>
+<body style='margin: 0; padding: 0; background-color: #ece8e1; font-family: Arial, sans-serif;'>
+    <div style='max-width: 600px; margin: 40px auto; background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.1);'>
+        
+        <!-- Header -->
+        <div style='background: linear-gradient(135deg, #cf723a, #bd9379); padding: 40px 30px; text-align: center; color: white;'>
+            <div style='width: 80px; height: 80px; background: white; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: 30px;'>
+                🍜
+            </div>
+            <h1 style='margin: 0; font-size: 28px; font-weight: bold;'>Password Reset</h1>
+            <p style='margin: 10px 0 0 0; opacity: 0.9;'>Krua Thai - Authentic Thai Meals</p>
+        </div>
+        
+        <!-- Content -->
+        <div style='padding: 40px 30px;'>
+            <h2 style='color: #cf723a; margin-bottom: 20px;'>Hello {$firstName}! 👋</h2>
+            
+            <p style='color: #333; line-height: 1.6; margin-bottom: 20px;'>
+                We received a request to reset your password for your Krua Thai account.
+            </p>
+            
+            <p style='color: #333; line-height: 1.6; margin-bottom: 30px;'>
+                Click the button below to create a new password:
+            </p>
+            
+            <!-- Reset Button -->
+            <div style='text-align: center; margin: 30px 0;'>
+                <a href='{$resetLink}' 
+                   style='background: linear-gradient(135deg, #cf723a, #bd9379); 
+                          color: white; 
+                          padding: 15px 30px; 
+                          text-decoration: none; 
+                          border-radius: 25px; 
+                          display: inline-block; 
+                          font-weight: bold;
+                          box-shadow: 0 5px 15px rgba(207, 114, 58, 0.3);'>
+                    🔒 Reset Password
+                </a>
+            </div>
+            
+            <!-- Warning -->
+            <div style='background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 25px 0; border-radius: 5px;'>
+                <h3 style='color: #856404; margin: 0 0 10px 0; font-size: 16px;'>⚠️ Important:</h3>
+                <ul style='color: #856404; margin: 0; padding-left: 20px;'>
+                    <li>This link expires in 1 hour</li>
+                    <li>Can only be used once</li>
+                    <li>If you didn't request this, ignore this email</li>
+                </ul>
+            </div>
+            
+            <p style='color: #666; font-size: 14px; margin-top: 25px;'>
+                If the button doesn't work, copy this link: <br>
+                <code style='background: #f8f9fa; padding: 5px; border-radius: 3px; word-break: break-all;'>{$resetLink}</code>
+            </p>
+        </div>
+        
+        <!-- Footer -->
+        <div style='background: #f8f6f0; padding: 30px; text-align: center; color: #666; font-size: 14px;'>
+            <p style='margin: 0 0 10px 0;'>With care ❤️<br><strong>Krua Thai Team</strong></p>
+            <p style='margin: 0;'>© " . date('Y') . " Krua Thai. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>";
+}
+
+/**
+ * Check if user is logged in (เพิ่มฟังก์ชันนี้ถ้ายังไม่มี)
+ */
+function isLoggedIn() {
+    return isset($_SESSION['user_id']) && !empty($_SESSION['user_id']);
+}
+
+/**
+ * sendEmail function (alias สำหรับ compatibility)
+ */
+function sendEmail($to, $subject, $body) {
+    if (isLocalhost()) {
+        return sendEmailForTesting($to, $subject, $body);
+    } else {
+        $headers = [
+            'MIME-Version: 1.0',
+            'Content-type: text/html; charset=UTF-8',
+            'From: Krua Thai <noreply@kruathai.com>',
+            'Reply-To: support@kruathai.com'
+        ];
+        return mail($to, $subject, $body, implode("\r\n", $headers));
+    }
+}
+
+/**
+ * generatePasswordResetEmail function (alias สำหรับ compatibility)
+ */
+function generatePasswordResetEmail($firstName, $resetLink) {
+    return generatePasswordResetEmailTemplate($firstName, $resetLink);
+}
+
+
 ?>
