@@ -14,6 +14,105 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
+// ===== ORDER STATUS TRACKING FUNCTIONS =====
+
+function getOrderStatusForSubscription($subscription_id, $pdo) {
+    // หาสถานะจาก orders table ก่อน
+    $stmt = $pdo->prepare("
+        SELECT o.status, o.kitchen_status, o.delivery_date
+        FROM orders o
+        WHERE o.subscription_id = ? 
+        AND o.delivery_date >= CURDATE()
+        ORDER BY o.delivery_date ASC
+        LIMIT 1
+    ");
+    $stmt->execute([$subscription_id]);
+    $order = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if ($order) {
+        return mapOrderStatusToCustomer($order['status']);
+    } else {
+        return getStatusFromSubscriptionMenus($subscription_id, $pdo);
+    }
+}
+
+function mapOrderStatusToCustomer($order_status) {
+    $mapping = [
+        'pending' => 'order_received',
+        'confirmed' => 'order_received',
+        'preparing' => 'in_kitchen', 
+        'ready' => 'in_kitchen',
+        'out_for_delivery' => 'delivering',
+        'delivered' => 'completed',
+        'cancelled' => 'cancelled'
+    ];
+    return $mapping[$order_status] ?? 'order_received';
+}
+
+function getStatusFromSubscriptionMenus($subscription_id, $pdo) {
+    $stmt = $pdo->prepare("
+        SELECT 
+            COUNT(*) as total,
+            COUNT(CASE WHEN status = 'delivered' THEN 1 END) as delivered,
+            COUNT(CASE WHEN status = 'scheduled' THEN 1 END) as scheduled
+        FROM subscription_menus 
+        WHERE subscription_id = ? AND delivery_date >= CURDATE()
+    ");
+    $stmt->execute([$subscription_id]);
+    $result = $stmt->fetch();
+    
+    if (!$result || $result['total'] == 0) {
+        return 'order_received';
+    }
+    
+    if ($result['delivered'] == $result['total'] && $result['total'] > 0) {
+        return 'completed';
+    } elseif ($result['delivered'] > 0) {
+        return 'delivering';
+    } elseif ($result['scheduled'] < $result['total']) {
+        return 'in_kitchen';
+    } else {
+        return 'order_received';
+    }
+}
+
+function getOrderStatusDisplay($status) {
+    $displays = [
+        'order_received' => [
+            'icon' => '🔔',
+            'label' => 'Order Received',
+            'color' => '#3498db',
+            'description' => 'Your order has been received and confirmed'
+        ],
+        'in_kitchen' => [
+            'icon' => '👨‍🍳',
+            'label' => 'In the Kitchen', 
+            'color' => '#f39c12',
+            'description' => 'Our chefs are preparing your meals'
+        ],
+        'delivering' => [
+            'icon' => '🚚',
+            'label' => 'Delivering',
+            'color' => '#9b59b6', 
+            'description' => 'Your order is on the way'
+        ],
+        'completed' => [
+            'icon' => '✅',
+            'label' => 'Completed',
+            'color' => '#27ae60',
+            'description' => 'Order delivered successfully'
+        ],
+        'cancelled' => [
+            'icon' => '❌',
+            'label' => 'Cancelled',
+            'color' => '#e74c3c',
+            'description' => 'Order has been cancelled'
+        ]
+    ];
+    return $displays[$status] ?? $displays['order_received'];
+}
+
+
 
 // เพิ่มฟังก์ชันตรวจสอบรีวิวที่มีอยู่แล้ว
 function hasExistingReview($pdo, $user_id, $subscription_id) {
@@ -209,11 +308,12 @@ $stmt = $pdo->prepare("
 $stmt->execute([$user_id]);
 $subs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// เพิ่มการตรวจสอบรีวิวสำหรับแต่ละ subscription
+// เพิ่มการตรวจสอบรีวิวและ order status สำหรับแต่ละ subscription
 foreach ($subs as &$sub) {
     $sub['has_review'] = hasExistingReview($pdo, $user_id, $sub['id']);
+    $sub['order_status'] = getOrderStatusForSubscription($sub['id'], $pdo);
+    $sub['status_display'] = getOrderStatusDisplay($sub['order_status']);
 }
-
 // --- Fetch selected menus for each subscription ---
 $subscription_menus = [];
 foreach ($subs as $sub) {
@@ -692,7 +792,116 @@ tbody tr:hover {
 /* ========================================================================
    STATUS BADGES
    ======================================================================== */
+/* ORDER STATUS BADGE */
+.order-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    font-family: 'BaticaSans', sans-serif;
+    border-radius: 20px;
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    transition: var(--transition);
+}
 
+.order-status-badge:hover {
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+/* ========================================================================
+   ORDER PROGRESS BAR ใน MODAL
+   ======================================================================== */
+.order-progress-bar {
+    margin: 1rem 0;
+}
+
+.progress-steps {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.progress-step-modal {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    position: relative;
+    z-index: 2;
+    background: var(--white);
+    padding: 0.5rem;
+    border-radius: var(--radius-md);
+    min-width: 80px;
+}
+
+.step-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+    border: 3px solid var(--border-light);
+    background: var(--cream);
+    color: var(--text-gray);
+    transition: var(--transition);
+}
+
+.step-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    font-family: 'BaticaSans', sans-serif;
+    color: var(--text-gray);
+    white-space: nowrap;
+}
+
+.progress-step-modal.completed .step-icon {
+    background: var(--success);
+    border-color: var(--success);
+    color: var(--white);
+}
+
+.progress-step-modal.completed .step-label {
+    color: var(--success);
+}
+
+.progress-step-modal.active .step-icon {
+    background: var(--curry);
+    border-color: var(--curry);
+    color: var(--white);
+    animation: pulse 2s infinite;
+}
+
+.progress-step-modal.active .step-label {
+    color: var(--curry);
+}
+
+.progress-line {
+    position: absolute;
+    top: 35px;
+    left: 25%;
+    right: 25%;
+    height: 3px;
+    background: var(--border-light);
+    z-index: 1;
+}
+
+.progress-line.completed {
+    background: var(--success);
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
 .status {
     font-weight: 600;
     font-family: 'BaticaSans', sans-serif;
@@ -2047,6 +2256,7 @@ tbody tr:hover {
                                 <th><i class="fas fa-box"></i> Plan</th>
                                 <th><i class="fas fa-utensils"></i> Meals</th>
                                 <th><i class="fas fa-money-bill"></i> Price</th>
+                                 <th><i class="fas fa-truck"></i> Order Status</th> <!-- เพิ่มใหม่ -->
                                 <th><i class="fas fa-info-circle"></i> Status</th>
                                 <th><i class="fas fa-calendar-alt"></i> Delivery Date</th>
                                 <th><i class="fas fa-cogs"></i> Manage</th>
@@ -2065,6 +2275,27 @@ tbody tr:hover {
                                         /<?= $sub['plan_type'] === 'weekly' ? 'week' : 'month' ?>
                                     </span>
                                 </td>
+<td>
+    <div class="order-status-badge" style="
+        display: inline-flex; 
+        align-items: center; 
+        gap: 0.5rem;
+        background: <?= $sub['status_display']['color'] ?>15;
+        color: <?= $sub['status_display']['color'] ?>;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        border: 1px solid <?= $sub['status_display']['color'] ?>;
+        font-size: 0.85rem;
+        font-weight: 600;
+    ">
+        <span><?= $sub['status_display']['icon'] ?></span>
+        <span><?= $sub['status_display']['label'] ?></span>
+    </div>
+    <small style="display: block; margin-top: 0.3rem; color: var(--text-gray);">
+        <?= $sub['status_display']['description'] ?>
+    </small>
+</td>
+
                                 <td>
                                     <span class="status <?= $sub['status'] ?>"><?= getStatusText($sub['status']) ?></span>
                                 </td>
@@ -2442,7 +2673,37 @@ if (window.innerWidth <= 768) {
         });
     });
 }); // ✅ ปิด DOMContentLoaded
-
+function createOrderProgressBar(orderStatus) {
+    const steps = [
+        { key: 'order_received', label: 'Order Received', icon: '🔔' },
+        { key: 'in_kitchen', label: 'In the Kitchen', icon: '👨‍🍳' },
+        { key: 'delivering', label: 'Delivering', icon: '🚚' },
+        { key: 'completed', label: 'Completed', icon: '✅' }
+    ];
+    
+    const currentIndex = steps.findIndex(step => step.key === orderStatus);
+    
+    let progressHTML = '<div class="progress-steps">';
+    
+    steps.forEach((step, index) => {
+        const isCompleted = index <= currentIndex;
+        const isActive = index === currentIndex;
+        
+        progressHTML += `
+            <div class="progress-step-modal ${isCompleted ? 'completed' : ''} ${isActive ? 'active' : ''}">
+                <div class="step-icon">${step.icon}</div>
+                <div class="step-label">${step.label}</div>
+            </div>
+        `;
+        
+        if (index < steps.length - 1) {
+            progressHTML += `<div class="progress-line ${index < currentIndex ? 'completed' : ''}"></div>`;
+        }
+    });
+    
+    progressHTML += '</div>';
+    return progressHTML;
+}
         function openComplaintModal(subscriptionId, planName) {
             document.getElementById('complaint_subscription_id').value = subscriptionId;
             document.getElementById('complaint_plan_name').value = planName;
@@ -2512,6 +2773,17 @@ if (window.innerWidth <= 768) {
                         </div>
                     </div>
                 </div>
+
+<div class="detail-section">
+                    <div class="detail-title">
+                        <i class="fas fa-truck"></i>
+                        Order Progress
+                    </div>
+                    <div class="order-progress-bar">
+                        ${createOrderProgressBar(subscription.order_status || 'order_received')}
+                    </div>
+                </div>
+
 
                 <div class="detail-section">
                     <div class="detail-title">
