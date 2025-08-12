@@ -1,3 +1,5 @@
 KruaThai/config/secrets.php
 KruaThai/logs/activity.log
 KruaThai/config/database.php
+KruaThai/secrets/somdultable-4feccc0213da.json
+KruaThai/secrets/test-google-route-api.php
