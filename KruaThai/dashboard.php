@@ -2,7 +2,7 @@
 /**
  * Dashboard with Error Handling - Updated with Somdul Table Theme
  * File: dashboard.php
- *///
+ */
 
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
@@ -176,56 +176,78 @@ $page_title = "Dashboard";
     <title><?php echo htmlspecialchars($page_title); ?> - Somdul Table</title>
     <meta name="description" content="Welcome to your Somdul Table dashboard - manage your Thai meal subscriptions and orders">
     
-    <!-- BaticaSans Font Import -->
-    <link rel="preconnect" href="https://ydpschool.com">
     <style>
-        /* BaticaSans Font Family */
+        /* BaticaSans Font Import - Local Files */
         @font-face {
             font-family: 'BaticaSans';
-            src: url('https://ydpschool.com/fonts/BaticaSans-Regular.woff2') format('woff2'),
-                 url('https://ydpschool.com/fonts/BaticaSans-Regular.woff') format('woff'),
-                 url('https://ydpschool.com/fonts/BaticaSans-Regular.ttf') format('truetype');
+            src: url('./Font/BaticaSans-Regular.woff2') format('woff2'),
+                url('./Font/BaticaSans-Regular.woff') format('woff'),
+                url('./Font/BaticaSans-Regular.ttf') format('truetype');
             font-weight: 400;
             font-style: normal;
             font-display: swap;
         }
-        
+
         @font-face {
             font-family: 'BaticaSans';
-            src: url('https://ydpschool.com/fonts/BaticaSans-Bold.woff2') format('woff2'),
-                 url('https://ydpschool.com/fonts/BaticaSans-Bold.woff') format('woff'),
-                 url('https://ydpschool.com/fonts/BaticaSans-Bold.ttf') format('truetype');
-            font-weight: 700;
-            font-style: normal;
+            src: url('./Font/BaticaSans-Italic.woff2') format('woff2'),
+                url('./Font/BaticaSans-Italic.woff') format('woff'),
+                url('./Font/BaticaSans-Italic.ttf') format('truetype');
+            font-weight: 400;
+            font-style: italic;
             font-display: swap;
         }
-        
+
+        /* Fallback for bold/medium weights - browser will simulate them */
         @font-face {
             font-family: 'BaticaSans';
-            src: url('https://ydpschool.com/fonts/BaticaSans-Medium.woff2') format('woff2'),
-                 url('https://ydpschool.com/fonts/BaticaSans-Medium.woff') format('woff'),
-                 url('https://ydpschool.com/fonts/BaticaSans-Medium.ttf') format('truetype');
+            src: url('./Font/BaticaSans-Regular.woff2') format('woff2'),
+                url('./Font/BaticaSans-Regular.woff') format('woff'),
+                url('./Font/BaticaSans-Regular.ttf') format('truetype');
             font-weight: 500;
             font-style: normal;
             font-display: swap;
         }
 
-        /* CSS Custom Properties - Matching Somdul Table Design System */
+        @font-face {
+            font-family: 'BaticaSans';
+            src: url('./Font/BaticaSans-Regular.woff2') format('woff2'),
+                url('./Font/BaticaSans-Regular.woff') format('woff'),
+                url('./Font/BaticaSans-Regular.ttf') format('truetype');
+            font-weight: 700;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        /* IMPROVED CSS Custom Properties for Somdul Table Design System - COLOR HIERARCHY ONLY */
         :root {
+            /* LEVEL 1 (MOST IMPORTANT): BROWN #bd9379 + WHITE */
             --brown: #bd9379;
-            --cream: #ece8e1;
-            --sage: #adb89d;
-            --curry: #cf723a;
             --white: #ffffff;
+            
+            /* LEVEL 2 (SECONDARY): CREAM #ece8e1 */
+            --cream: #ece8e1;
+            
+            /* LEVEL 3 (SUPPORTING): SAGE #adb89d */
+            --sage: #adb89d;
+            
+            /* LEVEL 4 (ACCENT/CONTRAST - LEAST USED): CURRY #cf723a */
+            --curry: #cf723a;
+            
+            /* Text colors using brown hierarchy */
             --text-dark: #2c3e50;
             --text-gray: #7f8c8d;
-            --border-light: #e8e8e8;
+            --border-light: #d4c4b8; /* Brown-tinted border */
+            
+            /* Shadows using brown as base (Level 1) */
             --shadow-soft: 0 4px 12px rgba(189, 147, 121, 0.15);
             --shadow-medium: 0 8px 24px rgba(189, 147, 121, 0.25);
             --radius-sm: 8px;
             --radius-md: 12px;
             --radius-lg: 16px;
             --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            
+            /* Status colors */
             --success: #28a745;
             --warning: #ffc107;
             --danger: #dc3545;
@@ -242,49 +264,26 @@ $page_title = "Dashboard";
             font-family: 'BaticaSans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             line-height: 1.6;
             color: var(--text-dark);
-            background: linear-gradient(135deg, var(--cream) 0%, #f8f9fa 100%);
-            min-height: 100vh;
-            font-size: 16px;
+            background-color: var(--white);
             font-weight: 400;
         }
 
-        /* Typography using BaticaSans */
+        /* Typography using BaticaSans - LEVEL 1: Brown for headings */
         h1, h2, h3, h4, h5, h6 {
             font-family: 'BaticaSans', sans-serif;
             font-weight: 700;
             line-height: 1.2;
-            color: var(--text-dark);
+            color: var(--brown); /* LEVEL 1: Brown instead of text-dark */
         }
 
-        @keyframes glow {
-            from {
-                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            }
-            to {
-                box-shadow: 0 2px 20px rgba(207, 114, 58, 0.3);
-            }
-        }
-
-        @keyframes bounce {
-            0%, 20%, 50%, 80%, 100% {
-                transform: translateY(0);
-            }
-            40% {
-                transform: translateY(-3px);
-            }
-            60% {
-                transform: translateY(-2px);
-            }
-        }
-
-        /* Promotional Banner Styles */
+        /* Promotional Banner Styles - LEVEL 4: Curry for special promos */
         .promo-banner {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
-            background: linear-gradient(135deg, var(--curry) 0%, #e67e22 100%);
-            color: var(--white);
+            background: #cf723a; /* LEVEL 4: Curry for promotional banner */
+            color: var(--white); /* LEVEL 1: White */
             text-align: center;
             padding: 8px 20px;
             font-family: 'BaticaSans', sans-serif;
@@ -320,7 +319,7 @@ $page_title = "Dashboard";
             transform: translateY(-50%);
             background: none;
             border: none;
-            color: var(--white);
+            color: var(--white); /* LEVEL 1: White */
             font-size: 18px;
             cursor: pointer;
             opacity: 0.8;
@@ -358,18 +357,25 @@ $page_title = "Dashboard";
             top: 38px;
             left: 0;
             right: 0;
-            background: rgba(255, 255, 255, 0.95);
+            background: #ece8e1;
             backdrop-filter: blur(10px);
             z-index: 1000;
             transition: var(--transition);
             box-shadow: var(--shadow-soft);
         }
 
+        .navbar, .navbar * {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
         nav {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 1rem 2rem;
             width: 100%;
         }
 
@@ -378,14 +384,47 @@ $page_title = "Dashboard";
             align-items: center;
             gap: 0.8rem;
             text-decoration: none;
-            color: var(--text-dark);
+            color: var(--brown); /* LEVEL 1: Brown */
+        }
+
+        .logo-icon {
+            width: 45px;
+            height: 45px;
+            background: var(--brown); /* LEVEL 1: Solid brown instead of gradient */
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--white); /* LEVEL 1: White text */
+            font-size: 1.5rem;
+            font-family: 'BaticaSans', sans-serif;
+            font-weight: 700;
         }
 
         .logo-text {
             font-size: 1.8rem;
             font-weight: 800;
-            color: var(--curry);
+            color: var(--brown); /* LEVEL 1: Brown */
             font-family: 'BaticaSans', sans-serif;
+        }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--text-gray);
+            font-weight: 500;
+            font-family: 'BaticaSans', sans-serif;
+            transition: var(--transition);
+        }
+
+        .nav-links a:hover {
+            color: var(--brown); /* LEVEL 1: Brown hover */
         }
 
         .nav-actions {
@@ -410,30 +449,31 @@ $page_title = "Dashboard";
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, var(--curry), var(--brown));
-            color: var(--white);
+            background: var(--brown); /* LEVEL 1: Brown primary */
+            color: var(--white); /* LEVEL 1: White text */
             box-shadow: var(--shadow-soft);
         }
 
         .btn-primary:hover {
+            background: #a8855f; /* Darker brown on hover */
             transform: translateY(-2px);
             box-shadow: var(--shadow-medium);
         }
 
         .btn-secondary {
             background: transparent;
-            color: var(--curry);
-            border: 2px solid var(--curry);
+            color: var(--brown); /* LEVEL 1: Brown */
+            border: 2px solid var(--brown); /* LEVEL 1: Brown border */
         }
 
         .btn-secondary:hover {
-            background: var(--curry);
-            color: var(--white);
+            background: var(--brown); /* LEVEL 1: Brown */
+            color: var(--white); /* LEVEL 1: White */
         }
 
         .btn-logout {
             background: var(--danger);
-            color: white;
+            color: var(--white); /* LEVEL 1: White */
             border: none;
         }
 
@@ -442,10 +482,41 @@ $page_title = "Dashboard";
             transform: translateY(-1px);
         }
 
+        /* Profile Icon Styles */
+        .profile-link {
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .profile-icon {
+            width: 45px;
+            height: 45px;
+            background: var(--brown); /* LEVEL 1: Brown */
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--white); /* LEVEL 1: White */
+            transition: var(--transition);
+            box-shadow: var(--shadow-soft);
+        }
+
+        .profile-icon:hover {
+            background: #a8855f; /* Darker brown on hover */
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .profile-icon svg {
+            width: 24px;
+            height: 24px;
+        }
+
         /* Dashboard Layout */
         .dashboard {
             padding-top: 120px;
             min-height: 100vh;
+            background: linear-gradient(135deg, var(--cream) 0%, #f8f9fa 100%); /* LEVEL 2: Cream background */
         }
 
         .container {
@@ -455,8 +526,8 @@ $page_title = "Dashboard";
         }
 
         .dashboard-header {
-            background: linear-gradient(135deg, var(--curry) 0%, var(--brown) 100%);
-            color: var(--white);
+            background: linear-gradient(135deg, var(--brown) 0%, var(--sage) 100%); /* LEVEL 1 & 3: Brown to sage */
+            color: var(--white); /* LEVEL 1: White */
             padding: 2.5rem 2rem;
             margin-bottom: 3rem;
             border-radius: 16px;
@@ -505,6 +576,7 @@ $page_title = "Dashboard";
             margin-bottom: 0.8rem;
             font-family: 'BaticaSans', sans-serif;
             line-height: 1.2;
+            color: var(--white) !important; /* LEVEL 1: White override */
         }
 
         .dashboard-welcome p {
@@ -515,44 +587,43 @@ $page_title = "Dashboard";
             font-weight: 400;
         }
 
-        /* Stats Section */
+        /* Stats Section - Minimal Design */
         .stats-section {
-            margin-bottom: 3rem;
-            padding-top: 3rem;
+            margin-bottom: 2rem;
         }
 
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 2rem;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
         }
 
         .stat-card {
-            background: var(--white);
-            padding: 2rem;
-            border-radius: 15px;
-            box-shadow: var(--shadow-soft);
+            background: rgba(189, 147, 121, 0.02); /* Very subtle brown tint */
+            padding: 1.5rem 1rem;
+            border-radius: 8px;
+            border: 1px solid rgba(189, 147, 121, 0.06);
             text-align: center;
-            transition: transform 0.3s ease;
-            border: 1px solid rgba(189, 147, 121, 0.1);
+            transition: all 0.2s ease;
         }
 
         .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: var(--shadow-medium);
+            background: rgba(189, 147, 121, 0.04);
+            border-color: rgba(189, 147, 121, 0.12);
         }
 
         .stat-number {
-            font-size: 3rem;
-            font-weight: 700;
-            color: var(--curry);
-            margin-bottom: 0.5rem;
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: var(--brown); /* LEVEL 1: Brown */
+            margin-bottom: 0.25rem;
             font-family: 'BaticaSans', sans-serif;
         }
 
         .stat-label {
             color: var(--text-gray);
-            font-weight: 500;
+            font-weight: 400;
+            font-size: 0.9rem;
             font-family: 'BaticaSans', sans-serif;
         }
 
@@ -576,7 +647,7 @@ $page_title = "Dashboard";
         }
 
         .sidebar-card, .content-card {
-            background: var(--white);
+            background: var(--white); /* LEVEL 1: White */
             padding: 2rem;
             border-radius: 15px;
             box-shadow: var(--shadow-soft);
@@ -584,7 +655,7 @@ $page_title = "Dashboard";
         }
 
         .sidebar-card h3, .content-card h3 {
-            color: var(--text-dark);
+            color: var(--brown); /* LEVEL 1: Brown */
             margin-bottom: 1.5rem;
             font-size: 1.2rem;
             font-family: 'BaticaSans', sans-serif;
@@ -593,7 +664,7 @@ $page_title = "Dashboard";
         .empty-state {
             text-align: center;
             padding: 3rem 2rem;
-            background: white;
+            background: var(--white); /* LEVEL 1: White */
             border-radius: 15px;
             box-shadow: var(--shadow-soft);
             border: 1px solid rgba(189, 147, 121, 0.1);
@@ -608,7 +679,7 @@ $page_title = "Dashboard";
         }
 
         .empty-state h3 {
-            color: var(--text-dark);
+            color: var(--brown); /* LEVEL 1: Brown */
             margin-bottom: 0.5rem;
             font-family: 'BaticaSans', sans-serif;
         }
@@ -631,7 +702,7 @@ $page_title = "Dashboard";
             align-items: center;
             gap: 0.75rem;
             padding: 1rem;
-            background: var(--cream);
+            background: var(--cream); /* LEVEL 2: Cream */
             border-radius: 10px;
             text-decoration: none;
             color: var(--text-dark);
@@ -640,8 +711,8 @@ $page_title = "Dashboard";
         }
 
         .action-button:hover {
-            background: var(--brown);
-            color: var(--white);
+            background: var(--brown); /* LEVEL 1: Brown */
+            color: var(--white); /* LEVEL 1: White */
             transform: translateX(5px);
         }
 
@@ -654,7 +725,7 @@ $page_title = "Dashboard";
         }
 
         .action-button:hover .action-icon {
-            color: var(--white);
+            color: var(--white); /* LEVEL 1: White */
         }
 
         .action-text {
@@ -719,7 +790,7 @@ $page_title = "Dashboard";
         .logout-section {
             margin-top: 2rem;
             padding-top: 2rem;
-            border-top: 1px solid var(--cream);
+            border-top: 1px solid var(--cream); /* LEVEL 2: Cream */
             text-align: center;
         }
 
@@ -729,15 +800,101 @@ $page_title = "Dashboard";
             align-items: center;
             margin-bottom: 2rem;
             padding-bottom: 1rem;
-            border-bottom: 2px solid var(--cream);
+            border-bottom: 2px solid var(--cream); /* LEVEL 2: Cream */
         }
 
         .section-header h2 {
-            color: var(--text-dark);
+            color: var(--brown); /* LEVEL 1: Brown */
             font-size: 1.5rem;
             margin: 0;
             font-weight: 700;
             font-family: 'BaticaSans', sans-serif;
+        }
+
+        /* Notification Bell */
+        .notification-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .notification-bell {
+            position: relative;
+            background: var(--brown); /* LEVEL 1: Brown */
+            color: var(--white); /* LEVEL 1: White */
+            border: none;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-soft);
+        }
+
+        .notification-bell:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-medium);
+            background: #a8855f; /* Darker brown */
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--curry); /* LEVEL 4: Curry */
+            color: var(--white); /* LEVEL 1: White */
+            border-radius: 50%;
+            min-width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+            border: 2px solid var(--white); /* LEVEL 1: White */
+        }
+
+        .notification-dropdown-panel {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            width: 380px;
+            max-height: 500px;
+            background: var(--white); /* LEVEL 1: White */
+            border-radius: 12px;
+            box-shadow: var(--shadow-medium);
+            border: 1px solid var(--border-light);
+            z-index: 1000;
+            display: none;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .notification-dropdown-panel.show {
+            display: block;
+            animation: dropdownFadeIn 0.3s ease-out;
+        }
+
+        @keyframes dropdownFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* User welcome text */
+        .user-welcome {
+            color: var(--text-gray);
+            font-family: 'BaticaSans', sans-serif;
+            font-weight: 500;
+            font-size: 0.9rem;
         }
 
         /* Responsive Design */
@@ -758,14 +915,6 @@ $page_title = "Dashboard";
                 padding: 6px 15px;
             }
             
-            .navbar {
-                top: 32px;
-            }
-            
-            .dashboard {
-                padding-top: 100px;
-            }
-            
             .promo-banner-content {
                 flex-direction: column;
                 gap: 5px;
@@ -773,6 +922,14 @@ $page_title = "Dashboard";
             
             .promo-close {
                 right: 10px;
+            }
+            
+            .navbar {
+                top: 32px;
+            }
+            
+            .dashboard {
+                padding-top: 100px;
             }
 
             .dashboard-welcome h1 {
@@ -808,6 +965,10 @@ $page_title = "Dashboard";
                 padding: 0.6rem 1rem;
                 font-size: 0.9rem;
             }
+
+            .user-welcome {
+                display: none;
+            }
         }
 
         @media (max-width: 480px) {
@@ -833,86 +994,6 @@ $page_title = "Dashboard";
                 transition-duration: 0.01ms !important;
             }
         }
-
-        /* Facebook-Style Notification CSS */
-        .notification-dropdown {
-            position: relative;
-            display: inline-block;
-        }
-
-        .notification-bell {
-            position: relative;
-            background: linear-gradient(135deg, var(--curry), #e67e22);
-            color: var(--white);
-            border: none;
-            border-radius: 50%;
-            width: 44px;
-            height: 44px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-            transition: all 0.3s ease;
-            box-shadow: var(--shadow-soft);
-        }
-
-        .notification-bell:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-medium);
-            background: linear-gradient(135deg, #e67e22, var(--brown));
-        }
-
-        .notification-badge {
-            position: absolute;
-            top: -5px;
-            right: -5px;
-            background: #e74c3c;
-            color: white;
-            border-radius: 50%;
-            min-width: 20px;
-            height: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            font-weight: 600;
-            border: 2px solid white;
-        }
-
-        .notification-dropdown-panel {
-            position: absolute;
-            top: 100%;
-            right: 0;
-            width: 380px;
-            max-height: 500px;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.15);
-            border: 1px solid #e1e8ed;
-            z-index: 1000;
-            display: none;
-            overflow: hidden;
-            margin-top: 8px;
-        }
-
-        .notification-dropdown-panel.show {
-            display: block;
-            animation: dropdownFadeIn 0.3s ease-out;
-        }
-
-        @keyframes dropdownFadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-  
     </style>
     
 </head>
@@ -929,30 +1010,30 @@ $page_title = "Dashboard";
 
     <!-- Navigation -->
     <nav class="navbar">
-        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 0 1rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem; max-width: 1200px; margin: 0 auto; width: 100%;">
             <a href="home2.php" class="logo">
-                <img src="./assets/image/LOGO_BG.png" alt="Somdul Table" style="height: 45px; width: auto;">
-                <span class="logo-text">Somdul Table</span>
+                <img src="./assets/image/LOGO_BG2.png" alt="Somdul Table" style="height: 80px; width: auto;">
             </a>
             
             <div class="nav-actions">
-                
-                <span style="color: var(--text-gray); font-family: 'BaticaSans', sans-serif; font-weight: 500;">
+                <span class="user-welcome">
                     Welcome, <?php echo htmlspecialchars($user['first_name']); ?>
                 </span>
                 <a href="home2.php" class="btn btn-secondary">Home</a>
-   <div class="notification-dropdown">
-    <button class="notification-bell" onclick="toggleNotificationDropdown()">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="color: white;">
-            <path d="M18 8C18 6.4087 17.3679 4.88258 16.2426 3.75736C15.1174 2.63214 13.5913 2 12 2C10.4087 2 8.88258 2.63214 7.75736 3.75736C6.63214 4.88258 6 6.4087 6 8C6 15 3 17 3 17H21C21 17 18 15 18 8Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M13.73 21C13.5542 21.3031 13.3019 21.5547 12.9982 21.7295C12.6946 21.9044 12.3504 21.9965 12 21.9965C11.6496 21.9965 11.3054 21.9044 11.0018 21.7295C10.6982 21.5547 10.4458 21.3031 10.27 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <span class="notification-badge" id="notificationCount">3</span>
-    </button>
-    <div class="notification-dropdown-panel" id="notificationPanel">
-        <!-- Dropdown content จะใส่ตรงนี้ -->
-    </div>
-</div>
+                
+                <div class="notification-dropdown">
+                    <button class="notification-bell" onclick="toggleNotificationDropdown()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="color: white;">
+                            <path d="M18 8C18 6.4087 17.3679 4.88258 16.2426 3.75736C15.1174 2.63214 13.5913 2 12 2C10.4087 2 8.88258 2.63214 7.75736 3.75736C6.63214 4.88258 6 6.4087 6 8C6 15 3 17 3 17H21C21 17 18 15 18 8Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M13.73 21C13.5542 21.3031 13.3019 21.5547 12.9982 21.7295C12.6946 21.9044 12.3504 21.9965 12 21.9965C11.6496 21.9965 11.3054 21.9044 11.0018 21.7295C10.6982 21.5547 10.4458 21.3031 10.27 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <span class="notification-badge" id="notificationCount">3</span>
+                    </button>
+                    <div class="notification-dropdown-panel" id="notificationPanel">
+                        <!-- Dropdown content จะใส่ตรงนี้ -->
+                    </div>
+                </div>
+                
                 <a href="logout.php" class="btn btn-logout">Logout</a>
             </div>
         </div>
@@ -972,6 +1053,18 @@ $page_title = "Dashboard";
                 <p><strong>Note:</strong> Some features may not work correctly. Please check your database setup.</p>
             </div>
             <?php endif; ?>
+
+            <!-- Welcome Header -->
+            <div class="dashboard-header">
+                <div class="dashboard-welcome">
+                    <div class="welcome-badge">
+                        <span>✨</span>
+                        <span>Dashboard</span>
+                    </div>
+                    <h1>Welcome back, <?php echo htmlspecialchars($user['first_name']); ?>!</h1>
+                    <p>Ready to explore authentic Thai flavors? Your personalized dashboard shows your meal journey and helps you discover new favorites.</p>
+                </div>
+            </div>
 
             <!-- Quick Stats -->
             <div class="stats-section">
@@ -1008,7 +1101,7 @@ $page_title = "Dashboard";
                     <section>
                         <div class="empty-state">
                             <div class="empty-icon">
-                                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="color: var(--curry);">
+                                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="color: var(--brown);">
                                     <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                                     <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
                                 </svg>
@@ -1092,18 +1185,17 @@ $page_title = "Dashboard";
                                 </span>
                                 <span class="action-text">Payment Status</span>
                             </a>
-                           <a href="subscription-status.php" class="action-button">
-    <span class="action-icon">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M6 2L3 6V20C3 21.1 3.9 22 5 22H19C20.1 22 21 21.1 21 20V6L18 2H6Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <line x1="3" y1="6" x2="21" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M16 10C16 11.1046 15.1046 12 14 12C12.8954 12 12 11.1046 12 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M8 10C8 11.1046 8.89543 12 10 12C11.1046 12 12 11.1046 12 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-    </span>
-    <span class="action-text">My Orders</span>
-</a>
-                      
+                            <a href="subscription-status.php" class="action-button">
+                                <span class="action-icon">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M6 2L3 6V20C3 21.1 3.9 22 5 22H19C20.1 22 21 21.1 21 20V6L18 2H6Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                        <line x1="3" y1="6" x2="21" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                        <path d="M16 10C16 11.1046 15.1046 12 14 12C12.8954 12 12 11.1046 12 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                        <path d="M8 10C8 11.1046 8.89543 12 10 12C11.1046 12 12 11.1046 12 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </span>
+                                <span class="action-text">My Orders</span>
+                            </a>
                         </div>
                     </div>
 
@@ -1174,263 +1266,264 @@ $page_title = "Dashboard";
         window.addEventListener('scroll', function() {
             const navbar = document.querySelector('.navbar');
             if (window.scrollY > 100) {
-                navbar.style.background = 'rgba(255, 255, 255, 0.98)';
+                navbar.style.background = 'rgba(236, 232, 225, 0.98)';
             } else {
-                navbar.style.background = 'rgba(255, 255, 255, 0.95)';
+                navbar.style.background = '#ece8e1';
             }
         });
-// Facebook-Style Notification System
-let notificationDropdownOpen = false;
-let unreadCount = 0;
 
-// Initialize on page load
-document.addEventListener('DOMContentLoaded', function() {
-    updateNotificationCount();
-    startNotificationPolling();
-});
+        // Facebook-Style Notification System
+        let notificationDropdownOpen = false;
+        let unreadCount = 0;
 
-// Toggle notification dropdown
-function toggleNotificationDropdown() {
-    if (notificationDropdownOpen) {
-        closeNotificationDropdown();
-    } else {
-        openNotificationDropdown();
-    }
-}
-
-// Open notification dropdown
-async function openNotificationDropdown() {
-    notificationDropdownOpen = true;
-    const panel = document.getElementById('notificationPanel');
-    panel.innerHTML = `
-        <div class="dropdown-header" style="padding: 1rem; border-bottom: 1px solid #e1e8ed; background: #f8f9fa;">
-            <h4 style="margin: 0; font-size: 1.1rem; color: var(--text-dark);">Notifications</h4>
-            <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-                <button class="btn btn-sm btn-secondary" onclick="openNotificationsPage()" style="font-size: 0.8rem; padding: 0.3rem 0.6rem;">View All</button>
-                <button class="btn btn-sm btn-success" onclick="markAllDropdownRead()" style="font-size: 0.8rem; padding: 0.3rem 0.6rem;">Mark All Read</button>
-            </div>
-        </div>
-        <div class="dropdown-content" style="max-height: 400px; overflow-y: auto;">
-            <div style="padding: 1rem; text-align: center; color: var(--text-gray);">
-                <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">⏳</div>
-                Loading notifications...
-            </div>
-        </div>
-    `;
-    panel.classList.add('show');
-    
-    // Load notifications
-    await loadDropdownNotifications();
-}
-
-// Close notification dropdown
-function closeNotificationDropdown() {
-    notificationDropdownOpen = false;
-    const panel = document.getElementById('notificationPanel');
-    panel.classList.remove('show');
-}
-
-// Load notifications for dropdown
-async function loadDropdownNotifications() {
-    try {
-        const response = await fetch('notifications.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: 'action=get_notifications&limit=5&filter=all'
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateNotificationCount();
+            startNotificationPolling();
         });
 
-        const data = await response.json();
-        
-        if (data.success) {
-            displayDropdownNotifications(data.notifications || []);
-        } else {
-            document.querySelector('.dropdown-content').innerHTML = `
-                <div style="padding: 2rem; text-align: center; color: var(--text-gray);">
-                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">❌</div>
-                    <p>Unable to load notifications</p>
-                </div>
-            `;
+        // Toggle notification dropdown
+        function toggleNotificationDropdown() {
+            if (notificationDropdownOpen) {
+                closeNotificationDropdown();
+            } else {
+                openNotificationDropdown();
+            }
         }
-    } catch (error) {
-        console.error('Error loading notifications:', error);
-        document.querySelector('.dropdown-content').innerHTML = `
-            <div style="padding: 2rem; text-align: center; color: var(--text-gray);">
-                <div style="font-size: 2rem; margin-bottom: 0.5rem;">🔌</div>
-                <p>Connection problem</p>
-            </div>
-        `;
-    }
-}
 
-// Display notifications in dropdown
-function displayDropdownNotifications(notifications) {
-    const content = document.querySelector('.dropdown-content');
-    
-    if (!notifications || notifications.length === 0) {
-        content.innerHTML = `
-            <div style="padding: 2rem; text-align: center; color: var(--text-gray);">
-                <div style="font-size: 2rem; margin-bottom: 0.5rem;">🔔</div>
-                <p>No new notifications</p>
-                <small>You're all caught up!</small>
-            </div>
-        `;
-        return;
-    }
-
-    const notificationsHTML = notifications.map(notification => {
-        const isUnread = !notification.read_at;
-        const icon = getNotificationIcon(notification.type);
-        const timeAgo = formatTimeAgo(notification.created_at);
-        
-        return `
-            <div class="dropdown-notification-item" style="
-                padding: 0.75rem 1rem; 
-                border-bottom: 1px solid #f0f0f0; 
-                cursor: pointer;
-                ${isUnread ? 'background: linear-gradient(90deg, rgba(207, 114, 58, 0.05) 0%, transparent 100%); border-left: 3px solid var(--curry);' : ''}
-                transition: background 0.3s ease;
-            " onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background='${isUnread ? 'linear-gradient(90deg, rgba(207, 114, 58, 0.05) 0%, transparent 100%)' : 'transparent'}'" onclick="handleDropdownNotificationClick('${notification.id}', ${isUnread})">
-                <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
-                    <div style="font-size: 1.2rem; margin-top: 0.25rem;">${icon}</div>
-                    <div style="flex: 1; min-width: 0;">
-                        <div style="font-weight: ${isUnread ? '600' : '500'}; font-size: 0.9rem; color: var(--text-dark); margin-bottom: 0.25rem; line-height: 1.3;">
-                            ${notification.title}
-                        </div>
-                        <div style="font-size: 0.8rem; color: var(--text-gray); line-height: 1.3; margin-bottom: 0.5rem;">
-                            ${notification.message.length > 80 ? notification.message.substring(0, 80) + '...' : notification.message}
-                        </div>
-                        <div style="font-size: 0.75rem; color: var(--text-gray);">
-                            ${timeAgo} ${isUnread ? '• <span style="color: var(--curry); font-weight: 600;">NEW</span>' : ''}
-                        </div>
+        // Open notification dropdown
+        async function openNotificationDropdown() {
+            notificationDropdownOpen = true;
+            const panel = document.getElementById('notificationPanel');
+            panel.innerHTML = `
+                <div class="dropdown-header" style="padding: 1rem; border-bottom: 1px solid #e1e8ed; background: #f8f9fa;">
+                    <h4 style="margin: 0; font-size: 1.1rem; color: var(--text-dark);">Notifications</h4>
+                    <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                        <button class="btn btn-sm btn-secondary" onclick="openNotificationsPage()" style="font-size: 0.8rem; padding: 0.3rem 0.6rem;">View All</button>
+                        <button class="btn btn-sm btn-success" onclick="markAllDropdownRead()" style="font-size: 0.8rem; padding: 0.3rem 0.6rem;">Mark All Read</button>
                     </div>
                 </div>
-            </div>
-        `;
-    }).join('');
-
-    content.innerHTML = notificationsHTML;
-}
-
-// Handle notification click in dropdown
-function handleDropdownNotificationClick(notificationId, isUnread) {
-    if (isUnread) {
-        markNotificationAsRead(notificationId);
-    }
-    // Optionally close dropdown and navigate
-    closeNotificationDropdown();
-}
-
-// Get notification icon
-function getNotificationIcon(type) {
-    const icons = {
-        order_update: '📦',
-        delivery: '🚚',
-        payment: '💳',
-        promotion: '🎉',
-        system: '⚙️',
-        review_reminder: '⭐'
-    };
-    return icons[type] || '📢';
-}
-
-// Format time ago
-function formatTimeAgo(dateString) {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInSeconds = Math.floor((now - date) / 1000);
-
-    if (diffInSeconds < 60) return 'Just now';
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-    return date.toLocaleDateString();
-}
-
-// Update notification count
-async function updateNotificationCount() {
-    try {
-        const response = await fetch('notifications.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: 'action=get_unread_count'
-        });
-
-        const data = await response.json();
-        
-        if (data.success) {
-            unreadCount = data.count;
-            const badge = document.getElementById('notificationCount');
-            badge.textContent = unreadCount;
-            badge.style.display = unreadCount > 0 ? 'flex' : 'none';
+                <div class="dropdown-content" style="max-height: 400px; overflow-y: auto;">
+                    <div style="padding: 1rem; text-align: center; color: var(--text-gray);">
+                        <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">⏳</div>
+                        Loading notifications...
+                    </div>
+                </div>
+            `;
+            panel.classList.add('show');
+            
+            // Load notifications
+            await loadDropdownNotifications();
         }
-    } catch (error) {
-        console.error('Error updating notification count:', error);
-    }
-}
 
-// Mark notification as read
-async function markNotificationAsRead(notificationId) {
-    try {
-        const response = await fetch('notifications.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: `action=mark_as_read&notification_id=${notificationId}`
-        });
-
-        const data = await response.json();
-        
-        if (data.success) {
-            updateNotificationCount();
+        // Close notification dropdown
+        function closeNotificationDropdown() {
+            notificationDropdownOpen = false;
+            const panel = document.getElementById('notificationPanel');
+            panel.classList.remove('show');
         }
-    } catch (error) {
-        console.error('Error marking notification as read:', error);
-    }
-}
 
-// Mark all notifications as read (dropdown)
-async function markAllDropdownRead() {
-    try {
-        const response = await fetch('notifications.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: 'action=mark_all_read'
-        });
+        // Load notifications for dropdown
+        async function loadDropdownNotifications() {
+            try {
+                const response = await fetch('notifications.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'action=get_notifications&limit=5&filter=all'
+                });
 
-        const data = await response.json();
-        
-        if (data.success) {
-            updateNotificationCount();
-            loadDropdownNotifications(); // Refresh dropdown
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayDropdownNotifications(data.notifications || []);
+                } else {
+                    document.querySelector('.dropdown-content').innerHTML = `
+                        <div style="padding: 2rem; text-align: center; color: var(--text-gray);">
+                            <div style="font-size: 2rem; margin-bottom: 0.5rem;">❌</div>
+                            <p>Unable to load notifications</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading notifications:', error);
+                document.querySelector('.dropdown-content').innerHTML = `
+                    <div style="padding: 2rem; text-align: center; color: var(--text-gray);">
+                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">🔌</div>
+                        <p>Connection problem</p>
+                    </div>
+                `;
+            }
         }
-    } catch (error) {
-        console.error('Error marking all as read:', error);
-    }
-}
 
-// Open full notifications page
-function openNotificationsPage() {
-    window.location.href = 'notifications.php';
-}
+        // Display notifications in dropdown
+        function displayDropdownNotifications(notifications) {
+            const content = document.querySelector('.dropdown-content');
+            
+            if (!notifications || notifications.length === 0) {
+                content.innerHTML = `
+                    <div style="padding: 2rem; text-align: center; color: var(--text-gray);">
+                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">🔔</div>
+                        <p>No new notifications</p>
+                        <small>You're all caught up!</small>
+                    </div>
+                `;
+                return;
+            }
 
-// Start polling for new notifications
-function startNotificationPolling() {
-    setInterval(updateNotificationCount, 30000); // Every 30 seconds
-}
+            const notificationsHTML = notifications.map(notification => {
+                const isUnread = !notification.read_at;
+                const icon = getNotificationIcon(notification.type);
+                const timeAgo = formatTimeAgo(notification.created_at);
+                
+                return `
+                    <div class="dropdown-notification-item" style="
+                        padding: 0.75rem 1rem; 
+                        border-bottom: 1px solid #f0f0f0; 
+                        cursor: pointer;
+                        ${isUnread ? 'background: linear-gradient(90deg, rgba(207, 114, 58, 0.05) 0%, transparent 100%); border-left: 3px solid var(--curry);' : ''}
+                        transition: background 0.3s ease;
+                    " onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background='${isUnread ? 'linear-gradient(90deg, rgba(207, 114, 58, 0.05) 0%, transparent 100%)' : 'transparent'}'" onclick="handleDropdownNotificationClick('${notification.id}', ${isUnread})">
+                        <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
+                            <div style="font-size: 1.2rem; margin-top: 0.25rem;">${icon}</div>
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="font-weight: ${isUnread ? '600' : '500'}; font-size: 0.9rem; color: var(--text-dark); margin-bottom: 0.25rem; line-height: 1.3;">
+                                    ${notification.title}
+                                </div>
+                                <div style="font-size: 0.8rem; color: var(--text-gray); line-height: 1.3; margin-bottom: 0.5rem;">
+                                    ${notification.message.length > 80 ? notification.message.substring(0, 80) + '...' : notification.message}
+                                </div>
+                                <div style="font-size: 0.75rem; color: var(--text-gray);">
+                                    ${timeAgo} ${isUnread ? '• <span style="color: var(--curry); font-weight: 600;">NEW</span>' : ''}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
 
-// Close dropdown when clicking outside
-document.addEventListener('click', function(event) {
-    const dropdown = document.querySelector('.notification-dropdown');
-    if (!dropdown.contains(event.target)) {
-        closeNotificationDropdown();
-    }
-});
+            content.innerHTML = notificationsHTML;
+        }
+
+        // Handle notification click in dropdown
+        function handleDropdownNotificationClick(notificationId, isUnread) {
+            if (isUnread) {
+                markNotificationAsRead(notificationId);
+            }
+            // Optionally close dropdown and navigate
+            closeNotificationDropdown();
+        }
+
+        // Get notification icon
+        function getNotificationIcon(type) {
+            const icons = {
+                order_update: '📦',
+                delivery: '🚚',
+                payment: '💳',
+                promotion: '🎉',
+                system: '⚙️',
+                review_reminder: '⭐'
+            };
+            return icons[type] || '📢';
+        }
+
+        // Format time ago
+        function formatTimeAgo(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diffInSeconds = Math.floor((now - date) / 1000);
+
+            if (diffInSeconds < 60) return 'Just now';
+            if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+            if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+            return date.toLocaleDateString();
+        }
+
+        // Update notification count
+        async function updateNotificationCount() {
+            try {
+                const response = await fetch('notifications.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'action=get_unread_count'
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    unreadCount = data.count;
+                    const badge = document.getElementById('notificationCount');
+                    badge.textContent = unreadCount;
+                    badge.style.display = unreadCount > 0 ? 'flex' : 'none';
+                }
+            } catch (error) {
+                console.error('Error updating notification count:', error);
+            }
+        }
+
+        // Mark notification as read
+        async function markNotificationAsRead(notificationId) {
+            try {
+                const response = await fetch('notifications.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `action=mark_as_read&notification_id=${notificationId}`
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    updateNotificationCount();
+                }
+            } catch (error) {
+                console.error('Error marking notification as read:', error);
+            }
+        }
+
+        // Mark all notifications as read (dropdown)
+        async function markAllDropdownRead() {
+            try {
+                const response = await fetch('notifications.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'action=mark_all_read'
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    updateNotificationCount();
+                    loadDropdownNotifications(); // Refresh dropdown
+                }
+            } catch (error) {
+                console.error('Error marking all as read:', error);
+            }
+        }
+
+        // Open full notifications page
+        function openNotificationsPage() {
+            window.location.href = 'notifications.php';
+        }
+
+        // Start polling for new notifications
+        function startNotificationPolling() {
+            setInterval(updateNotificationCount, 30000); // Every 30 seconds
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const dropdown = document.querySelector('.notification-dropdown');
+            if (!dropdown.contains(event.target)) {
+                closeNotificationDropdown();
+            }
+        });
     </script>
 </body>
 </html>

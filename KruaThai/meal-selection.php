@@ -216,6 +216,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     echo json_encode(['success' => true, 'redirect' => 'checkout.php', 'message' => 'Redirecting to checkout...']);
     exit;
 }
+
+// Category icons mapping (same as home2.php)
+$category_icons = [
+    'Rice Bowls' => '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-2V4c0-1.1-.9-2-2-2zm0 2v2h-2V4h2zm-4 4h8v2h-8V8zm0 4h8v6H8v-6z"/>',
+    'Thai Curries' => '<path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>',
+    'Noodle Dishes' => '<path d="M22 2v20H2V2h20zm-2 2H4v16h16V4zM6 8h12v2H6V8zm0 4h12v2H6v-2zm0 4h8v2H6v-2z"/>',
+    'Stir Fry' => '<path d="M12.5 3.5c0 .83-.67 1.5-1.5 1.5s-1.5-.67-1.5-1.5S10.17 2 11 2s1.5.67 1.5 1.5zM20 8H4c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2v-8c0-1.1-.9-2-2-2zm0 10H4v-8h16v8zm-8-6c1.38 0 2.5 1.12 2.5 2.5S13.38 17 12 17s-2.5-1.12-2.5-2.5S10.62 12 12 12z"/>',
+    'Rice Dishes' => '<path d="M18 3H6c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H6V5h12v14zM8 7h8v2H8V7zm0 4h8v2H8v-2zm0 4h6v2H8v-2z"/>',
+    'Soups' => '<path d="M4 18h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2zm0-10h16v8H4V8zm8-4c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z"/>',
+    'Salads' => '<path d="M7 10c0-1.1.9-2 2-2s2 .9 2 2-.9 2-2 2-2-.9-2-2zm8 0c0-1.1.9-2 2-2s2 .9 2 2-.9 2-2 2-2-.9-2-2zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8 0-1.12.23-2.18.65-3.15C6.53 8.51 8 8 9.64 8c.93 0 1.83.22 2.64.61.81-.39 1.71-.61 2.64-.61 1.64 0 3.11.51 4.35.85.42.97.65 2.03.65 3.15 0 4.41-3.59 8-8 8z"/>',
+    'Desserts' => '<path d="M12 3L8 6.5h8L12 3zm0 18c4.97 0 9-4.03 9-9H3c0 4.97 4.03 9 9 9zm0-16L8.5 8h7L12 5z"/>',
+    'Beverages' => '<path d="M5 4v3h5.5v12h3V7H19V4H5z"/>'
+];
+
+// Default icon for categories not in mapping
+$default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-2V4c0-1.1-.9-2-2-2zm0 2v2h-2V4h2zm-4 4h8v2h-8V8zm0 4h8v6H8v-6z"/>';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -225,58 +241,75 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     <title>Select Your Meals | Somdul Table</title>
     <meta name="description" content="Select your perfect meals from authentic Thai cuisine - Somdul Table delivers fresh, healthy meals to your door">
     
-    <!-- BaticaSans Font Import -->
-    <link rel="preconnect" href="https://ydpschool.com">
     <style>
+        /* BaticaSans Font Import - Local Files (same as home2.php) */
         @font-face {
             font-family: 'BaticaSans';
-            src: url('https://ydpschool.com/fonts/BaticaSans-Regular.woff2') format('woff2'),
-                 url('https://ydpschool.com/fonts/BaticaSans-Regular.woff') format('woff'),
-                 url('https://ydpschool.com/fonts/BaticaSans-Regular.ttf') format('truetype');
+            src: url('./Font/BaticaSans-Regular.woff2') format('woff2'),
+                url('./Font/BaticaSans-Regular.woff') format('woff'),
+                url('./Font/BaticaSans-Regular.ttf') format('truetype');
             font-weight: 400;
             font-style: normal;
             font-display: swap;
         }
-        
+
         @font-face {
             font-family: 'BaticaSans';
-            src: url('https://ydpschool.com/fonts/BaticaSans-Bold.woff2') format('woff2'),
-                 url('https://ydpschool.com/fonts/BaticaSans-Bold.woff') format('woff'),
-                 url('https://ydpschool.com/fonts/BaticaSans-Bold.ttf') format('truetype');
-            font-weight: 700;
-            font-style: normal;
+            src: url('./Font/BaticaSans-Italic.woff2') format('woff2'),
+                url('./Font/BaticaSans-Italic.woff') format('woff'),
+                url('./Font/BaticaSans-Italic.ttf') format('truetype');
+            font-weight: 400;
+            font-style: italic;
             font-display: swap;
         }
-        
+
+        /* Fallback for bold/medium weights - browser will simulate them */
         @font-face {
             font-family: 'BaticaSans';
-            src: url('https://ydpschool.com/fonts/BaticaSans-Medium.woff2') format('woff2'),
-                 url('https://ydpschool.com/fonts/BaticaSans-Medium.woff') format('woff'),
-                 url('https://ydpschool.com/fonts/BaticaSans-Medium.ttf') format('truetype');
+            src: url('./Font/BaticaSans-Regular.woff2') format('woff2'),
+                url('./Font/BaticaSans-Regular.woff') format('woff'),
+                url('./Font/BaticaSans-Regular.ttf') format('truetype');
             font-weight: 500;
             font-style: normal;
             font-display: swap;
         }
-    </style>
-    
-    <style>
-        /* CSS Custom Properties for Somdul Table Design System */
+
+        @font-face {
+            font-family: 'BaticaSans';
+            src: url('./Font/BaticaSans-Regular.woff2') format('woff2'),
+                url('./Font/BaticaSans-Regular.woff') format('woff'),
+                url('./Font/BaticaSans-Regular.ttf') format('truetype');
+            font-weight: 700;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        /* IMPROVED CSS Custom Properties for Somdul Table Design System - EXACT MATCH to home2.php */
         :root {
+            /* LEVEL 1 (MOST IMPORTANT): BROWN #bd9379 + WHITE */
             --brown: #bd9379;
-            --cream: #ece8e1;
-            --sage: #adb89d;
-            --curry: #cf723a;
             --white: #ffffff;
+            
+            /* LEVEL 2 (SECONDARY): CREAM #ece8e1 */
+            --cream: #ece8e1;
+            
+            /* LEVEL 3 (SUPPORTING): SAGE #adb89d */
+            --sage: #adb89d;
+            
+            /* LEVEL 4 (ACCENT/CONTRAST - LEAST USED): CURRY #cf723a */
+            --curry: #cf723a;
+            
+            /* Text colors using brown hierarchy */
             --text-dark: #2c3e50;
             --text-gray: #7f8c8d;
-            --border-light: #e8e8e8;
+            --border-light: #d4c4b8; /* Brown-tinted border */
+            
+            /* Shadows using brown as base (Level 1) */
             --shadow-soft: 0 4px 12px rgba(189, 147, 121, 0.15);
             --shadow-medium: 0 8px 24px rgba(189, 147, 121, 0.25);
-            --shadow-large: 0 16px 48px rgba(189, 147, 121, 0.3);
-            --radius-sm: 8px;
-            --radius-md: 12px;
-            --radius-lg: 16px;
-            --radius-xl: 24px;
+            --radius-sm: 4px;
+            --radius-md: 6px;
+            --radius-lg: 8px;
             --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             --success: #27ae60;
             --danger: #e74c3c;
@@ -299,22 +332,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             font-weight: 400;
         }
 
-        /* Typography using BaticaSans */
+        /* Typography using BaticaSans - LEVEL 1: Brown for headings */
         h1, h2, h3, h4, h5, h6 {
             font-family: 'BaticaSans', sans-serif;
             font-weight: 700;
             line-height: 1.2;
-            color: var(--text-dark);
+            color: var(--brown); /* LEVEL 1: Brown instead of text-dark */
         }
 
-        /* Promotional Banner */
+        /* Promotional Banner - LEVEL 4: Curry for special promos */
         .promo-banner {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
-            background: linear-gradient(135deg, var(--curry) 0%, #e67e22 100%);
-            color: var(--white);
+            background: #cf723a; /* LEVEL 4: Curry for promotional banner */
+            color: var(--white); /* LEVEL 1: White */
             text-align: center;
             padding: 8px 20px;
             font-family: 'BaticaSans', sans-serif;
@@ -350,7 +383,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             transform: translateY(-50%);
             background: none;
             border: none;
-            color: var(--white);
+            color: var(--white); /* LEVEL 1: White */
             font-size: 18px;
             cursor: pointer;
             opacity: 0.8;
@@ -382,24 +415,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             }
         }
 
-        /* Navigation */
+        /* Navigation - EXACT MATCH to home2.php */
         .navbar {
             position: fixed;
             top: 38px;
             left: 0;
             right: 0;
-            background: rgba(255, 255, 255, 0.95);
+            background: #ece8e1;
             backdrop-filter: blur(10px);
             z-index: 1000;
             transition: var(--transition);
             box-shadow: var(--shadow-soft);
         }
 
+        .navbar, .navbar * {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
         nav {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 1rem 2rem;
             width: 100%;
         }
 
@@ -408,13 +448,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             align-items: center;
             gap: 0.8rem;
             text-decoration: none;
-            color: var(--text-dark);
+            color: var(--brown); /* LEVEL 1: Brown */
+        }
+
+        .logo-icon {
+            width: 45px;
+            height: 45px;
+            background: var(--brown); /* LEVEL 1: Solid brown instead of gradient */
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--white); /* LEVEL 1: White text */
+            font-size: 1.5rem;
+            font-family: 'BaticaSans', sans-serif;
+            font-weight: 700;
         }
 
         .logo-text {
             font-size: 1.8rem;
             font-weight: 800;
-            color: var(--curry);
+            color: var(--brown); /* LEVEL 1: Brown */
             font-family: 'BaticaSans', sans-serif;
         }
 
@@ -434,7 +488,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         }
 
         .nav-links a:hover {
-            color: var(--curry);
+            color: var(--brown); /* LEVEL 1: Brown hover */
         }
 
         .nav-actions {
@@ -446,7 +500,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         .btn {
             padding: 0.8rem 1.5rem;
             border: none;
-            border-radius: 50px;
+            border-radius: 25px;
             font-weight: 600;
             font-family: 'BaticaSans', sans-serif;
             text-decoration: none;
@@ -459,25 +513,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, var(--curry), var(--brown));
-            color: var(--white);
+            background: var(--brown); /* LEVEL 1: Brown primary */
+            color: var(--white); /* LEVEL 1: White text */
             box-shadow: var(--shadow-soft);
         }
 
         .btn-primary:hover {
+            background: #a8855f; /* Darker brown on hover */
             transform: translateY(-2px);
             box-shadow: var(--shadow-medium);
         }
 
         .btn-secondary {
             background: transparent;
-            color: var(--curry);
-            border: 2px solid var(--curry);
+            color: var(--brown); /* LEVEL 1: Brown */
+            border: 2px solid var(--brown); /* LEVEL 1: Brown border */
         }
 
         .btn-secondary:hover {
-            background: var(--curry);
-            color: var(--white);
+            background: var(--brown); /* LEVEL 1: Brown */
+            color: var(--white); /* LEVEL 1: White */
+        }
+
+        /* Profile Icon Styles */
+        .profile-link {
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .profile-icon {
+            width: 45px;
+            height: 45px;
+            background: var(--brown); /* LEVEL 1: Brown */
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--white); /* LEVEL 1: White */
+            transition: var(--transition);
+            box-shadow: var(--shadow-soft);
+        }
+
+        .profile-icon:hover {
+            background: #a8855f; /* Darker brown on hover */
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .profile-icon svg {
+            width: 24px;
+            height: 24px;
         }
 
         /* Main Container */
@@ -509,11 +594,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             align-items: center;
             gap: 0.5rem;
             padding: 0.8rem 1.5rem;
-            border-radius: var(--radius-xl);
+            border-radius: 25px;
             font-weight: 600;
             font-size: 0.95rem;
             font-family: 'BaticaSans', sans-serif;
-            background: var(--cream);
+            background: var(--white);
             color: var(--text-gray);
             border: 2px solid var(--cream);
             transition: var(--transition);
@@ -521,16 +606,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         }
 
         .progress-step.active {
-            background: var(--curry);
+            background: var(--brown);
             color: var(--white);
-            border-color: var(--curry);
-            box-shadow: 0 4px 12px rgba(207, 114, 58, 0.3);
+            border-color: var(--brown);
+            box-shadow: 0 4px 12px rgba(189, 147, 121, 0.3);
         }
 
         .progress-step.completed {
-            background: var(--success);
+            background: var(--sage);
             color: var(--white);
-            border-color: var(--success);
+            border-color: var(--sage);
         }
 
         .progress-arrow {
@@ -571,51 +656,141 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             color: var(--success);
         }
 
-        /* Filters */
-        .filters-section {
-            background: var(--white);
-            padding: 1.5rem;
-            border-radius: var(--radius-lg);
-            margin-bottom: 2rem;
-            border: 1px solid var(--border-light);
+        /* UPDATED: Filters Section to match menu-nav-container style */
+        .menu-nav-container {
+            margin-bottom: 32px;
+            width: 100%;
+            padding: 20px 0;
+            background: var(--cream); /* LEVEL 2: Cream background */
+            border-radius: 0;
+            box-shadow: none;
+            border-top: 1px solid rgba(189, 147, 121, 0.1);
+            border-bottom: 1px solid rgba(189, 147, 121, 0.1);
+        }
+
+        .menu-nav-container,
+        .menu-nav-container * {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .menu-nav-wrapper {
+            overflow-x: auto;
+            overflow-y: hidden;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            padding: 0 1rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .menu-nav-wrapper::-webkit-scrollbar {
+            display: none;
+        }
+
+        .menu-nav-list {
+            display: flex;
+            gap: 0;
+            min-width: max-content;
+            align-items: center;
+            justify-content: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .menu-nav-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            height: 54px;
+            padding: 0 16px;
+            border: none;
+            border-bottom: 2px solid transparent;
+            background: transparent;
+            cursor: pointer;
+            font-family: 'BaticaSans', Arial, sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            color: #707070;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            text-decoration: none;
+            border-radius: var(--radius-sm);
+            outline: none !important;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .menu-nav-item:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(189, 147, 121, 0.3);
+        }
+
+        .menu-nav-item:hover {
+            color: var(--brown); /* LEVEL 1: Brown hover */
+            background: rgba(189, 147, 121, 0.1); /* Light brown background */
+            border-bottom-color: var(--brown); /* LEVEL 1: Brown */
+        }
+
+        .menu-nav-item.active {
+            color: var(--brown); /* LEVEL 1: Brown active */
+            background: var(--white); /* LEVEL 1: White background */
+            border-bottom-color: var(--brown); /* LEVEL 1: Brown */
             box-shadow: var(--shadow-soft);
         }
 
-        .filters-header {
-            font-size: 1.1rem;
-            font-weight: 700;
-            margin-bottom: 1rem;
-            color: var(--text-dark);
-            font-family: 'BaticaSans', sans-serif;
-        }
-
-        .filters-row {
+        .menu-nav-icon {
+            width: 24px;
+            height: 24px;
             display: flex;
-            gap: 1rem;
             align-items: center;
-            flex-wrap: wrap;
+            justify-content: center;
         }
 
+        .menu-nav-icon svg {
+            width: 100%;
+            height: 100%;
+            fill: #707070;
+            transition: fill 0.3s ease;
+        }
+
+        .menu-nav-item:hover .menu-nav-icon svg {
+            fill: var(--brown); /* LEVEL 1: Brown */
+        }
+
+        .menu-nav-item.active .menu-nav-icon svg {
+            fill: var(--brown); /* LEVEL 1: Brown */
+        }
+
+        .menu-nav-text {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        /* Search box within the nav container */
         .search-box {
-            flex: 1;
-            min-width: 250px;
+            width: 100%;
+            max-width: 400px;
             position: relative;
+            margin: 0 auto;
         }
 
         .search-input {
             width: 100%;
             padding: 0.9rem 1rem 0.9rem 2.8rem;
             border: 2px solid var(--border-light);
-            border-radius: var(--radius-xl);
+            border-radius: 50px;
             font-size: 1rem;
             font-family: 'BaticaSans', sans-serif;
             transition: var(--transition);
+            background: var(--white);
         }
 
         .search-input:focus {
             outline: none;
-            border-color: var(--curry);
-            box-shadow: 0 0 15px rgba(207, 114, 58, 0.2);
+            border-color: var(--brown);
+            box-shadow: 0 0 15px rgba(189, 147, 121, 0.2);
         }
 
         .search-icon {
@@ -625,34 +800,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             transform: translateY(-50%);
             color: var(--text-gray);
             font-size: 1rem;
-        }
-
-        .filter-categories {
-            display: flex;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-        }
-
-        .category-filter {
-            padding: 0.6rem 1.2rem;
-            border: 2px solid var(--border-light);
-            border-radius: var(--radius-xl);
-            background: var(--white);
-            color: var(--text-gray);
-            cursor: pointer;
-            transition: var(--transition);
-            font-size: 0.9rem;
-            font-weight: 600;
-            white-space: nowrap;
-            font-family: 'BaticaSans', sans-serif;
-        }
-
-        .category-filter:hover,
-        .category-filter.active {
-            border-color: var(--curry);
-            background: var(--curry);
-            color: var(--white);
-            transform: translateY(-1px);
         }
 
         /* Menu Grid - 5 columns on desktop */
@@ -752,7 +899,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         .meal-title {
             font-size: 1rem;
             font-weight: 700;
-            color: var(--text-dark);
+            color: var(--brown); /* LEVEL 1: Brown title */
             margin-bottom: 0.6rem;
             line-height: 1.3;
             font-family: 'BaticaSans', sans-serif;
@@ -773,17 +920,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
         .meal-footer {
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
             align-items: center;
             padding-top: 0.8rem;
             border-top: 1px solid var(--border-light);
-        }
-
-        .meal-price {
-            font-size: 1rem;
-            font-weight: 800;
-            color: var(--curry);
-            font-family: 'BaticaSans', sans-serif;
         }
 
         .add-meal-btn {
@@ -791,7 +931,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             color: var(--white);
             border: none;
             padding: 0.5rem 0.8rem;
-            border-radius: var(--radius-xl);
+            border-radius: 50px;
             font-weight: 600;
             cursor: pointer;
             transition: var(--transition);
@@ -830,11 +970,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
         .continue-btn {
             width: 100%;
-            background: linear-gradient(135deg, var(--curry), var(--brown));
-            color: var(--white);
+            background: var(--brown); /* LEVEL 1: Brown primary */
+            color: var(--white); /* LEVEL 1: White */
             border: none;
             padding: 1.2rem 2rem;
-            border-radius: var(--radius-xl);
+            border-radius: 50px;
             font-size: 1.1rem;
             font-weight: 700;
             cursor: pointer;
@@ -844,13 +984,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             align-items: center;
             justify-content: center;
             gap: 0.8rem;
-            box-shadow: 0 4px 12px rgba(207, 114, 58, 0.3);
+            box-shadow: var(--shadow-soft);
         }
 
         .continue-btn:hover:not(:disabled) {
-            background: linear-gradient(135deg, var(--brown), var(--sage));
+            background: #a8855f; /* Darker brown */
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(207, 114, 58, 0.4);
+            box-shadow: var(--shadow-medium);
         }
 
         .continue-btn:disabled {
@@ -878,7 +1018,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         .empty-state h3 {
             font-size: 1.3rem;
             margin-bottom: 0.5rem;
-            color: var(--text-dark);
+            color: var(--brown); /* LEVEL 1: Brown heading */
             font-family: 'BaticaSans', sans-serif;
         }
 
@@ -977,13 +1117,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 right: 10px;
             }
 
-            .filters-row {
-                flex-direction: column;
-                align-items: stretch;
+            .menu-nav-list {
+                justify-content: flex-start;
             }
 
-            .search-box {
-                min-width: 100%;
+            .menu-nav-item {
+                padding: 0 12px;
+                font-size: 13px;
+            }
+            
+            .menu-nav-icon {
+                width: 20px;
+                height: 20px;
             }
 
             .meals-grid {
@@ -1038,12 +1183,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 padding: 1rem;
             }
 
-            .meal-footer {
-                flex-direction: column;
-                gap: 1rem;
-                align-items: stretch;
-            }
-
             .add-meal-btn {
                 justify-content: center;
                 padding: 0.8rem;
@@ -1062,31 +1201,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         <button class="promo-close" onclick="closePromoBanner()" title="Close">×</button>
     </div>
 
-    <!-- Navigation -->
+    <!-- Navigation - EXACT MATCH to home2.php -->
     <nav class="navbar">
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem; max-width: 1200px; margin: 0 auto; width: 100%;">
             <a href="home2.php" class="logo">
-                <img src="./assets/image/LOGO_BG.png" alt="Somdul Table" style="height: 50px; width: auto;">
+                <img src="./assets/image/LOGO_BG2.png" alt="Somdul Table" style="height: 80px; width: auto;">
             </a>
-            <a href="home2.php" class="logo">
-                <span class="logo-text">Somdul Table</span>
-            </a>
-            
+
             <ul class="nav-links">
                 <li><a href="./menus.php">Menu</a></li>
+                <li><a href="./meal-kits.php">Meal-Kits</a></li>
                 <li><a href="home2.php#how-it-works">How It Works</a></li>
-                <li><a href="#about">About</a></li>
-                <li><a href="#contact">Contact</a></li>
+                <li><a href="./blogs.php">About</a></li>
+                <li><a href="./contact.php">Contact</a></li>
             </ul>
             
             <div class="nav-actions">
                 <?php if (isset($_SESSION['user_id'])): ?>
-                    <a href="dashboard.php" class="btn btn-secondary">Dashboard</a>
-                    <a href="logout.php" class="btn btn-primary">Logout</a>
+                    <!-- User is logged in - show profile icon -->
+                    <a href="dashboard.php" class="profile-link" title="Go to Dashboard">
+                        <div class="profile-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                        </div>
+                    </a>
                 <?php else: ?>
+                    <!-- User is not logged in - show sign in button -->
                     <a href="login.php" class="btn btn-secondary">Sign In</a>
-                    <a href="register.php" class="btn btn-primary">Get Started</a>
                 <?php endif; ?>
+                <a href="subscribe.php" class="btn btn-primary">Get Started</a>
             </div>
         </div>
     </nav>
@@ -1127,24 +1272,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             </div>
         </div>
 
-        <!-- Filters -->
-        <div class="filters-section">
-            <div class="filters-header">
-                <i class="fas fa-filter"></i> Search and Filter Menu
-            </div>
-            <div class="filters-row">
+        <!-- Updated Filters Section to match menu-nav-container style -->
+        <div class="menu-nav-container">
+            <div class="menu-nav-wrapper">
+                <!-- Search Box -->
                 <div class="search-box">
                     <i class="fas fa-search search-icon"></i>
                     <input type="text" id="searchInput" class="search-input" placeholder="Search for meals you want...">
                 </div>
                 
-                <div class="filter-categories">
-                    <button class="category-filter active" data-category="all">
-                        All
+                <!-- Category Navigation -->
+                <div class="menu-nav-list">
+                    <!-- All items button -->
+                    <button class="menu-nav-item active" data-category="all">
+                        <span class="menu-nav-icon">
+                            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/>
+                            </svg>
+                        </span>
+                        <span class="menu-nav-text">All Items</span>
                     </button>
+                    
+                    <!-- Dynamic categories from database -->
                     <?php foreach ($categories as $category): ?>
-                        <button class="category-filter" data-category="<?php echo $category['id']; ?>">
-                            <?php echo htmlspecialchars(getCategoryName($category)); ?>
+                        <?php 
+                        $category_name = getCategoryName($category);
+                        $icon_path = $category_icons[$category_name] ?? $default_icon;
+                        ?>
+                        <button class="menu-nav-item" data-category="<?php echo htmlspecialchars($category['id']); ?>">
+                            <span class="menu-nav-icon">
+                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <?php echo $icon_path; ?>
+                                </svg>
+                            </span>
+                            <span class="menu-nav-text">
+                                <?php echo htmlspecialchars($category_name); ?>
+                            </span>
                         </button>
                     <?php endforeach; ?>
                 </div>
@@ -1197,10 +1360,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                             <?php endif; ?>
                             
                             <div class="meal-footer">
-                                <div class="meal-price">
-                                    $<?php echo number_format($menu['base_price']/100, 2); ?>
-                                </div>
-                                <button class="add-meal-btn" onclick="event.stopPropagation(); toggleMealSelection('<?php echo $menu['id']; ?>')">
+                                <button class="add-meal-btn" onclick="event.stopPropagation(); toggleMealSelection('<?php echo $menu['id']; ?>')" style="width: 100%;">
                                     <i class="fas fa-plus"></i>
                                     <span>Add</span>
                                 </button>
@@ -1250,9 +1410,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         window.addEventListener('scroll', function() {
             const navbar = document.querySelector('.navbar');
             if (window.scrollY > 100) {
-                navbar.style.background = 'rgba(255, 255, 255, 0.98)';
+                navbar.style.background = '#ece8e1';
             } else {
-                navbar.style.background = 'rgba(255, 255, 255, 0.95)';
+                navbar.style.background = '#ece8e1';
             }
         });
 
@@ -1299,11 +1459,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             const searchInput = document.getElementById('searchInput');
             searchInput.addEventListener('input', debounce(filterMeals, 300));
 
-            // Category filters
-            document.querySelectorAll('.category-filter').forEach(filter => {
+            // Category filters - Updated for new nav structure
+            document.querySelectorAll('.menu-nav-item').forEach(filter => {
                 filter.addEventListener('click', function() {
                     // Update active filter
-                    document.querySelectorAll('.category-filter').forEach(f => f.classList.remove('active'));
+                    document.querySelectorAll('.menu-nav-item').forEach(f => f.classList.remove('active'));
                     this.classList.add('active');
                     filterMeals();
                 });
@@ -1391,7 +1551,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
         function filterMeals() {
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            const activeCategory = document.querySelector('.category-filter.active').dataset.category;
+            const activeCategory = document.querySelector('.menu-nav-item.active').dataset.category;
             
             let visibleCount = 0;
             

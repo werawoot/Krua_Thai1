@@ -90,55 +90,74 @@ function getPlanDescription($plan) {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Choose Your Meal Package | Somdul Table</title>
     <meta name="description" content="Choose your perfect meal package from Somdul Table - Authentic Thai cuisine delivered fresh to your door">
     
-    <!-- BaticaSans Font Import -->
-    <link rel="preconnect" href="https://ydpschool.com">
     <style>
+        /* BaticaSans Font Import - Local Files */
         @font-face {
             font-family: 'BaticaSans';
-            src: url('https://ydpschool.com/fonts/BaticaSans-Regular.woff2') format('woff2'),
-                 url('https://ydpschool.com/fonts/BaticaSans-Regular.woff') format('woff'),
-                 url('https://ydpschool.com/fonts/BaticaSans-Regular.ttf') format('truetype');
+            src: url('./Font/BaticaSans-Regular.woff2') format('woff2'),
+                url('./Font/BaticaSans-Regular.woff') format('woff'),
+                url('./Font/BaticaSans-Regular.ttf') format('truetype');
             font-weight: 400;
             font-style: normal;
             font-display: swap;
         }
-        
+
         @font-face {
             font-family: 'BaticaSans';
-            src: url('https://ydpschool.com/fonts/BaticaSans-Bold.woff2') format('woff2'),
-                 url('https://ydpschool.com/fonts/BaticaSans-Bold.woff') format('woff'),
-                 url('https://ydpschool.com/fonts/BaticaSans-Bold.ttf') format('truetype');
-            font-weight: 700;
-            font-style: normal;
+            src: url('./Font/BaticaSans-Italic.woff2') format('woff2'),
+                url('./Font/BaticaSans-Italic.woff') format('woff'),
+                url('./Font/BaticaSans-Italic.ttf') format('truetype');
+            font-weight: 400;
+            font-style: italic;
             font-display: swap;
         }
-        
+
+        /* Fallback for bold/medium weights - browser will simulate them */
         @font-face {
             font-family: 'BaticaSans';
-            src: url('https://ydpschool.com/fonts/BaticaSans-Medium.woff2') format('woff2'),
-                 url('https://ydpschool.com/fonts/BaticaSans-Medium.woff') format('woff'),
-                 url('https://ydpschool.com/fonts/BaticaSans-Medium.ttf') format('truetype');
+            src: url('./Font/BaticaSans-Regular.woff2') format('woff2'),
+                url('./Font/BaticaSans-Regular.woff') format('woff'),
+                url('./Font/BaticaSans-Regular.ttf') format('truetype');
             font-weight: 500;
             font-style: normal;
             font-display: swap;
         }
-    </style>
-    
-    <style>
-        /* CSS Custom Properties for Somdul Table Design System */
+
+        @font-face {
+            font-family: 'BaticaSans';
+            src: url('./Font/BaticaSans-Regular.woff2') format('woff2'),
+                url('./Font/BaticaSans-Regular.woff') format('woff'),
+                url('./Font/BaticaSans-Regular.ttf') format('truetype');
+            font-weight: 700;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        /* IMPROVED CSS Custom Properties for Somdul Table Design System - COLOR HIERARCHY ONLY */
         :root {
+            /* LEVEL 1 (MOST IMPORTANT): BROWN #bd9379 + WHITE */
             --brown: #bd9379;
-            --cream: #ece8e1;
-            --sage: #adb89d;
-            --curry: #cf723a;
             --white: #ffffff;
+            
+            /* LEVEL 2 (SECONDARY): CREAM #ece8e1 */
+            --cream: #ece8e1;
+            
+            /* LEVEL 3 (SUPPORTING): SAGE #adb89d */
+            --sage: #adb89d;
+            
+            /* LEVEL 4 (ACCENT/CONTRAST - LEAST USED): CURRY #cf723a */
+            --curry: #cf723a;
+            
+            /* Text colors using brown hierarchy */
             --text-dark: #2c3e50;
             --text-gray: #7f8c8d;
-            --border-light: #e8e8e8;
+            --border-light: #d4c4b8; /* Brown-tinted border */
+            
+            /* Shadows using brown as base (Level 1) */
             --shadow-soft: 0 4px 12px rgba(189, 147, 121, 0.15);
             --shadow-medium: 0 8px 24px rgba(189, 147, 121, 0.25);
             --shadow-large: 0 16px 48px rgba(189, 147, 121, 0.3);
@@ -147,6 +166,8 @@ function getPlanDescription($plan) {
             --radius-lg: 16px;
             --radius-xl: 24px;
             --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            
+            /* Status colors */
             --success: #27ae60;
             --danger: #e74c3c;
             --warning: #f39c12;
@@ -161,29 +182,29 @@ function getPlanDescription($plan) {
 
         body {
             font-family: 'BaticaSans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, var(--cream) 0%, #f8f9fa 100%);
+            background-color: var(--white); /* LEVEL 1: White */
             color: var(--text-dark);
             line-height: 1.6;
             min-height: 100vh;
             font-weight: 400;
         }
 
-        /* Typography using BaticaSans */
+        /* Typography using BaticaSans - LEVEL 1: Brown for headings */
         h1, h2, h3, h4, h5, h6 {
             font-family: 'BaticaSans', sans-serif;
             font-weight: 700;
             line-height: 1.2;
-            color: var(--text-dark);
+            color: var(--brown); /* LEVEL 1: Brown instead of text-dark */
         }
 
-        /* Promotional Banner */
+        /* Promotional Banner Styles - LEVEL 4: Curry for special promos */
         .promo-banner {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
-            background: linear-gradient(135deg, var(--curry) 0%, #e67e22 100%);
-            color: var(--white);
+            background: #cf723a; /* LEVEL 4: Curry for promotional banner */
+            color: var(--white); /* LEVEL 1: White */
             text-align: center;
             padding: 8px 20px;
             font-family: 'BaticaSans', sans-serif;
@@ -219,7 +240,7 @@ function getPlanDescription($plan) {
             transform: translateY(-50%);
             background: none;
             border: none;
-            color: var(--white);
+            color: var(--white); /* LEVEL 1: White */
             font-size: 18px;
             cursor: pointer;
             opacity: 0.8;
@@ -257,18 +278,25 @@ function getPlanDescription($plan) {
             top: 38px;
             left: 0;
             right: 0;
-            background: rgba(255, 255, 255, 0.95);
+            background: #ece8e1;
             backdrop-filter: blur(10px);
             z-index: 1000;
             transition: var(--transition);
             box-shadow: var(--shadow-soft);
         }
 
+        .navbar, .navbar * {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
         nav {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 1rem 2rem;
             width: 100%;
         }
 
@@ -277,13 +305,27 @@ function getPlanDescription($plan) {
             align-items: center;
             gap: 0.8rem;
             text-decoration: none;
-            color: var(--text-dark);
+            color: var(--brown); /* LEVEL 1: Brown */
+        }
+
+        .logo-icon {
+            width: 45px;
+            height: 45px;
+            background: var(--brown); /* LEVEL 1: Solid brown instead of gradient */
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--white); /* LEVEL 1: White text */
+            font-size: 1.5rem;
+            font-family: 'BaticaSans', sans-serif;
+            font-weight: 700;
         }
 
         .logo-text {
             font-size: 1.8rem;
             font-weight: 800;
-            color: var(--curry);
+            color: var(--brown); /* LEVEL 1: Brown */
             font-family: 'BaticaSans', sans-serif;
         }
 
@@ -303,7 +345,7 @@ function getPlanDescription($plan) {
         }
 
         .nav-links a:hover {
-            color: var(--curry);
+            color: var(--brown); /* LEVEL 1: Brown hover */
         }
 
         .nav-actions {
@@ -328,25 +370,56 @@ function getPlanDescription($plan) {
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, var(--curry), var(--brown));
-            color: var(--white);
+            background: var(--brown); /* LEVEL 1: Brown primary */
+            color: var(--white); /* LEVEL 1: White text */
             box-shadow: var(--shadow-soft);
         }
 
         .btn-primary:hover {
+            background: #a8855f; /* Darker brown on hover */
             transform: translateY(-2px);
             box-shadow: var(--shadow-medium);
         }
 
         .btn-secondary {
             background: transparent;
-            color: var(--curry);
-            border: 2px solid var(--curry);
+            color: var(--brown); /* LEVEL 1: Brown */
+            border: 2px solid var(--brown); /* LEVEL 1: Brown border */
         }
 
         .btn-secondary:hover {
-            background: var(--curry);
-            color: var(--white);
+            background: var(--brown); /* LEVEL 1: Brown */
+            color: var(--white); /* LEVEL 1: White */
+        }
+
+        /* Profile Icon Styles */
+        .profile-link {
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .profile-icon {
+            width: 45px;
+            height: 45px;
+            background: var(--brown); /* LEVEL 1: Brown */
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--white); /* LEVEL 1: White */
+            transition: var(--transition);
+            box-shadow: var(--shadow-soft);
+        }
+
+        .profile-icon:hover {
+            background: #a8855f; /* Darker brown on hover */
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .profile-icon svg {
+            width: 24px;
+            height: 24px;
         }
 
         /* Main Container */
@@ -358,7 +431,7 @@ function getPlanDescription($plan) {
 
         /* Progress Bar */
         .progress-container {
-            background: var(--white);
+            background: var(--white); /* LEVEL 1: White */
             border-radius: var(--radius-lg);
             padding: 2rem;
             margin-bottom: 3rem;
@@ -382,35 +455,35 @@ function getPlanDescription($plan) {
             font-weight: 600;
             font-size: 0.95rem;
             font-family: 'BaticaSans', sans-serif;
-            background: var(--cream);
+            background: var(--cream); /* LEVEL 2: Cream */
             color: var(--text-gray);
-            border: 2px solid var(--cream);
+            border: 2px solid var(--cream); /* LEVEL 2: Cream */
             transition: var(--transition);
             white-space: nowrap;
         }
 
         .progress-step.active {
-            background: var(--curry);
-            color: var(--white);
-            border-color: var(--curry);
-            box-shadow: 0 4px 12px rgba(207, 114, 58, 0.3);
+            background: var(--brown); /* LEVEL 1: Brown */
+            color: var(--white); /* LEVEL 1: White */
+            border-color: var(--brown); /* LEVEL 1: Brown */
+            box-shadow: 0 4px 12px rgba(189, 147, 121, 0.3);
         }
 
         .progress-step.completed {
             background: var(--success);
-            color: var(--white);
+            color: var(--white); /* LEVEL 1: White */
             border-color: var(--success);
         }
 
         .progress-arrow {
-            color: var(--sage);
+            color: var(--sage); /* LEVEL 3: Sage */
             font-size: 1.2rem;
             font-weight: 600;
         }
 
         /* Hero Section */
         .hero-section {
-            background: var(--white);
+            background: var(--white); /* LEVEL 1: White */
             border-radius: var(--radius-xl);
             padding: 3rem 2rem;
             text-align: center;
@@ -427,13 +500,13 @@ function getPlanDescription($plan) {
             left: 0;
             right: 0;
             height: 4px;
-            background: linear-gradient(90deg, var(--curry), var(--brown), var(--sage));
+            background: linear-gradient(90deg, var(--brown), var(--sage), var(--curry)); /* All theme colors */
         }
 
         .hero-title {
             font-size: 2.5rem;
             font-weight: 700;
-            color: var(--text-dark);
+            color: var(--brown); /* LEVEL 1: Brown */
             margin-bottom: 1rem;
             font-family: 'BaticaSans', sans-serif;
         }
@@ -458,9 +531,9 @@ function getPlanDescription($plan) {
             align-items: center;
             gap: 0.5rem;
             padding: 0.8rem 1.5rem;
-            background: var(--cream);
+            background: var(--cream); /* LEVEL 2: Cream */
             border-radius: var(--radius-lg);
-            color: var(--curry);
+            color: var(--brown); /* LEVEL 1: Brown */
             font-weight: 600;
             font-family: 'BaticaSans', sans-serif;
         }
@@ -479,7 +552,7 @@ function getPlanDescription($plan) {
             font-weight: 700;
             text-align: center;
             margin-bottom: 1rem;
-            color: var(--text-dark);
+            color: var(--brown); /* LEVEL 1: Brown */
             font-family: 'BaticaSans', sans-serif;
         }
 
@@ -501,7 +574,7 @@ function getPlanDescription($plan) {
         }
 
         .plan-card {
-            background: var(--white);
+            background: var(--white); /* LEVEL 1: White */
             border-radius: var(--radius-xl);
             box-shadow: var(--shadow-soft);
             padding: 2.5rem 2rem;
@@ -519,7 +592,7 @@ function getPlanDescription($plan) {
             left: 0;
             right: 0;
             height: 3px;
-            background: var(--sage);
+            background: var(--sage); /* LEVEL 3: Sage */
             transform: scaleX(0);
             transition: var(--transition);
         }
@@ -527,22 +600,22 @@ function getPlanDescription($plan) {
         .plan-card:hover {
             transform: translateY(-5px);
             box-shadow: var(--shadow-large);
-            border-color: var(--curry);
+            border-color: var(--brown); /* LEVEL 1: Brown */
         }
 
         .plan-card:hover::before {
             transform: scaleX(1);
-            background: var(--curry);
+            background: var(--brown); /* LEVEL 1: Brown */
         }
 
         .plan-card.selected {
-            border-color: var(--curry);
-            box-shadow: 0 8px 32px rgba(207, 114, 58, 0.2);
+            border-color: var(--brown); /* LEVEL 1: Brown */
+            box-shadow: 0 8px 32px rgba(189, 147, 121, 0.2);
         }
 
         .plan-card.selected::before {
             transform: scaleX(1);
-            background: var(--curry);
+            background: var(--brown); /* LEVEL 1: Brown */
         }
 
         .plan-card.selected::after {
@@ -551,7 +624,7 @@ function getPlanDescription($plan) {
             top: 1.5rem;
             right: 1.5rem;
             background: var(--success);
-            color: var(--white);
+            color: var(--white); /* LEVEL 1: White */
             width: 2.5rem;
             height: 2.5rem;
             border-radius: 50%;
@@ -565,7 +638,7 @@ function getPlanDescription($plan) {
         .plan-name {
             font-size: 1.5rem;
             font-weight: 700;
-            color: var(--curry);
+            color: var(--brown); /* LEVEL 1: Brown */
             margin-bottom: 0.5rem;
             font-family: 'BaticaSans', sans-serif;
         }
@@ -581,14 +654,14 @@ function getPlanDescription($plan) {
         .plan-price {
             font-size: 2.5rem;
             font-weight: 800;
-            color: var(--text-dark);
+            color: var(--brown); /* LEVEL 1: Brown */
             margin-bottom: 0.5rem;
             font-family: 'BaticaSans', sans-serif;
         }
 
         .plan-price .currency {
             font-size: 1.5rem;
-            color: var(--curry);
+            color: var(--curry); /* LEVEL 4: Curry accent */
         }
 
         .plan-period {
@@ -634,22 +707,22 @@ function getPlanDescription($plan) {
             gap: 0.5rem;
             padding: 1rem 2rem;
             border-radius: var(--radius-xl);
-            background: linear-gradient(135deg, var(--curry), var(--brown));
-            color: var(--white);
+            background: var(--brown); /* LEVEL 1: Brown */
+            color: var(--white); /* LEVEL 1: White */
             font-weight: 700;
             font-size: 1.1rem;
             text-decoration: none;
             border: none;
             cursor: pointer;
             transition: var(--transition);
-            box-shadow: 0 4px 12px rgba(207, 114, 58, 0.3);
+            box-shadow: var(--shadow-soft);
             font-family: 'BaticaSans', sans-serif;
         }
 
         .plan-button:hover {
-            background: linear-gradient(135deg, var(--brown), var(--sage));
+            background: #a8855f; /* Darker brown */
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(207, 114, 58, 0.4);
+            box-shadow: var(--shadow-medium);
         }
 
         .plan-button:active {
@@ -665,7 +738,7 @@ function getPlanDescription($plan) {
         }
 
         .price-per-meal .highlight {
-            color: var(--curry);
+            color: var(--curry); /* LEVEL 4: Curry */
             font-weight: 600;
         }
 
@@ -676,14 +749,6 @@ function getPlanDescription($plan) {
                 padding: 6px 15px;
             }
             
-            .navbar {
-                top: 32px;
-            }
-            
-            .container {
-                padding: 100px 1rem 3rem;
-            }
-            
             .promo-banner-content {
                 flex-direction: column;
                 gap: 5px;
@@ -691,6 +756,14 @@ function getPlanDescription($plan) {
             
             .promo-close {
                 right: 10px;
+            }
+            
+            .navbar {
+                top: 32px;
+            }
+            
+            .container {
+                padding: 100px 1rem 3rem;
             }
 
             .hero-title {
@@ -766,7 +839,7 @@ function getPlanDescription($plan) {
     <!-- Promotional Banner -->
     <div class="promo-banner" id="promoBanner">
         <div class="promo-banner-content">
-            <span class="promo-icon">🍪</span>
+            <span class="promo-icon">🪙</span>
             <span class="promo-text">50% OFF First Week + Free Cookies for Life</span>
             <span class="promo-icon">🎉</span>
         </div>
@@ -777,24 +850,31 @@ function getPlanDescription($plan) {
     <nav class="navbar">
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem; max-width: 1200px; margin: 0 auto; width: 100%;">
             <a href="home2.php" class="logo">
-                <img src="./assets/image/LOGO_BG.png" alt="Somdul Table" style="height: 50px; width: auto;">
-            </a>
-            <a href="home2.php" class="logo">
-                <span class="logo-text">Somdul Table</span>
+                <img src="./assets/image/LOGO_BG2.png" alt="Somdul Table" style="height: 80px; width: auto;">
             </a>
             
             <ul class="nav-links">
                 <li><a href="./menus.php">Menu</a></li>
+                <li><a href="./meal-kits.php">Meal-Kits</a></li>
                 <li><a href="home2.php#how-it-works">How It Works</a></li>
-                <li><a href="#about">About</a></li>
-                <li><a href="#contact">Contact</a></li>
+                <li><a href="./blogs.php">About</a></li>
+                <li><a href="./contact.php">Contact</a></li>
             </ul>
             
             <div class="nav-actions">
                 <?php if (isset($_SESSION['user_id'])): ?>
-                    <a href="dashboard.php" class="btn btn-secondary">Dashboard</a>
+                    <!-- User is logged in - show profile icon -->
+                    <a href="dashboard.php" class="profile-link" title="Go to Dashboard">
+                        <div class="profile-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                        </div>
+                    </a>
                     <a href="logout.php" class="btn btn-primary">Logout</a>
                 <?php else: ?>
+                    <!-- User is not logged in - show sign in button -->
                     <a href="login.php" class="btn btn-secondary">Sign In</a>
                     <a href="register.php" class="btn btn-primary">Get Started</a>
                 <?php endif; ?>
@@ -974,9 +1054,9 @@ function getPlanDescription($plan) {
         window.addEventListener('scroll', function() {
             const navbar = document.querySelector('.navbar');
             if (window.scrollY > 100) {
-                navbar.style.background = 'rgba(255, 255, 255, 0.98)';
+                navbar.style.background = 'rgba(236, 232, 225, 0.98)';
             } else {
-                navbar.style.background = 'rgba(255, 255, 255, 0.95)';
+                navbar.style.background = '#ece8e1';
             }
         });
     </script>
