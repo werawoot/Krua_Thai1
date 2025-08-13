@@ -2189,31 +2189,6 @@ tbody tr:hover {
     </header>
 
     <div class="container">
-        <!-- Progress Bar -->
-        <div class="progress-container">
-            <div class="progress-bar">
-                <div class="progress-step completed">
-                    <i class="fas fa-check-circle"></i>
-                    <span>Choose Plan</span>
-                </div>
-                <span class="progress-arrow">→</span>
-                <div class="progress-step completed">
-                    <i class="fas fa-check-circle"></i>
-                    <span>Select Meals</span>
-                </div>
-                <span class="progress-arrow">→</span>
-                <div class="progress-step completed">
-                    <i class="fas fa-check-circle"></i>
-                    <span>Payment</span>
-                </div>
-                <span class="progress-arrow">→</span>
-                <div class="progress-step completed">
-                    <i class="fas fa-check-double"></i>
-                    <span>Complete</span>
-                </div>
-            </div>
-        </div>
-
         <!-- Page Title -->
         <h1 class="page-title">
             <i class="fas fa-clipboard-list"></i>

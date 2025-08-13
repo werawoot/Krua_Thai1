@@ -64,8 +64,6 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
     <title>Somdul Table - Authentic Thai Restaurant Management</title>
     <meta name="description" content="Experience authentic Thai cuisine with Somdul Table - Your premier Thai restaurant management system in the US">
     
-    <!-- BaticaSans Font Import -->
-    <link rel="preconnect" href="https://ydpschool.com">
     <style>
     /* How It Works Section - Updated Styles */
     .hiw-items {
@@ -473,48 +471,72 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
         }
     }
 
+    /* BaticaSans Font Import - Local Files */
+    @font-face {
+        font-family: 'BaticaSans';
+        src: url('./Font/BaticaSans-Regular.woff2') format('woff2'),
+            url('./Font/BaticaSans-Regular.woff') format('woff'),
+            url('./Font/BaticaSans-Regular.ttf') format('truetype');
+        font-weight: 400;
+        font-style: normal;
+        font-display: swap;
+    }
+
         @font-face {
             font-family: 'BaticaSans';
-            src: url('https://ydpschool.com/fonts/BaticaSans-Regular.woff2') format('woff2'),
-                 url('https://ydpschool.com/fonts/BaticaSans-Regular.woff') format('woff'),
-                 url('https://ydpschool.com/fonts/BaticaSans-Regular.ttf') format('truetype');
+            src: url('./Font/BaticaSans-Italic.woff2') format('woff2'),
+                url('./Font/BaticaSans-Italic.woff') format('woff'),
+                url('./Font/BaticaSans-Italic.ttf') format('truetype');
             font-weight: 400;
-            font-style: normal;
+            font-style: italic;
             font-display: swap;
         }
-        
+
+        /* Fallback for bold/medium weights - browser will simulate them */
         @font-face {
             font-family: 'BaticaSans';
-            src: url('https://ydpschool.com/fonts/BaticaSans-Bold.woff2') format('woff2'),
-                 url('https://ydpschool.com/fonts/BaticaSans-Bold.woff') format('woff'),
-                 url('https://ydpschool.com/fonts/BaticaSans-Bold.ttf') format('truetype');
-            font-weight: 700;
-            font-style: normal;
-            font-display: swap;
-        }
-        
-        @font-face {
-            font-family: 'BaticaSans';
-            src: url('https://ydpschool.com/fonts/BaticaSans-Medium.woff2') format('woff2'),
-                 url('https://ydpschool.com/fonts/BaticaSans-Medium.woff') format('woff'),
-                 url('https://ydpschool.com/fonts/BaticaSans-Medium.ttf') format('truetype');
+            src: url('./Font/BaticaSans-Regular.woff2') format('woff2'),
+                url('./Font/BaticaSans-Regular.woff') format('woff'),
+                url('./Font/BaticaSans-Regular.ttf') format('truetype');
             font-weight: 500;
             font-style: normal;
             font-display: swap;
         }
+
+        @font-face {
+            font-family: 'BaticaSans';
+            src: url('./Font/BaticaSans-Regular.woff2') format('woff2'),
+                url('./Font/BaticaSans-Regular.woff') format('woff'),
+                url('./Font/BaticaSans-Regular.ttf') format('truetype');
+            font-weight: 700;
+            font-style: normal;
+            font-display: swap;
+        }
+        }
     </style>
     
     <style>
-        /* CSS Custom Properties for Somdul Table Design System */
+        /* IMPROVED CSS Custom Properties for Somdul Table Design System - COLOR HIERARCHY ONLY */
         :root {
+            /* LEVEL 1 (MOST IMPORTANT): BROWN #bd9379 + WHITE */
             --brown: #bd9379;
-            --cream: #ece8e1;
-            --sage: #adb89d;
-            --curry: #cf723a;
             --white: #ffffff;
+            
+            /* LEVEL 2 (SECONDARY): CREAM #ece8e1 */
+            --cream: #ece8e1;
+            
+            /* LEVEL 3 (SUPPORTING): SAGE #adb89d */
+            --sage: #adb89d;
+            
+            /* LEVEL 4 (ACCENT/CONTRAST - LEAST USED): CURRY #cf723a */
+            --curry: #cf723a;
+            
+            /* Text colors using brown hierarchy */
             --text-dark: #2c3e50;
             --text-gray: #7f8c8d;
-            --border-light: #e8e8e8;
+            --border-light: #d4c4b8; /* Brown-tinted border */
+            
+            /* Shadows using brown as base (Level 1) */
             --shadow-soft: 0 4px 12px rgba(189, 147, 121, 0.15);
             --shadow-medium: 0 8px 24px rgba(189, 147, 121, 0.25);
             --radius-sm: 8px;
@@ -537,12 +559,12 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
             font-weight: 400;
         }
 
-        /* Typography using BaticaSans */
+        /* Typography using BaticaSans - LEVEL 1: Brown for headings */
         h1, h2, h3, h4, h5, h6 {
             font-family: 'BaticaSans', sans-serif;
             font-weight: 700;
             line-height: 1.2;
-            color: var(--text-dark);
+            color: var(--brown); /* LEVEL 1: Brown instead of text-dark */
         }
 
         .navbar {
@@ -550,18 +572,25 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
             top: 38px;
             left: 0;
             right: 0;
-            background: rgba(255, 255, 255, 0.95);
+            background: #ece8e1;
             backdrop-filter: blur(10px);
             z-index: 1000;
             transition: var(--transition);
             box-shadow: var(--shadow-soft);
         }
 
+        .navbar, .navbar * {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
         nav {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 1rem 2rem;
             width: 100%;
         }
 
@@ -570,18 +599,18 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
             align-items: center;
             gap: 0.8rem;
             text-decoration: none;
-            color: var(--text-dark);
+            color: var(--brown); /* LEVEL 1: Brown */
         }
 
         .logo-icon {
             width: 45px;
             height: 45px;
-            background: linear-gradient(135deg, var(--curry), var(--brown));
+            background: var(--brown); /* LEVEL 1: Solid brown instead of gradient */
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: var(--white);
+            color: var(--white); /* LEVEL 1: White text */
             font-size: 1.5rem;
             font-family: 'BaticaSans', sans-serif;
             font-weight: 700;
@@ -590,7 +619,7 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
         .logo-text {
             font-size: 1.8rem;
             font-weight: 800;
-            color: var(--curry);
+            color: var(--brown); /* LEVEL 1: Brown */
             font-family: 'BaticaSans', sans-serif;
         }
 
@@ -610,7 +639,7 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
         }
 
         .nav-links a:hover {
-            color: var(--curry);
+            color: var(--brown); /* LEVEL 1: Brown hover */
         }
 
         .nav-actions {
@@ -635,25 +664,56 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, var(--curry), var(--brown));
-            color: var(--white);
+            background: var(--brown); /* LEVEL 1: Brown primary */
+            color: var(--white); /* LEVEL 1: White text */
             box-shadow: var(--shadow-soft);
         }
 
         .btn-primary:hover {
+            background: #a8855f; /* Darker brown on hover */
             transform: translateY(-2px);
             box-shadow: var(--shadow-medium);
         }
 
         .btn-secondary {
             background: transparent;
-            color: var(--curry);
-            border: 2px solid var(--curry);
+            color: var(--brown); /* LEVEL 1: Brown */
+            border: 2px solid var(--brown); /* LEVEL 1: Brown border */
         }
 
         .btn-secondary:hover {
-            background: var(--curry);
-            color: var(--white);
+            background: var(--brown); /* LEVEL 1: Brown */
+            color: var(--white); /* LEVEL 1: White */
+        }
+
+        /* Profile Icon Styles */
+        .profile-link {
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .profile-icon {
+            width: 45px;
+            height: 45px;
+            background: var(--brown); /* LEVEL 1: Brown */
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--white); /* LEVEL 1: White */
+            transition: var(--transition);
+            box-shadow: var(--shadow-soft);
+        }
+
+        .profile-icon:hover {
+            background: #a8855f; /* Darker brown on hover */
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .profile-icon svg {
+            width: 24px;
+            height: 24px;
         }
 
         /* Hero Section */
@@ -663,7 +723,7 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
             display: flex;
             align-items: center;
             padding: 80px 2rem 2rem;
-            background: url('./assets/image/padthai2.png') center/cover no-repeat, linear-gradient(135deg, var(--cream) 0%, #f8f9fa 100%);
+            background: url('./assets/image/padthai2.png') center/cover no-repeat, linear-gradient(135deg, var(--cream) 0%, #f8f9fa 100%); /* LEVEL 2: Cream background */
             position: relative;
             overflow: hidden;
             margin-top: 0;
@@ -686,7 +746,7 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(135deg, var(--white) 0%, #f8f9fa 100%);
+            background: linear-gradient(135deg, var(--white) 0%, var(--cream) 100%); /* LEVEL 1 & 2: White to cream */
             z-index: -1;
         }
 
@@ -701,7 +761,7 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
             font-size: 4rem;
             margin-bottom: 1.5rem;
             font-weight: 800;
-            color: var(--text-dark);
+            color: var(--brown); /* LEVEL 1: Brown title */
             line-height: 1.1;
             font-family: 'BaticaSans', sans-serif;
         }
@@ -730,18 +790,18 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
         .zip-input {
             width: 100%;
             padding: 1rem 1.5rem;
-            border: 2px solid #e0e0e0;
+            border: 2px solid var(--border-light); /* Brown-tinted border */
             border-radius: 50px;
             font-size: 1.1rem;
             font-family: 'BaticaSans', sans-serif;
-            background: var(--white);
+            background: var(--white); /* LEVEL 1: White */
             transition: all 0.3s;
             outline: none;
         }
 
         .zip-input:focus {
-            border-color: var(--curry);
-            box-shadow: 0 0 0 3px rgba(207, 114, 58, 0.1);
+            border-color: var(--brown); /* LEVEL 1: Brown focus */
+            box-shadow: 0 0 0 3px rgba(189, 147, 121, 0.1);
         }
 
         .zip-input::placeholder {
@@ -750,8 +810,8 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
         }
 
         .order-now-button {
-            background: var(--curry);
-            color: var(--white);
+            background: #cf723a ; /* LEVEL 1: Brown */
+            color: var(--white); /* LEVEL 1: White */
             padding: 1rem 2.5rem;
             border: none;
             border-radius: 50px;
@@ -768,7 +828,7 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
         }
 
         .order-now-button:hover {
-            background: var(--brown);
+            background: #cf723a ; /* Darker brown */
             transform: translateY(-2px);
             box-shadow: var(--shadow-medium);
         }
@@ -825,11 +885,11 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
             max-width: 200px; /* Adjust based on your layout needs */
             overflow: hidden;
             border-radius: 0px;
-            background: linear-gradient(45deg, var(--curry), var(--brown));
+            background: linear-gradient(45deg, var(--brown), var(--sage)); /* LEVEL 1 & 3: Brown and sage */
             display: flex;
             align-items: center;
             justify-content: center;
-            color: var(--white);
+            color: var(--white); /* LEVEL 1: White */
             font-weight: 600;
             font-family: 'BaticaSans', sans-serif;
             font-size: 1.2rem;
@@ -893,8 +953,8 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
             180deg,
             transparent 0%,
             transparent 40%,
-            rgba(0, 0, 0, 0.3) 70%,
-            rgba(0, 0, 0, 0.8) 100%
+            rgba(189, 147, 121, 0.3) 70%, /* LEVEL 1: Brown overlay instead of black */
+            rgba(189, 147, 121, 0.8) 100%
         );
     }
 
@@ -904,7 +964,7 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
         left: 0;
         right: 0;
         padding: 1.5rem;
-        color: var(--white);
+        color: var(--white); /* LEVEL 1: White */
         z-index: 2;
     }
 
@@ -913,7 +973,7 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
         font-weight: 700;
         margin-bottom: 0.5rem;
         font-family: 'BaticaSans', sans-serif;
-        color: var(--white) !important;
+        color: var(--white) !important; /* LEVEL 1: White */
     }
 
     .meal-card-description {
@@ -957,9 +1017,9 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
         width: 50px;
         height: 50px;
         border-radius: 50%;
-        border: 2px solid var(--curry);
-        background: var(--white);
-        color: var(--curry);
+        border: 2px solid var(--brown); /* LEVEL 1: Brown border */
+        background: var(--white); /* LEVEL 1: White */
+        color: var(--brown); /* LEVEL 1: Brown */
         cursor: pointer;
         display: flex;
         align-items: center;
@@ -969,8 +1029,8 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
     }
 
     .scroll-btn:hover {
-        background: var(--curry);
-        color: var(--white);
+        background: var(--brown); /* LEVEL 1: Brown */
+        color: var(--white); /* LEVEL 1: White */
     }
 
     .scroll-btn:disabled {
@@ -1000,7 +1060,7 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
         /* Steps Section */
         .steps-section {
             padding: 5rem 2rem;
-            background: var(--white);
+            background: var(--cream); /* LEVEL 2: Cream background */
         }
 
         .steps-container {
@@ -1012,7 +1072,7 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
         .steps-title {
             font-size: 2.5rem;
             margin-bottom: 3rem;
-            color: var(--text-dark);
+            color: var(--brown); /* LEVEL 1: Brown */
             font-family: 'BaticaSans', sans-serif;
             font-weight: 700;
         }
@@ -1031,8 +1091,8 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
         .step-number {
             width: 80px;
             height: 80px;
-            background: var(--curry);
-            color: var(--white);
+            background: var(--brown); /* LEVEL 1: Brown */
+            color: var(--white); /* LEVEL 1: White */
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -1046,7 +1106,7 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
         .step h3 {
             font-size: 1.3rem;
             margin-bottom: 1rem;
-            color: var(--text-dark);
+            color: var(--brown); /* LEVEL 1: Brown */
             font-family: 'BaticaSans', sans-serif;
             font-weight: 600;
         }
@@ -1061,10 +1121,6 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
         .promo-banner {
             font-size: 12px;
             padding: 6px 15px;
-        }
-        
-        .navbar {
-            top: 32px; /* UPDATE THIS */
         }
         
         .hero-section {
@@ -1151,16 +1207,27 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
         }
 .menu-nav-container {
     margin-bottom: 32px;
-    max-width: 1200px;
-    margin: 0 auto;
+    /* Remove max-width and centering margin */
+    width: 100%; /* Full width */
     padding: 20px 0;
+    background: var(--cream); /* LEVEL 2: Cream background */
+    border-radius: 0; /* Remove border radius for full width */
+    box-shadow: none; /* Remove shadow for cleaner full-width look */
+    /* Add a subtle border instead */
+    border-top: 1px solid rgba(189, 147, 121, 0.1);
+    border-bottom: 1px solid rgba(189, 147, 121, 0.1);
 }
+
 
 .menu-nav-wrapper {
     overflow-x: auto;
     overflow-y: hidden;
     scrollbar-width: none;
     -ms-overflow-style: none;
+    padding: 0 1rem;
+    /* Center the content */
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
 .menu-nav-wrapper::-webkit-scrollbar {
@@ -1172,8 +1239,17 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
     gap: 0;
     min-width: max-content;
     align-items: center;
+    justify-content: center; /* Center the navigation items */
 }
-
+/* Also prevent text selection on menu navigation */
+.menu-nav-container,
+.menu-nav-container * {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
 .menu-nav-item {
     display: flex;
     align-items: center;
@@ -1181,7 +1257,7 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
     height: 54px;
     padding: 0 16px;
     border: none;
-    border-bottom: 2px solid #ece8e1;
+    border-bottom: 2px solid transparent;
     background: transparent;
     cursor: pointer;
     font-family: 'BaticaSans', Arial, sans-serif;
@@ -1191,16 +1267,28 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
     transition: all 0.3s ease;
     white-space: nowrap;
     text-decoration: none;
+    border-radius: var(--radius-sm);
+    /* Remove any focus outline */
+    outline: none !important;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.menu-nav-item:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(189, 147, 121, 0.3);
 }
 
 .menu-nav-item:hover {
-    color: #bd9379;
-    border-bottom-color: #bd9379;
+    color: var(--brown); /* LEVEL 1: Brown hover */
+    background: rgba(189, 147, 121, 0.1); /* Light brown background */
+    border-bottom-color: var(--brown); /* LEVEL 1: Brown */
 }
 
 .menu-nav-item.active {
-    color: #cf723a;
-    border-bottom-color: #cf723a;
+    color: var(--brown); /* LEVEL 1: Brown active */
+    background: var(--white); /* LEVEL 1: White background */
+    border-bottom-color: var(--brown); /* LEVEL 1: Brown */
+    box-shadow: var(--shadow-soft);
 }
 
 .menu-nav-icon {
@@ -1219,11 +1307,11 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
 }
 
 .menu-nav-item:hover .menu-nav-icon svg {
-    fill: #bd9379;
+    fill: var(--brown); /* LEVEL 1: Brown */
 }
 
 .menu-nav-item.active .menu-nav-icon svg {
-    fill: #cf723a;
+    fill: var(--brown); /* LEVEL 1: Brown */
 }
 
 .menu-nav-text {
@@ -1247,14 +1335,14 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
         height: 20px;
     }
 }
-/* Promotional Banner Styles - ADD THIS */
+/* Promotional Banner Styles - LEVEL 4: Curry for special promos */
 .promo-banner {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
-    background: linear-gradient(135deg, var(--curry) 0%, #e67e22 100%);
-    color: var(--white);
+    background: #cf723a ; /* LEVEL 4: Curry for promotional banner */
+    color: var(--white); /* LEVEL 1: White */
     text-align: center;
     padding: 8px 20px;
     font-family: 'BaticaSans', sans-serif;
@@ -1290,7 +1378,7 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
     transform: translateY(-50%);
     background: none;
     border: none;
-    color: var(--white);
+    color: var(--white); /* LEVEL 1: White */
     font-size: 18px;
     cursor: pointer;
     opacity: 0.8;
@@ -1334,31 +1422,38 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
         <button class="promo-close" onclick="closePromoBanner()" title="Close">×</button>
     </div>
 
-    <!-- Your existing navigation code starts here -->
-    <nav class="navbar">
-        <!-- existing nav content -->
-    </nav>
     <!-- Navigation -->
     <nav class="navbar">
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem; max-width: 1200px; margin: 0 auto; width: 100%;">
-            <a href="#" class="logo">
-                <img src="./assets/image/LOGO_BG.png" alt="Somdul Table" style="height: 50px; width: auto;">
-            </a>
-            <a href="#" class="logo">
-                <span class="logo-text">Somdul Table</span>
+            <a href="index.php" class="logo">
+                <img src="./assets/image/LOGO_BG2.png" alt="Somdul Table" style="height: 80px; width: auto;">
             </a>
 
             
             <ul class="nav-links">
                 <li><a href="./menus.php">Menu</a></li>
+                <li><a href="./meal-kits.php">Meal-Kits</a></li>
                 <li><a href="#how-it-works">How It Works</a></li>
-                <li><a href="#about">About</a></li>
-                <li><a href="#contact">Contact</a></li>
+                <li><a href="./blogs.php">About</a></li>
+                <li><a href="./contact.php">Contact</a></li>
             </ul>
             
             <div class="nav-actions">
-                <a href="login.php" class="btn btn-secondary">Sign In</a>
-                <a href="#" class="btn btn-primary">Get Started</a>
+                <?php if (isset($_SESSION['user_id'])): ?>
+                    <!-- User is logged in - show profile icon -->
+                    <a href="dashboard.php" class="profile-link" title="Go to Dashboard">
+                        <div class="profile-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                        </div>
+                    </a>
+                <?php else: ?>
+                    <!-- User is not logged in - show sign in button -->
+                    <a href="login.php" class="btn btn-secondary">Sign In</a>
+                <?php endif; ?>
+                <a href="subscribe.php" class="btn btn-primary">Get Started</a>
             </div>
         </div>
     </nav>
@@ -1554,7 +1649,7 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
                 <div class="meal-cards-track" id="mealCardsTrack">
                     <?php if (empty($featured_menus)): ?>
                         <!-- Fallback content if no menus in database -->
-                        <div class="meal-card" style="background: linear-gradient(45deg, var(--curry), var(--brown));" data-menu-id="fallback-1" onclick="openMenuDetails('fallback-1')">
+                        <div class="meal-card" style="background: linear-gradient(45deg, var(--brown), var(--sage));" data-menu-id="fallback-1" onclick="openMenuDetails('fallback-1')">
                             <div class="meal-card-content">
                                 <h3 class="meal-card-title">Thai Green Curry</h3>
                                 <p class="meal-card-description">Aromatic green curry with Thai basil and coconut milk</p>
@@ -1567,7 +1662,7 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
                             </div>
                         </div>
                         
-                        <div class="meal-card" style="background: linear-gradient(45deg, var(--brown), var(--sage));" data-menu-id="fallback-2" onclick="openMenuDetails('fallback-2')">
+                        <div class="meal-card" style="background: linear-gradient(45deg, var(--sage), var(--cream));" data-menu-id="fallback-2" onclick="openMenuDetails('fallback-2')">
                             <div class="meal-card-content">
                                 <h3 class="meal-card-title">Pad Thai Classic</h3>
                                 <p class="meal-card-description">Traditional stir-fried rice noodles with tamarind sauce</p>
@@ -1592,12 +1687,12 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
                             if ($menu['main_image_url'] && file_exists($menu['main_image_url'])) {
                                 $background_style = "background-image: url('" . htmlspecialchars($menu['main_image_url']) . "');";
                             } else {
-                                // Fallback gradient based on category
+                                // Fallback gradient based on category - using new color hierarchy
                                 $gradients = [
-                                    'Rice Bowls' => 'linear-gradient(45deg, var(--curry), var(--brown))',
-                                    'Thai Curries' => 'linear-gradient(45deg, var(--brown), var(--sage))',
-                                    'Noodle Dishes' => 'linear-gradient(45deg, var(--sage), var(--cream))',
-                                    'default' => 'linear-gradient(45deg, var(--curry), var(--brown))'
+                                    'Rice Bowls' => 'linear-gradient(45deg, var(--brown), var(--sage))',
+                                    'Thai Curries' => 'linear-gradient(45deg, var(--sage), var(--cream))',
+                                    'Noodle Dishes' => 'linear-gradient(45deg, var(--brown), var(--cream))',
+                                    'default' => 'linear-gradient(45deg, var(--brown), var(--sage))'
                                 ];
                                 $gradient = $gradients[$category_name] ?? $gradients['default'];
                                 $background_style = "background: $gradient;";
@@ -1845,7 +1940,7 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
                 <div class="loading-container" style="display: flex; justify-content: center; align-items: center; width: 100%; height: 400px;">
                     <div class="loading-spinner" style="
                         border: 4px solid #ece8e1;
-                        border-top: 4px solid #cf723a;
+                        border-top: 4px solid #bd9379;
                         border-radius: 50%;
                         width: 50px;
                         height: 50px;
@@ -1981,7 +2076,7 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
                     <button onclick="location.reload()" style="
                         margin-top: 1rem;
                         padding: 0.8rem 1.5rem;
-                        background: var(--curry);
+                        background: var(--brown);
                         color: white;
                         border: none;
                         border-radius: 50px;
@@ -2128,9 +2223,9 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
     window.addEventListener('scroll', function() {
         const navbar = document.querySelector('.navbar');
         if (window.scrollY > 100) {
-            navbar.style.background = 'rgba(255, 255, 255, 0.98)';
+            navbar.style.background = '#ece8e1';
         } else {
-            navbar.style.background = 'rgba(255, 255, 255, 0.95)';
+            navbar.style.background = '#ece8e1';
         }
     });
     </script>
