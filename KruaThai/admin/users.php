@@ -1822,8 +1822,75 @@ $stats = $stats_result ? mysqli_fetch_assoc($stats_result) : [
         </div>
     </div>
 
+<!-- Export Modal -->
+    <div class="modal" id="exportModal">
+        <div class="modal-dialog" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <i class="fas fa-download" style="color: var(--curry); margin-right: 0.5rem;"></i>
+                    Export Users
+                </h3>
+                <button class="modal-close" onclick="closeExportModal()" type="button">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="exportForm">
+                    <!-- Export Format -->
+                    <div class="form-section">
+                        <div class="form-section-title">
+                            <i class="fas fa-file-export"></i>
+                            Export Format
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">File Format</label>
+                            <select name="format" class="form-control form-select">
+                                <option value="csv">CSV (Comma Separated Values)</option>
+                                <option value="excel">Excel (XLS Format)</option>
+                            </select>
+                            <small style="color: var(--text-gray); font-size: 0.8rem;">
+                                CSV is recommended for data processing, Excel for viewing
+                            </small>
+                        </div>
+                    </div>
+                    <!-- Export Options -->
+                    <div class="form-section">
+                        <div class="form-section-title">
+                            <i class="fas fa-cog"></i>
+                            Export Options
+                        </div>
+                        <div class="form-group">
+                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                <input type="checkbox" name="include_statistics" value="1" checked style="margin: 0;">
+                                <span>Include user statistics (subscriptions, orders, spending)</span>
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                <input type="checkbox" name="include_address" value="1" checked style="margin: 0;">
+                                <span>Include address information</span>
+                            </label>
+                        </div>
+                    </div>
+                    <!-- Action Buttons -->
+                    <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border-light);">
+                        <button type="button" class="btn btn-secondary" onclick="closeExportModal()">
+                            <i class="fas fa-times"></i>
+                            Cancel
+                        </button>
+                        <button type="button" class="btn btn-primary" onclick="handleExport()">
+                            <i class="fas fa-download"></i>
+                            Export Users
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Container -->
     <div class="toast-container" id="toastContainer"></div>
+
+
+   
 
     <script>
         // Global variables
@@ -2322,9 +2389,66 @@ $stats = $stats_result ? mysqli_fetch_assoc($stats_result) : [
             }, 500);
         }
 
-        function exportUsers() {
-            showToast('Export feature coming soon!', 'info');
-        }
+       function exportUsers() {
+    showExportModal();
+}
+
+// Show export modal
+function showExportModal() {
+    const modal = document.getElementById('exportModal');
+    modal.style.display = 'flex';
+    setTimeout(() => {
+        modal.classList.add('show');
+    }, 10);
+}
+
+// Close export modal
+function closeExportModal() {
+    const modal = document.getElementById('exportModal');
+    modal.classList.remove('show');
+    setTimeout(() => {
+        modal.style.display = 'none';
+    }, 300);
+}
+
+// Handle export form submission
+function handleExport() {
+    const form = document.getElementById('exportForm');
+    const formData = new FormData(form);
+    
+    // Get current filter values
+    const currentSearch = new URLSearchParams(window.location.search).get('search') || '';
+    const currentStatus = new URLSearchParams(window.location.search).get('status') || '';
+    const currentRole = new URLSearchParams(window.location.search).get('role') || '';
+    
+    // Build export URL with current filters
+    const params = new URLSearchParams();
+    params.append('format', formData.get('format'));
+    params.append('include_statistics', formData.get('include_statistics') || '0');
+    params.append('include_address', formData.get('include_address') || '0');
+    
+    if (currentSearch) params.append('search', currentSearch);
+    if (currentStatus) params.append('status', currentStatus);
+    if (currentRole) params.append('role', currentRole);
+    
+    const exportUrl = 'export-users.php?' + params.toString();
+    
+    showToast('Preparing export...', 'info');
+    
+    // Create hidden iframe for download
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = exportUrl;
+    document.body.appendChild(iframe);
+    
+    // Remove iframe after download
+    setTimeout(() => {
+        document.body.removeChild(iframe);
+        showToast('Export completed!', 'success');
+    }, 3000);
+    
+    closeExportModal();
+}
 
         function logout() {
             if (confirm('Are you sure you want to logout?')) {
@@ -2333,23 +2457,28 @@ $stats = $stats_result ? mysqli_fetch_assoc($stats_result) : [
         }
 
         // Close modals when clicking outside
-        window.addEventListener('click', function(e) {
-            const userModal = document.getElementById('userModal');
-            const editModal = document.getElementById('editUserModal');
-            const addModal = document.getElementById('addUserModal');
-            
-            if (e.target === userModal) {
-                closeModal();
-            }
-            
-            if (e.target === editModal) {
-                closeEditModal();
-            }
-            
-            if (e.target === addModal) {
-                closeAddModal();
-            }
-        });
+window.addEventListener('click', function(e) {
+    const userModal = document.getElementById('userModal');
+    const editModal = document.getElementById('editUserModal');
+    const addModal = document.getElementById('addUserModal');
+    const exportModal = document.getElementById('exportModal');
+    
+    if (e.target === userModal) {
+        closeModal();
+    }
+    
+    if (e.target === editModal) {
+        closeEditModal();
+    }
+    
+    if (e.target === addModal) {
+        closeAddModal();
+    }
+    
+    if (e.target === exportModal) {
+        closeExportModal();
+    }
+});
     </script>
 </body>
 </html>
