@@ -32,6 +32,7 @@ class User {
     public $dietary_preferences;
     public $allergies;
     public $spice_level = 'medium';
+    public $registration_method;
     public $last_login;
     public $failed_login_attempts = 0;
     public $locked_until;
@@ -86,19 +87,18 @@ class User {
             $this->password_hash = password_hash($this->password_hash, PASSWORD_BCRYPT);
         }
 
-        $query = "INSERT INTO " . $this->table_name . " 
-                  (id, email, password_hash, first_name, last_name, phone, date_of_birth, 
-                   gender, role, status, email_verified, email_verification_token, 
-                   delivery_address, address_line_2, city, state, zip_code, country, 
-                   delivery_instructions, dietary_preferences, allergies, spice_level, 
-                   created_at, updated_at) 
-                  VALUES 
-                  (:id, :email, :password_hash, :first_name, :last_name, :phone, :date_of_birth, 
-                   :gender, :role, :status, :email_verified, :email_verification_token, 
-                   :delivery_address, :address_line_2, :city, :state, :zip_code, :country, 
-                   :delivery_instructions, :dietary_preferences, :allergies, :spice_level, 
-                   NOW(), NOW())";
-
+      $query = "INSERT INTO " . $this->table_name . " 
+          (id, email, password_hash, first_name, last_name, phone, date_of_birth, 
+           gender, role, status, email_verified, email_verification_token, 
+           delivery_address, address_line_2, city, state, zip_code, country, 
+           delivery_instructions, dietary_preferences, allergies, spice_level,
+           registration_method, created_at, updated_at) 
+          VALUES 
+          (:id, :email, :password_hash, :first_name, :last_name, :phone, :date_of_birth, 
+           :gender, :role, :status, :email_verified, :email_verification_token, 
+           :delivery_address, :address_line_2, :city, :state, :zip_code, :country, 
+           :delivery_instructions, :dietary_preferences, :allergies, :spice_level,
+           :registration_method, NOW(), NOW())";
         $stmt = $this->conn->prepare($query);
 
         // Bind parameters
@@ -124,6 +124,8 @@ class User {
         $stmt->bindParam(':dietary_preferences', $this->dietary_preferences);
         $stmt->bindParam(':allergies', $this->allergies);
         $stmt->bindParam(':spice_level', $this->spice_level);
+        $stmt->bindParam(':registration_method', $this->registration_method); // ← เพิ่มนี้
+
 
         try {
             if ($stmt->execute()) {
@@ -669,15 +671,15 @@ class User {
      * @param array $data Data array
      */
     private function populateFromArray($data) {
-        $properties = [
-            'id', 'email', 'password_hash', 'first_name', 'last_name', 'phone',
-            'date_of_birth', 'gender', 'role', 'status', 'email_verified',
-            'email_verification_token', 'delivery_address', 'address_line_2',
-            'city', 'state', 'zip_code', 'country', 'delivery_instructions',
-            'dietary_preferences', 'allergies', 'spice_level', 'last_login',
-            'failed_login_attempts', 'locked_until', 'password_reset_token',
-            'password_reset_expires', 'created_at', 'updated_at'
-        ];
+  $properties = [
+    'id', 'email', 'password_hash', 'first_name', 'last_name', 'phone',
+    'date_of_birth', 'gender', 'role', 'status', 'email_verified',
+    'email_verification_token', 'delivery_address', 'address_line_2',
+    'city', 'state', 'zip_code', 'country', 'delivery_instructions',
+    'dietary_preferences', 'allergies', 'spice_level', 'registration_method',
+    'last_login', 'failed_login_attempts', 'locked_until', 'password_reset_token',
+    'password_reset_expires', 'created_at', 'updated_at'
+];
         
         foreach ($properties as $property) {
             if (isset($data[$property])) {

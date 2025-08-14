@@ -1,0 +1,2283 @@
+-- phpMyAdmin SQL Dump
+-- version 5.2.0
+-- https://www.phpmyadmin.net/
+--
+-- Host: localhost:8889
+-- Generation Time: Aug 13, 2025 at 07:01 AM
+-- Server version: 5.7.39
+-- PHP Version: 7.4.33
+
+SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+START TRANSACTION;
+SET time_zone = "+00:00";
+
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8mb4 */;
+
+--
+-- Database: `krua_thai`
+--
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `cart_activities`
+--
+
+CREATE TABLE `cart_activities` (
+  `id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `user_id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `action` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'add',
+  `item_id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `item_name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `item_type` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT 'meal_kit',
+  `quantity` int(11) NOT NULL DEFAULT '1',
+  `old_quantity` int(11) DEFAULT NULL,
+  `price` decimal(8,2) DEFAULT NULL,
+  `session_id` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `ip_address` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `user_agent` text COLLATE utf8mb4_unicode_ci,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Track customer cart activities and shopping behavior';
+
+--
+-- Dumping data for table `cart_activities`
+--
+
+INSERT INTO `cart_activities` (`id`, `user_id`, `action`, `item_id`, `item_name`, `item_type`, `quantity`, `old_quantity`, `price`, `session_id`, `ip_address`, `user_agent`, `created_at`, `updated_at`) VALUES
+('03f82df1-2334-4ae2-a24b-957654e579ea', '79b6e774-aede-4aed-b82b-c17536a80bb9', 'add', 'meal-kit-tom-yum-2025', 'Tom Yum Soup Meal Kit', 'meal_kit', 1, NULL, '420.00', 'irjlr8evdpvk5kacv76jladtui', '::1', NULL, '2025-07-31 06:44:02', '2025-07-31 06:44:02'),
+('073a5386-1bea-4f88-8a47-a0612147d1c6', '79b6e774-aede-4aed-b82b-c17536a80bb9', 'add', 'meal-kit-green-curry-2025', 'Green Curry Meal Kit', 'meal_kit', 1, NULL, '450.00', 'irjlr8evdpvk5kacv76jladtui', '::1', NULL, '2025-07-31 06:36:08', '2025-07-31 06:36:08'),
+('13242fb1-db26-4994-b3d6-4f98482c044c', '79b6e774-aede-4aed-b82b-c17536a80bb9', 'add', 'meal-kit-green-curry-2025', 'Green Curry Meal Kit', 'meal_kit', 1, NULL, NULL, NULL, NULL, NULL, '2025-07-31 06:22:33', '2025-07-31 06:22:33'),
+('2671b30a-b752-4dba-aaf9-32719cfa6104', '79b6e774-aede-4aed-b82b-c17536a80bb9', 'add', 'meal-kit-panang-curry-2025', 'Panang Curry Meal Kit', 'meal_kit', 1, NULL, '520.00', 'irjlr8evdpvk5kacv76jladtui', '::1', NULL, '2025-07-31 07:39:04', '2025-07-31 07:39:04'),
+('281a092f-cd12-4853-8061-7731d27fb77f', '29e6fe85-124c-480f-bcf2-0d174721936f', 'add', 'meal-kit-green-curry-2025', 'Green Curry Meal Kit', 'meal_kit', 1, NULL, NULL, NULL, NULL, NULL, '2025-08-04 03:32:30', '2025-08-04 03:32:30'),
+('33e63aab-b319-46d2-8cea-21068e72e3be', '79b6e774-aede-4aed-b82b-c17536a80bb9', 'add', 'meal-kit-green-curry-2025', 'Green Curry Meal Kit', 'meal_kit', 1, NULL, '450.00', 'irjlr8evdpvk5kacv76jladtui', '::1', NULL, '2025-07-31 06:32:49', '2025-07-31 06:32:49'),
+('393c53ee-6b1c-4c41-8529-e9775169889a', '79b6e774-aede-4aed-b82b-c17536a80bb9', 'add', 'meal-kit-panang-curry-2025', 'Panang Curry Meal Kit', 'meal_kit', 1, NULL, '520.00', 'irjlr8evdpvk5kacv76jladtui', '::1', NULL, '2025-08-02 06:20:56', '2025-08-02 06:20:56'),
+('3ab4240a-518a-4288-88be-90d5be846341', '79b6e774-aede-4aed-b82b-c17536a80bb9', 'add', 'meal-kit-panang-curry-2025', 'Panang Curry Meal Kit', 'meal_kit', 1, NULL, '520.00', 'irjlr8evdpvk5kacv76jladtui', '::1', NULL, '2025-08-02 06:20:57', '2025-08-02 06:20:57'),
+('3d1c7561-7700-415b-99ae-d53e60123844', '79b6e774-aede-4aed-b82b-c17536a80bb9', 'add', 'meal-kit-pad-thai-2025', 'Pad Thai Meal Kit', 'meal_kit', 1, NULL, '380.00', 'irjlr8evdpvk5kacv76jladtui', '::1', NULL, '2025-07-31 07:39:03', '2025-07-31 07:39:03'),
+('4226a0ab-f514-49fd-9a38-1c19a3d141a9', '79b6e774-aede-4aed-b82b-c17536a80bb9', 'add', 'meal-kit-pad-thai-2025', 'Pad Thai Meal Kit', 'meal_kit', 1, NULL, '380.00', 'irjlr8evdpvk5kacv76jladtui', '::1', NULL, '2025-07-31 06:43:39', '2025-07-31 06:43:39'),
+('49450324-3a51-474e-bb04-b9bdbdc877ac', '79b6e774-aede-4aed-b82b-c17536a80bb9', 'add', 'meal-kit-pad-thai-2025', 'Pad Thai Meal Kit', 'meal_kit', 1, NULL, '380.00', 'irjlr8evdpvk5kacv76jladtui', '::1', NULL, '2025-07-31 06:43:59', '2025-07-31 06:43:59'),
+('4fec1b0b-89a4-4fe4-91b2-299f1013ba4f', '79b6e774-aede-4aed-b82b-c17536a80bb9', 'add', 'meal-kit-panang-curry-2025', 'Panang Curry Meal Kit', 'meal_kit', 1, NULL, '520.00', 'irjlr8evdpvk5kacv76jladtui', '::1', NULL, '2025-07-31 06:43:40', '2025-07-31 06:43:40'),
+('59c9337a-f19d-43d9-95ec-89bed3272025', '79b6e774-aede-4aed-b82b-c17536a80bb9', 'add', 'meal-kit-green-curry-2025', 'Green Curry Meal Kit', 'meal_kit', 1, NULL, NULL, NULL, NULL, NULL, '2025-08-03 06:41:12', '2025-08-03 06:41:12'),
+('5cd4eaa3-8a73-47e6-8242-b42456822240', '79b6e774-aede-4aed-b82b-c17536a80bb9', 'add', 'meal-kit-tom-yum-2025', 'Tom Yum Soup Meal Kit', 'meal_kit', 1, NULL, '420.00', 'irjlr8evdpvk5kacv76jladtui', '::1', NULL, '2025-07-31 07:39:07', '2025-07-31 07:39:07'),
+('6b88917d-3280-47c8-81f4-a4bfc756ff3f', '79b6e774-aede-4aed-b82b-c17536a80bb9', 'add', 'meal-kit-green-curry-2025', 'Green Curry Meal Kit', 'meal_kit', 1, NULL, '450.00', 'irjlr8evdpvk5kacv76jladtui', '::1', NULL, '2025-07-31 06:33:12', '2025-07-31 06:33:12'),
+('6f245928-c6f5-435e-8741-07dfe422cb93', '79b6e774-aede-4aed-b82b-c17536a80bb9', 'add', 'meal-kit-pad-thai-2025', 'Pad Thai Meal Kit', 'meal_kit', 1, NULL, '380.00', 'irjlr8evdpvk5kacv76jladtui', '::1', NULL, '2025-07-31 06:35:28', '2025-07-31 06:35:28'),
+('7706d158-c220-413f-8bb6-487ccc8da39c', '79b6e774-aede-4aed-b82b-c17536a80bb9', 'add', 'meal-kit-pad-thai-2025', 'Pad Thai Meal Kit', 'meal_kit', 1, NULL, '380.00', 'irjlr8evdpvk5kacv76jladtui', '::1', NULL, '2025-07-31 07:39:06', '2025-07-31 07:39:06'),
+('7c023ce5-8b2c-4883-a59a-7090894bed91', '79b6e774-aede-4aed-b82b-c17536a80bb9', 'add', 'meal-kit-green-curry-2025', 'Green Curry Meal Kit', 'meal_kit', 1, NULL, '450.00', 'irjlr8evdpvk5kacv76jladtui', '::1', NULL, '2025-07-31 06:43:58', '2025-07-31 06:43:58'),
+('7e281b0e-7b06-4813-9eb9-24fa6d5ebd13', '79b6e774-aede-4aed-b82b-c17536a80bb9', 'add', 'meal-kit-green-curry-2025', 'Green Curry Meal Kit', 'meal_kit', 1, NULL, NULL, NULL, NULL, NULL, '2025-08-03 06:41:08', '2025-08-03 06:41:08'),
+('871899f1-6252-4cbf-b7c9-8a05dfb28f80', '29e6fe85-124c-480f-bcf2-0d174721936f', 'add', 'meal-kit-pad-thai-2025', 'Pad Thai Meal Kit', 'meal_kit', 1, NULL, NULL, NULL, NULL, NULL, '2025-08-05 16:18:27', '2025-08-05 16:18:27'),
+('8cac6245-4050-43f1-870b-975babcf1de3', '79b6e774-aede-4aed-b82b-c17536a80bb9', 'add', 'meal-kit-green-curry-2025', 'Green Curry Meal Kit', 'meal_kit', 1, NULL, '450.00', 'irjlr8evdpvk5kacv76jladtui', '::1', NULL, '2025-07-31 07:38:55', '2025-07-31 07:38:55'),
+('91e16727-17b4-4e2f-99f4-c14c647e8254', '79b6e774-aede-4aed-b82b-c17536a80bb9', 'add', 'meal-kit-green-curry-2025', 'Green Curry Meal Kit', 'meal_kit', 1, NULL, '450.00', 'irjlr8evdpvk5kacv76jladtui', '::1', NULL, '2025-07-31 06:35:25', '2025-07-31 06:35:25'),
+('95954934-a340-4f6e-b52b-29d1bbd59485', '6c9391f3-0772-4393-a703-a035cc68d3d7', 'add', 'meal-kit-green-curry-2025', 'Green Curry Meal Kit', 'meal_kit', 1, NULL, NULL, NULL, NULL, NULL, '2025-08-11 15:49:56', '2025-08-11 15:49:56'),
+('9f372232-5b15-43db-b1ff-85da5cd756fd', '79b6e774-aede-4aed-b82b-c17536a80bb9', 'add', 'meal-kit-pad-thai-2025', 'Pad Thai Meal Kit', 'meal_kit', 1, NULL, '380.00', 'irjlr8evdpvk5kacv76jladtui', '::1', NULL, '2025-07-31 06:36:10', '2025-07-31 06:36:10'),
+('a7f991ff-511e-4b75-809e-656e3903c305', '6c9391f3-0772-4393-a703-a035cc68d3d7', 'add', 'meal-kit-green-curry-2025', 'Green Curry Meal Kit', 'meal_kit', 1, NULL, NULL, NULL, NULL, NULL, '2025-08-11 15:49:55', '2025-08-11 15:49:55'),
+('ab44b3d7-bcfa-403b-ace9-14a35990c160', '79b6e774-aede-4aed-b82b-c17536a80bb9', 'add', 'meal-kit-pad-thai-2025', 'Pad Thai Meal Kit', 'meal_kit', 1, NULL, '380.00', 'irjlr8evdpvk5kacv76jladtui', '::1', NULL, '2025-07-31 07:38:57', '2025-07-31 07:38:57'),
+('adb0c44f-9b28-4ea4-ac59-c4ceeae16cdd', '29e6fe85-124c-480f-bcf2-0d174721936f', 'add', 'meal-kit-green-curry-2025', 'Green Curry Meal Kit', 'meal_kit', 1, NULL, NULL, NULL, NULL, NULL, '2025-08-05 16:18:26', '2025-08-05 16:18:26'),
+('b1f131b5-43af-425d-b8b4-a400a82388d0', '79b6e774-aede-4aed-b82b-c17536a80bb9', 'add', 'meal-kit-panang-curry-2025', 'Panang Curry Meal Kit', 'meal_kit', 1, NULL, '520.00', 'irjlr8evdpvk5kacv76jladtui', '::1', NULL, '2025-07-31 06:36:11', '2025-07-31 06:36:11'),
+('b493a7d1-763e-4186-bba4-e8aad7713c6a', '79b6e774-aede-4aed-b82b-c17536a80bb9', 'add', 'meal-kit-green-curry-2025', 'Green Curry Meal Kit', 'meal_kit', 1, NULL, '450.00', 'irjlr8evdpvk5kacv76jladtui', '::1', NULL, '2025-07-31 06:43:33', '2025-07-31 06:43:33'),
+('b51722eb-897d-4933-bef1-8ecaca0e6f37', '79b6e774-aede-4aed-b82b-c17536a80bb9', 'add', 'meal-kit-tom-yum-2025', 'Tom Yum Soup Meal Kit', 'meal_kit', 1, NULL, '420.00', 'irjlr8evdpvk5kacv76jladtui', '::1', NULL, '2025-07-31 06:35:34', '2025-07-31 06:35:34'),
+('c140ab44-c6b9-45d4-875b-a60aeb3825e0', '79b6e774-aede-4aed-b82b-c17536a80bb9', 'add', 'meal-kit-pad-thai-2025', 'Pad Thai Meal Kit', 'meal_kit', 1, NULL, NULL, NULL, NULL, NULL, '2025-08-03 06:41:13', '2025-08-03 06:41:13'),
+('ca_sample_001', '550e8400-e29b-41d4-a716-446655440001', 'add', 'green-curry-kit', 'Green Curry Kit', 'meal_kit', 1, NULL, '18.99', NULL, NULL, NULL, '2025-07-31 06:21:26', '2025-07-31 06:21:26'),
+('ca_sample_002', '550e8400-e29b-41d4-a716-446655440001', 'add', 'pad-thai-kit', 'Pad Thai Kit', 'meal_kit', 2, NULL, '16.99', NULL, NULL, NULL, '2025-07-31 06:21:26', '2025-07-31 06:21:26'),
+('ca_sample_003', '550e8400-e29b-41d4-a716-446655440001', 'remove', 'tom-yum-kit', 'Tom Yum Soup Kit', 'meal_kit', 1, NULL, '17.99', NULL, NULL, NULL, '2025-07-31 06:21:26', '2025-07-31 06:21:26'),
+('e2b448e4-03ec-4dea-81c2-cf21ccffd27c', '79b6e774-aede-4aed-b82b-c17536a80bb9', 'add', 'meal-kit-panang-curry-2025', 'Panang Curry Meal Kit', 'meal_kit', 1, NULL, '520.00', 'irjlr8evdpvk5kacv76jladtui', '::1', NULL, '2025-07-31 06:35:29', '2025-07-31 06:35:29'),
+('e3f8936f-5d4e-4f10-bf14-967751fc7abb', '79b6e774-aede-4aed-b82b-c17536a80bb9', 'add', 'meal-kit-green-curry-2025', 'Green Curry Meal Kit', 'meal_kit', 1, NULL, '450.00', NULL, NULL, NULL, '2025-07-31 06:26:26', '2025-07-31 06:26:26'),
+('e515727c-dc14-4f00-a27d-8368df65e610', '79b6e774-aede-4aed-b82b-c17536a80bb9', 'add', 'meal-kit-green-curry-2025', 'Green Curry Meal Kit', 'meal_kit', 1, NULL, '450.00', 'irjlr8evdpvk5kacv76jladtui', '::1', NULL, '2025-07-31 06:43:41', '2025-07-31 06:43:41'),
+('e95addf5-1cfd-47fa-b298-b035e0cadf69', '29e6fe85-124c-480f-bcf2-0d174721936f', 'add', 'meal-kit-pad-thai-2025', 'Pad Thai Meal Kit', 'meal_kit', 1, NULL, NULL, NULL, NULL, NULL, '2025-08-04 03:32:31', '2025-08-04 03:32:31'),
+('fa75d1a9-9dfa-4160-b38e-4b6e67f73c7a', '79b6e774-aede-4aed-b82b-c17536a80bb9', 'add', 'meal-kit-green-curry-2025', 'Green Curry Meal Kit', 'meal_kit', 1, NULL, '450.00', 'irjlr8evdpvk5kacv76jladtui', '::1', NULL, '2025-08-02 06:20:37', '2025-08-02 06:20:37'),
+('fe7cb5fc-e105-46e8-bac8-cf102779bafd', '79b6e774-aede-4aed-b82b-c17536a80bb9', 'add', 'meal-kit-green-curry-2025', 'Green Curry Meal Kit', 'meal_kit', 1, NULL, '450.00', 'irjlr8evdpvk5kacv76jladtui', '::1', NULL, '2025-07-31 06:32:59', '2025-07-31 06:32:59');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `complaints`
+--
+
+CREATE TABLE `complaints` (
+  `id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `complaint_number` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `user_id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `subscription_id` char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `category` enum('food_quality','delivery_late','delivery_wrong','missing_items','damaged_package','customer_service','billing','other') COLLATE utf8mb4_unicode_ci NOT NULL,
+  `priority` enum('low','medium','high','critical') COLLATE utf8mb4_unicode_ci DEFAULT 'medium',
+  `title` varchar(200) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `description` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `expected_resolution` text COLLATE utf8mb4_unicode_ci,
+  `attachments` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin,
+  `photos` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin,
+  `status` enum('open','in_progress','resolved','closed','escalated') COLLATE utf8mb4_unicode_ci DEFAULT 'open',
+  `assigned_to` char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `resolution` text COLLATE utf8mb4_unicode_ci,
+  `resolution_date` timestamp NULL DEFAULT NULL,
+  `last_contact_date` timestamp NULL DEFAULT NULL,
+  `follow_up_required` tinyint(1) DEFAULT '0',
+  `customer_satisfaction_rating` tinyint(4) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `complaints`
+--
+
+INSERT INTO `complaints` (`id`, `complaint_number`, `user_id`, `subscription_id`, `category`, `priority`, `title`, `description`, `expected_resolution`, `attachments`, `photos`, `status`, `assigned_to`, `resolution`, `resolution_date`, `last_contact_date`, `follow_up_required`, `customer_satisfaction_rating`, `created_at`, `updated_at`) VALUES
+('34620b47b430cf0330beadd75316cfcc', 'CMP-20250722-743E', '29e6fe85-124c-480f-bcf2-0d174721936f', '393e600c-4672-4b2e-98c9-0fb03ddfe4c4', 'food_quality', 'medium', 'test1', 'test1', NULL, NULL, NULL, 'open', NULL, NULL, NULL, NULL, 0, NULL, '2025-07-22 14:21:03', '2025-07-22 14:21:03'),
+('54e69ff691c736405d08f5c5e26c8aea', 'CMP-20250729-6CDA', '29e6fe85-124c-480f-bcf2-0d174721936f', 'edaecbd2-da7e-438d-bd32-cf0dadd1508b', 'food_quality', 'medium', 'test', 'test', NULL, NULL, NULL, 'open', NULL, NULL, NULL, NULL, 0, NULL, '2025-07-29 14:25:24', '2025-07-29 14:25:24'),
+('730e12b75249a195ba3f5ed6882833ac', 'CMP-20250729-83AD', '29e6fe85-124c-480f-bcf2-0d174721936f', 'd91072d4-076a-4973-b819-9d04d6a83da7', 'damaged_package', 'medium', 'ัพกักัะ', 'พกพักพะัก', NULL, NULL, NULL, 'resolved', '550e8400-e29b-41d4-a716-446655440002', '่้เ่เ่ั', '2025-07-29 12:31:17', NULL, 0, NULL, '2025-07-29 12:30:55', '2025-07-29 12:31:17'),
+('78eec1bc4fdd5bebac6657a96953a0d7', 'CMP-20250724-FBEE', '29e6fe85-124c-480f-bcf2-0d174721936f', '393e600c-4672-4b2e-98c9-0fb03ddfe4c4', 'food_quality', 'medium', 'ไไไไ', 'ไไไไไ', NULL, NULL, NULL, 'open', NULL, NULL, NULL, NULL, 0, NULL, '2025-07-24 07:36:53', '2025-07-24 07:36:53'),
+('a8ede0b15c1b9a5a2bc3517e1079d7c5', 'CMP-20250721-15B5', '977b32bf-db86-47dc-9a61-12ab9dc241b9', '7faac785-fb6b-4d97-86a2-2f44a5c10261', 'food_quality', 'medium', '3333', '44444', NULL, NULL, NULL, 'resolved', '550e8400-e29b-41d4-a716-446655440002', 'dddddd', '2025-07-21 09:02:06', NULL, 0, NULL, '2025-07-21 09:01:02', '2025-07-21 09:02:06'),
+('badc331f548506fab0f78093209f7dc2', 'CMP-20250721-BC25', '550e8400-e29b-41d4-a716-446655440004', '0e960c81-fefa-455a-b9cd-b04d22410477', 'food_quality', 'low', 'ww', 'w', NULL, NULL, NULL, 'resolved', '550e8400-e29b-41d4-a716-446655440002', 'กกกก', '2025-07-21 09:07:31', NULL, 0, NULL, '2025-07-21 01:17:22', '2025-07-21 09:07:31'),
+('d69aa56651cfe118b3f2aa443dec7061', 'CMP-20250729-5AB5', '29e6fe85-124c-480f-bcf2-0d174721936f', 'edaecbd2-da7e-438d-bd32-cf0dadd1508b', 'delivery_wrong', 'medium', 'ำไแไำแไำแำไ', 'แำำไแำไแ', NULL, NULL, NULL, 'open', NULL, NULL, NULL, NULL, 0, NULL, '2025-07-29 12:53:45', '2025-07-29 12:53:45'),
+('ed6d60b0-65dc-11f0-b8b4-9e7a8a44b6c5', 'COMP-20250721-fdcd40', '550e8400-e29b-41d4-a716-446655440003', NULL, 'delivery_wrong', 'medium', 'ดด่าิา่ิสิ', '้้ดดดีะแีะ้ารัรัรัเอ้าา้ิาร', NULL, NULL, NULL, 'resolved', '550e8400-e29b-41d4-a716-446655440002', 'ccccc', '2025-07-21 09:03:02', NULL, 0, NULL, '2025-07-21 02:46:39', '2025-07-21 09:03:02'),
+('f6626e90-7725-11f0-9626-a7bab1464eb1', 'COMP-20250812-9ea6dc', '6c9391f3-0772-4393-a703-a035cc68d3d7', '44c83ddd-b28c-447b-85cc-5eb8926e6061', 'delivery_wrong', 'low', 'fffffewe', 'fffffqwfewfsfwfkjqf;jqefeqf', 'ffffwefwef', NULL, NULL, 'open', NULL, NULL, NULL, NULL, 0, NULL, '2025-08-12 02:42:17', '2025-08-12 02:42:17');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `daily_nutrition_tracking`
+--
+
+CREATE TABLE `daily_nutrition_tracking` (
+  `id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `user_id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `tracking_date` date NOT NULL,
+  `total_calories` int(11) DEFAULT '0',
+  `total_protein_g` decimal(5,2) DEFAULT '0.00',
+  `total_carbs_g` decimal(5,2) DEFAULT '0.00',
+  `total_fat_g` decimal(5,2) DEFAULT '0.00',
+  `total_fiber_g` decimal(5,2) DEFAULT '0.00',
+  `total_sodium_mg` decimal(7,2) DEFAULT '0.00',
+  `goal_achievement_percentage` decimal(5,2) DEFAULT '0.00',
+  `recommendations` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin,
+  `krua_thai_meals_count` int(11) DEFAULT '0',
+  `krua_thai_calories` int(11) DEFAULT '0',
+  `weight_kg` decimal(5,2) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `daily_nutrition_tracking`
+--
+
+INSERT INTO `daily_nutrition_tracking` (`id`, `user_id`, `tracking_date`, `total_calories`, `total_protein_g`, `total_carbs_g`, `total_fat_g`, `total_fiber_g`, `total_sodium_mg`, `goal_achievement_percentage`, `recommendations`, `krua_thai_meals_count`, `krua_thai_calories`, `weight_kg`, `created_at`, `updated_at`) VALUES
+('f8a046ce-6c7a-11f0-9bc8-43f1edcf48f7', '29e6fe85-124c-480f-bcf2-0d174721936f', '2025-07-29', 0, '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', NULL, 0, 0, NULL, '2025-07-29 12:53:06', '2025-07-29 13:05:52');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `delivery_zones`
+--
+
+CREATE TABLE `delivery_zones` (
+  `id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `zone_name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `zone_description` text COLLATE utf8mb4_unicode_ci,
+  `zone_color` varchar(10) COLLATE utf8mb4_unicode_ci DEFAULT '#3498db',
+  `min_distance` decimal(8,2) DEFAULT '0.00',
+  `max_distance` decimal(8,2) DEFAULT '0.00',
+  `base_delivery_fee` decimal(8,2) DEFAULT '0.00',
+  `per_mile_fee` decimal(8,2) DEFAULT '0.00',
+  `zip_codes` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `delivery_fee` decimal(6,2) DEFAULT '0.00',
+  `free_delivery_minimum` decimal(8,2) DEFAULT NULL,
+  `delivery_time_slots` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin,
+  `estimated_delivery_time` int(11) DEFAULT '60',
+  `is_active` tinyint(1) DEFAULT '1',
+  `sort_order` int(11) DEFAULT '1',
+  `max_orders_per_day` int(11) DEFAULT '100',
+  `max_orders_per_slot` int(11) DEFAULT '10',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `delivery_zones`
+--
+
+INSERT INTO `delivery_zones` (`id`, `zone_name`, `zone_description`, `zone_color`, `min_distance`, `max_distance`, `base_delivery_fee`, `per_mile_fee`, `zip_codes`, `delivery_fee`, `free_delivery_minimum`, `delivery_time_slots`, `estimated_delivery_time`, `is_active`, `sort_order`, `max_orders_per_day`, `max_orders_per_slot`, `created_at`, `updated_at`) VALUES
+('1cbb38c1-1ab4-40eb-b9a2-62fb4e992884', 'zzzzz', NULL, '#3498db', '0.00', '0.00', '0.00', '0.00', '[\"90244\"]', '5.99', '50.00', NULL, 45, 1, 1, 100, 10, '2025-07-23 06:20:18', '2025-07-23 06:20:18'),
+('41b5ec7c-acee-4d72-8322-cae0d751810d', 'dddd', NULL, '#3498db', '0.00', '0.00', '0.00', '0.00', '[\"12345\"]', '5.99', '50.00', NULL, 45, 1, 1, 100, 10, '2025-07-23 06:08:39', '2025-07-23 06:08:39'),
+('44dcafac-6667-4c6a-9e05-cf98ca0cdb06', 'ttttt', NULL, '#3498db', '0.00', '0.00', '0.00', '0.00', '[\"90212\"]', '0.00', NULL, '[]', 0, 1, 1, 0, 10, '2025-07-23 05:01:46', '2025-07-23 06:08:14'),
+('9f0f26c1-c91f-4c91-9e94-521fd38ca04b', 'USA', NULL, '#3498db', '0.00', '0.00', '0.00', '0.00', '[\"9021111\"]', '0.00', NULL, '[]', 0, 1, 1, 0, 10, '2025-07-23 05:01:33', '2025-07-23 05:01:33'),
+('aabbc642-91ec-46c3-a5ca-85f1fb98d3c8', 'USAaaqaqq', NULL, '#3498db', '0.00', '0.00', '0.00', '0.00', '[\"9021222\"]', '0.00', NULL, '[]', 0, 1, 1, 0, 10, '2025-07-23 05:02:07', '2025-07-23 05:02:07');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `inventory`
+--
+
+CREATE TABLE `inventory` (
+  `id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `ingredient_name` varchar(200) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `ingredient_name_thai` varchar(200) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `category` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `unit_of_measure` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `current_stock` decimal(10,2) NOT NULL DEFAULT '0.00',
+  `minimum_stock` decimal(10,2) NOT NULL DEFAULT '0.00',
+  `maximum_stock` decimal(10,2) DEFAULT NULL,
+  `cost_per_unit` decimal(8,2) DEFAULT NULL,
+  `supplier_name` varchar(200) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `supplier_contact` varchar(200) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `expiry_date` date DEFAULT NULL,
+  `storage_location` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `storage_temperature` enum('frozen','refrigerated','room_temp') COLLATE utf8mb4_unicode_ci DEFAULT 'room_temp',
+  `is_active` tinyint(1) DEFAULT '1',
+  `last_restocked_date` date DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `inventory`
+--
+
+INSERT INTO `inventory` (`id`, `ingredient_name`, `ingredient_name_thai`, `category`, `unit_of_measure`, `current_stock`, `minimum_stock`, `maximum_stock`, `cost_per_unit`, `supplier_name`, `supplier_contact`, `expiry_date`, `storage_location`, `storage_temperature`, `is_active`, `last_restocked_date`, `created_at`, `updated_at`) VALUES
+('10101010-1010-1010-1010-101010101001', 'Rice Vinegar', 'น้ำส้มสายชู', 'Condiments', 'bottle', '12.00', '5.00', '25.00', '25.00', 'Vinegar House', '02-890-1234', '2025-12-31', 'Storage Room B', 'room_temp', 1, '2025-07-03', '2025-07-10 06:00:23', '2025-07-10 06:00:23'),
+('10101010-1010-1010-1010-101010101002', 'Lime Juice', 'น้ำมะนาว', 'Condiments', 'liter', '8.00', '3.00', '15.00', '80.00', 'Fresh Fruit Co.', '02-901-2345', '2025-07-15', 'Refrigerator D3', 'refrigerated', 1, '2025-07-08', '2025-07-10 06:00:23', '2025-07-10 06:00:23'),
+('11101110-1110-1110-1110-111011101001', 'Peanuts (Raw)', 'ถั่วลิสงดิบ', 'Nuts', 'kg', '10.00', '4.00', '20.00', '90.00', 'Nut Supplier Co.', '02-012-3456', '2025-10-15', 'Dry Storage D', 'room_temp', 1, '2025-07-01', '2025-07-10 06:00:23', '2025-07-10 06:00:23'),
+('11101110-1110-1110-1110-111011101002', 'Cashews', 'เม็ดมะม่วงหิมพานต์', 'Nuts', 'kg', '5.00', '2.00', '10.00', '320.00', 'Premium Nuts Ltd.', '02-123-4567', '2025-09-30', 'Dry Storage D', 'room_temp', 1, '2025-06-30', '2025-07-10 06:00:23', '2025-07-10 06:00:23'),
+('11111111-1111-1111-1111-111111111001', 'Chicken Breast', 'อกไก่', 'Proteins', 'kg', '25.00', '10.00', '50.00', '180.00', 'Bangkok Fresh Meat', '02-123-4567', '2025-07-15', 'Freezer A1', 'frozen', 1, '2025-07-08', '2025-07-10 06:00:23', '2025-07-10 06:00:23'),
+('11111111-1111-1111-1111-111111111002', 'Pork Shoulder', 'สันคอหมู', 'Proteins', 'kg', '20.00', '8.00', '40.00', '200.00', 'Bangkok Fresh Meat', '02-123-4567', '2025-07-12', 'Freezer A2', 'frozen', 1, '2025-07-06', '2025-07-10 06:00:23', '2025-07-10 06:00:23'),
+('11111111-1111-1111-1111-111111111003', 'Beef Sirloin', 'เนื้อสันนอก', 'Proteins', 'kg', '44127.20', '5.00', '30.00', '450.00', 'Premium Beef Co.', '02-234-5678', '2025-07-13', 'Freezer A3', 'frozen', 1, '2025-08-07', '2025-07-10 06:00:23', '2025-08-07 12:58:54'),
+('11111111-1111-1111-1111-111111111004', 'Prawns (Large)', 'กุ้งใหญ่', 'Proteins', 'kg', '12.00', '8.00', '25.00', '350.00', 'Ocean Fresh Seafood', '02-345-6789', '2025-07-11', 'Freezer B1', 'frozen', 1, '2025-07-08', '2025-07-10 06:00:23', '2025-07-10 06:00:23'),
+('11111111-1111-1111-1111-111111111005', 'White Fish Fillet', 'เนื้อปลาขาว', 'Proteins', 'kg', '10.00', '5.00', '20.00', '280.00', 'Ocean Fresh Seafood', '02-345-6789', '2025-07-12', 'Freezer B2', 'frozen', 1, '2025-07-07', '2025-07-10 06:00:23', '2025-07-10 06:00:23'),
+('12121212-1212-1212-1212-121212121001', 'Dried Shiitake', 'เห็ดหอมแห้ง', 'Specialty', 'kg', '3.00', '1.00', '6.00', '280.00', 'Mushroom Import Co.', '02-234-5678', '2025-11-01', 'Dry Storage E', 'room_temp', 1, '2025-06-25', '2025-07-10 06:00:23', '2025-07-10 06:00:23'),
+('12121212-1212-1212-1212-121212121002', 'Black Soy Sauce', 'ซีอิ๊วหวาน', 'Specialty', 'bottle', '10.00', '4.00', '20.00', '55.00', 'Specialty Sauce Co.', '02-345-6789', '2025-10-15', 'Storage Room B', 'room_temp', 1, '2025-07-04', '2025-07-10 06:00:23', '2025-07-10 06:00:23'),
+('22222222-2222-2222-2222-222222222001', 'Thai Basil', 'โหระพา', 'Vegetables', 'bunch', '49.00', '20.00', '100.00', '15.00', 'Organic Farm Market', '02-456-7890', '2025-07-12', 'Refrigerator C1', 'refrigerated', 1, '2025-07-08', '2025-07-10 06:00:23', '2025-07-10 06:00:23'),
+('22222222-2222-2222-2222-222222222002', 'Holy Basil', 'กะเพรา', 'Vegetables', 'bunch', '43.00', '15.00', '80.00', '18.00', 'Organic Farm Market', '02-456-7890', '2025-07-11', 'Refrigerator C1', 'refrigerated', 1, '2025-07-07', '2025-07-10 06:00:23', '2025-07-10 06:00:23'),
+('22222222-2222-2222-2222-222222222003', 'Bird\'s Eye Chili', 'พริกขี้หนู', 'Vegetables', 'kg', '2.00', '3.00', '15.00', '120.00', 'Chili Specialist', '02-567-8901', '2025-07-14', 'Refrigerator C2', 'refrigerated', 1, '2025-07-08', '2025-07-10 06:00:23', '2025-07-10 06:00:23'),
+('22222222-2222-2222-2222-222222222004', 'Thai Eggplant', 'มะเขือเปราะ', 'Vegetables', 'kg', '11.00', '5.00', '25.00', '60.00', 'Organic Farm Market', '02-456-7890', '2025-07-13', 'Refrigerator C2', 'refrigerated', 1, '2025-07-06', '2025-07-10 06:00:23', '2025-07-10 06:00:23'),
+('22222222-2222-2222-2222-222222222005', 'Bean Sprouts', 'ถั่วงอก', 'Vegetables', 'g', '100.00', '8.00', '30.00', '25.00', 'Local Vegetable Market', '02-678-9012', '2025-07-11', 'Refrigerator C3', 'refrigerated', 0, '2025-08-07', '2025-07-10 06:00:23', '2025-08-07 07:41:09'),
+('22222222-2222-2222-2222-222222222006', 'Morning Glory', 'ผักบุ้ง', 'Vegetables', 'bunch', '26.00', '15.00', '60.00', '12.00', 'Local Vegetable Market', '02-678-9012', '2025-07-12', 'Refrigerator C3', 'refrigerated', 1, '2025-07-07', '2025-07-10 06:00:23', '2025-07-10 06:00:23'),
+('33333333-3333-3333-3333-333333333001', 'Galangal', 'ข่า', 'Herbs', 'kg', '3.00', '2.00', '12.00', '180.00', 'Herb Garden Co.', '02-789-0123', '2025-07-20', 'Refrigerator D1', 'refrigerated', 1, '2025-07-05', '2025-07-10 06:00:23', '2025-07-10 06:00:23'),
+('33333333-3333-3333-3333-333333333002', 'Lemongrass', 'ตะไคร้', 'Herbs', 'stalk', '98.00', '50.00', '200.00', '3.00', 'Herb Garden Co.', '02-789-0123', '2025-07-18', 'Refrigerator D1', 'refrigerated', 1, '2025-07-06', '2025-07-10 06:00:23', '2025-07-10 06:00:23'),
+('33333333-3333-3333-3333-333333333003', 'Kaffir Lime Leaves', 'ใบมะกรูด', 'Herbs', 'piece', '199.00', '100.00', '400.00', '1.50', 'Herb Garden Co.', '02-789-0123', '2025-07-15', 'Refrigerator D1', 'refrigerated', 1, '2025-07-07', '2025-07-10 06:00:23', '2025-07-10 06:00:23'),
+('33333333-3333-3333-3333-333333333004', 'Thai Ginger', 'ขิง', 'Herbs', 'kg', '4.00', '2.00', '10.00', '90.00', 'Herb Garden Co.', '02-789-0123', '2025-07-25', 'Storage Room A', 'room_temp', 1, '2025-07-04', '2025-07-10 06:00:23', '2025-07-10 06:00:23'),
+('33333333-3333-3333-3333-333333333005', 'Garlic', 'กระเทียม', 'Herbs', 'kg', '8.00', '3.00', '15.00', '120.00', 'Local Market', '02-890-1234', '2025-07-30', 'Storage Room A', 'room_temp', 1, '2025-07-05', '2025-07-10 06:00:23', '2025-07-10 06:00:23'),
+('33333333-3333-3333-3333-333333333006', 'Shallots', 'หอมแดง', 'Herbs', 'kg', '8.00', '4.00', '20.00', '80.00', 'Local Market', '02-890-1234', '2025-07-22', 'Storage Room A', 'room_temp', 1, '2025-07-06', '2025-07-10 06:00:23', '2025-07-10 06:00:23'),
+('44444444-4444-4444-4444-444444444001', 'Fish Sauce', 'น้ำปลา', 'Sauces', 'bottle', '20.00', '8.00', '40.00', '65.00', 'Thai Sauce Factory', '02-901-2345', '2026-01-15', 'Storage Room B', 'room_temp', 1, '2025-07-03', '2025-07-10 06:00:23', '2025-07-10 06:00:23'),
+('44444444-4444-4444-4444-444444444002', 'Oyster Sauce', 'น้ำมันหอย', 'Sauces', 'bottle', '15.00', '6.00', '30.00', '45.00', 'Thai Sauce Factory', '02-901-2345', '2025-12-20', 'Storage Room B', 'room_temp', 1, '2025-07-04', '2025-07-10 06:00:23', '2025-07-10 06:00:23'),
+('44444444-4444-4444-4444-444444444003', 'Soy Sauce (Light)', 'ซีอิ๊วขาว', 'Sauces', 'bottle', '18.00', '8.00', '35.00', '35.00', 'Thai Sauce Factory', '02-901-2345', '2025-11-30', 'Storage Room B', 'room_temp', 1, '2025-07-05', '2025-07-10 06:00:23', '2025-07-10 06:00:23'),
+('44444444-4444-4444-4444-444444444004', 'Soy Sauce (Dark)', 'ซีอิ๊วดำ', 'Sauces', 'bottle', '16.00', '6.00', '32.00', '40.00', 'Thai Sauce Factory', '02-901-2345', '2025-11-30', 'Storage Room B', 'room_temp', 1, '2025-07-05', '2025-07-10 06:00:23', '2025-07-10 06:00:23'),
+('44444444-4444-4444-4444-444444444005', 'Tamarind Paste', 'น้ำมะขามเปียก', 'Sauces', 'kg', '8.00', '3.00', '15.00', '85.00', 'Traditional Food Co.', '02-012-3456', '2025-09-15', 'Refrigerator D2', 'refrigerated', 1, '2025-07-02', '2025-07-10 06:00:23', '2025-07-10 06:00:23'),
+('55555555-5555-5555-5555-555555555001', 'Jasmine Rice', 'ข้าวหอมมะลิ', 'Grains', 'kg', '200.00', '50.00', '400.00', '35.00', 'Rice Mill Direct', '02-123-4567', '2026-01-01', 'Dry Storage A', 'room_temp', 1, '2025-07-01', '2025-07-10 06:00:23', '2025-07-10 06:00:23'),
+('55555555-5555-5555-5555-555555555002', 'Sticky Rice', 'ข้าวเหนียว', 'Grains', 'kg', '50.00', '20.00', '100.00', '40.00', 'Rice Mill Direct', '02-123-4567', '2025-12-15', 'Dry Storage A', 'room_temp', 1, '2025-07-02', '2025-07-10 06:00:23', '2025-07-10 06:00:23'),
+('55555555-5555-5555-5555-555555555003', 'Rice Noodles (Thin)', 'เส้นหมี่', 'Grains', 'pack', '80.00', '30.00', '150.00', '12.00', 'Noodle Factory', '02-234-5678', '2025-10-30', 'Dry Storage B', 'room_temp', 1, '2025-07-03', '2025-07-10 06:00:23', '2025-07-10 06:00:23'),
+('55555555-5555-5555-5555-555555555004', 'Pad Thai Noodles', 'เส้นจันท์', 'Grains', 'pack', '60.00', '25.00', '120.00', '15.00', 'Noodle Factory', '02-234-5678', '2025-10-30', 'Dry Storage B', 'room_temp', 1, '2025-07-04', '2025-07-10 06:00:23', '2025-07-10 06:00:23'),
+('66666666-6666-6666-6666-666666666001', 'Vegetable Oil', 'น้ำมันพืช', 'Oils', 'liter', '25.00', '10.00', '50.00', '45.00', 'Oil Distributor', '02-345-6789', '2025-12-01', 'Storage Room C', 'room_temp', 1, '2025-07-01', '2025-07-10 06:00:23', '2025-07-10 06:00:23'),
+('66666666-6666-6666-6666-666666666002', 'Coconut Oil', 'น้ำมันมะพร้าว', 'Oils', 'liter', '15.00', '5.00', '30.00', '180.00', 'Coconut Products Ltd.', '02-456-7890', '2025-11-15', 'Storage Room C', 'room_temp', 1, '2025-07-02', '2025-07-10 06:00:23', '2025-07-10 06:00:23'),
+('77777777-7777-7777-7777-777777777001', 'White Pepper', 'พริกไทยขาว', 'Spices', 'kg', '1.50', '1.00', '6.00', '450.00', 'Spice World', '02-567-8901', '2026-03-01', 'Spice Cabinet A', 'room_temp', 1, '2025-06-30', '2025-07-10 06:00:23', '2025-07-10 06:00:23'),
+('77777777-7777-7777-7777-777777777002', 'Coriander Seeds', 'เมลดผักชี', 'Spices', 'kg', '2.50', '1.00', '5.00', '120.00', 'Spice World', '02-567-8901', '2026-02-15', 'Spice Cabinet A', 'room_temp', 1, '2025-07-01', '2025-07-10 06:00:23', '2025-07-10 06:00:23'),
+('77777777-7777-7777-7777-777777777003', 'Dried Chili', 'พริกแห้ง', 'Spices', 'kg', '4.00', '2.00', '8.00', '200.00', 'Spice World', '02-567-8901', '2026-01-30', 'Spice Cabinet B', 'room_temp', 1, '2025-06-28', '2025-07-10 06:00:23', '2025-07-10 06:00:23'),
+('88888888-8888-8888-8888-888888888001', 'Palm Sugar', 'น้ำตาลปี๊บ', 'Sweeteners', 'kg', '20.00', '8.00', '40.00', '65.00', 'Sugar Farm Co.', '02-678-9012', '2026-06-01', 'Dry Storage C', 'room_temp', 1, '2025-07-01', '2025-07-10 06:00:23', '2025-07-10 06:00:23'),
+('88888888-8888-8888-8888-888888888002', 'White Sugar', 'น้ำตาลทราย', 'Sweeteners', 'kg', '30.00', '15.00', '60.00', '28.00', 'Local Market', '02-789-0123', '2026-12-31', 'Dry Storage C', 'room_temp', 1, '2025-07-02', '2025-07-10 06:00:23', '2025-07-10 06:00:23'),
+('99999999-9999-9999-9999-999999999001', 'Coconut Milk', 'กะทิ', 'Dairy', 'can', '100.00', '40.00', '200.00', '35.00', 'Coconut Products Ltd.', '02-456-7890', '2025-08-15', 'Storage Room D', 'room_temp', 1, '2025-07-05', '2025-07-10 06:00:23', '2025-07-10 06:00:23'),
+('99999999-9999-9999-9999-999999999002', 'Coconut Cream', 'หัวกะทิ', 'Dairy', 'can', '60.00', '25.00', '120.00', '45.00', 'Coconut Products Ltd.', '02-456-7890', '2025-08-20', 'Storage Room D', 'room_temp', 1, '2025-07-06', '2025-07-10 06:00:23', '2025-07-10 06:00:23'),
+('e6e0f725-5a02-4f1f-9513-d78acc8e4077', 'พพพพ', NULL, 'gegegge', 'kg', '333.00', '4444.00', '4444.00', '44444.00', '44444', '4444', '2025-08-07', 'fffff', 'refrigerated', 0, NULL, '2025-08-07 06:57:21', '2025-08-08 03:40:17'),
+('meal-kit-ing-001', 'Green Curry Paste', 'พริกแกงเขียวหวาน', 'Meal Kit Ingredients', 'pack', '50.00', '10.00', NULL, '25.00', 'Local Supplier', NULL, NULL, NULL, 'refrigerated', 1, NULL, '2025-07-28 14:57:35', '2025-07-28 14:57:35'),
+('meal-kit-ing-002', 'Panang Curry Paste', 'พริกแกงแพนง', 'Meal Kit Ingredients', 'pack', '40.00', '8.00', NULL, '30.00', 'Local Supplier', NULL, NULL, NULL, 'refrigerated', 1, NULL, '2025-07-28 14:57:35', '2025-07-28 14:57:35'),
+('meal-kit-ing-003', 'Pad Thai Sauce', 'น้ำผัดไทย', 'Meal Kit Ingredients', 'bottle', '60.00', '15.00', NULL, '35.00', 'Local Supplier', NULL, NULL, NULL, 'room_temp', 1, NULL, '2025-07-28 14:57:35', '2025-07-28 14:57:35'),
+('meal-kit-ing-004', 'Tom Yum Paste', 'น้ำพริกเผาต้มยำ', 'Meal Kit Ingredients', 'jar', '45.00', '12.00', NULL, '28.00', 'Local Supplier', NULL, NULL, NULL, 'room_temp', 1, NULL, '2025-07-28 14:57:35', '2025-07-28 14:57:35');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `menus`
+--
+
+CREATE TABLE `menus` (
+  `id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `category_id` char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `name` varchar(200) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `name_thai` varchar(200) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `description` text COLLATE utf8mb4_unicode_ci,
+  `ingredients` text COLLATE utf8mb4_unicode_ci,
+  `cooking_method` text COLLATE utf8mb4_unicode_ci,
+  `main_image_url` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `gallery_images` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin,
+  `base_price` decimal(8,2) NOT NULL,
+  `portion_size` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT 'Regular',
+  `preparation_time` int(11) DEFAULT '15',
+  `calories_per_serving` decimal(7,2) DEFAULT NULL,
+  `protein_g` decimal(8,2) DEFAULT NULL,
+  `carbs_g` decimal(8,2) DEFAULT NULL,
+  `fat_g` decimal(8,2) DEFAULT NULL,
+  `fiber_g` decimal(6,2) DEFAULT NULL,
+  `sodium_mg` decimal(8,2) DEFAULT NULL,
+  `sugar_g` decimal(6,2) DEFAULT NULL,
+  `health_benefits` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin,
+  `dietary_tags` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin,
+  `spice_level` enum('mild','medium','hot','extra_hot') COLLATE utf8mb4_unicode_ci DEFAULT 'medium',
+  `is_available` tinyint(1) DEFAULT '1',
+  `is_featured` tinyint(1) DEFAULT '0',
+  `is_seasonal` tinyint(1) DEFAULT '0',
+  `availability_start` date DEFAULT NULL,
+  `availability_end` date DEFAULT NULL,
+  `slug` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `meta_description` text COLLATE utf8mb4_unicode_ci,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `menus`
+--
+
+INSERT INTO `menus` (`id`, `category_id`, `name`, `name_thai`, `description`, `ingredients`, `cooking_method`, `main_image_url`, `gallery_images`, `base_price`, `portion_size`, `preparation_time`, `calories_per_serving`, `protein_g`, `carbs_g`, `fat_g`, `fiber_g`, `sodium_mg`, `sugar_g`, `health_benefits`, `dietary_tags`, `spice_level`, `is_available`, `is_featured`, `is_seasonal`, `availability_start`, `availability_end`, `slug`, `meta_description`, `created_at`, `updated_at`) VALUES
+('19f1b8d3-7d75-4cc6-b804-58cf8d136d9d', '550e8400-e29b-41d4-a716-446655440006', 'Tom Yum (Shrimp) Soup', 'ต้มยำกุ้ง', 'Spicy-sour tom yum soup loaded with shrimp, mushrooms, lemongrass, kaffir lime, and chili oil. A metabolism-boosting bowl of wellness.', NULL, NULL, 'uploads/menus/menu_686ce51c9ec4a.jpg', NULL, '400.00', 'Regular', 15, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'hot', 1, 0, 0, NULL, NULL, 'tom-yum-shrimp-soup', NULL, '2025-07-08 09:30:04', '2025-07-08 09:30:04'),
+('275059d8-4497-43ec-b5e3-669fb18981d9', '550e8400-e29b-41d4-a716-446655440005', 'Cashew Chicken + Rice', 'ไก่ผัดเม็ดมะม่วง', 'Pasture-raised chicken breast stir-fried with roasted cashews, sweet bell peppers and chili jam. Served with bone broth rice for extra umami. Comforting and clean.', NULL, NULL, 'uploads/menus/menu_686ce481a3769.jpg', NULL, '400.00', 'Regular', 15, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'medium', 1, 0, 0, NULL, NULL, 'cashew-chicken-rice', NULL, '2025-07-08 09:27:29', '2025-07-10 05:41:42'),
+('416cc737-c6a1-4b0d-a0d0-a40f384f496e', '550e8400-e29b-41d4-a716-446655440005', 'Tom Kha (Chicken) + Rice', 'ต้มข่าไก่', 'Coconut milk-based soup with chicken, mushrooms, lemongrass, and galangal. Served with organic jasmine rice. Creamy, aromatic, and dairy-free.', NULL, NULL, 'uploads/menus/menu_686ce4d48ae3f.jpg', NULL, '340.00', 'Regular', 15, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'medium', 1, 0, 0, NULL, NULL, 'tom-kha-chicken-rice', NULL, '2025-07-08 09:28:52', '2025-07-08 12:19:30'),
+('6cae13fc-b181-43bf-babb-99cb2ce39d3c', '550e8400-e29b-41d4-a716-446655440006', 'Chicken Satay', 'ไก่สะเต๊ะ', 'Grilled chicken skewers marinated in turmeric and coconut milk. Served with creamy peanut dipping sauce. The clean-eating version of your favorite street food.', NULL, NULL, 'uploads/menus/menu_686ce54435283.jpg', NULL, '200.00', 'Regular', 15, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'medium', 1, 0, 0, NULL, NULL, 'chicken-satay', NULL, '2025-07-08 09:30:44', '2025-07-08 09:30:44'),
+('9429bc0e-f065-4ea8-9481-1bcb887e8454', '550e8400-e29b-41d4-a716-446655440005', 'Beef Crying Tiger + Sticky Rice', 'เสือร้องให้', 'Grilled beef marinated with Thai spices, served with sticky rice and jaew dipping sauce. High-protein and low-carb indulgence that hits every savory note.', NULL, NULL, 'uploads/menus/menu_686ce4ff13861.png', NULL, '300.00', 'Small', 15, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'medium', 1, 0, 0, NULL, NULL, 'beef-crying-tiger-sticky-rice', NULL, '2025-07-08 09:29:35', '2025-08-03 13:44:18'),
+('d76f0a21-6b41-490a-8dba-249481978176', NULL, 'Vegan Larb (Tofu)', 'ลาบ(เจ)', NULL, NULL, NULL, 'uploads/menus/menu_686ce3711b6e7.jpg', NULL, '399.00', 'Regular', 15, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'medium', 1, 0, 0, NULL, NULL, 'vegan-larb-tofu', NULL, '2025-07-08 09:22:57', '2025-07-08 09:22:57'),
+('dbdb771f-bf70-4ccc-ad99-d307f9d89418', '550e8400-e29b-41d4-a716-446655440005', 'Pad Thai (Shrimp)', 'ผัดไทกุ้งสด', 'Authentic Pad Thai with juicy shrimp stir-fried in tamarind sauce, served over chewy rice noodles. Garnished with crushed peanuts and lime for a balanced, protein-rich meal. No MSG, just flavor.', NULL, NULL, 'uploads/menus/menu_686ce2223230f.jpg', NULL, '350.00', 'Regular', 15, '350.00', '15.00', '50.00', '15.00', '10.00', '10.00', NULL, NULL, NULL, 'mild', 1, 0, 0, NULL, NULL, 'pad-thai-shrimp', 'Dive into Thailand&#039;s most beloved dish, elevated to nourish your body and soul. Our authentic Pad Thai features plump, sustainably-sourced shrimp stir-fried wit', '2025-07-08 09:17:22', '2025-07-08 09:17:36'),
+('eda83eb5-d471-45a7-ad9e-339b89e68789', 'a598bb91-68eb-4b0f-9de3-174362f36f37', 'Pad Thai (Vegan)', 'ผัดไทเจ', 'A plant-based twist on the classic! Rice noodles tossed in tamarind-peanut sauce with tofu, bean sprouts, and roasted peanuts. Clean, comforting, and 100% vegan.', NULL, NULL, 'uploads/menus/menu_686ce2dd82279.jpg', NULL, '300.00', 'Regular', 15, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'medium', 1, 0, 0, NULL, NULL, 'pad-thai-vegan', 'Proof that plant-based eating never means compromising on flavor. Our vegan Pad Thai stars golden tofu, chewy noodles, and a rich tamarind-peanut sauce. Crisp b', '2025-07-08 09:20:29', '2025-07-08 09:20:29'),
+('f01cd2bf-4a3b-4311-90b2-5f35a48a394d', '550e8400-e29b-41d4-a716-446655440005', 'Thai Basil (Chicken) + Rice', 'ข้าวผัดกะเพราไก่', 'Stir-fried chicken with Thai holy basil, garlic, and chili. Served with jasmine rice and a runny egg on request. High protein and full of heatâ€”without greasy takeout guilt.', NULL, NULL, 'uploads/menus/menu_686ce3c206655.jpg', NULL, '320.00', 'Regular', 15, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'medium', 1, 0, 0, NULL, NULL, 'thai-basil-chicken-rice', NULL, '2025-07-08 09:24:18', '2025-07-08 09:24:18'),
+('fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', NULL, 'Green Curry (Chicken) + Rice', 'ข้าวแกงเขียนหวาน', 'Tender chicken simmered in our housemade green curry paste and coconut milk. Packed with eggplant, sweet basil, and served with organic jasmine rice. Gluten-free and soul-warming.', NULL, NULL, 'uploads/menus/menu_686ce3e89830e.jpg', NULL, '380.00', 'Regular', 15, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'medium', 1, 0, 0, NULL, NULL, 'green-curry-chicken-rice', NULL, '2025-07-08 09:24:56', '2025-07-25 05:59:34'),
+('meal-kit-green-curry-2025', 'meal-kit-category-2025', 'Green Curry Meal Kit', 'ชุดแกงเขียวหวาน', 'ชุดทำแกงเขียวหวานแท้ ครบเครื่อง พร้อมวัตถุดิบสด และพริกแกงเขียวหวานโฮมเมด สำหรับ 2-3 ที่', 'พริกแกงเขียวหวาน, เนื้อไก่, มะเขือเปราะ, ใบโหระพา, กะทิสด, น้ำปลา, น้ำตาลปี๊บ, ข้าวหอมมะลิ', '1. ผัดพริกแกงกับกะทิ 2. ใส่เนื้อไก่ 3. ปรุงรส 4. ใส่ผักและใบโหระพา 5. เสิร์ฟพร้อมข้าว', 'uploads/menu_images/menu_1753773165_6888746dcccba.jpg', NULL, '450.00', 'Small', 25, '420.00', '25.50', '35.20', '18.80', '4.50', '850.00', '8.20', '[\"rich_in_protein\", \"contains_vegetables\", \"authentic_thai_flavors\"]', '[\"gluten_free\",\"dairy_free\"]', 'hot', 1, 1, 0, NULL, NULL, 'green-curry-meal-kit', 'ชุดทำแกงเขียวหวานแท้ รสชาติเหมือนทำเอง วัตถุดิบสดใหม่ พร้อมสูตรการทำแบบละเอียด', '2025-07-28 14:55:21', '2025-07-29 07:12:45'),
+('meal-kit-pad-thai-2025', 'meal-kit-category-2025', 'Pad Thai Meal Kit', 'ชุดผัดไทย', 'ชุดทำผัดไทยแท้ รสชาติต้นตำรับ พร้อมกุ้งสด เส้นจันท์ และน้ำผัดไทยสูตรเฉพาะ สำหรับ 2 ที่', 'เส้นจันท์, กุ้งสด, ไข่ไก่, ถั่วงอก, กุยช่าย, เต้าหู้แข็ง, น้ำผัดไทย, ถั่วลิสงป่น, มะนาว', '1. ลวกเส้นจันท์ 2. ตั้งกระทะใส่น้ำมัน 3. ผัดกุ้งกับไข่ 4. ใส่เส้นและน้ำผัดไทย 5. ใส่ผักและปรุงรส', 'uploads/menu_images/menu_1753773136_688874507d2a3.jpg', NULL, '380.00', 'Small', 20, '385.00', '22.50', '58.20', '12.80', '6.20', '780.00', '15.80', '[\"balanced_nutrition\", \"authentic_taste\", \"quick_cooking\"]', NULL, 'mild', 1, 1, 0, NULL, NULL, 'pad-thai-meal-kit', 'ชุดทำผัดไทยแท้ รสชาติต้นตำรับ กุ้งสดเส้นจันท์นุ่ม พร้อมสูตรน้ำผัดไทยเฉพาะ', '2025-07-28 14:55:55', '2025-07-29 07:12:16'),
+('meal-kit-panang-curry-2025', 'meal-kit-category-2025', 'Panang Curry Meal Kit', 'ชุดแพนง', 'ชุดทำแพนงแท้ เข้มข้นหอมหวล พร้อมเนื้อวัวนุ่ม และพริกแกงแพนงสูตรโบราณ สำหรับ 2-3 ที่', 'พริกแกงแพนง, เนื้อวัว, กะทิหัวกะทิ, น้ำปลา, น้ำตาลปี๊บ, ใบมะกรูดซอย, ถั่วลิสงคั่ว, ข้าวหอมมะลิ', '1. ตั้งกะทิให้แตกมัน 2. ผัดพริกแกงแพนง 3. ใส่เนื้อวัว 4. ปรุงรส 5. โรยถั่วลิสงและใบมะกรูด', 'uploads/menu_images/menu_1753773101_6888742d39e95.jpg', NULL, '520.00', 'Small', 30, '485.00', '32.80', '28.50', '24.20', '3.80', '920.00', '12.50', '[\"high_protein\", \"rich_coconut_cream\", \"traditional_recipe\"]', '[\"gluten_free\",\"dairy_free\"]', 'medium', 1, 1, 0, NULL, NULL, 'panang-curry-meal-kit', 'ชุดทำแพนงแท้ เข้มข้นหอมหวล เนื้อวัวนุ่ม พร้อมสูตรลับการทำแบบโบราณ', '2025-07-28 14:55:38', '2025-07-29 07:11:41'),
+('meal-kit-tom-yum-2025', 'meal-kit-category-2025', 'Tom Yum Soup Meal Kit', 'ชุดต้มยำ', 'ชุดทำต้มยำกุ้งแท้ เปรีย๊วเปรี๊ยว พร้อมกุ้งใหญ่ เห็ดฟาง และเครื่องต้มยำสดใหม่ สำหรับ 2-3 ที่', 'กุ้งใหญ่, เห็ดฟาง, ตะไคร้, ใบมะกรูด, ข่า, พริกขี้หนู, น้ำปลา, น้ำมะนาว, น้ำพริกเผา, มะเขือเทศ', '1. ต้มน้ำใส่ตะไคร้ ข่า ใบมะกรูด 2. ใส่กุ้งและเห็ด 3. ปรุงรสเปรี้ยว เค็ม เผ็ด 4. ใส่มะเขือเทศ 5. ชิมรสและเสิร์ฟ', 'uploads/menu_images/menu_1753773055_688873ffa2bec.jpg', NULL, '420.00', 'Small', 15, '165.00', '18.50', '12.20', '8.50', '3.20', '950.00', '6.80', '[\"low_calorie\", \"immune_boosting\", \"metabolism_boosting\", \"digestive_health\"]', '[\"gluten_free\",\"dairy_free\"]', 'extra_hot', 1, 1, 0, NULL, NULL, 'tom-yum-soup-meal-kit', 'ชุดทำต้มยำกุ้งแท้ เปรี้ยวเปรี๊ยว เผ็ดร้อน กุ้งใหญ่สดใหม่ พร้อมเครื่องต้มยำครบชุด', '2025-07-28 14:56:14', '2025-07-29 07:10:55');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `menu_categories`
+--
+
+CREATE TABLE `menu_categories` (
+  `id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `name_thai` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `description` text COLLATE utf8mb4_unicode_ci,
+  `image_url` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `sort_order` int(11) DEFAULT '0',
+  `is_active` tinyint(1) DEFAULT '1',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `menu_categories`
+--
+
+INSERT INTO `menu_categories` (`id`, `name`, `name_thai`, `description`, `image_url`, `sort_order`, `is_active`, `created_at`, `updated_at`) VALUES
+('550e8400-e29b-41d4-a716-446655440005', 'Rice Bowls', 'ข้าวกล่อง', 'Healthy rice-based meals with various proteins and vegetables', NULL, 1, 1, '2025-07-02 02:47:49', '2025-07-02 02:47:49'),
+('550e8400-e29b-41d4-a716-446655440006', 'Thai Curries', 'แกงไทย', 'Traditional Thai curries with authentic flavors', NULL, 2, 1, '2025-07-02 02:47:49', '2025-07-02 02:47:49'),
+('a598bb91-68eb-4b0f-9de3-174362f36f37', 'Noodle Dishes', '— เมนูเส้น', NULL, NULL, 3, 1, '2025-07-04 04:49:24', '2025-07-04 04:49:24'),
+('meal-kit-category-2025', 'Meal Kits', 'มีล คิท', 'ชุดอาหารพร้อมปรุง สำหรับคนรักการทำอาหารเอง', NULL, 4, 1, '2025-07-28 14:55:05', '2025-07-28 14:55:05');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `menu_ingredients`
+--
+
+CREATE TABLE `menu_ingredients` (
+  `id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `menu_id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `inventory_id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `quantity_needed` decimal(8,3) NOT NULL,
+  `is_main_ingredient` tinyint(1) DEFAULT '0',
+  `preparation_notes` text COLLATE utf8mb4_unicode_ci,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `notifications`
+--
+
+CREATE TABLE `notifications` (
+  `id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `user_id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `type` enum('order_update','delivery','payment','promotion','system','review_reminder') COLLATE utf8mb4_unicode_ci NOT NULL,
+  `priority` enum('low','medium','high') COLLATE utf8mb4_unicode_ci DEFAULT 'medium',
+  `title` varchar(200) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `message` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `avatar_url` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `channels` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin,
+  `is_read` tinyint(1) DEFAULT '0',
+  `is_sent` tinyint(1) DEFAULT '0',
+  `read_at` timestamp NULL DEFAULT NULL,
+  `sent_at` timestamp NULL DEFAULT NULL,
+  `related_id` char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `related_type` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `metadata` json DEFAULT NULL,
+  `action_url` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `expires_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `notifications`
+--
+
+INSERT INTO `notifications` (`id`, `user_id`, `type`, `priority`, `title`, `message`, `avatar_url`, `channels`, `is_read`, `is_sent`, `read_at`, `sent_at`, `related_id`, `related_type`, `metadata`, `action_url`, `expires_at`, `created_at`, `updated_at`) VALUES
+('01da8be6-01b5-42db-a47c-0cc914a0ca28', '29e6fe85-124c-480f-bcf2-0d174721936f', 'system', 'low', '📱 App Update Available', 'A new version of Somdul Table app is available with improved features.', NULL, NULL, 0, 0, '2025-08-06 04:47:04', NULL, NULL, NULL, NULL, NULL, NULL, '2025-08-06 04:46:25', '2025-08-06 04:47:04'),
+('033eaa6e-dc47-4264-81b3-7939c3f96e74', 'aedb1144-5ba5-11f0-96aa-e4b3d1018dc3', 'delivery', 'medium', 'New Delivery Assignment', 'You have 0 new deliveries assigned to you.', NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-07-24 05:29:29', '2025-07-24 12:29:29'),
+('098c83f2-5582-4435-b2cd-7dee2e066adf', '550e8400-e29b-41d4-a716-446655440004', 'delivery', 'medium', 'New Delivery Assignment', 'You have 0 new deliveries assigned to you.', NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-07-24 20:38:43', '2025-07-25 03:38:43'),
+('15a19e5b-d990-4b0a-98e8-125cb5732896', '29e6fe85-124c-480f-bcf2-0d174721936f', 'order_update', 'high', '🍜 Order Confirmed!', 'Your Pad Thai order has been confirmed and is being prepared by our kitchen.', NULL, NULL, 0, 0, '2025-08-06 04:36:26', NULL, NULL, NULL, NULL, NULL, NULL, '2025-08-06 04:36:16', '2025-08-06 04:36:26'),
+('1d3fe781-5cc5-4420-8b97-6c277fe5c4c6', '29e6fe85-124c-480f-bcf2-0d174721936f', 'order_update', 'high', '🍜 Order Confirmed!', 'Your Pad Thai order has been confirmed and is being prepared by our kitchen.', NULL, NULL, 0, 0, '2025-08-06 04:47:04', NULL, NULL, NULL, NULL, NULL, NULL, '2025-08-06 04:37:11', '2025-08-06 04:47:04'),
+('262d9d5b-edce-45c1-8395-3cf1c1362678', '29e6fe85-124c-480f-bcf2-0d174721936f', 'system', 'low', '📱 App Update Available', 'A new version of Krua Thai app is available with improved features.', NULL, NULL, 0, 0, '2025-08-06 04:36:26', NULL, NULL, NULL, NULL, NULL, NULL, '2025-08-06 04:36:15', '2025-08-06 04:36:26'),
+('2cb80fc3-8fe1-4e84-8c15-caca46416438', '29e6fe85-124c-480f-bcf2-0d174721936f', 'delivery', 'high', '🚚 Out for Delivery', 'Your Thai meal is on the way! Expected delivery in 15-20 minutes.', NULL, NULL, 0, 0, '2025-08-06 04:47:04', NULL, NULL, NULL, NULL, NULL, NULL, '2025-08-06 04:37:10', '2025-08-06 04:47:04'),
+('2e4b591a-edc4-4220-877b-7f93053d2156', '5af6d9cd-5e46-41de-b6d7-632cb21330a5', 'delivery', 'medium', 'New Delivery Assignment', 'You have 0 new deliveries assigned to you.', NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-07-21 20:35:31', '2025-07-22 03:35:31'),
+('322a4a38-0ee8-48ea-8548-ed2bfc61243a', '5af6d9cd-5e46-41de-b6d7-632cb21330a5', 'delivery', 'medium', 'New Delivery Assignment', 'You have 0 new deliveries assigned to you.', NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-07-21 20:31:14', '2025-07-22 03:31:14'),
+('339a3706-d6e2-41ca-8358-f5a3c699726e', 'aedb1144-5ba5-11f0-96aa-e4b3d1018dc3', 'delivery', 'medium', 'New Delivery Assignment', 'You have 0 new deliveries assigned to you.', NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-07-24 05:31:45', '2025-07-24 12:31:45'),
+('404ad22e-6c7f-11f0-9bc8-43f1edcf48f7', '550e8400-e29b-41d4-a716-446655440003', 'order_update', 'medium', 'Order Confirmed', 'Your order has been confirmed and is being prepared.', NULL, NULL, 1, 1, '2025-07-27 07:23:44', '2025-07-27 06:23:44', NULL, NULL, NULL, NULL, NULL, '2025-07-27 06:23:44', '2025-07-27 06:23:44'),
+('404bad70-6c7f-11f0-9bc8-43f1edcf48f7', '550e8400-e29b-41d4-a716-446655440003', 'delivery', 'medium', 'Out for Delivery', 'Your meal is on the way! Expected delivery in 30 minutes.', NULL, NULL, 0, 1, NULL, '2025-07-23 06:23:44', NULL, NULL, NULL, NULL, NULL, '2025-07-23 06:23:44', '2025-07-23 06:23:44'),
+('404bbcca-6c7f-11f0-9bc8-43f1edcf48f7', '550e8400-e29b-41d4-a716-446655440003', 'payment', 'medium', 'Payment Successful', 'Your payment of ฿450.00 has been processed successfully.', NULL, NULL, 1, 1, '2025-07-24 07:23:44', '2025-07-24 06:23:44', NULL, NULL, NULL, NULL, NULL, '2025-07-24 06:23:44', '2025-07-24 06:23:44'),
+('404bf17c-6c7f-11f0-9bc8-43f1edcf48f7', '550e8400-e29b-41d4-a716-446655440003', 'system', 'medium', 'Welcome to Krua Thai!', 'Welcome to our healthy Thai meal delivery service!', NULL, NULL, 0, 1, NULL, '2025-07-26 06:23:44', NULL, NULL, NULL, NULL, NULL, '2025-07-26 06:23:44', '2025-07-26 06:23:44'),
+('404c0144-6c7f-11f0-9bc8-43f1edcf48f7', '550e8400-e29b-41d4-a716-446655440003', 'promotion', 'medium', '20% Off First Order', 'Use code THAI20 to get 20% off your first order.', NULL, NULL, 1, 1, '2025-07-22 07:23:44', '2025-07-22 06:23:44', NULL, NULL, NULL, NULL, NULL, '2025-07-22 06:23:44', '2025-07-22 06:23:44'),
+('42bc3406-2ab7-4e5b-ab51-a07b41175a9a', '29e6fe85-124c-480f-bcf2-0d174721936f', 'system', 'low', '📱 App Update Available', 'A new version of Somdul Table app is available with improved features.', NULL, NULL, 0, 0, '2025-08-06 04:47:00', NULL, NULL, NULL, NULL, NULL, NULL, '2025-08-06 04:46:28', '2025-08-06 04:47:00'),
+('4f4f8df9-639c-480e-b55a-3feec7667da4', 'aedb1144-5ba5-11f0-96aa-e4b3d1018dc3', 'delivery', 'medium', 'New Delivery Assignment', 'You have 0 new deliveries assigned to you.', NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-07-24 02:59:48', '2025-07-24 09:59:48'),
+('5249371f-7956-447a-994b-223c59bbd894', '29e6fe85-124c-480f-bcf2-0d174721936f', 'system', 'low', '📱 App Update Available', 'A new version of Krua Thai app is available with improved features.', NULL, NULL, 0, 0, '2025-08-06 04:36:26', NULL, NULL, NULL, NULL, NULL, NULL, '2025-08-06 04:36:16', '2025-08-06 04:36:26'),
+('54bcb60e-39af-4176-b26b-3be9738dd586', '550e8400-e29b-41d4-a716-446655440004', 'delivery', 'medium', 'New Delivery Assignment', 'You have 0 new deliveries assigned to you.', NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-07-21 20:31:20', '2025-07-22 03:31:20'),
+('5b21bba9-10fa-451e-86e7-d4bf39c695a2', '29e6fe85-124c-480f-bcf2-0d174721936f', 'system', 'low', '📱 App Update Available', 'A new version of Krua Thai app is available with improved features.', NULL, NULL, 0, 0, '2025-08-06 04:35:49', NULL, NULL, NULL, NULL, NULL, NULL, '2025-08-06 04:35:40', '2025-08-06 04:35:49'),
+('64016895-1d3a-47c4-91bc-d02b6e0a2a8b', '5af6d9cd-5e46-41de-b6d7-632cb21330a5', 'delivery', 'medium', 'New Delivery Assignment', 'You have 0 new deliveries assigned to you.', NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-07-21 21:39:44', '2025-07-22 04:39:44'),
+('647b0e5c-7283-4c65-a9f6-ca3cdb359af3', '550e8400-e29b-41d4-a716-446655440004', 'delivery', 'medium', 'New Delivery Assignment', 'You have 0 new deliveries assigned to you.', NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-07-24 05:52:00', '2025-07-24 12:52:00'),
+('663ef2f0-90e0-4019-8913-b1d560b3290c', '29e6fe85-124c-480f-bcf2-0d174721936f', 'payment', 'medium', '💳 Payment Successful', 'Your payment of $24.99 has been processed successfully via Apple Pay.', NULL, NULL, 0, 0, '2025-08-06 04:36:26', NULL, NULL, NULL, NULL, NULL, NULL, '2025-08-06 04:36:15', '2025-08-06 04:36:26'),
+('6a482391-7b3f-489e-a2c2-7c8d8bd460ad', '6c9391f3-0772-4393-a703-a035cc68d3d7', 'promotion', 'medium', '🎉 Limited Time Offer', 'Get 20% off your next healthy Thai meal! Use code HEALTHY20 at checkout.', NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-08-12 02:41:45', '2025-08-12 02:41:45'),
+('70eed382-c3d7-49ae-8163-8eec16e4779a', '550e8400-e29b-41d4-a716-446655440004', 'delivery', 'medium', 'New Delivery Assignment', 'You have 0 new deliveries assigned to you.', NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-07-21 19:29:31', '2025-07-22 02:29:31'),
+('74198ca1-d143-452d-b748-46eee837bd7f', '29e6fe85-124c-480f-bcf2-0d174721936f', 'promotion', 'medium', '🎉 Limited Time Offer', 'Get 20% off your next healthy Thai meal! Use code HEALTHY20 at checkout.', NULL, NULL, 0, 0, '2025-08-06 04:36:26', NULL, NULL, NULL, NULL, NULL, NULL, '2025-08-06 04:36:15', '2025-08-06 04:36:26'),
+('77286c38-796f-4e17-8080-19acc6f603eb', '29e6fe85-124c-480f-bcf2-0d174721936f', 'promotion', 'medium', '🎉 Limited Time Offer', 'Get 20% off your next healthy Thai meal! Use code HEALTHY20 at checkout.', NULL, NULL, 0, 0, '2025-08-06 04:47:04', NULL, NULL, NULL, NULL, NULL, NULL, '2025-08-06 04:37:10', '2025-08-06 04:47:04'),
+('7729de60-c777-4b04-b13d-25e801834707', '29e6fe85-124c-480f-bcf2-0d174721936f', 'delivery', 'high', '🚚 Out for Delivery', 'Your Thai meal is on the way! Expected delivery in 15-20 minutes.', NULL, NULL, 0, 0, '2025-08-06 04:47:04', NULL, NULL, NULL, NULL, NULL, NULL, '2025-08-06 04:37:11', '2025-08-06 04:47:04'),
+('81541187-ebbe-48b9-b88a-510e8241bd9e', '550e8400-e29b-41d4-a716-446655440004', 'delivery', 'medium', 'New Delivery Assignment', 'You have 0 new deliveries assigned to you.', NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-07-21 19:31:00', '2025-07-22 02:31:00'),
+('82be744a-94d2-48f9-a898-68d73a719f87', '29e6fe85-124c-480f-bcf2-0d174721936f', 'order_update', 'high', '🍜 Order Confirmed!', 'Your Pad Thai order has been confirmed and is being prepared by our kitchen.', NULL, NULL, 0, 0, '2025-08-06 04:36:11', NULL, NULL, NULL, NULL, NULL, NULL, '2025-08-06 04:36:02', '2025-08-06 04:36:11'),
+('89832184-b215-428a-ab67-8a01863f8475', '550e8400-e29b-41d4-a716-446655440004', 'delivery', 'medium', 'New Delivery Assignment', 'You have 0 new deliveries assigned to you.', NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-07-21 19:31:57', '2025-07-22 02:31:57'),
+('8ade4bec-2ce0-4fe0-9395-0bb7bc8b9f48', '29e6fe85-124c-480f-bcf2-0d174721936f', 'order_update', 'high', '🍜 Order Confirmed!', 'Your Pad Thai order has been confirmed and is being prepared by our kitchen.', NULL, NULL, 0, 0, '2025-08-06 04:47:04', NULL, NULL, NULL, NULL, NULL, NULL, '2025-08-06 04:37:11', '2025-08-06 04:47:04'),
+('8cf29503-8872-40fa-bb0f-95454d8d9c48', '56ec0a53-cf99-4e73-89d7-a3300ddafa4f', 'payment', 'medium', '💳 Payment Successful', 'Your payment of $24.99 has been processed successfully via Apple Pay.', NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-08-06 08:32:06', '2025-08-06 08:32:06'),
+('8dde2976-6fba-4bfa-97fa-db283ef4a2f4', '29e6fe85-124c-480f-bcf2-0d174721936f', 'payment', 'medium', '💳 Payment Successful', 'Your payment of $24.99 has been processed successfully via Apple Pay.', NULL, NULL, 0, 0, '2025-08-06 04:36:26', NULL, NULL, NULL, NULL, NULL, NULL, '2025-08-06 04:36:16', '2025-08-06 04:36:26'),
+('8fd0ee0c-4111-4d3c-9bab-01c13750c3a3', '29e6fe85-124c-480f-bcf2-0d174721936f', 'system', 'low', '📱 App Update Available', 'A new version of Krua Thai app is available with improved features.', NULL, NULL, 0, 0, '2025-08-06 04:36:11', NULL, NULL, NULL, NULL, NULL, NULL, '2025-08-06 04:36:01', '2025-08-06 04:36:11'),
+('962b55cc-955c-4be3-9a27-ad169879aa14', '29e6fe85-124c-480f-bcf2-0d174721936f', 'order_update', 'high', '🍜 Order Confirmed!', 'Your Pad Thai order has been confirmed and is being prepared by our kitchen.', NULL, NULL, 0, 0, '2025-08-06 04:47:04', NULL, NULL, NULL, NULL, NULL, NULL, '2025-08-06 04:37:10', '2025-08-06 04:47:04'),
+('9b8f71b5-2af9-4c24-ab32-77f85472a860', '550e8400-e29b-41d4-a716-446655440004', 'delivery', 'medium', 'New Delivery Assignment', 'You have 0 new deliveries assigned to you.', NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-07-21 23:47:28', '2025-07-22 06:47:28'),
+('9c0f3721-103d-4aa8-968f-b5f585c3073d', '29e6fe85-124c-480f-bcf2-0d174721936f', 'promotion', 'medium', '🎉 Limited Time Offer', 'Get 20% off your next healthy Thai meal! Use code HEALTHY20 at checkout.', NULL, NULL, 0, 0, '2025-08-06 04:47:04', NULL, NULL, NULL, NULL, NULL, NULL, '2025-08-06 04:37:10', '2025-08-06 04:47:04'),
+('9f14b0f8-e985-495a-bb59-65aaf3dd9265', '5af6d9cd-5e46-41de-b6d7-632cb21330a5', 'delivery', 'medium', 'New Delivery Assignment', 'You have 0 new deliveries assigned to you.', NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-07-21 20:31:01', '2025-07-22 03:31:01'),
+('9f8dfa7d-3a79-4c04-b389-5d0b0f06c2c2', '5af6d9cd-5e46-41de-b6d7-632cb21330a5', 'delivery', 'medium', 'New Delivery Assignment', 'You have 0 new deliveries assigned to you.', NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-07-21 20:30:20', '2025-07-22 03:30:20'),
+('a07991e3-3ac7-455d-bd9e-23b9e222773b', '29e6fe85-124c-480f-bcf2-0d174721936f', 'promotion', 'medium', '🎉 Limited Time Offer', 'Get 20% off your next healthy Thai meal! Use code HEALTHY20 at checkout.', NULL, NULL, 0, 0, '2025-08-06 04:36:26', NULL, NULL, NULL, NULL, NULL, NULL, '2025-08-06 04:36:15', '2025-08-06 04:36:26'),
+('a4d0ac97-737c-47bc-bfe5-0928d337c4b5', '29e6fe85-124c-480f-bcf2-0d174721936f', 'promotion', 'medium', '🎉 Limited Time Offer', 'Get 20% off your next healthy Thai meal! Use code HEALTHY20 at checkout.', NULL, NULL, 0, 0, '2025-08-06 04:36:26', NULL, NULL, NULL, NULL, NULL, NULL, '2025-08-06 04:36:16', '2025-08-06 04:36:26'),
+('b281cde8-fce3-4358-a290-2d5e79fabff3', '29e6fe85-124c-480f-bcf2-0d174721936f', 'payment', 'medium', '💳 Payment Successful', 'Your payment of $24.99 has been processed successfully via Apple Pay.', NULL, NULL, 0, 0, '2025-08-06 04:47:04', NULL, NULL, NULL, NULL, NULL, NULL, '2025-08-06 04:37:10', '2025-08-06 04:47:04'),
+('b4de54f9-a7a7-4955-aad5-b7cbb43d2be9', 'aedb1144-5ba5-11f0-96aa-e4b3d1018dc3', 'delivery', 'medium', 'New Delivery Assignment', 'You have 0 new deliveries assigned to you.', NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-07-22 05:46:50', '2025-07-22 12:46:50'),
+('b6cc57f7-f37e-4e56-a843-bf148e76ef78', '550e8400-e29b-41d4-a716-446655440004', 'delivery', 'medium', 'New Delivery Assignment', 'You have 0 new deliveries assigned to you.', NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-07-21 20:07:27', '2025-07-22 03:07:27'),
+('bd9e2149-d1d0-4b72-9374-67b33c8bd04c', '29e6fe85-124c-480f-bcf2-0d174721936f', 'payment', 'medium', '💳 Payment Successful', 'Your payment of $24.99 has been processed successfully via Apple Pay.', NULL, NULL, 0, 0, '2025-08-06 04:36:11', NULL, NULL, NULL, NULL, NULL, NULL, '2025-08-06 04:35:59', '2025-08-06 04:36:11'),
+('bf6ab196-727e-11f0-85d4-de8913c1908f', '550e8400-e29b-41d4-a716-446655440001', 'order_update', 'high', '🍜 Your Order is Confirmed!', 'Your Pad Thai order #PT-2025-001 has been confirmed and is being prepared by our kitchen team.', NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-08-06 04:30:15', '2025-08-06 04:35:15'),
+('bf6ade1e-727e-11f0-85d4-de8913c1908f', '550e8400-e29b-41d4-a716-446655440001', 'delivery', 'high', '🚚 Out for Delivery', 'Your Thai Green Curry is on the way! Expected delivery in 15-20 minutes to your address.', NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-08-06 04:25:15', '2025-08-06 04:35:15'),
+('bf6aee9a-727e-11f0-85d4-de8913c1908f', '550e8400-e29b-41d4-a716-446655440001', 'promotion', 'medium', '🎉 Special Weekend Offer!', 'Get 25% off your next healthy Thai meal order! Use code WEEKEND25 at checkout. Valid until Sunday.', NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-08-06 03:35:15', '2025-08-06 04:35:15'),
+('bf6af12e-727e-11f0-85d4-de8913c1908f', '550e8400-e29b-41d4-a716-446655440001', 'payment', 'medium', '💳 Payment Successful', 'Your payment of $24.99 for Thai Basil Chicken has been processed successfully via Apple Pay.', NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-08-06 02:35:15', '2025-08-06 04:35:15'),
+('bf6af2f0-727e-11f0-85d4-de8913c1908f', '550e8400-e29b-41d4-a716-446655440001', 'system', 'low', '📱 Welcome to Krua Thai!', 'Thank you for joining our healthy Thai meal delivery service. Your account has been successfully created.', NULL, NULL, 0, 0, '2025-08-05 08:35:15', NULL, NULL, NULL, NULL, NULL, NULL, '2025-08-05 04:35:15', '2025-08-06 04:35:15'),
+('bf6af4d0-727e-11f0-85d4-de8913c1908f', '550e8400-e29b-41d4-a716-446655440001', 'delivery', 'medium', '✅ Order Delivered', 'Your Tom Yum Soup order has been successfully delivered. Thank you for choosing Krua Thai!', NULL, NULL, 0, 0, '2025-08-05 04:35:15', NULL, NULL, NULL, NULL, NULL, NULL, '2025-08-04 04:35:15', '2025-08-06 04:35:15'),
+('bf6af61a-727e-11f0-85d4-de8913c1908f', '550e8400-e29b-41d4-a716-446655440001', 'review_reminder', 'low', '⭐ Rate Your Experience', 'How was your recent Thai meal? Please take a moment to rate your experience and help us improve.', NULL, NULL, 0, 0, '2025-08-04 04:35:15', NULL, NULL, NULL, NULL, NULL, NULL, '2025-08-03 04:35:15', '2025-08-06 04:35:15'),
+('c78c36f7-f47f-4a33-a616-07c2288e9d39', '29e6fe85-124c-480f-bcf2-0d174721936f', 'delivery', 'high', '🚚 Out for Delivery', 'Your Thai meal is on the way! Expected delivery in 15-20 minutes.', NULL, NULL, 0, 0, '2025-08-06 04:36:11', NULL, NULL, NULL, NULL, NULL, NULL, '2025-08-06 04:36:01', '2025-08-06 04:36:11'),
+('cabb4d85-dff8-4e33-9ab1-ee54f4f564d5', '29e6fe85-124c-480f-bcf2-0d174721936f', 'order_update', 'high', '🍜 Order Confirmed!', 'Your Pad Thai order has been confirmed and is being prepared by our kitchen.', NULL, NULL, 0, 0, '2025-08-06 04:36:26', NULL, NULL, NULL, NULL, NULL, NULL, '2025-08-06 04:36:15', '2025-08-06 04:36:26'),
+('cf69c7e8-c846-4140-88e2-242b72899fa2', '29e6fe85-124c-480f-bcf2-0d174721936f', 'promotion', 'medium', '🎉 Limited Time Offer', 'Get 20% off your next healthy Thai meal! Use code HEALTHY20 at checkout.', NULL, NULL, 0, 0, '2025-08-07 06:34:34', NULL, NULL, NULL, NULL, NULL, NULL, '2025-08-06 06:21:09', '2025-08-07 06:34:34'),
+('d07effbe-98a9-4930-b904-a22c75e69cb3', '29e6fe85-124c-480f-bcf2-0d174721936f', 'payment', 'medium', '💳 Payment Successful', 'Your payment of $24.99 has been processed successfully via Apple Pay.', NULL, NULL, 0, 0, '2025-08-06 04:36:26', NULL, NULL, NULL, NULL, NULL, NULL, '2025-08-06 04:36:15', '2025-08-06 04:36:26'),
+('d3acb39e-687a-4f6d-8113-54e5014d193d', '5af6d9cd-5e46-41de-b6d7-632cb21330a5', 'delivery', 'medium', 'New Delivery Assignment', 'You have 0 new deliveries assigned to you.', NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-07-22 05:46:58', '2025-07-22 12:46:58'),
+('ddb2a785-12f8-47bd-a1f9-5601ca2c3f5d', '29e6fe85-124c-480f-bcf2-0d174721936f', 'order_update', 'high', '🍜 Order Confirmed!', 'Your Pad Thai order has been confirmed and is being prepared by our kitchen.', NULL, NULL, 0, 0, '2025-08-06 04:36:11', NULL, NULL, NULL, NULL, NULL, NULL, '2025-08-06 04:36:01', '2025-08-06 04:36:11'),
+('e315813b-d773-4eca-b189-28e81022e844', '29e6fe85-124c-480f-bcf2-0d174721936f', 'payment', 'medium', '💳 Payment Successful', 'Your payment of $24.99 has been processed successfully via Apple Pay.', NULL, NULL, 0, 0, '2025-08-06 04:47:04', NULL, NULL, NULL, NULL, NULL, NULL, '2025-08-06 04:37:10', '2025-08-06 04:47:04'),
+('e567abec-04d3-476d-8408-7ed9bdb2e20e', '29e6fe85-124c-480f-bcf2-0d174721936f', 'order_update', 'high', '🍜 Order Confirmed!', 'Your Pad Thai order has been confirmed and is being prepared by our kitchen.', NULL, NULL, 0, 0, '2025-08-06 04:36:26', NULL, NULL, NULL, NULL, NULL, NULL, '2025-08-06 04:36:16', '2025-08-06 04:36:26'),
+('e913fd18-4c54-4f93-b851-01fa1856f198', '29e6fe85-124c-480f-bcf2-0d174721936f', 'payment', 'medium', '💳 Payment Successful', 'Your payment of $24.99 has been processed successfully via Apple Pay.', NULL, NULL, 0, 0, '2025-08-06 04:36:26', NULL, NULL, NULL, NULL, NULL, NULL, '2025-08-06 04:36:14', '2025-08-06 04:36:26'),
+('ed238f12-ef3e-40c6-b372-7550d5efe4a6', '29e6fe85-124c-480f-bcf2-0d174721936f', 'promotion', 'medium', '🎉 Limited Time Offer', 'Get 20% off your next healthy Thai meal! Use code HEALTHY20 at checkout.', NULL, NULL, 0, 0, '2025-08-06 04:36:26', NULL, NULL, NULL, NULL, NULL, NULL, '2025-08-06 04:36:16', '2025-08-06 04:36:26'),
+('fa3f9bff-5152-4271-8076-4953255c8893', '29e6fe85-124c-480f-bcf2-0d174721936f', 'delivery', 'high', '🚚 Out for Delivery', 'Your Thai meal is on the way! Expected delivery in 15-20 minutes.', NULL, NULL, 0, 0, '2025-08-06 04:36:11', NULL, NULL, NULL, NULL, NULL, NULL, '2025-08-06 04:36:01', '2025-08-06 04:36:11');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `nutrition_goals`
+--
+
+CREATE TABLE `nutrition_goals` (
+  `id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `user_id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `target_calories` int(11) DEFAULT NULL,
+  `target_protein_g` decimal(5,2) DEFAULT NULL,
+  `target_carbs_g` decimal(5,2) DEFAULT NULL,
+  `target_fat_g` decimal(5,2) DEFAULT NULL,
+  `target_fiber_g` decimal(5,2) DEFAULT NULL,
+  `target_sodium_mg` decimal(7,2) DEFAULT NULL,
+  `health_goals` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin,
+  `activity_level` enum('sedentary','lightly_active','moderately_active','very_active') COLLATE utf8mb4_unicode_ci DEFAULT 'moderately_active',
+  `height_cm` decimal(5,2) DEFAULT NULL,
+  `current_weight_kg` decimal(5,2) DEFAULT NULL,
+  `target_weight_kg` decimal(5,2) DEFAULT NULL,
+  `age` int(11) DEFAULT NULL,
+  `medical_conditions` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin,
+  `medications` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin,
+  `is_active` tinyint(1) DEFAULT '1',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `nutrition_goals`
+--
+
+INSERT INTO `nutrition_goals` (`id`, `user_id`, `target_calories`, `target_protein_g`, `target_carbs_g`, `target_fat_g`, `target_fiber_g`, `target_sodium_mg`, `health_goals`, `activity_level`, `height_cm`, `current_weight_kg`, `target_weight_kg`, `age`, `medical_conditions`, `medications`, `is_active`, `created_at`, `updated_at`) VALUES
+('aa43aa70-6847-11f0-ae27-6eb12bc5596f', '29e6fe85-124c-480f-bcf2-0d174721936f', 1200, '200.00', '200.00', '65.00', '44.40', '2300.00', NULL, 'moderately_active', NULL, NULL, NULL, NULL, NULL, NULL, 1, '2025-07-24 04:35:45', '2025-08-03 10:07:16');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `orders`
+--
+
+CREATE TABLE `orders` (
+  `id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `order_number` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `subscription_id` char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `user_id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `delivery_date` date NOT NULL,
+  `delivery_time_slot` enum('09:00-12:00','12:00-15:00','15:00-18:00','18:00-21:00') COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `delivery_address` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `delivery_instructions` text COLLATE utf8mb4_unicode_ci,
+  `status` enum('pending','confirmed','preparing','ready','out_for_delivery','delivered','cancelled') COLLATE utf8mb4_unicode_ci DEFAULT 'pending',
+  `kitchen_status` enum('not_started','in_progress','completed') COLLATE utf8mb4_unicode_ci DEFAULT 'not_started',
+  `assigned_rider_id` char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `pickup_time` timestamp NULL DEFAULT NULL,
+  `delivery_confirmation_method` enum('photo','signature','customer_present','left_at_door') COLLATE utf8mb4_unicode_ci DEFAULT 'customer_present',
+  `delivery_photo_url` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `delivery_signature_url` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `delivered_at` timestamp NULL DEFAULT NULL,
+  `total_items` int(11) DEFAULT '0',
+  `estimated_prep_time` int(11) DEFAULT '30',
+  `special_notes` text COLLATE utf8mb4_unicode_ci,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `cutoff_time` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `orders`
+--
+
+INSERT INTO `orders` (`id`, `order_number`, `subscription_id`, `user_id`, `delivery_date`, `delivery_time_slot`, `delivery_address`, `delivery_instructions`, `status`, `kitchen_status`, `assigned_rider_id`, `pickup_time`, `delivery_confirmation_method`, `delivery_photo_url`, `delivery_signature_url`, `delivered_at`, `total_items`, `estimated_prep_time`, `special_notes`, `created_at`, `updated_at`, `cutoff_time`) VALUES
+('0197d98a9eedb7faffb1564c33b50d9e', 'ORD-20250804-543D', '127ea3b3-2807-4583-a3f0-c999188bb2e0', '29e6fe85-124c-480f-bcf2-0d174721936f', '2025-08-05', NULL, '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei333', NULL, 'confirmed', 'not_started', NULL, NULL, 'customer_present', NULL, NULL, NULL, 0, 30, NULL, '2025-08-04 07:40:34', '2025-08-04 07:40:34', NULL),
+('02a16cd6-099c-4818-8e4d-e6895cdce72e', 'ORD-20250714-3024', 'fbba995f-8221-4a6f-afe7-cc29afd8d26c', '29e6fe85-124c-480f-bcf2-0d174721936f', '2025-07-14', NULL, '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', '', 'ready', 'not_started', '550e8400-e29b-41d4-a716-446655440004', NULL, 'customer_present', NULL, NULL, NULL, 7, 30, NULL, '2025-07-14 13:57:24', '2025-07-14 15:05:42', NULL),
+('0a33774f-2984-40bf-9cd7-b351cdbef0cd', 'ORD-20250719-1084', 'efac4af3-3a57-45b8-b41f-30bec6f79334', '550e8400-e29b-41d4-a716-446655440003', '2025-07-19', NULL, '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', '', 'confirmed', 'not_started', NULL, NULL, 'customer_present', NULL, NULL, NULL, 4, 30, NULL, '2025-07-15 03:23:35', '2025-08-06 07:37:37', '2025-07-17 08:00:00'),
+('0eca72a6-d520-468f-922f-5d177dc810ec', 'ORD-20250726-0eca72', '634e7e93-9dbf-4e20-98d2-69922f7d4357', '5af6d9cd-5e46-41de-b6d7-632cb21330a5', '2025-07-26', '15:00-18:00', '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', NULL, 'ready', 'not_started', NULL, NULL, 'customer_present', NULL, NULL, NULL, 5, 30, NULL, '2025-07-19 14:47:36', '2025-08-06 07:37:37', '2025-07-24 08:00:00'),
+('15bf811c69efceed97c1976673f46a5b', 'ORD-20250729-4950', 'edaecbd2-da7e-438d-bd32-cf0dadd1508b', '29e6fe85-124c-480f-bcf2-0d174721936f', '2025-07-30', NULL, '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', NULL, 'confirmed', 'not_started', NULL, NULL, 'customer_present', NULL, NULL, NULL, 0, 30, NULL, '2025-07-29 12:53:54', '2025-08-06 07:37:37', '2025-07-28 08:00:00'),
+('1ac20d8c-d4b6-45ef-8179-59745fda9d50', 'ORD-20250723-1ac20d', '6fde2876-d423-4090-a160-975427211953', '56ec0a53-cf99-4e73-89d7-a3300ddafa4f', '2025-07-23', '18:00-21:00', 'Anaheim', NULL, 'out_for_delivery', 'not_started', '5af6d9cd-5e46-41de-b6d7-632cb21330a5', NULL, 'customer_present', NULL, NULL, NULL, 4, 30, NULL, '2025-07-21 09:15:17', '2025-08-06 07:37:37', '2025-07-21 08:00:00'),
+('1ec5d931-ea52-4ee5-8913-0a98aa4ecd22', 'ORD-20250719-8724', '8daae380-9b24-43d5-86e8-13aa455b09d4', '550e8400-e29b-41d4-a716-446655440004', '2025-07-19', NULL, '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', '', 'confirmed', 'not_started', NULL, NULL, 'customer_present', NULL, NULL, NULL, 4, 30, NULL, '2025-07-15 02:32:16', '2025-08-06 07:37:37', '2025-07-17 08:00:00'),
+('2050660d-9a71-42f5-8fce-b3abc870c853', 'ORD-20250719-9472', 'bf0b8b17-60dd-43b6-bc02-574a3b4da914', '550e8400-e29b-41d4-a716-446655440003', '2025-07-19', NULL, '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', '', 'confirmed', 'not_started', NULL, NULL, 'customer_present', NULL, NULL, NULL, 4, 30, NULL, '2025-07-15 03:23:35', '2025-08-06 07:37:37', '2025-07-17 08:00:00'),
+('279eb23581f768548583ae7049a88a35', 'ORD-20250729-12D3', '417e5469-f89b-4ee1-a9bb-dd4a9a8a973f', '29e6fe85-124c-480f-bcf2-0d174721936f', '2025-07-30', NULL, '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', NULL, 'confirmed', 'not_started', NULL, NULL, 'customer_present', NULL, NULL, NULL, 0, 30, NULL, '2025-07-29 14:21:06', '2025-08-06 07:37:37', '2025-07-28 08:00:00'),
+('2a38ad80-7a6c-4e4c-b07a-831dddf56a8f', 'ORD-20250719-5439', '4f718c97-3c23-4cc2-9f99-cd485c9bab13', '550e8400-e29b-41d4-a716-446655440003', '2025-07-19', NULL, '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', '', 'confirmed', 'not_started', NULL, NULL, 'customer_present', NULL, NULL, NULL, 4, 30, NULL, '2025-07-15 02:32:16', '2025-08-06 07:37:37', '2025-07-17 08:00:00'),
+('2cb95093-2a59-4f32-add1-a2de8a77dc54', 'ORD-20250730-2cb950', '85291cae-d5eb-42f6-9b56-a4f37b5cdd62', '29e6fe85-124c-480f-bcf2-0d174721936f', '2025-07-30', '18:00-21:00', '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', NULL, 'confirmed', 'not_started', NULL, NULL, 'customer_present', NULL, NULL, NULL, 4, 30, NULL, '2025-07-27 14:10:25', '2025-08-06 07:37:37', '2025-07-28 08:00:00'),
+('2d6a22e7-7430-4387-af1c-53d1e24b32da', 'ORD-20250723-2d6a22', '197905d6-628d-4f43-bbf5-801e011b0e8e', 'd06d0b12-7184-4f53-9342-ede1b18414f5', '2025-07-23', '18:00-21:00', '92885', NULL, 'confirmed', 'not_started', NULL, NULL, 'customer_present', NULL, NULL, NULL, 4, 30, NULL, '2025-07-22 12:27:18', '2025-08-06 07:37:37', '2025-07-21 08:00:00'),
+('3052b2fb-fe2d-41d4-a6de-9bf4297541c4', 'ORD-20250719-8296', 'a586353a-4092-48ea-a663-e75479330d20', '29e6fe85-124c-480f-bcf2-0d174721936f', '2025-07-19', NULL, '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', '', 'confirmed', 'not_started', NULL, NULL, 'customer_present', NULL, NULL, NULL, 7, 30, NULL, '2025-07-15 02:32:16', '2025-08-06 07:37:37', '2025-07-17 08:00:00'),
+('3a055385-a2ef-4c55-bd6f-7f04d8bf7dca', 'ORD-20250730-3a0553', 'afcd9a79-71e7-4808-8206-b47acc722a0f', '29e6fe85-124c-480f-bcf2-0d174721936f', '2025-07-30', '18:00-21:00', '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', NULL, 'confirmed', 'not_started', NULL, NULL, 'customer_present', NULL, NULL, NULL, 8, 30, NULL, '2025-07-29 04:03:19', '2025-08-06 07:37:37', '2025-07-28 08:00:00'),
+('3b5c08dd-2874-4ed3-9f05-aa10e43b9a5e', 'ORD-20250720-8359', '36ecb782-ce8c-428a-b8a9-afd7e02bcfe8', '29e6fe85-124c-480f-bcf2-0d174721936f', '2025-07-20', NULL, '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', '', 'confirmed', 'not_started', NULL, NULL, 'customer_present', NULL, NULL, NULL, 4, 30, NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16', NULL),
+('40b40679-6554-480c-8552-b42bce3d2447', 'ORD-20250720-6013', 'a586353a-4092-48ea-a663-e75479330d20', '29e6fe85-124c-480f-bcf2-0d174721936f', '2025-07-20', NULL, '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', '', 'confirmed', 'not_started', NULL, NULL, 'customer_present', NULL, NULL, NULL, 7, 30, NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16', NULL),
+('43eb5cf8-d61e-47fa-94ca-57b0f0365a11', 'ORD-20250723-43eb5c', '04a206fe-78ed-43ab-8c4f-7574d91a5066', '6fdc8ff8-db01-406a-b34a-8fdc701bff70', '2025-07-23', '18:00-21:00', 'Garden Grove', NULL, 'confirmed', 'not_started', NULL, NULL, 'customer_present', NULL, NULL, NULL, 4, 30, NULL, '2025-07-22 12:21:36', '2025-08-06 07:37:37', '2025-07-21 08:00:00'),
+('481c2b4b-2207-49ef-8099-26bec81710ef', 'ORD-20250719-8579', 'ecaa5b9d-44dc-4564-b077-248692b8e812', '29e6fe85-124c-480f-bcf2-0d174721936f', '2025-07-19', NULL, '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', '', 'confirmed', 'not_started', NULL, NULL, 'customer_present', NULL, NULL, NULL, 7, 30, NULL, '2025-07-15 02:32:16', '2025-08-06 07:37:37', '2025-07-17 08:00:00'),
+('4870950c-8cb7-45d6-b0c9-aee2fe4dfb43', 'ORD-20250714-6578', 'f4a3040e-2316-483a-8914-e0faceaaf58b', '29e6fe85-124c-480f-bcf2-0d174721936f', '2025-07-14', NULL, '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', '', 'confirmed', 'not_started', NULL, NULL, 'customer_present', NULL, NULL, NULL, 4, 30, NULL, '2025-07-14 13:57:24', '2025-07-14 13:57:24', NULL),
+('50d16a3a0f3ce0bf8765cc1254bfadf5', 'ORD-20250724-9989', '393e600c-4672-4b2e-98c9-0fb03ddfe4c4', '29e6fe85-124c-480f-bcf2-0d174721936f', '2025-07-25', NULL, '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', NULL, 'confirmed', 'not_started', NULL, NULL, 'customer_present', NULL, NULL, NULL, 0, 30, NULL, '2025-07-24 07:49:19', '2025-07-24 07:49:19', NULL),
+('5462cd93-4184-42e6-997b-e9605fb4d07c', 'ORD-20250723-5462cd', '6eae9f70-8676-4865-9891-3a411758272f', 'bd1259a5-57b1-4fc7-babb-61baad5a6e03', '2025-07-23', '18:00-21:00', '130 E Yorba Linda Blvd, Placentia, CA=', NULL, 'ready', 'not_started', NULL, NULL, 'customer_present', NULL, NULL, NULL, 4, 30, NULL, '2025-07-21 06:41:42', '2025-08-06 07:37:37', '2025-07-21 08:00:00'),
+('57ec03e3-0a2e-45bd-849c-8aeac1d6b4cb', 'ORD-20250719-7519', '97b9e7bd-e350-4d19-8ea5-022bcfdf74d0', '550e8400-e29b-41d4-a716-446655440003', '2025-07-19', NULL, '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', '', 'confirmed', 'not_started', NULL, NULL, 'customer_present', NULL, NULL, NULL, 5, 30, NULL, '2025-07-15 02:32:16', '2025-08-06 07:37:37', '2025-07-17 08:00:00'),
+('58420208f4d7ef27ce63abe35e73e864', 'ORD-20250725-A471', 'febed4c8-d71c-4b57-bc75-4a8276a00e2c', '29e6fe85-124c-480f-bcf2-0d174721936f', '2025-07-26', NULL, '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', NULL, 'confirmed', 'not_started', NULL, NULL, 'customer_present', NULL, NULL, NULL, 0, 30, NULL, '2025-07-25 03:59:35', '2025-08-06 07:37:37', '2025-07-24 08:00:00'),
+('5c3465ee-bfc3-4bf0-a470-f8eec5168c6c', 'ORD-20250723-5c3465', 'fe2fed4b-bd42-4e54-b391-bd0256ae403f', 'bd1259a5-57b1-4fc7-babb-61baad5a6e03', '2025-07-23', '18:00-21:00', '130 E Yorba Linda Blvd, Placentia, CA=', NULL, 'out_for_delivery', 'not_started', '550e8400-e29b-41d4-a716-446655440004', NULL, 'customer_present', NULL, NULL, NULL, 4, 30, NULL, '2025-07-21 07:31:25', '2025-08-06 07:37:37', '2025-07-21 08:00:00'),
+('604059ff-ff44-418a-9eaa-6d7a8ab16a8c', 'ORD-20250723-604059', '46b5f974-39ee-4ddd-8d86-7831b0f069dd', '3ce9049e-c5bd-4f92-8ca7-1d5d3a981ec3', '2025-07-23', '18:00-21:00', '90631', NULL, 'confirmed', 'not_started', NULL, NULL, 'customer_present', NULL, NULL, NULL, 5, 30, NULL, '2025-07-22 12:14:00', '2025-08-06 07:37:37', '2025-07-21 08:00:00'),
+('62281aff-0d30-4233-8864-fcbe010cd76b', 'ORD-20250730-62281a', '4623a948-ae81-4cdb-979f-25102e9a8ec3', '29e6fe85-124c-480f-bcf2-0d174721936f', '2025-07-30', '18:00-21:00', '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', NULL, 'confirmed', 'not_started', NULL, NULL, 'customer_present', NULL, NULL, NULL, 4, 30, NULL, '2025-07-27 14:10:25', '2025-08-06 07:37:37', '2025-07-28 08:00:00'),
+('659e76ad-f2cc-4509-a08d-91cad46845b6', 'ORD-20250719-2749', '5e4785f7-1825-400f-b096-daac3ac8a5a4', '550e8400-e29b-41d4-a716-446655440003', '2025-07-19', NULL, '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', '', 'confirmed', 'not_started', NULL, NULL, 'customer_present', NULL, NULL, NULL, 4, 30, NULL, '2025-07-15 03:23:35', '2025-08-06 07:37:37', '2025-07-17 08:00:00'),
+('6bcb7b65-f2a1-4852-8edd-c8f47144492b', 'ORD-20250730-6bcb7b', '0637e1ce-9417-46a1-be75-cfb96c85e0c0', '29e6fe85-124c-480f-bcf2-0d174721936f', '2025-07-30', '18:00-21:00', '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', NULL, 'confirmed', 'not_started', NULL, NULL, 'customer_present', NULL, NULL, NULL, 8, 30, NULL, '2025-07-29 04:03:19', '2025-08-06 07:37:37', '2025-07-28 08:00:00'),
+('6e71641a-8991-4dcb-93ed-2b57de4ba521', 'ORD-20250720-1763', '1fa52d11-2f99-451e-8151-0914626b0d58', '29e6fe85-124c-480f-bcf2-0d174721936f', '2025-07-20', NULL, '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', '', 'confirmed', 'not_started', NULL, NULL, 'customer_present', NULL, NULL, NULL, 4, 30, NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16', NULL),
+('6eb0f522-2f3c-4561-b99c-35fcd0e72a91', 'ORD-20250719-9042', '1fa52d11-2f99-451e-8151-0914626b0d58', '29e6fe85-124c-480f-bcf2-0d174721936f', '2025-07-19', NULL, '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', '', 'confirmed', 'not_started', NULL, NULL, 'customer_present', NULL, NULL, NULL, 4, 30, NULL, '2025-07-15 02:32:16', '2025-08-06 07:37:37', '2025-07-17 08:00:00'),
+('77ea423d-cf59-4005-924e-359b477a7d51', 'ORD-20250719-4920', 'e0f8eeba-f3d0-48bc-bb21-7bb716f6f145', '29e6fe85-124c-480f-bcf2-0d174721936f', '2025-07-19', NULL, '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', '', 'confirmed', 'not_started', NULL, NULL, 'customer_present', NULL, NULL, NULL, 4, 30, NULL, '2025-07-15 02:32:16', '2025-08-06 07:37:37', '2025-07-17 08:00:00'),
+('789df021-12f5-41a8-a815-6da883d7959a', 'ORD-20250730-789df0', '5adf19e4-f653-4c00-9b11-830afd96d3d9', '29e6fe85-124c-480f-bcf2-0d174721936f', '2025-07-30', '12:00-15:00', '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', NULL, 'confirmed', 'not_started', NULL, NULL, 'customer_present', NULL, NULL, NULL, 4, 30, NULL, '2025-07-27 14:10:25', '2025-08-06 07:37:37', '2025-07-28 08:00:00'),
+('7d7f366b-d5bc-4c3c-bb00-4dfb3b270b34', 'ORD-20250719-3420', '7a76610b-74ae-4312-8489-c37d065083f2', '29e6fe85-124c-480f-bcf2-0d174721936f', '2025-07-19', NULL, '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', '', 'confirmed', 'not_started', NULL, NULL, 'customer_present', NULL, NULL, NULL, 7, 30, NULL, '2025-07-15 02:32:16', '2025-08-06 07:37:37', '2025-07-17 08:00:00'),
+('866505c7-66f2-4e88-93a5-5b99a1349577', 'ORD-20250714-3780', '1b8fa3b4-6c61-475d-bd90-47b11657b92e', '29e6fe85-124c-480f-bcf2-0d174721936f', '2025-07-14', NULL, '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', '', 'confirmed', 'not_started', NULL, NULL, 'customer_present', NULL, NULL, NULL, 7, 30, NULL, '2025-07-14 13:57:24', '2025-07-14 13:57:24', NULL),
+('97e70f94-bb1b-480c-bd29-d7c39017f63f', 'ORD-20250802-97e70f', '460ab3f2-889e-4a16-80a6-4e951cb7d3c6', '29e6fe85-124c-480f-bcf2-0d174721936f', '2025-08-02', '15:00-18:00', '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', NULL, 'out_for_delivery', 'not_started', '550e8400-e29b-41d4-a716-446655440004', NULL, 'customer_present', NULL, NULL, NULL, 4, 30, NULL, '2025-07-19 14:52:41', '2025-08-06 07:37:37', '2025-07-31 08:00:00'),
+('97f0b028-4632-4868-8255-19446904717d', 'ORD-20250720-7402', 'ed9c0493-82b6-497f-af16-796a2d1b8c95', '29e6fe85-124c-480f-bcf2-0d174721936f', '2025-07-20', NULL, '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', '', 'confirmed', 'not_started', NULL, NULL, 'customer_present', NULL, NULL, NULL, 4, 30, NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16', NULL),
+('9f77113f-ee07-40fb-be8e-d34a8083aec1', 'ORD-20250720-3012', 'be8c3b24-114f-49e7-a816-e60e43899cde', '550e8400-e29b-41d4-a716-446655440003', '2025-07-20', NULL, '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', '', 'confirmed', 'not_started', NULL, NULL, 'customer_present', NULL, NULL, NULL, 4, 30, NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16', NULL),
+('a6336b89-6751-471e-bf83-92291e149808', 'ORD-20250723-a6336b', 'd5492ba5-f6e3-4e5b-b520-4ad36e6d0ed3', '3ecffe25-a2ee-4779-87e3-94d1908f668e', '2025-07-23', '18:00-21:00', '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei(Optional) Q-House Building, Room 1705', NULL, 'out_for_delivery', 'not_started', '550e8400-e29b-41d4-a716-446655440004', NULL, 'customer_present', NULL, NULL, NULL, 4, 30, NULL, '2025-07-21 08:49:13', '2025-08-06 07:37:37', '2025-07-21 08:00:00'),
+('ab383838-b67e-47a5-ac98-263c5269f866', 'ORD-20250723-ab3838', 'e8580062-4b9a-4b95-8293-dcb76f621210', '47c2e78d-515a-4b8e-bb56-d6fd9c6a9cd8', '2025-07-23', '18:00-21:00', 'Garden Grove', NULL, 'out_for_delivery', 'not_started', '550e8400-e29b-41d4-a716-446655440004', NULL, 'customer_present', NULL, NULL, NULL, 5, 30, NULL, '2025-07-21 09:12:34', '2025-08-06 07:37:37', '2025-07-21 08:00:00'),
+('ae03cd4c-2dee-40cb-bcef-2e702c99bf3b', 'ORD-20250730-ae03cd', '79c5d78e-11d4-44b1-9270-dc9fde5cfe25', '29e6fe85-124c-480f-bcf2-0d174721936f', '2025-07-30', '18:00-21:00', '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', NULL, 'confirmed', 'not_started', NULL, NULL, 'customer_present', NULL, NULL, NULL, 8, 30, NULL, '2025-07-27 14:10:25', '2025-08-06 07:37:37', '2025-07-28 08:00:00'),
+('b38049f2-c347-4286-b469-45c47e6c8623', 'ORD-20250726-b38049', '0e960c81-fefa-455a-b9cd-b04d22410477', '550e8400-e29b-41d4-a716-446655440004', '2025-07-26', '18:00-21:00', '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', NULL, 'out_for_delivery', 'not_started', '5af6d9cd-5e46-41de-b6d7-632cb21330a5', NULL, 'customer_present', NULL, NULL, NULL, 5, 30, NULL, '2025-07-21 01:18:43', '2025-08-06 07:37:37', '2025-07-24 08:00:00'),
+('b72e1b72-2271-4f0d-bd24-10486c7113f5', 'ORD-20250802-b72e1b', 'd6831992-8062-4cbe-b90a-b5c7f2fd3ffb', '550e8400-e29b-41d4-a716-446655440003', '2025-08-02', '15:00-18:00', '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', NULL, 'out_for_delivery', 'not_started', '5af6d9cd-5e46-41de-b6d7-632cb21330a5', NULL, 'customer_present', NULL, NULL, NULL, 4, 30, NULL, '2025-07-19 14:52:41', '2025-08-06 07:37:37', '2025-07-31 08:00:00'),
+('b77630ca-8f24-4fd5-95d5-2ba6d1be6239', 'ORD-20250726-b77630', '46def7f0-dd69-4e62-af4d-da389cfbc6bb', '29e6fe85-124c-480f-bcf2-0d174721936f', '2025-07-26', '15:00-18:00', '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', NULL, 'ready', 'not_started', '5af6d9cd-5e46-41de-b6d7-632cb21330a5', NULL, 'customer_present', NULL, NULL, NULL, 4, 30, NULL, '2025-07-19 14:47:36', '2025-08-06 07:37:37', '2025-07-24 08:00:00'),
+('c3726e6c93bf9658707a77c5aaa15e0b', 'ORD-20250729-6EA5', '8c5f6119-2cf7-4130-9010-eb66e417d1f0', '29e6fe85-124c-480f-bcf2-0d174721936f', '2025-07-30', NULL, '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', NULL, 'confirmed', 'not_started', NULL, NULL, 'customer_present', NULL, NULL, NULL, 0, 30, NULL, '2025-07-29 06:24:59', '2025-08-06 07:37:37', '2025-07-28 08:00:00'),
+('c3ed7e1b-415d-4fd2-b4f0-db370be914d8', 'ORD-20250720-6047', 'ecaa5b9d-44dc-4564-b077-248692b8e812', '29e6fe85-124c-480f-bcf2-0d174721936f', '2025-07-20', NULL, '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', '', 'confirmed', 'not_started', NULL, NULL, 'customer_present', NULL, NULL, NULL, 7, 30, NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16', NULL),
+('d6c2493c-26b4-4c47-b382-a121f26deaf5', 'ORD-20250720-0923', '94e1d12d-a30f-4c99-b13d-dc801f7d26de', '29e6fe85-124c-480f-bcf2-0d174721936f', '2025-07-20', NULL, '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', '', 'confirmed', 'not_started', NULL, NULL, 'customer_present', NULL, NULL, NULL, 4, 30, NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16', NULL),
+('d81d805c-2f70-4fe2-8cc6-e1b7c5f8702b', 'ORD-20250719-6749', '36ecb782-ce8c-428a-b8a9-afd7e02bcfe8', '29e6fe85-124c-480f-bcf2-0d174721936f', '2025-07-19', NULL, '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', '', 'confirmed', 'not_started', NULL, NULL, 'customer_present', NULL, NULL, NULL, 4, 30, NULL, '2025-07-15 02:32:16', '2025-08-06 07:37:37', '2025-07-17 08:00:00'),
+('dad53817-9ed3-41d3-9c97-4a1e84e037de', 'ORD-20250714-7854', '08088294-f964-4dad-9615-786155382e06', '29e6fe85-124c-480f-bcf2-0d174721936f', '2025-07-14', NULL, '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', '', 'confirmed', 'not_started', NULL, NULL, 'customer_present', NULL, NULL, NULL, 4, 30, NULL, '2025-07-14 13:57:24', '2025-07-14 13:57:24', NULL),
+('dbd61217-c937-4095-b84f-a92e13a8f55f', 'ORD-20250726-dbd612', '80e669b2-3085-46ea-ad6b-642f22fa0b35', '7587f6a4-cd3e-42e6-84df-2fc30df52b3f', '2025-07-26', '18:00-21:00', '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', NULL, 'out_for_delivery', 'not_started', '5af6d9cd-5e46-41de-b6d7-632cb21330a5', NULL, 'customer_present', NULL, NULL, NULL, 4, 30, NULL, '2025-07-21 08:30:33', '2025-08-06 07:37:37', '2025-07-24 08:00:00'),
+('dc25b573-5eba-4ac3-980f-46fbb46df400', 'ORD-20250723-dc25b5', '7faac785-fb6b-4d97-86a2-2f44a5c10261', '977b32bf-db86-47dc-9a61-12ab9dc241b9', '2025-07-23', '18:00-21:00', 'Santa Ana', NULL, 'out_for_delivery', 'not_started', '550e8400-e29b-41d4-a716-446655440004', NULL, 'customer_present', NULL, NULL, NULL, 4, 30, NULL, '2025-07-21 08:58:08', '2025-08-06 07:37:37', '2025-07-21 08:00:00'),
+('de0ce3d0-5ba4-11f0-96aa-e4b3d1018dc3', 'ORD-20250708-0791', '44c83ddd-b28c-447b-85cc-5eb8926e6061', '6c9391f3-0772-4393-a703-a035cc68d3d7', '2025-07-12', '12:00-15:00', '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei, Bangkok, 10110', 'Please call upon arrival at the lobby. Do not leave food with the security guard.', 'confirmed', 'in_progress', '550e8400-e29b-41d4-a716-446655440004', NULL, 'customer_present', NULL, NULL, NULL, 5, 30, 'Please call upon arrival at the lobby. Do not leave food with the security guard.', '2025-07-08 02:40:10', '2025-08-06 07:37:37', '2025-07-10 08:00:00'),
+('de0d0ca2-5ba4-11f0-96aa-e4b3d1018dc3', 'ORD-20250708-3452', '90a1b331-9e41-4e9f-b757-cf9b91586387', '29e6fe85-124c-480f-bcf2-0d174721936f', '2025-07-12', '12:00-15:00', '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei, Bangkok, 10110', '', 'preparing', 'in_progress', NULL, NULL, 'customer_present', NULL, NULL, NULL, 8, 30, '', '2025-07-08 02:40:10', '2025-08-06 07:37:37', '2025-07-10 08:00:00'),
+('de800bc9-9e1e-42eb-adb8-2fc5762200a8', 'ORD-20250719-2840', '0bf75805-f0ab-4207-a172-25912a12ecb4', '550e8400-e29b-41d4-a716-446655440003', '2025-07-19', NULL, '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', '', 'confirmed', 'not_started', NULL, NULL, 'customer_present', NULL, NULL, NULL, 7, 30, NULL, '2025-07-15 02:32:16', '2025-08-06 07:37:37', '2025-07-17 08:00:00'),
+('de861b9a-efef-4677-8722-257be33e2f03', 'ORD-20250723-de861b', '0948600f-bdb7-42f4-8dc6-0093ae804b5b', '7587f6a4-cd3e-42e6-84df-2fc30df52b3f', '2025-07-23', '09:00-12:00', '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', NULL, 'ready', 'not_started', NULL, NULL, 'customer_present', NULL, NULL, NULL, 5, 30, NULL, '2025-07-21 08:28:21', '2025-08-06 07:37:37', '2025-07-21 08:00:00'),
+('df07c14b-41b3-4ace-bf1b-2770f8460697', 'ORD-20250723-df07c1', '349433d9-60c0-4ee7-982a-9deea50c4225', '550e8400-e29b-41d4-a716-446655440003', '2025-07-23', '12:00-15:00', '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', NULL, 'ready', 'not_started', NULL, NULL, 'customer_present', NULL, NULL, NULL, 7, 30, NULL, '2025-07-21 03:52:03', '2025-08-06 07:37:37', '2025-07-21 08:00:00'),
+('df18fb36-2d24-406c-970d-1a97dd7bd449', 'ORD-20250726-df18fb', 'd5f927b4-1a43-4fa9-a859-f0fe06b6d5ca', '29e6fe85-124c-480f-bcf2-0d174721936f', '2025-07-26', '15:00-18:00', '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', NULL, 'out_for_delivery', 'not_started', '550e8400-e29b-41d4-a716-446655440004', NULL, 'customer_present', NULL, NULL, NULL, 4, 30, NULL, '2025-07-19 14:47:36', '2025-08-06 07:37:37', '2025-07-24 08:00:00'),
+('e2fa2889-68b7-4fa0-a5a2-ab6851b1c044', 'ORD-20250719-8415', '94e1d12d-a30f-4c99-b13d-dc801f7d26de', '29e6fe85-124c-480f-bcf2-0d174721936f', '2025-07-19', NULL, '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', '', 'confirmed', 'not_started', NULL, NULL, 'customer_present', NULL, NULL, NULL, 4, 30, NULL, '2025-07-15 02:32:16', '2025-08-06 07:37:37', '2025-07-17 08:00:00'),
+('e53218a9-0b56-42de-b9f7-ae271973eff5', 'ORD-20250723-e53218', '507020f8-63bc-4379-9a1f-8eb56df8390f', 'bd1259a5-57b1-4fc7-babb-61baad5a6e03', '2025-07-23', '18:00-21:00', '130 E Yorba Linda Blvd, Placentia, CA=', NULL, 'ready', 'not_started', NULL, NULL, 'customer_present', NULL, NULL, NULL, 5, 30, NULL, '2025-07-21 04:32:58', '2025-08-06 07:37:37', '2025-07-21 08:00:00'),
+('eba86157-94e9-49b0-9ef8-a27ddfc79c25', 'ORD-20250802-eba861', 'be8c3b24-114f-49e7-a816-e60e43899cde', '550e8400-e29b-41d4-a716-446655440003', '2025-08-02', '15:00-18:00', '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', NULL, 'out_for_delivery', 'not_started', '550e8400-e29b-41d4-a716-446655440004', NULL, 'customer_present', NULL, NULL, NULL, 4, 30, NULL, '2025-07-19 14:52:41', '2025-08-06 07:37:37', '2025-07-31 08:00:00');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `order_items`
+--
+
+CREATE TABLE `order_items` (
+  `id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `order_id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `menu_id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `subscription_menu_id` char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `menu_name` varchar(200) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `menu_price` decimal(8,2) NOT NULL,
+  `quantity` int(11) NOT NULL DEFAULT '1',
+  `customizations` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin,
+  `special_requests` text COLLATE utf8mb4_unicode_ci,
+  `calories_per_item` int(11) DEFAULT NULL,
+  `total_calories` int(11) DEFAULT NULL,
+  `item_status` enum('pending','preparing','ready','served') COLLATE utf8mb4_unicode_ci DEFAULT 'pending',
+  `preparation_notes` text COLLATE utf8mb4_unicode_ci,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `order_items`
+--
+
+INSERT INTO `order_items` (`id`, `order_id`, `menu_id`, `subscription_menu_id`, `menu_name`, `menu_price`, `quantity`, `customizations`, `special_requests`, `calories_per_item`, `total_calories`, `item_status`, `preparation_notes`, `created_at`, `updated_at`) VALUES
+('0105523b-ffee-4a21-8755-960af1464bbf', '866505c7-66f2-4e88-93a5-5b99a1349577', '9429bc0e-f065-4ea8-9481-1bcb887e8454', NULL, 'Beef Crying Tiger + Sticky Rice', '300.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-14 13:57:24', '2025-07-14 13:57:24'),
+('0787f811-6772-4369-af62-c6204afacc26', '1ec5d931-ea52-4ee5-8913-0a98aa4ecd22', 'd76f0a21-6b41-490a-8dba-249481978176', NULL, 'Vegan Larb (Tofu)', '399.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('0a7e0a35-0d2e-44aa-8292-a88176031aeb', '57ec03e3-0a2e-45bd-849c-8aeac1d6b4cb', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', NULL, 'Pad Thai (Shrimp)', '350.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('0d8a199a-2734-48e4-8e23-fa0516478ddb', '7d7f366b-d5bc-4c3c-bb00-4dfb3b270b34', '275059d8-4497-43ec-b5e3-669fb18981d9', NULL, 'Cashew Chicken + Rice', '400.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('0e68d07a-66d8-496d-8202-c2fbe39000bd', '866505c7-66f2-4e88-93a5-5b99a1349577', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', NULL, 'Thai Basil (Chicken) + Rice', '320.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-14 13:57:24', '2025-07-14 13:57:24'),
+('10076d9f-3415-43d8-8e31-78f3face6776', '3052b2fb-fe2d-41d4-a6de-9bf4297541c4', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', NULL, 'Pad Thai (Shrimp)', '350.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('15da1f50-7591-461e-8cba-b99c5ca686d5', '481c2b4b-2207-49ef-8099-26bec81710ef', '6cae13fc-b181-43bf-babb-99cb2ce39d3c', NULL, 'Chicken Satay', '200.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('173e3477-2ec5-4307-8ad7-bed8ce769c7f', '97f0b028-4632-4868-8255-19446904717d', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', NULL, 'Green Curry (Chicken) + Rice', '380.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('183bb264-7fbd-44dc-8856-01b54cb224a4', 'd6c2493c-26b4-4c47-b382-a121f26deaf5', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', NULL, 'Thai Basil (Chicken) + Rice', '320.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('1878d85f-eeb7-4f7b-8bbf-8601ec4e057e', '2a38ad80-7a6c-4e4c-b07a-831dddf56a8f', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', NULL, 'Green Curry (Chicken) + Rice', '380.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('19e8f9d8-0d83-4d95-a379-7553a88aa5bf', 'd81d805c-2f70-4fe2-8cc6-e1b7c5f8702b', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', NULL, 'Thai Basil (Chicken) + Rice', '320.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('1a44482e-19f8-4251-a26c-d36d343fa9e7', '3052b2fb-fe2d-41d4-a6de-9bf4297541c4', '19f1b8d3-7d75-4cc6-b804-58cf8d136d9d', NULL, 'Tom Yum (Shrimp) Soup', '400.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('1cc19f16-8167-409f-8615-bb597b60c410', '481c2b4b-2207-49ef-8099-26bec81710ef', '19f1b8d3-7d75-4cc6-b804-58cf8d136d9d', NULL, 'Tom Yum (Shrimp) Soup', '400.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('1fd92c41-e411-43d9-ae2c-007d8f0d4f98', 'c3ed7e1b-415d-4fd2-b4f0-db370be914d8', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', NULL, 'Green Curry (Chicken) + Rice', '380.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('22bda8be-a55e-4c27-b0f1-fbc43fe8ca6c', '97f0b028-4632-4868-8255-19446904717d', 'd76f0a21-6b41-490a-8dba-249481978176', NULL, 'Vegan Larb (Tofu)', '399.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('27c29585-1490-41c3-b5fa-58f610cedc43', '866505c7-66f2-4e88-93a5-5b99a1349577', '416cc737-c6a1-4b0d-a0d0-a40f384f496e', NULL, 'Tom Kha (Chicken) + Rice', '340.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-14 13:57:24', '2025-07-14 13:57:24'),
+('2a52dcae-a0b6-4a76-9a1d-dcdd0948c0ac', 'd81d805c-2f70-4fe2-8cc6-e1b7c5f8702b', 'd76f0a21-6b41-490a-8dba-249481978176', NULL, 'Vegan Larb (Tofu)', '399.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('2b84d911-6f15-4851-b40a-aa63013202b2', '2050660d-9a71-42f5-8fce-b3abc870c853', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', NULL, 'Green Curry (Chicken) + Rice', '380.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 03:23:35', '2025-07-15 03:23:35'),
+('2e5d80e6-77aa-4b73-8377-0fc129c7b9ff', '2050660d-9a71-42f5-8fce-b3abc870c853', '9429bc0e-f065-4ea8-9481-1bcb887e8454', NULL, 'Beef Crying Tiger + Sticky Rice', '300.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 03:23:35', '2025-07-15 03:23:35'),
+('2ed41894-9f0b-45ec-bc68-3401e51bbe68', '02a16cd6-099c-4818-8e4d-e6895cdce72e', 'd76f0a21-6b41-490a-8dba-249481978176', NULL, 'Vegan Larb (Tofu)', '399.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-14 13:57:24', '2025-07-14 13:57:24'),
+('30366e3c-82e6-4ff2-89ec-bb7310f8b651', '2a38ad80-7a6c-4e4c-b07a-831dddf56a8f', '9429bc0e-f065-4ea8-9481-1bcb887e8454', NULL, 'Beef Crying Tiger + Sticky Rice', '300.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('31168393-e126-4a2a-9f85-7d5f16ba4dd0', '6eb0f522-2f3c-4561-b99c-35fcd0e72a91', '6cae13fc-b181-43bf-babb-99cb2ce39d3c', NULL, 'Chicken Satay', '200.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('37179128-067b-46f3-baaa-e4fde45df5f1', '3b5c08dd-2874-4ed3-9f05-aa10e43b9a5e', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', NULL, 'Pad Thai (Shrimp)', '350.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('3764f923-71bb-4572-84ad-3218fef8b0e2', '02a16cd6-099c-4818-8e4d-e6895cdce72e', '9429bc0e-f065-4ea8-9481-1bcb887e8454', NULL, 'Beef Crying Tiger + Sticky Rice', '300.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-14 13:57:24', '2025-07-14 13:57:24'),
+('37dd8426-247c-4d4b-8440-140244d45203', '6eb0f522-2f3c-4561-b99c-35fcd0e72a91', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', NULL, 'Pad Thai (Shrimp)', '350.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('39e50d51-d4fd-4844-bbe1-f1063e74a2f0', 'c3ed7e1b-415d-4fd2-b4f0-db370be914d8', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', NULL, 'Thai Basil (Chicken) + Rice', '320.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('3d1184f2-862e-401d-8d4c-85fffc7cc310', 'e2fa2889-68b7-4fa0-a5a2-ab6851b1c044', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', NULL, 'Thai Basil (Chicken) + Rice', '320.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('3f05121d-c85e-41fe-8317-6fbf9ca79395', '6eb0f522-2f3c-4561-b99c-35fcd0e72a91', '19f1b8d3-7d75-4cc6-b804-58cf8d136d9d', NULL, 'Tom Yum (Shrimp) Soup', '400.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('436f6c41-b322-4b5d-98df-472e82284de8', '97f0b028-4632-4868-8255-19446904717d', '275059d8-4497-43ec-b5e3-669fb18981d9', NULL, 'Cashew Chicken + Rice', '400.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('45a506d8-449c-42f4-97cb-6f4408b575b2', '4870950c-8cb7-45d6-b0c9-aee2fe4dfb43', '9429bc0e-f065-4ea8-9481-1bcb887e8454', NULL, 'Beef Crying Tiger + Sticky Rice', '300.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-14 13:57:24', '2025-07-14 13:57:24'),
+('47813e91-4f22-4ace-8a31-7c05d0f05a02', '866505c7-66f2-4e88-93a5-5b99a1349577', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', NULL, 'Green Curry (Chicken) + Rice', '380.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-14 13:57:24', '2025-07-14 13:57:24'),
+('4c38b365-fb98-4cf8-a93b-d08b8e0cf63d', '02a16cd6-099c-4818-8e4d-e6895cdce72e', '416cc737-c6a1-4b0d-a0d0-a40f384f496e', NULL, 'Tom Kha (Chicken) + Rice', '340.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-14 13:57:24', '2025-07-14 13:57:24'),
+('4dc89853-40f4-45a6-bbff-d533f2abcade', '0a33774f-2984-40bf-9cd7-b351cdbef0cd', '9429bc0e-f065-4ea8-9481-1bcb887e8454', NULL, 'Beef Crying Tiger + Sticky Rice', '300.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 03:23:35', '2025-07-15 03:23:35'),
+('4e533698-1fc6-41f2-a339-5076b07f740e', 'd6c2493c-26b4-4c47-b382-a121f26deaf5', '9429bc0e-f065-4ea8-9481-1bcb887e8454', NULL, 'Beef Crying Tiger + Sticky Rice', '300.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('50fe7f5d-4c6b-483c-86e7-2f5622f7c8e5', '7d7f366b-d5bc-4c3c-bb00-4dfb3b270b34', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', NULL, 'Thai Basil (Chicken) + Rice', '320.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('5751629c-2d2e-44cd-a97c-a2b160a9ed47', '57ec03e3-0a2e-45bd-849c-8aeac1d6b4cb', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', NULL, 'Green Curry (Chicken) + Rice', '380.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('5a488c4f-0f49-41ce-b292-325327803a98', '659e76ad-f2cc-4509-a08d-91cad46845b6', 'd76f0a21-6b41-490a-8dba-249481978176', NULL, 'Vegan Larb (Tofu)', '399.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 03:23:35', '2025-07-15 03:23:35'),
+('5af3616b-2532-40fe-95a0-b630bc239374', 'd81d805c-2f70-4fe2-8cc6-e1b7c5f8702b', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', NULL, 'Green Curry (Chicken) + Rice', '380.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('5e5cf219-04af-4642-baae-67faba530e90', '3052b2fb-fe2d-41d4-a6de-9bf4297541c4', '275059d8-4497-43ec-b5e3-669fb18981d9', NULL, 'Cashew Chicken + Rice', '400.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('5fa546d3-39fb-4801-b1f3-addf5049dd4b', '57ec03e3-0a2e-45bd-849c-8aeac1d6b4cb', '275059d8-4497-43ec-b5e3-669fb18981d9', NULL, 'Cashew Chicken + Rice', '400.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('60625a47-4e72-4853-8413-80554ed3623d', '3052b2fb-fe2d-41d4-a6de-9bf4297541c4', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', NULL, 'Green Curry (Chicken) + Rice', '380.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('64c7909a-2dd5-4a81-b7b3-c25aa11eaad0', 'de800bc9-9e1e-42eb-adb8-2fc5762200a8', '416cc737-c6a1-4b0d-a0d0-a40f384f496e', NULL, 'Tom Kha (Chicken) + Rice', '340.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('67823180-e63e-4859-a003-b94b4b1405b8', 'd81d805c-2f70-4fe2-8cc6-e1b7c5f8702b', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', NULL, 'Pad Thai (Shrimp)', '350.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('6a2b2aa2-5f43-4116-8742-dea6debfa997', '02a16cd6-099c-4818-8e4d-e6895cdce72e', '275059d8-4497-43ec-b5e3-669fb18981d9', NULL, 'Cashew Chicken + Rice', '400.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-14 13:57:24', '2025-07-14 13:57:24'),
+('6b2cca4f-a92c-45eb-83f2-259033fb2c46', '0a33774f-2984-40bf-9cd7-b351cdbef0cd', 'd76f0a21-6b41-490a-8dba-249481978176', NULL, 'Vegan Larb (Tofu)', '399.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 03:23:35', '2025-07-15 03:23:35'),
+('6d8679fd-0e5f-46c0-b78c-f638c4c3e124', '4870950c-8cb7-45d6-b0c9-aee2fe4dfb43', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', NULL, 'Thai Basil (Chicken) + Rice', '320.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-14 13:57:24', '2025-07-14 13:57:24'),
+('70a256c8-be29-49cb-b43b-4ebddce0a078', '6e71641a-8991-4dcb-93ed-2b57de4ba521', '19f1b8d3-7d75-4cc6-b804-58cf8d136d9d', NULL, 'Tom Yum (Shrimp) Soup', '400.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('71f54f56-d369-40d8-ba16-4f5f7b169959', '481c2b4b-2207-49ef-8099-26bec81710ef', '275059d8-4497-43ec-b5e3-669fb18981d9', NULL, 'Cashew Chicken + Rice', '400.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('72162cc1-c32c-47cd-bb70-623386c57794', '40b40679-6554-480c-8552-b42bce3d2447', '275059d8-4497-43ec-b5e3-669fb18981d9', NULL, 'Cashew Chicken + Rice', '400.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('73fff80a-301c-4d45-a1b6-f263cd1c66fd', '57ec03e3-0a2e-45bd-849c-8aeac1d6b4cb', '9429bc0e-f065-4ea8-9481-1bcb887e8454', NULL, 'Beef Crying Tiger + Sticky Rice', '300.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('744e4eb8-8f2b-4e78-b0c3-f79ff7cae8f8', '4870950c-8cb7-45d6-b0c9-aee2fe4dfb43', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', NULL, 'Pad Thai (Shrimp)', '350.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-14 13:57:24', '2025-07-14 13:57:24'),
+('74fa81b5-6b62-4b38-9f87-ebccefd796dc', 'c3ed7e1b-415d-4fd2-b4f0-db370be914d8', '19f1b8d3-7d75-4cc6-b804-58cf8d136d9d', NULL, 'Tom Yum (Shrimp) Soup', '400.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('75d867a8-32a6-4288-940d-e1ac3269316c', '6eb0f522-2f3c-4561-b99c-35fcd0e72a91', '416cc737-c6a1-4b0d-a0d0-a40f384f496e', NULL, 'Tom Kha (Chicken) + Rice', '340.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('76b6c031-cb4d-43c4-a72d-3806e4551500', 'de800bc9-9e1e-42eb-adb8-2fc5762200a8', '9429bc0e-f065-4ea8-9481-1bcb887e8454', NULL, 'Beef Crying Tiger + Sticky Rice', '300.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('779d1fe5-f708-4f97-b7f9-4ac1f4dd5cd1', '659e76ad-f2cc-4509-a08d-91cad46845b6', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', NULL, 'Green Curry (Chicken) + Rice', '380.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 03:23:35', '2025-07-15 03:23:35'),
+('77b18eec-e9e5-456c-9f9c-b4de93f3574f', '3b5c08dd-2874-4ed3-9f05-aa10e43b9a5e', 'd76f0a21-6b41-490a-8dba-249481978176', NULL, 'Vegan Larb (Tofu)', '399.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('7b313dfa-dc55-4f38-a213-55f9ec8699a7', 'dad53817-9ed3-41d3-9c97-4a1e84e037de', '275059d8-4497-43ec-b5e3-669fb18981d9', NULL, 'Cashew Chicken + Rice', '400.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-14 13:57:24', '2025-07-14 13:57:24'),
+('7df3deb3-50fd-45a9-b9f5-a47da16d1ca5', 'e2fa2889-68b7-4fa0-a5a2-ab6851b1c044', '275059d8-4497-43ec-b5e3-669fb18981d9', NULL, 'Cashew Chicken + Rice', '400.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('894c56dc-7e59-4ad4-88a6-a974b3b78c63', '6e71641a-8991-4dcb-93ed-2b57de4ba521', '416cc737-c6a1-4b0d-a0d0-a40f384f496e', NULL, 'Tom Kha (Chicken) + Rice', '340.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('898b36be-8e7e-4d52-9632-92c51ad06481', '1ec5d931-ea52-4ee5-8913-0a98aa4ecd22', '275059d8-4497-43ec-b5e3-669fb18981d9', NULL, 'Cashew Chicken + Rice', '400.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('8fe5789f-3461-45f8-b57d-a56df53dcdcf', '6e71641a-8991-4dcb-93ed-2b57de4ba521', '6cae13fc-b181-43bf-babb-99cb2ce39d3c', NULL, 'Chicken Satay', '200.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('90b805e4-e2fd-42bc-aa6e-74aa4ac9fa8f', '9f77113f-ee07-40fb-be8e-d34a8083aec1', '9429bc0e-f065-4ea8-9481-1bcb887e8454', NULL, 'Beef Crying Tiger + Sticky Rice', '300.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('930e69f2-dd5b-4207-a0a1-71343e957115', '97f0b028-4632-4868-8255-19446904717d', '9429bc0e-f065-4ea8-9481-1bcb887e8454', NULL, 'Beef Crying Tiger + Sticky Rice', '300.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('956c638c-2dda-4b93-be00-4103cf56aac6', '02a16cd6-099c-4818-8e4d-e6895cdce72e', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', NULL, 'Thai Basil (Chicken) + Rice', '320.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-14 13:57:24', '2025-07-14 13:57:24'),
+('98d98c28-c2ba-4a50-8b8b-262d26c1eb41', '659e76ad-f2cc-4509-a08d-91cad46845b6', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', NULL, 'Pad Thai (Shrimp)', '350.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 03:23:35', '2025-07-15 03:23:35'),
+('9ac1af9c-0a5f-47f3-be05-2b3f23f456c9', '866505c7-66f2-4e88-93a5-5b99a1349577', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', NULL, 'Pad Thai (Shrimp)', '350.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-14 13:57:24', '2025-07-14 13:57:24'),
+('9ec54af9-17e6-4ec3-b1dc-06ec3ae16b13', '77ea423d-cf59-4005-924e-359b477a7d51', '275059d8-4497-43ec-b5e3-669fb18981d9', NULL, 'Cashew Chicken + Rice', '400.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('a0f5a089-a6a7-46ec-a836-ec0d8a896276', '866505c7-66f2-4e88-93a5-5b99a1349577', 'd76f0a21-6b41-490a-8dba-249481978176', NULL, 'Vegan Larb (Tofu)', '399.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-14 13:57:24', '2025-07-14 13:57:24'),
+('a2004db5-e354-4505-9197-cf593187800d', '659e76ad-f2cc-4509-a08d-91cad46845b6', '9429bc0e-f065-4ea8-9481-1bcb887e8454', NULL, 'Beef Crying Tiger + Sticky Rice', '300.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 03:23:35', '2025-07-15 03:23:35'),
+('a3733f04-7c8e-4d4a-8d69-5d10010bfaef', '7d7f366b-d5bc-4c3c-bb00-4dfb3b270b34', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', NULL, 'Pad Thai (Shrimp)', '350.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('aac347ed-3322-4d40-ae27-a4bd8c9ecbc6', '40b40679-6554-480c-8552-b42bce3d2447', 'eda83eb5-d471-45a7-ad9e-339b89e68789', NULL, 'Pad Thai (Vegan)', '300.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('ab86ec36-8733-4165-aa43-18a7fb6ce983', '481c2b4b-2207-49ef-8099-26bec81710ef', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', NULL, 'Thai Basil (Chicken) + Rice', '320.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('ac4b26ae-66f8-4a80-a8a4-37d0c85aa9ad', '481c2b4b-2207-49ef-8099-26bec81710ef', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', NULL, 'Green Curry (Chicken) + Rice', '380.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('ae43c67d-cc2f-4ac0-be94-d55e5ea7a241', '3052b2fb-fe2d-41d4-a6de-9bf4297541c4', '6cae13fc-b181-43bf-babb-99cb2ce39d3c', NULL, 'Chicken Satay', '200.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('b074eccb-99ad-449a-bd7d-3309747c11e8', '7d7f366b-d5bc-4c3c-bb00-4dfb3b270b34', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', NULL, 'Green Curry (Chicken) + Rice', '380.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('b3189066-56a0-48c3-b122-3d86f0784136', '40b40679-6554-480c-8552-b42bce3d2447', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', NULL, 'Green Curry (Chicken) + Rice', '380.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('b38b207e-c440-4107-8bae-2ae378d3bc30', 'd6c2493c-26b4-4c47-b382-a121f26deaf5', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', NULL, 'Pad Thai (Shrimp)', '350.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('b4961a10-167f-44d1-b19d-00339da1be99', '2a38ad80-7a6c-4e4c-b07a-831dddf56a8f', '275059d8-4497-43ec-b5e3-669fb18981d9', NULL, 'Cashew Chicken + Rice', '400.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('b6141a9a-9167-4bd1-8bf1-d75743c4a42a', 'c3ed7e1b-415d-4fd2-b4f0-db370be914d8', '275059d8-4497-43ec-b5e3-669fb18981d9', NULL, 'Cashew Chicken + Rice', '400.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('b660d68f-dfbd-43af-a0c7-f499dbed3b40', '9f77113f-ee07-40fb-be8e-d34a8083aec1', 'd76f0a21-6b41-490a-8dba-249481978176', NULL, 'Vegan Larb (Tofu)', '399.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('b7aa0ccb-43a3-400a-9d88-774e0aa91cc4', 'de800bc9-9e1e-42eb-adb8-2fc5762200a8', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', NULL, 'Thai Basil (Chicken) + Rice', '320.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('b81840e7-2ede-42a2-b0b5-b9d3d50303d8', 'c3ed7e1b-415d-4fd2-b4f0-db370be914d8', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', NULL, 'Pad Thai (Shrimp)', '350.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('b9b26929-b507-4f7c-bbfc-2b8ae0c1a973', '57ec03e3-0a2e-45bd-849c-8aeac1d6b4cb', 'd76f0a21-6b41-490a-8dba-249481978176', NULL, 'Vegan Larb (Tofu)', '399.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('bab98a8b-c873-4f55-8ab6-720e678da00c', '4870950c-8cb7-45d6-b0c9-aee2fe4dfb43', '275059d8-4497-43ec-b5e3-669fb18981d9', NULL, 'Cashew Chicken + Rice', '400.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-14 13:57:24', '2025-07-14 13:57:24'),
+('bc4d9805-d676-41ee-91f4-ddd5d788709c', 'dad53817-9ed3-41d3-9c97-4a1e84e037de', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', NULL, 'Green Curry (Chicken) + Rice', '380.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-14 13:57:24', '2025-07-14 13:57:24'),
+('bcdc7423-565b-4ae9-8540-75b7e0f1dd27', '2050660d-9a71-42f5-8fce-b3abc870c853', 'd76f0a21-6b41-490a-8dba-249481978176', NULL, 'Vegan Larb (Tofu)', '399.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 03:23:35', '2025-07-15 03:23:35'),
+('bdfe2230-2646-4c87-b96f-39991572ae32', '3052b2fb-fe2d-41d4-a6de-9bf4297541c4', 'eda83eb5-d471-45a7-ad9e-339b89e68789', NULL, 'Pad Thai (Vegan)', '300.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('bf04c689-9020-4ff4-af92-20d0c5d99cd0', '2050660d-9a71-42f5-8fce-b3abc870c853', '275059d8-4497-43ec-b5e3-669fb18981d9', NULL, 'Cashew Chicken + Rice', '400.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 03:23:35', '2025-07-15 03:23:35'),
+('bf22a7c5-ad08-4737-88cb-23428547ca8d', '40b40679-6554-480c-8552-b42bce3d2447', 'd76f0a21-6b41-490a-8dba-249481978176', NULL, 'Vegan Larb (Tofu)', '399.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('c166ad62-278a-48f9-9276-074d98af2980', 'de800bc9-9e1e-42eb-adb8-2fc5762200a8', '275059d8-4497-43ec-b5e3-669fb18981d9', NULL, 'Cashew Chicken + Rice', '400.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('c38062e9-19b8-4401-96cb-0a44efd2ddd7', 'de800bc9-9e1e-42eb-adb8-2fc5762200a8', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', NULL, 'Green Curry (Chicken) + Rice', '380.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('c3cc3db1-7b70-47e4-b683-9282c453fd54', '7d7f366b-d5bc-4c3c-bb00-4dfb3b270b34', '416cc737-c6a1-4b0d-a0d0-a40f384f496e', NULL, 'Tom Kha (Chicken) + Rice', '340.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('c5d4e479-8a66-4f71-8e1b-e0decaa3e549', '3052b2fb-fe2d-41d4-a6de-9bf4297541c4', 'd76f0a21-6b41-490a-8dba-249481978176', NULL, 'Vegan Larb (Tofu)', '399.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('ca87a227-7f6f-49da-b419-30fb508f44f4', '40b40679-6554-480c-8552-b42bce3d2447', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', NULL, 'Pad Thai (Shrimp)', '350.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('cc416d48-74d7-4e14-92fc-2839c4b4db55', '77ea423d-cf59-4005-924e-359b477a7d51', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', NULL, 'Thai Basil (Chicken) + Rice', '320.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('cc5c88f2-a773-48cd-9052-7f553490207a', 'd6c2493c-26b4-4c47-b382-a121f26deaf5', '275059d8-4497-43ec-b5e3-669fb18981d9', NULL, 'Cashew Chicken + Rice', '400.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('d01ee194-4291-45db-844c-35fd0f29afcb', 'de800bc9-9e1e-42eb-adb8-2fc5762200a8', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', NULL, 'Pad Thai (Shrimp)', '350.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('d1395bec-b59d-443d-9ddd-ac636016f137', '7d7f366b-d5bc-4c3c-bb00-4dfb3b270b34', 'd76f0a21-6b41-490a-8dba-249481978176', NULL, 'Vegan Larb (Tofu)', '399.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('d19bd88c-7321-47d1-9886-9ebd98e9062f', '3b5c08dd-2874-4ed3-9f05-aa10e43b9a5e', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', NULL, 'Thai Basil (Chicken) + Rice', '320.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('d5ad34b6-3aea-45c4-9370-2bb97a88d363', '02a16cd6-099c-4818-8e4d-e6895cdce72e', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', NULL, 'Green Curry (Chicken) + Rice', '380.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-14 13:57:24', '2025-07-14 13:57:24'),
+('d5ea5b0f-7b04-41c6-86e2-fb5a15341f04', '0a33774f-2984-40bf-9cd7-b351cdbef0cd', '275059d8-4497-43ec-b5e3-669fb18981d9', NULL, 'Cashew Chicken + Rice', '400.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 03:23:35', '2025-07-15 03:23:35'),
+('da8df7c8-377d-484b-959c-39559269dd86', '77ea423d-cf59-4005-924e-359b477a7d51', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', NULL, 'Pad Thai (Shrimp)', '350.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('dbb0156f-fd8d-4d74-9bf8-21c3d93ee57e', '9f77113f-ee07-40fb-be8e-d34a8083aec1', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', NULL, 'Green Curry (Chicken) + Rice', '380.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('dbb27292-7c54-4ff9-83bc-36b877391baf', '77ea423d-cf59-4005-924e-359b477a7d51', '9429bc0e-f065-4ea8-9481-1bcb887e8454', NULL, 'Beef Crying Tiger + Sticky Rice', '300.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('dd66bbfc-7ecb-458d-b9e4-ab2ed11ef796', '9f77113f-ee07-40fb-be8e-d34a8083aec1', '275059d8-4497-43ec-b5e3-669fb18981d9', NULL, 'Cashew Chicken + Rice', '400.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('ddd47ef8-467c-4c92-bc8e-366570868646', '02a16cd6-099c-4818-8e4d-e6895cdce72e', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', NULL, 'Pad Thai (Shrimp)', '350.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-14 13:57:24', '2025-07-14 13:57:24'),
+('e1262398-fd3b-41da-86c0-f2cebac090e6', 'e2fa2889-68b7-4fa0-a5a2-ab6851b1c044', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', NULL, 'Pad Thai (Shrimp)', '350.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('e3ac8cb3-0ccb-45ba-974f-3988ed8b39fe', 'de800bc9-9e1e-42eb-adb8-2fc5762200a8', '6cae13fc-b181-43bf-babb-99cb2ce39d3c', NULL, 'Chicken Satay', '200.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('e62822e5-432d-4f61-a9eb-7fd4aed12ee6', '2a38ad80-7a6c-4e4c-b07a-831dddf56a8f', 'd76f0a21-6b41-490a-8dba-249481978176', NULL, 'Vegan Larb (Tofu)', '399.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('e80ba1f6-84b4-4458-b0b0-42a0cb175ed2', 'dad53817-9ed3-41d3-9c97-4a1e84e037de', '9429bc0e-f065-4ea8-9481-1bcb887e8454', NULL, 'Beef Crying Tiger + Sticky Rice', '300.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-14 13:57:24', '2025-07-14 13:57:24'),
+('e83b2709-1d15-494f-9b7f-c11d15a4bf9b', '866505c7-66f2-4e88-93a5-5b99a1349577', '275059d8-4497-43ec-b5e3-669fb18981d9', NULL, 'Cashew Chicken + Rice', '400.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-14 13:57:24', '2025-07-14 13:57:24'),
+('e8dd2b70-9bee-46d0-8c9c-79ee81e1b14a', '40b40679-6554-480c-8552-b42bce3d2447', '19f1b8d3-7d75-4cc6-b804-58cf8d136d9d', NULL, 'Tom Yum (Shrimp) Soup', '400.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('e8e96ef3-a716-4921-8e9f-2f8d560090eb', '7d7f366b-d5bc-4c3c-bb00-4dfb3b270b34', '9429bc0e-f065-4ea8-9481-1bcb887e8454', NULL, 'Beef Crying Tiger + Sticky Rice', '300.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('e8ef196a-2659-4b06-96cd-b099c1f354e7', '3b5c08dd-2874-4ed3-9f05-aa10e43b9a5e', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', NULL, 'Green Curry (Chicken) + Rice', '380.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('ec1351cd-8781-451d-8e5c-fb6d3084c610', '481c2b4b-2207-49ef-8099-26bec81710ef', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', NULL, 'Pad Thai (Shrimp)', '350.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('ec2f90b4-a3fe-4e75-a454-6417e281499d', '481c2b4b-2207-49ef-8099-26bec81710ef', 'd76f0a21-6b41-490a-8dba-249481978176', NULL, 'Vegan Larb (Tofu)', '399.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('edcc42fe-c234-4fb7-8784-06c4210b4e1a', '1ec5d931-ea52-4ee5-8913-0a98aa4ecd22', '9429bc0e-f065-4ea8-9481-1bcb887e8454', NULL, 'Beef Crying Tiger + Sticky Rice', '300.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('ef052f1e-b388-4d4e-8814-d182ada4b88d', '6e71641a-8991-4dcb-93ed-2b57de4ba521', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', NULL, 'Pad Thai (Shrimp)', '350.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('f35c3ed1-0c21-4e95-8c6b-34889f5795f6', '1ec5d931-ea52-4ee5-8913-0a98aa4ecd22', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', NULL, 'Green Curry (Chicken) + Rice', '380.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('f58cfe36-8bb3-4127-8622-d8bad05b7911', 'e2fa2889-68b7-4fa0-a5a2-ab6851b1c044', '9429bc0e-f065-4ea8-9481-1bcb887e8454', NULL, 'Beef Crying Tiger + Sticky Rice', '300.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('f5bededa-1b27-41f7-ae80-bc6504175086', 'dad53817-9ed3-41d3-9c97-4a1e84e037de', 'd76f0a21-6b41-490a-8dba-249481978176', NULL, 'Vegan Larb (Tofu)', '399.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-14 13:57:24', '2025-07-14 13:57:24'),
+('f5efb0ef-26ce-4b19-9788-3a334d6bc14c', '0a33774f-2984-40bf-9cd7-b351cdbef0cd', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', NULL, 'Green Curry (Chicken) + Rice', '380.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 03:23:35', '2025-07-15 03:23:35'),
+('f6eb484a-c761-420d-a51a-94f5269b1ad6', 'c3ed7e1b-415d-4fd2-b4f0-db370be914d8', '6cae13fc-b181-43bf-babb-99cb2ce39d3c', NULL, 'Chicken Satay', '200.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('fd7fe82c-7dd4-44c7-afc1-a88b8640733d', '40b40679-6554-480c-8552-b42bce3d2447', '6cae13fc-b181-43bf-babb-99cb2ce39d3c', NULL, 'Chicken Satay', '200.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16'),
+('fdd03a68-f3cf-49ce-a6df-47195a40129c', 'c3ed7e1b-415d-4fd2-b4f0-db370be914d8', 'd76f0a21-6b41-490a-8dba-249481978176', NULL, 'Vegan Larb (Tofu)', '399.00', 1, NULL, NULL, NULL, NULL, 'pending', NULL, '2025-07-15 02:32:16', '2025-07-15 02:32:16');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `payments`
+--
+
+CREATE TABLE `payments` (
+  `id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `subscription_id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `user_id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `payment_method` enum('apple_pay','google_pay','paypal','credit_card','bank_transfer') COLLATE utf8mb4_unicode_ci NOT NULL,
+  `payment_provider` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `transaction_id` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `external_payment_id` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `amount` decimal(8,2) NOT NULL,
+  `currency` varchar(3) COLLATE utf8mb4_unicode_ci DEFAULT 'THB',
+  `fee_amount` decimal(8,2) DEFAULT '0.00',
+  `net_amount` decimal(8,2) NOT NULL,
+  `status` enum('pending','completed','failed','refunded','partial_refund') COLLATE utf8mb4_unicode_ci DEFAULT 'pending',
+  `payment_date` timestamp NULL DEFAULT NULL,
+  `billing_period_start` date DEFAULT NULL,
+  `billing_period_end` date DEFAULT NULL,
+  `description` text COLLATE utf8mb4_unicode_ci,
+  `failure_reason` text COLLATE utf8mb4_unicode_ci,
+  `refund_amount` decimal(8,2) DEFAULT '0.00',
+  `refund_reason` text COLLATE utf8mb4_unicode_ci,
+  `refunded_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `payments`
+--
+
+INSERT INTO `payments` (`id`, `subscription_id`, `user_id`, `payment_method`, `payment_provider`, `transaction_id`, `external_payment_id`, `amount`, `currency`, `fee_amount`, `net_amount`, `status`, `payment_date`, `billing_period_start`, `billing_period_end`, `description`, `failure_reason`, `refund_amount`, `refund_reason`, `refunded_at`, `created_at`, `updated_at`) VALUES
+('020126b1-90cc-4c9e-99f6-d0245ea8ad05', '3eead7a4-a66c-41a6-b9d4-58ba218bfbec', '6fdc8ff8-db01-406a-b34a-8fdc701bff70', 'credit_card', NULL, 'TXN-20250805-161031-2931b3', NULL, '59.99', 'USD', '0.00', '59.99', 'completed', '2025-08-05 16:10:31', '2025-08-06', '2025-08-13', 'Subscription Essentials', NULL, '0.00', NULL, NULL, '2025-08-05 16:10:31', '2025-08-05 16:10:31'),
+('05ec8618-c915-4176-9fb2-8ec6bea749f3', 'b84ce1b4-96a3-4318-a807-fdee7345fbff', '29e6fe85-124c-480f-bcf2-0d174721936f', 'credit_card', NULL, 'TXN-20250729-123419-07ac03', NULL, '59.99', 'USD', '0.00', '59.99', 'completed', '2025-07-29 12:34:19', '2025-07-30', '2025-08-06', 'Subscription Essentials', NULL, '0.00', NULL, NULL, '2025-07-29 12:34:19', '2025-07-29 12:34:19'),
+('0617d6c8-1f31-4cde-a896-aa72a3a4dd31', 'd5f927b4-1a43-4fa9-a859-f0fe06b6d5ca', '29e6fe85-124c-480f-bcf2-0d174721936f', 'credit_card', NULL, 'TXN-20250715-155248-43facb', NULL, '499.00', 'USD', '0.00', '499.00', 'completed', '2025-07-15 15:52:48', '2025-07-26', '2025-08-02', 'Subscription แพ็กเกจ 4 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-15 15:52:48', '2025-07-15 15:52:48'),
+('10012052-b169-490e-95dd-7bb679b1a2de', '002a5635-19c2-496c-97f6-7d9b867d9ceb', '29e6fe85-124c-480f-bcf2-0d174721936f', 'bank_transfer', NULL, 'TXN-20250713-123959-002a56', NULL, '399.00', 'USD', '0.00', '399.00', 'completed', '2025-07-13 12:39:59', '2025-07-14', '2025-07-21', 'Subscription แพ็กเกจ 5 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-13 12:39:59', '2025-07-13 12:39:59'),
+('110d3495-60da-4338-b8ae-908388e5a7a5', 'e55cb19d-5910-4d8b-8593-209ff7ca1cbe', 'dc10bf31-b2a6-437a-a4da-a2f88bcdec9a', 'paypal', NULL, 'TXN-20250726-045640-b2de50', NULL, '59.99', 'USD', '0.00', '59.99', 'completed', '2025-07-26 04:56:40', '2025-07-26', '2025-08-02', 'Subscription Essentials', NULL, '0.00', NULL, NULL, '2025-07-26 04:56:40', '2025-07-26 04:56:40'),
+('123d681a-4b73-4513-a0a0-8666168bd1f8', '0463a886-ab5b-4447-ad7e-f42ee0c70433', '29e6fe85-124c-480f-bcf2-0d174721936f', 'paypal', NULL, 'TXN-20250715-113333-38efa7', NULL, '499.00', 'USD', '0.00', '499.00', 'completed', '2025-07-15 11:33:33', '2025-07-20', '2025-07-27', 'Subscription แพ็กเกจ 4 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-15 11:33:33', '2025-07-15 11:33:33'),
+('17bab21c-33f8-4d26-b4a5-335afce6c07f', '6fde2876-d423-4090-a160-975427211953', '56ec0a53-cf99-4e73-89d7-a3300ddafa4f', 'google_pay', NULL, 'TXN-20250721-091459-438da7', NULL, '499.00', 'USD', '0.00', '499.00', 'completed', '2025-07-21 09:14:59', '2025-07-23', '2025-07-30', 'Subscription แพ็กเกจ 4 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-21 09:14:59', '2025-07-21 09:14:59'),
+('1be75df4-9f51-4560-b3d3-94f8153f38cd', 'f8234164-aa26-469f-82d1-8d91f50a4407', '550e8400-e29b-41d4-a716-446655440003', 'google_pay', NULL, 'TXN-20250715-033516-b685e5', NULL, '499.00', 'USD', '0.00', '499.00', 'completed', '2025-07-15 03:35:16', '2025-07-19', '2025-07-26', 'Subscription แพ็กเกจ 4 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-15 03:35:16', '2025-07-15 03:35:16'),
+('1cb0064b-ed8a-4193-b35c-1ac5bff2f980', '5adf19e4-f653-4c00-9b11-830afd96d3d9', '29e6fe85-124c-480f-bcf2-0d174721936f', 'credit_card', NULL, 'KT-20250727-095006-c2d489', NULL, '1427.50', 'THB', '0.00', '1427.50', 'completed', '2025-07-27 09:50:06', '2025-07-30', '2025-08-06', '4 meals + 3 addons', NULL, '0.00', NULL, NULL, '2025-07-27 09:50:06', '2025-07-27 09:50:06'),
+('209c9384-9b87-4d1b-bd43-520b2043047a', 'b389ea4d-adf2-41a0-b593-ba6e8bea9c8e', '5af6d9cd-5e46-41de-b6d7-632cb21330a5', 'google_pay', NULL, 'TXN-20250718-081131-979ba8', NULL, '599.00', 'USD', '0.00', '599.00', 'completed', '2025-07-18 08:11:31', '2025-07-19', '2025-07-26', 'Subscription แพ็กเกจ 7 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-18 08:11:31', '2025-07-18 08:11:31'),
+('209edee0-f7d8-4f13-85cd-1adf0d46f6e1', 'db29bea4-1c9a-4124-8242-e1f5500a606a', '29e6fe85-124c-480f-bcf2-0d174721936f', 'paypal', NULL, 'TXN-20250710-082750-db29be', NULL, '499.00', 'USD', '0.00', '499.00', 'completed', '2025-07-10 08:27:50', '2025-07-11', '2025-07-18', 'Subscription แพ็กเกจ 4 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-10 08:27:50', '2025-07-10 08:27:50'),
+('2abb4ef2-46f1-45b9-a485-24e4eeae06c8', '3b8765cb-3002-458a-b569-68e971bd456f', '56ec0a53-cf99-4e73-89d7-a3300ddafa4f', 'credit_card', NULL, 'TXN-20250805-160439-a7e8dc', NULL, '59.99', 'USD', '0.00', '59.99', 'completed', '2025-08-05 16:04:39', '2025-08-06', '2025-08-13', 'Subscription Essentials', NULL, '0.00', NULL, NULL, '2025-08-05 16:04:39', '2025-08-05 16:04:39'),
+('2e07023a-18e1-4051-8242-f0eb6c6e62d0', '36ecb782-ce8c-428a-b8a9-afd7e02bcfe8', '29e6fe85-124c-480f-bcf2-0d174721936f', 'paypal', NULL, 'TXN-20250714-014225-36ecb7', NULL, '499.00', 'USD', '0.00', '499.00', 'completed', '2025-07-14 01:42:25', '2025-07-15', '2025-07-22', 'Subscription แพ็กเกจ 4 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-14 01:42:25', '2025-07-14 01:42:25'),
+('2e4e4fb8-3a77-42f8-9ab1-0db1fa2b3089', '755c9d5c-9642-45a7-b698-786077e6b8b8', '29e6fe85-124c-480f-bcf2-0d174721936f', 'google_pay', NULL, 'TXN-20250730-084704-a99aca', NULL, '59.99', 'USD', '0.00', '59.99', 'completed', '2025-07-30 08:47:04', '2025-08-02', '2025-08-09', 'Subscription Essentials', NULL, '0.00', NULL, NULL, '2025-07-30 08:47:04', '2025-07-30 08:47:04'),
+('323256b9-999c-4679-bb11-8bc45fc301db', 'f0e9bfd8-538d-4c64-b910-939ec367cbcf', '47c2e78d-515a-4b8e-bb56-d6fd9c6a9cd8', 'google_pay', NULL, 'TXN-20250805-160928-09ac1c', NULL, '59.99', 'USD', '0.00', '59.99', 'completed', '2025-08-05 16:09:28', '2025-08-06', '2025-08-13', 'Subscription Essentials', NULL, '0.00', NULL, NULL, '2025-08-05 16:09:28', '2025-08-05 16:09:28'),
+('32464d4f-bb56-447a-9c72-2c4fe971ab40', '460ab3f2-889e-4a16-80a6-4e951cb7d3c6', '29e6fe85-124c-480f-bcf2-0d174721936f', 'credit_card', NULL, 'TXN-20250714-070134-5304df', NULL, '499.00', 'USD', '0.00', '499.00', 'completed', '2025-07-14 07:01:34', '2025-07-27', '2025-08-03', 'Subscription แพ็กเกจ 4 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-14 07:01:34', '2025-07-14 07:01:34'),
+('33eba8ff-5558-467a-9ba7-eb004352dd27', 'bf0b8b17-60dd-43b6-bc02-574a3b4da914', '550e8400-e29b-41d4-a716-446655440003', 'google_pay', NULL, 'TXN-20250715-030522-c24b5e', NULL, '499.00', 'USD', '0.00', '499.00', 'completed', '2025-07-15 03:05:22', '2025-07-19', '2025-07-26', 'Subscription แพ็กเกจ 4 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-15 03:05:22', '2025-07-15 03:05:22'),
+('34c38a84-f5f1-49d4-8278-9d74e84b7f5c', '0637e1ce-9417-46a1-be75-cfb96c85e0c0', '29e6fe85-124c-480f-bcf2-0d174721936f', 'paypal', NULL, 'TXN-20250728-141145-6ba816', NULL, '87.99', 'USD', '0.00', '87.99', 'completed', '2025-07-28 14:11:45', '2025-07-30', '2025-08-06', 'Subscription Smart Choice', NULL, '0.00', NULL, NULL, '2025-07-28 14:11:45', '2025-07-28 14:11:45'),
+('38e92c65-74de-4b5a-a880-7400faafab5a', '80e669b2-3085-46ea-ad6b-642f22fa0b35', '7587f6a4-cd3e-42e6-84df-2fc30df52b3f', 'apple_pay', NULL, 'TXN-20250721-083008-4418c4', NULL, '499.00', 'USD', '0.00', '499.00', 'completed', '2025-07-21 08:30:08', '2025-07-26', '2025-08-02', 'Subscription แพ็กเกจ 4 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-21 08:30:08', '2025-07-21 08:30:08'),
+('3c11e97d-5305-4fa3-b3ef-34f30a0c5ea9', '634e7e93-9dbf-4e20-98d2-69922f7d4357', '5af6d9cd-5e46-41de-b6d7-632cb21330a5', 'paypal', NULL, 'TXN-20250719-082344-7226b7', NULL, '399.00', 'USD', '0.00', '399.00', 'completed', '2025-07-19 08:23:44', '2025-07-26', '2025-08-02', 'Subscription แพ็กเกจ 5 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-19 08:23:44', '2025-07-19 08:23:44'),
+('3cedc8de-0331-4a92-80a5-ee5c9eacd3c5', '94e1d12d-a30f-4c99-b13d-dc801f7d26de', '29e6fe85-124c-480f-bcf2-0d174721936f', 'apple_pay', NULL, 'TXN-20250714-014151-94e1d1', NULL, '499.00', 'USD', '0.00', '499.00', 'completed', '2025-07-14 01:41:52', '2025-07-15', '2025-07-22', 'Subscription แพ็กเกจ 4 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-14 01:41:52', '2025-07-14 01:41:52'),
+('3f274adb-dc9d-4248-bbcb-f986e24820fa', '417e5469-f89b-4ee1-a9bb-dd4a9a8a973f', '29e6fe85-124c-480f-bcf2-0d174721936f', 'credit_card', NULL, 'TXN-20250729-130542-efb419', NULL, '59.99', 'USD', '0.00', '59.99', 'completed', '2025-07-29 13:05:42', '2025-07-30', '2025-08-06', 'Subscription Essentials', NULL, '0.00', NULL, NULL, '2025-07-29 13:05:42', '2025-07-29 13:05:42'),
+('414019ff-67b7-4ae2-a7cb-b873cbc23755', '9e0d5ae0-baa5-475c-b860-566c4b5f7548', '29e6fe85-124c-480f-bcf2-0d174721936f', 'paypal', NULL, 'TXN-20250726-050243-0bffae', NULL, '59.99', 'USD', '0.00', '59.99', 'completed', '2025-07-26 05:02:43', '2025-07-26', '2025-08-02', 'Subscription Essentials', NULL, '0.00', NULL, NULL, '2025-07-26 05:02:43', '2025-07-26 05:02:43'),
+('42d58d62-5e86-4272-9413-1040e5357fdc', '44c83ddd-b28c-447b-85cc-5eb8926e6061', '6c9391f3-0772-4393-a703-a035cc68d3d7', 'bank_transfer', NULL, 'TXN-20250707-093846-44c83d', NULL, '499.00', 'THB', '0.00', '499.00', 'completed', '2025-07-07 09:38:46', '2025-07-08', '2025-07-15', 'Subscription แพ็กเกจ 4 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-07 09:38:46', '2025-07-07 09:38:46'),
+('464bb512-f58a-4625-bc73-a23dbaa008eb', 'fe2fed4b-bd42-4e54-b391-bd0256ae403f', 'bd1259a5-57b1-4fc7-babb-61baad5a6e03', 'google_pay', NULL, 'TXN-20250721-073058-79d747', NULL, '499.00', 'USD', '0.00', '499.00', 'completed', '2025-07-21 07:30:58', '2025-07-23', '2025-07-30', 'Subscription แพ็กเกจ 4 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-21 07:30:58', '2025-07-21 07:30:58'),
+('46698ffb-5252-4c73-8f14-702c7572c894', '172bac7b-8248-46c8-b3d6-9070e2ce8755', '29e6fe85-124c-480f-bcf2-0d174721936f', 'paypal', NULL, 'TXN-20250726-042744-f6d71b', NULL, '59.99', 'USD', '0.00', '59.99', 'completed', '2025-07-26 04:27:44', '2025-07-26', '2025-08-02', 'Subscription Essentials', NULL, '0.00', NULL, NULL, '2025-07-26 04:27:44', '2025-07-26 04:27:44'),
+('47670778-8c5b-4db0-a8fc-e2e4eca350e1', 'c539a7cc-b04f-4a5c-ba64-944f52feded2', '29e6fe85-124c-480f-bcf2-0d174721936f', 'paypal', NULL, 'TXN-20250710-094918-c539a7', NULL, '499.00', 'USD', '0.00', '499.00', 'completed', '2025-07-10 09:49:18', '2025-07-11', '2025-07-18', 'Subscription แพ็กเกจ 4 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-10 09:49:18', '2025-07-10 09:49:18'),
+('48b27364-588c-4136-b54d-705fca1b8f1c', 'd0fd5c76-2364-44b2-9ed4-fd2233f57e33', '29e6fe85-124c-480f-bcf2-0d174721936f', 'credit_card', NULL, 'TXN-20250726-082045-e9f37c', NULL, '87.99', 'USD', '0.00', '87.99', 'completed', '2025-07-26 08:20:45', '2025-07-26', '2025-08-02', 'Subscription Smart Choice', NULL, '0.00', NULL, NULL, '2025-07-26 08:20:45', '2025-07-26 08:20:45'),
+('4a983b6d-fe57-4151-916c-ef0e9eeb1eed', '1fa52d11-2f99-451e-8151-0914626b0d58', '29e6fe85-124c-480f-bcf2-0d174721936f', 'google_pay', NULL, 'TXN-20250714-021322-1fa52d', NULL, '499.00', 'USD', '0.00', '499.00', 'completed', '2025-07-14 02:13:22', '2025-07-19', '2025-07-26', 'Subscription แพ็กเกจ 4 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-14 02:13:22', '2025-07-14 02:13:22'),
+('5024f19e-ba07-4fcf-8bf3-8298b46b723b', '5249821f-18f8-4fd4-85d7-91f2546d7089', '29e6fe85-124c-480f-bcf2-0d174721936f', 'credit_card', NULL, 'TXN-20250710-081616-524982', NULL, '499.00', 'USD', '0.00', '499.00', 'completed', '2025-07-10 08:16:16', '2025-07-11', '2025-07-18', 'Subscription แพ็กเกจ 4 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-10 08:16:16', '2025-07-10 08:16:16'),
+('51aedf62-3f24-4835-979f-1c821e7aa9ce', 'c0d0c70d-0bf8-4e03-a410-cf58476cd225', '79b6e774-aede-4aed-b82b-c17536a80bb9', 'credit_card', NULL, 'TXN-20250803-071224-cde991', NULL, '59.99', 'USD', '0.00', '59.99', 'completed', '2025-08-03 07:12:24', '2025-08-13', '2025-08-20', 'Subscription Essentials', NULL, '0.00', NULL, NULL, '2025-08-03 07:12:24', '2025-08-03 07:12:24'),
+('5ba3641c-1e19-4a62-b5c3-9db6b83076ac', 'efac4af3-3a57-45b8-b41f-30bec6f79334', '550e8400-e29b-41d4-a716-446655440003', 'google_pay', NULL, 'TXN-20250715-030050-b028f9', NULL, '499.00', 'USD', '0.00', '499.00', 'completed', '2025-07-15 03:00:50', '2025-07-19', '2025-07-26', 'Subscription แพ็กเกจ 4 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-15 03:00:50', '2025-07-15 03:00:50'),
+('5c59308f-0929-4072-96db-be6e6ff2e221', 'df7aa1f1-8c96-4dc4-ba9e-faeb78fbf892', '5af6d9cd-5e46-41de-b6d7-632cb21330a5', 'google_pay', NULL, 'TXN-20250718-081228-6d413f', NULL, '499.00', 'USD', '0.00', '499.00', 'completed', '2025-07-18 08:12:28', '2025-07-19', '2025-07-26', 'Subscription แพ็กเกจ 4 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-18 08:12:28', '2025-07-18 08:12:28'),
+('5ce2f2b3-b406-4a93-b329-63c4c72b2da4', '395d369f-4d05-4353-8238-e0956cee736e', '29e6fe85-124c-480f-bcf2-0d174721936f', 'paypal', NULL, 'TXN-20250807-020623-af0ded', NULL, '59.99', 'USD', '0.00', '59.99', 'completed', '2025-08-07 02:06:23', '2025-08-09', '2025-08-16', 'Subscription Essentials', NULL, '0.00', NULL, NULL, '2025-08-07 02:06:23', '2025-08-07 02:06:23'),
+('5e58ea91-8983-4d07-b481-c2160b3ce577', 'eda16d0d-beed-4842-a0c9-da52ceeeb7c5', '29e6fe85-124c-480f-bcf2-0d174721936f', 'credit_card', NULL, 'TXN-20250805-071046-1cf4cb', NULL, '59.99', 'USD', '0.00', '59.99', 'completed', '2025-08-05 07:10:46', '2025-08-06', '2025-08-13', 'Subscription Essentials', NULL, '0.00', NULL, NULL, '2025-08-05 07:10:46', '2025-08-05 07:10:46'),
+('5fa8bddf-0ff5-4743-a929-11647642fbc5', 'a586353a-4092-48ea-a663-e75479330d20', '29e6fe85-124c-480f-bcf2-0d174721936f', 'credit_card', NULL, 'TXN-20250714-014432-a58635', NULL, '599.00', 'USD', '0.00', '599.00', 'completed', '2025-07-14 01:44:32', '2025-07-15', '2025-07-22', 'Subscription แพ็กเกจ 7 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-14 01:44:32', '2025-07-14 01:44:32'),
+('64c1c217-6c6c-4804-9931-f4e5748044bf', '79c5d78e-11d4-44b1-9270-dc9fde5cfe25', '29e6fe85-124c-480f-bcf2-0d174721936f', 'credit_card', NULL, 'TXN-20250727-133149-73afa1', NULL, '87.99', 'USD', '0.00', '87.99', 'completed', '2025-07-27 13:31:49', '2025-07-30', '2025-08-06', 'Subscription Smart Choice', NULL, '0.00', NULL, NULL, '2025-07-27 13:31:49', '2025-07-27 13:31:49'),
+('64d50980-7ac1-4772-9c9f-92e3d16696be', '9aea8db1-bb47-4143-9b5d-b91d0e377a6c', '550e8400-e29b-41d4-a716-446655440004', 'apple_pay', NULL, 'TXN-20250715-043230-73e107', NULL, '399.00', 'USD', '0.00', '399.00', 'completed', '2025-07-15 04:32:30', '2025-07-27', '2025-08-03', 'Subscription แพ็กเกจ 5 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-15 04:32:30', '2025-07-15 04:32:30'),
+('66b5312b-59c9-4c70-85c1-842cd2aafa9b', 'e3567d9c-a8ef-4662-8ddf-68da5f569ee7', '29e6fe85-124c-480f-bcf2-0d174721936f', 'google_pay', NULL, 'TXN-20250726-063748-6ed7b4', NULL, '59.99', 'USD', '0.00', '59.99', 'completed', '2025-07-26 06:37:48', '2025-07-26', '2025-08-02', 'Subscription Essentials', NULL, '0.00', NULL, NULL, '2025-07-26 06:37:48', '2025-07-26 06:37:48'),
+('67ea0c82-9d72-4b0a-9574-f256a2a3a0ad', 'e14f072d-d727-42e1-b13a-54a4de2d8c07', '79b6e774-aede-4aed-b82b-c17536a80bb9', 'credit_card', NULL, 'TXN-20250803-074508-d89c24', NULL, '59.99', 'USD', '0.00', '59.99', 'completed', '2025-08-03 07:45:08', '2025-08-06', '2025-08-13', 'Subscription Essentials', NULL, '0.00', NULL, NULL, '2025-08-03 07:45:08', '2025-08-03 07:45:08'),
+('71bbf323-942f-4173-ac96-9c543c5db82c', '4f718c97-3c23-4cc2-9f99-cd485c9bab13', '550e8400-e29b-41d4-a716-446655440003', 'credit_card', NULL, 'TXN-20250715-022206-e4dc31', NULL, '499.00', 'USD', '0.00', '499.00', 'completed', '2025-07-15 02:22:06', '2025-07-19', '2025-07-26', 'Subscription แพ็กเกจ 4 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-15 02:22:06', '2025-07-15 02:22:06'),
+('7470f924-26f7-4d1c-9619-6447ce8b3cc3', '0bf75805-f0ab-4207-a172-25912a12ecb4', '550e8400-e29b-41d4-a716-446655440003', 'apple_pay', NULL, 'TXN-20250714-021649-0bf758', NULL, '599.00', 'USD', '0.00', '599.00', 'completed', '2025-07-14 02:16:49', '2025-07-19', '2025-07-26', 'Subscription แพ็กเกจ 7 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-14 02:16:49', '2025-07-14 02:16:49'),
+('760e50e0-89f5-4476-8bf5-958640299ebd', '0e960c81-fefa-455a-b9cd-b04d22410477', '550e8400-e29b-41d4-a716-446655440004', 'credit_card', NULL, 'TXN-20250721-011708-13a684', NULL, '399.00', 'USD', '0.00', '399.00', 'completed', '2025-07-21 01:17:08', '2025-07-26', '2025-08-02', 'Subscription แพ็กเกจ 5 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-21 01:17:08', '2025-07-21 01:17:08'),
+('7aa00dda-603e-44e1-a950-12533e352c6b', 'edaecbd2-da7e-438d-bd32-cf0dadd1508b', '29e6fe85-124c-480f-bcf2-0d174721936f', 'credit_card', NULL, 'TXN-20250729-125335-719813', NULL, '59.99', 'USD', '0.00', '59.99', 'completed', '2025-07-29 12:53:35', '2025-07-30', '2025-08-06', 'Subscription Essentials', NULL, '0.00', NULL, NULL, '2025-07-29 12:53:35', '2025-07-29 12:53:35'),
+('7aaad2f2-4f36-4813-991a-baf441230955', 'aa0d4793-daaf-4af7-a63a-b19993ea67f8', 'aa526847-33b7-4113-b8db-9cf03c97a656', 'credit_card', NULL, 'TXN-20250708-093111-aa0d47', NULL, '800.00', 'THB', '0.00', '800.00', 'completed', '2025-07-08 07:31:11', '2025-07-09', '2025-07-16', 'Subscription แพ็คเกจรายสัปดาห์', NULL, '0.00', NULL, NULL, '2025-07-08 07:31:11', '2025-07-08 07:31:11'),
+('7b218b1f-30c7-4396-8c1d-b6be0702a349', '507020f8-63bc-4379-9a1f-8eb56df8390f', 'bd1259a5-57b1-4fc7-babb-61baad5a6e03', 'paypal', NULL, 'TXN-20250721-043242-69a205', NULL, '399.00', 'USD', '0.00', '399.00', 'completed', '2025-07-21 04:32:42', '2025-07-23', '2025-07-30', 'Subscription แพ็กเกจ 5 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-21 04:32:42', '2025-07-21 04:32:42'),
+('7e5c407a-4a9b-4654-8c8c-d33db907d6b1', 'd5492ba5-f6e3-4e5b-b520-4ad36e6d0ed3', '3ecffe25-a2ee-4779-87e3-94d1908f668e', 'paypal', NULL, 'TXN-20250721-084858-826914', NULL, '499.00', 'USD', '0.00', '499.00', 'completed', '2025-07-21 08:48:58', '2025-07-23', '2025-07-30', 'Subscription แพ็กเกจ 4 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-21 08:48:58', '2025-07-21 08:48:58'),
+('80247401-5e51-4580-8809-f28d7a9a4ae2', 'e0f8eeba-f3d0-48bc-bb21-7bb716f6f145', '29e6fe85-124c-480f-bcf2-0d174721936f', 'paypal', NULL, 'TXN-20250714-065933-6c7ee9', NULL, '499.00', 'USD', '0.00', '499.00', 'completed', '2025-07-14 06:59:33', '2025-07-19', '2025-07-26', 'Subscription แพ็กเกจ 4 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-14 06:59:33', '2025-07-14 06:59:33'),
+('80310c73-8326-45f5-ad98-4c1604bc33ad', '97b9e7bd-e350-4d19-8ea5-022bcfdf74d0', '550e8400-e29b-41d4-a716-446655440003', 'apple_pay', NULL, 'TXN-20250715-020932-8b252e', NULL, '399.00', 'USD', '0.00', '399.00', 'completed', '2025-07-15 02:09:32', '2025-07-19', '2025-07-26', 'Subscription แพ็กเกจ 5 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-15 02:09:32', '2025-07-15 02:09:32'),
+('81834752-48ec-438c-82a1-dbe90819e541', '46def7f0-dd69-4e62-af4d-da389cfbc6bb', '29e6fe85-124c-480f-bcf2-0d174721936f', 'bank_transfer', NULL, 'TXN-20250714-020714-46def7', NULL, '499.00', 'USD', '0.00', '499.00', 'completed', '2025-07-14 02:07:14', '2025-07-26', '2025-08-02', 'Subscription แพ็กเกจ 4 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-14 02:07:14', '2025-07-14 02:07:14'),
+('83e12bca-1e02-45cd-aeb2-29b832a53f9d', 'a5e23f87-bb26-4bf8-8dac-1b1e482c88c7', '29e6fe85-124c-480f-bcf2-0d174721936f', 'credit_card', NULL, 'TXN-20250726-092550-0786ba', NULL, '59.99', 'USD', '0.00', '59.99', 'completed', '2025-07-26 09:25:50', '2025-07-26', '2025-08-02', 'Subscription Essentials', NULL, '0.00', NULL, NULL, '2025-07-26 09:25:50', '2025-07-26 09:25:50'),
+('87c98f73-b677-4847-a503-e6645790eb74', '80e45f1e-1ab4-4f37-980d-488627fc713b', '29e6fe85-124c-480f-bcf2-0d174721936f', 'bank_transfer', NULL, 'TXN-20250726-134608-5eb5f8', NULL, '259.99', 'THB', '0.00', '259.99', 'completed', '2025-07-26 13:46:08', '2025-08-02', '2025-08-09', 'Subscription Essentials', NULL, '0.00', NULL, NULL, '2025-07-26 13:46:08', '2025-07-26 13:46:08'),
+('8bc32412-f04a-4e07-ae19-6319f64dc0f1', '28e75278-75c2-448d-bef9-d6c2886ec531', '550e8400-e29b-41d4-a716-446655440001', 'apple_pay', 'Apple Pay', 'APL-20250703-001', 'apple_6866925a0d921', '1200.00', 'THB', '24.00', '1176.00', 'completed', '2025-07-01 07:23:22', '2025-07-03', '2025-08-03', 'Monthly Subscription - Healthy Thai Meals', NULL, '0.00', NULL, NULL, '2025-07-03 14:23:22', '2025-07-03 14:23:22'),
+('8c16d678-7c46-4a60-ace3-af31c0cc588f', '406ec6aa-88d3-4c09-9ca2-14a191ce7443', '29e6fe85-124c-480f-bcf2-0d174721936f', 'apple_pay', NULL, 'TXN-20250726-092425-2b4da5', NULL, '59.99', 'USD', '0.00', '59.99', 'completed', '2025-07-26 09:24:25', '2025-07-26', '2025-08-02', 'Subscription Essentials', NULL, '0.00', NULL, NULL, '2025-07-26 09:24:25', '2025-07-26 09:24:25'),
+('8cbc5ad1-1ac5-402b-b8d1-5aa960e8d7fc', '28e75278-75c2-448d-bef9-d6c2886ec531', '550e8400-e29b-41d4-a716-446655440001', 'credit_card', 'Stripe', 'CC-20250703-003', 'stripe_6866925a0da5a', '1500.00', 'THB', '45.00', '1455.00', 'failed', NULL, '2025-07-03', '2025-08-03', 'Premium Monthly Plan', 'Insufficient funds', '0.00', NULL, NULL, '2025-07-03 14:23:22', '2025-07-03 14:23:22'),
+('8e9d775e-dbee-4fa5-b6ed-05e6a9548c7c', '8daae380-9b24-43d5-86e8-13aa455b09d4', '550e8400-e29b-41d4-a716-446655440004', 'credit_card', NULL, 'TXN-20250714-023401-8daae3', NULL, '499.00', 'USD', '0.00', '499.00', 'completed', '2025-07-14 02:34:01', '2025-07-19', '2025-07-26', 'Subscription แพ็กเกจ 4 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-14 02:34:01', '2025-07-14 02:34:01'),
+('8efad5c6-b2b4-4b97-b608-80aa8f640219', 'ecaa5b9d-44dc-4564-b077-248692b8e812', '29e6fe85-124c-480f-bcf2-0d174721936f', 'paypal', NULL, 'TXN-20250714-014710-ecaa5b', NULL, '599.00', 'USD', '0.00', '599.00', 'completed', '2025-07-14 01:47:10', '2025-07-19', '2025-07-26', 'Subscription แพ็กเกจ 7 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-14 01:47:10', '2025-07-14 01:47:10'),
+('90a5bb22-66e0-49c9-ae05-5438f07f05b1', '36a7e729-a869-4aeb-8d41-6300cc9d2959', '79b6e774-aede-4aed-b82b-c17536a80bb9', 'apple_pay', NULL, 'TXN-20250803-072217-2db058', NULL, '59.99', 'USD', '0.00', '59.99', 'completed', '2025-08-03 07:22:17', '2025-08-20', '2025-08-27', 'Subscription Essentials', NULL, '0.00', NULL, NULL, '2025-08-03 07:22:17', '2025-08-03 07:22:17'),
+('92946896-8e82-4325-8b8c-dba577beef70', 'd6831992-8062-4cbe-b90a-b5c7f2fd3ffb', '550e8400-e29b-41d4-a716-446655440003', 'paypal', NULL, 'TXN-20250714-021601-d68319', NULL, '499.00', 'USD', '0.00', '499.00', 'completed', '2025-07-14 02:16:01', '2025-08-02', '2025-08-09', 'Subscription แพ็กเกจ 4 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-14 02:16:01', '2025-07-14 02:16:01'),
+('94ac101e-87bc-4024-a0ae-2d46d9bdcd12', '2fd75d4e-7618-435d-879b-d1e6001ca014', '29e6fe85-124c-480f-bcf2-0d174721936f', 'paypal', NULL, 'TXN-20250728-075640-19b6d8', NULL, '87.99', 'USD', '0.00', '87.99', 'completed', '2025-07-28 07:56:40', '2025-08-02', '2025-08-09', 'Subscription Smart Choice', NULL, '0.00', NULL, NULL, '2025-07-28 07:56:40', '2025-07-28 07:56:40'),
+('9603bf18-49ca-4e2c-8bfc-08f121f8ef0b', '350663c4-d1b2-42f2-ab87-ed36aab9e7d0', '29e6fe85-124c-480f-bcf2-0d174721936f', 'apple_pay', NULL, 'TXN-20250715-111308-1c637e', NULL, '499.00', 'USD', '0.00', '499.00', 'completed', '2025-07-15 11:13:08', '2025-07-19', '2025-07-26', 'Subscription แพ็กเกจ 4 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-15 11:13:08', '2025-07-15 11:13:08'),
+('99b4f162-351f-4918-afc2-ab2ba0c65589', '09d2a30f-8ae6-4956-8b6a-400bc4d2a7eb', '29e6fe85-124c-480f-bcf2-0d174721936f', 'credit_card', NULL, 'TXN-20250716-070400-b8fea2', NULL, '599.00', 'USD', '0.00', '599.00', 'completed', '2025-07-16 07:04:00', '2025-07-19', '2025-07-26', 'Subscription แพ็กเกจ 7 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-16 07:04:00', '2025-07-16 07:04:00'),
+('9ae17f36-8951-47d8-870b-932b8bb3cdf7', 'e684d621-c7e6-4eed-a8a5-38abc0d72366', '29e6fe85-124c-480f-bcf2-0d174721936f', 'credit_card', NULL, 'TXN-20250716-070433-8e24f9', NULL, '399.00', 'USD', '0.00', '399.00', 'completed', '2025-07-16 07:04:33', '2025-08-03', '2025-08-10', 'Subscription แพ็กเกจ 5 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-16 07:04:33', '2025-07-16 07:04:33'),
+('9afd51a1-f088-49a4-a233-e98937a0107f', 'febed4c8-d71c-4b57-bc75-4a8276a00e2c', '29e6fe85-124c-480f-bcf2-0d174721936f', 'bank_transfer', NULL, 'TXN-20250717-031344-cc219b', NULL, '499.00', 'USD', '0.00', '499.00', 'completed', '2025-07-17 03:13:44', '2025-08-10', '2025-08-17', 'Subscription แพ็กเกจ 4 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-17 03:13:44', '2025-07-17 03:13:44'),
+('9b7d32d0-46d0-4cf4-8bfb-f7d9390164c7', '4623a948-ae81-4cdb-979f-25102e9a8ec3', '29e6fe85-124c-480f-bcf2-0d174721936f', 'credit_card', NULL, 'TXN-20250727-133218-f08ac3', NULL, '59.99', 'USD', '0.00', '59.99', 'completed', '2025-07-27 13:32:18', '2025-07-30', '2025-08-06', 'Subscription Essentials', NULL, '0.00', NULL, NULL, '2025-07-27 13:32:18', '2025-07-27 13:32:18'),
+('9bfcd25a-1120-495d-b1f8-06c247cc73c3', 'c0e22f45-8a3d-451e-971d-9b4ad27b5bd9', '29e6fe85-124c-480f-bcf2-0d174721936f', 'google_pay', NULL, 'TXN-20250807-021911-41a41c', NULL, '59.99', 'USD', '0.00', '59.99', 'completed', '2025-08-07 02:19:11', '2025-08-09', '2025-08-16', 'Subscription Essentials', NULL, '0.00', NULL, NULL, '2025-08-07 02:19:11', '2025-08-07 02:19:11'),
+('9c28d736-7d25-48a5-b37c-ba00dfb2e4ae', '1b8fa3b4-6c61-475d-bd90-47b11657b92e', '29e6fe85-124c-480f-bcf2-0d174721936f', 'apple_pay', NULL, 'TXN-20250713-123611-1b8fa3', NULL, '599.00', 'USD', '0.00', '599.00', 'completed', '2025-07-13 12:36:11', '2025-07-14', '2025-07-21', 'Subscription แพ็กเกจ 7 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-13 12:36:11', '2025-07-13 12:36:11'),
+('a0295854-6e09-4b39-9e99-bcf4f07a0de4', '9a5ba398-ddd5-4c07-8016-145eb42618e8', '29e6fe85-124c-480f-bcf2-0d174721936f', 'paypal', NULL, 'TXN-20250710-095032-9a5ba3', NULL, '499.00', 'USD', '0.00', '499.00', 'completed', '2025-07-10 09:50:32', '2025-07-11', '2025-07-18', 'Subscription แพ็กเกจ 4 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-10 09:50:32', '2025-07-10 09:50:32'),
+('a0ad5444-42cc-4c55-980a-2e0da8293690', '48c6a9b9-5082-42bf-9e24-f5376e1b3f0e', '29e6fe85-124c-480f-bcf2-0d174721936f', 'paypal', NULL, 'TXN-20250726-044642-a53ee6', NULL, '59.99', 'USD', '0.00', '59.99', 'completed', '2025-07-26 04:46:42', '2025-07-26', '2025-08-02', 'Subscription Essentials', NULL, '0.00', NULL, NULL, '2025-07-26 04:46:42', '2025-07-26 04:46:42'),
+('a1104c43-8142-4c09-8b44-d4025c7cdaae', 'd25b172c-1e0f-4b79-a7e9-f5d35c054a8f', '29e6fe85-124c-480f-bcf2-0d174721936f', 'credit_card', NULL, 'TXN-20250805-083243-d3644e', NULL, '59.99', 'USD', '0.00', '59.99', 'completed', '2025-08-05 08:32:43', '2025-08-06', '2025-08-13', 'Subscription Essentials', NULL, '0.00', NULL, NULL, '2025-08-05 08:32:43', '2025-08-05 08:32:43'),
+('a3f6fb1d-807c-4595-9928-646c034e7291', '6f580044-7bbc-4e2a-a171-653b9b4df57c', 'aa526847-33b7-4113-b8db-9cf03c97a656', 'credit_card', NULL, 'TXN-20250708-093041-6f5800', NULL, '499.00', 'THB', '0.00', '499.00', 'completed', '2025-07-08 07:30:41', '2025-07-09', '2025-07-16', 'Subscription แพ็กเกจ 4 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-08 07:30:41', '2025-07-08 07:30:41'),
+('a656d2bc-2b00-449f-9d3a-334b7d4d4b50', 'f1cd09f7-8b60-4e2f-b26d-a478e1ec1e3a', '56ec0a53-cf99-4e73-89d7-a3300ddafa4f', 'credit_card', NULL, 'TXN-20250806-083150-4b6208', NULL, '59.99', 'USD', '0.00', '59.99', 'completed', '2025-08-06 08:31:50', '2025-08-09', '2025-08-16', 'Subscription Essentials', NULL, '0.00', NULL, NULL, '2025-08-06 08:31:50', '2025-08-06 08:31:50'),
+('a720019d-db08-4363-b278-2536ea003520', '6eae9f70-8676-4865-9891-3a411758272f', 'bd1259a5-57b1-4fc7-babb-61baad5a6e03', 'bank_transfer', NULL, 'TXN-20250721-064003-4e1757', NULL, '499.00', 'USD', '0.00', '499.00', 'completed', '2025-07-21 06:40:03', '2025-07-23', '2025-07-30', 'Subscription แพ็กเกจ 4 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-21 06:40:03', '2025-07-21 06:40:03'),
+('a73dbad5-15ce-4972-a414-07533855b084', '354ad47b-fa66-4e43-9bf8-75c2f962c64b', '29e6fe85-124c-480f-bcf2-0d174721936f', 'paypal', NULL, 'TXN-20250725-085016-62632a', NULL, '87.99', 'USD', '0.00', '87.99', 'completed', '2025-07-25 08:50:16', '2025-07-26', '2025-08-02', 'Subscription Smart Choice', NULL, '0.00', NULL, NULL, '2025-07-25 08:50:16', '2025-07-25 08:50:16'),
+('abbb11f8-5e14-4cf9-b408-aba7c629de4b', '6dcdf617-feb4-4075-9fd4-1478d7d0b8bf', '29e6fe85-124c-480f-bcf2-0d174721936f', 'bank_transfer', NULL, 'TXN-20250730-081505-b71937', NULL, '59.99', 'USD', '0.00', '59.99', 'completed', '2025-07-30 08:15:05', '2025-08-02', '2025-08-09', 'Subscription Essentials', NULL, '0.00', NULL, NULL, '2025-07-30 08:15:05', '2025-07-30 08:15:05'),
+('ad789510-1eb7-4c8b-bbf7-aeae6baafd8c', '92e80649-9c4a-4649-aac1-f559b4861834', '29e6fe85-124c-480f-bcf2-0d174721936f', 'credit_card', NULL, 'TXN-20250714043900-92e806', NULL, '399.00', 'USD', '0.00', '399.00', 'completed', '2025-07-14 04:39:00', '2025-07-15', '2025-07-22', 'Subscription แพ็กเกจ 5 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-14 04:39:00', '2025-07-14 04:39:00'),
+('adfb18aa-5896-4d79-9740-bd2f58f9350d', '476b9536-ab53-42a7-98c9-e224d368f12d', '29e6fe85-124c-480f-bcf2-0d174721936f', 'apple_pay', NULL, 'TXN-20250714-151311-476b95', NULL, '499.00', 'USD', '0.00', '499.00', 'completed', '2025-07-14 15:13:11', '2025-07-15', '2025-07-22', 'Subscription แพ็กเกจ 4 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-14 15:13:11', '2025-07-14 16:32:52'),
+('b3ad486c-46c3-449c-8778-45b53fe638ef', '676a5c1a-39de-4aac-bc0e-4a5729c0a022', '550e8400-e29b-41d4-a716-446655440001', 'google_pay', 'Google Pay', 'GPY-20250703-002', 'google_6866925a0da42', '800.00', 'THB', '16.00', '784.00', 'pending', NULL, '2025-07-03', '2025-07-10', 'Weekly Subscription - 3 Meals', NULL, '0.00', NULL, NULL, '2025-07-03 14:23:22', '2025-07-03 14:23:22'),
+('b3ca8c46-6e94-4646-adee-c2a01afaf18d', 'fbba995f-8221-4a6f-afe7-cc29afd8d26c', '29e6fe85-124c-480f-bcf2-0d174721936f', 'paypal', NULL, 'TXN-20250713-131102-fbba99', NULL, '599.00', 'USD', '0.00', '599.00', 'completed', '2025-07-13 13:11:02', '2025-07-14', '2025-07-21', 'Subscription แพ็กเกจ 7 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-13 13:11:02', '2025-07-13 13:11:02'),
+('b570a44f-9ee6-43e2-8352-f4fd78dad442', '7a76610b-74ae-4312-8489-c37d065083f2', '29e6fe85-124c-480f-bcf2-0d174721936f', 'paypal', NULL, 'TXN-20250714-070652-5b9831', NULL, '599.00', 'USD', '0.00', '599.00', 'completed', '2025-07-14 07:06:52', '2025-07-19', '2025-07-26', 'Subscription แพ็กเกจ 7 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-14 07:06:52', '2025-07-14 07:06:52'),
+('b771e64d-cd13-41d6-a156-a3c989702077', 'f4a3040e-2316-483a-8914-e0faceaaf58b', '29e6fe85-124c-480f-bcf2-0d174721936f', 'bank_transfer', NULL, 'TXN-20250713-125555-f4a304', NULL, '499.00', 'USD', '0.00', '499.00', 'completed', '2025-07-13 12:55:55', '2025-07-14', '2025-07-21', 'Subscription แพ็กเกจ 4 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-13 12:55:55', '2025-07-13 12:55:55'),
+('b862ef82-12cf-449b-9abb-b36658264325', 'a60ae27d-1ea2-4e86-a000-556f6fba9433', '29e6fe85-124c-480f-bcf2-0d174721936f', 'bank_transfer', NULL, 'KT-20250727-095029-ce4d98', NULL, '1430.00', 'THB', '0.00', '1430.00', 'completed', '2025-07-27 09:50:29', '2025-08-13', '2025-08-20', '4 meals + 3 addons', NULL, '0.00', NULL, NULL, '2025-07-27 09:50:29', '2025-07-27 09:50:29'),
+('b9cb3bc0-e41e-49e8-9405-2ada761c1c11', '08088294-f964-4dad-9615-786155382e06', '29e6fe85-124c-480f-bcf2-0d174721936f', 'google_pay', NULL, 'TXN-20250713-125510-080882', NULL, '499.00', 'USD', '0.00', '499.00', 'completed', '2025-07-13 12:55:10', '2025-07-14', '2025-07-21', 'Subscription แพ็กเกจ 4 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-13 12:55:10', '2025-07-13 12:55:10'),
+('bbcafb25-49d2-4fad-aa95-1ccab77cd7f1', 'e2f94945-f45f-4f01-aff1-4fb48c593266', 'aa526847-33b7-4113-b8db-9cf03c97a656', 'credit_card', NULL, 'TXN-20250708-113827-e2f949', NULL, '800.00', 'THB', '0.00', '800.00', 'completed', '2025-07-08 09:38:27', '2025-07-09', '2025-07-16', 'Subscription แพ็คเกจรายสัปดาห์', NULL, '0.00', NULL, NULL, '2025-07-08 09:38:27', '2025-07-08 09:38:27'),
+('bdb23dfd-1916-4339-89f3-9989beda1b72', '676a5c1a-39de-4aac-bc0e-4a5729c0a022', '550e8400-e29b-41d4-a716-446655440001', 'paypal', 'PayPal', 'PPL-20250703-004', 'paypal_6866925a0da70', '600.00', 'THB', '18.00', '582.00', 'refunded', '2025-06-28 07:23:22', '2025-06-26', '2025-07-03', 'Weekly Trial Plan', NULL, '600.00', 'Customer requested cancellation', '2025-07-02 07:23:22', '2025-07-03 14:23:22', '2025-07-03 14:23:22'),
+('bde68838-eb50-4bbe-86dd-a9e56d219f56', '04a206fe-78ed-43ab-8c4f-7574d91a5066', '6fdc8ff8-db01-406a-b34a-8fdc701bff70', 'credit_card', NULL, 'TXN-20250722-122126-a60c69', NULL, '499.00', 'USD', '0.00', '499.00', 'completed', '2025-07-22 12:21:26', '2025-07-23', '2025-07-30', 'Subscription แพ็กเกจ 4 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-22 12:21:26', '2025-07-22 12:21:26'),
+('be76d247-d8e6-45d9-870c-6f00ba09b86f', '081de44b-56d9-4745-acdc-19a129ac5b97', '29e6fe85-124c-480f-bcf2-0d174721936f', 'bank_transfer', NULL, 'TXN-20250727-030723-965d34', NULL, '87.99', 'USD', '0.00', '87.99', 'completed', '2025-07-27 03:07:23', '2025-07-28', '2025-08-04', 'Subscription Smart Choice', NULL, '0.00', NULL, NULL, '2025-07-27 03:07:23', '2025-07-27 03:07:23'),
+('bf3bb67c-bb3d-419a-9e0e-7acb27a0bbc8', 'e8580062-4b9a-4b95-8293-dcb76f621210', '47c2e78d-515a-4b8e-bb56-d6fd9c6a9cd8', 'google_pay', NULL, 'TXN-20250721-091218-ba8dd3', NULL, '399.00', 'USD', '0.00', '399.00', 'completed', '2025-07-21 09:12:18', '2025-07-23', '2025-07-30', 'Subscription แพ็กเกจ 5 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-21 09:12:18', '2025-07-21 09:12:18'),
+('bf9bd8b5-d14a-4555-a74b-3e9575c0babc', '90a1b331-9e41-4e9f-b757-cf9b91586387', '29e6fe85-124c-480f-bcf2-0d174721936f', 'credit_card', NULL, 'TXN-20250707-094726-90a1b3', NULL, '899.00', 'THB', '0.00', '899.00', 'completed', '2025-07-07 09:47:26', '2025-07-08', '2025-07-15', 'Subscription แพ็กเกจ 8 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-07 09:47:26', '2025-07-07 09:47:26'),
+('c11dfe5e-8107-4263-bffb-ab6c53186131', '0948600f-bdb7-42f4-8dc6-0093ae804b5b', '7587f6a4-cd3e-42e6-84df-2fc30df52b3f', 'credit_card', NULL, 'TXN-20250721-082809-4aa4f3', NULL, '399.00', 'USD', '0.00', '399.00', 'completed', '2025-07-21 08:28:09', '2025-07-23', '2025-07-30', 'Subscription แพ็กเกจ 5 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-21 08:28:09', '2025-07-21 08:28:09'),
+('c2b441e2-000c-4781-9488-3a26213beddf', '35cf6ed8-05d1-4da6-b069-72c2dfb665a4', '550e8400-e29b-41d4-a716-446655440003', 'apple_pay', NULL, 'TXN-20250715-030402-3ed721', NULL, '499.00', 'USD', '0.00', '499.00', 'completed', '2025-07-15 03:04:02', '2025-08-10', '2025-08-17', 'Subscription แพ็กเกจ 4 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-15 03:04:02', '2025-07-15 03:04:02'),
+('c3810a36-3a3c-492f-9c20-e9fc64c32c14', '4c54b901-68c6-4f6e-b1de-821a540166fe', '29e6fe85-124c-480f-bcf2-0d174721936f', 'paypal', NULL, 'TXN-20250726-091745-2ddae0', NULL, '87.99', 'USD', '0.00', '87.99', 'completed', '2025-07-26 09:17:45', '2025-07-26', '2025-08-02', 'Subscription Smart Choice', NULL, '0.00', NULL, NULL, '2025-07-26 09:17:45', '2025-07-26 09:17:45'),
+('c5b2b709-a8f3-41e8-8438-5a4812569712', '330aded2-fb8c-4acc-8fb6-e83403ce573d', '29e6fe85-124c-480f-bcf2-0d174721936f', 'credit_card', NULL, 'TXN-20250808-032929-95e209', NULL, '59.99', 'USD', '0.00', '59.99', 'completed', '2025-08-08 03:29:29', '2025-08-13', '2025-08-20', 'Subscription Essentials', NULL, '0.00', NULL, NULL, '2025-08-08 03:29:29', '2025-08-08 03:29:29'),
+('c71d18d2-eed5-4fa0-a46a-9cec852e3bdd', 'afcd9a79-71e7-4808-8206-b47acc722a0f', '29e6fe85-124c-480f-bcf2-0d174721936f', 'credit_card', NULL, 'TXN-20250728-021140-ac0678', NULL, '87.99', 'USD', '0.00', '87.99', 'completed', '2025-07-28 02:11:40', '2025-07-30', '2025-08-06', 'Subscription Smart Choice', NULL, '0.00', NULL, NULL, '2025-07-28 02:11:40', '2025-07-28 02:11:40'),
+('c97700cc-70f3-47d4-8a8a-e17a7d06db25', '5e4785f7-1825-400f-b096-daac3ac8a5a4', '550e8400-e29b-41d4-a716-446655440003', 'credit_card', NULL, 'TXN-20250715-030442-b20afe', NULL, '499.00', 'USD', '0.00', '499.00', 'completed', '2025-07-15 03:04:42', '2025-07-19', '2025-07-26', 'Subscription แพ็กเกจ 4 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-15 03:04:42', '2025-07-15 03:04:42'),
+('cbaf96be-7fff-4fac-821c-f7ed5e0f59b2', 'bc11f476-4fe9-44b1-a4bb-8d5f51ca1d20', '29e6fe85-124c-480f-bcf2-0d174721936f', 'paypal', NULL, 'TXN-20250712-092349-bc11f4', NULL, '499.00', 'USD', '0.00', '499.00', 'completed', '2025-07-12 09:23:49', '2025-07-13', '2025-07-20', 'Subscription แพ็กเกจ 4 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-12 09:23:49', '2025-07-12 09:23:49'),
+('ccd67149-18e2-449b-a784-86c4506d3521', 'bf8b8ba5-c77c-4983-9705-0b63f9414f99', '550e8400-e29b-41d4-a716-446655440004', 'credit_card', NULL, 'TXN-20250718-072603-477547', NULL, '499.00', 'USD', '0.00', '499.00', 'completed', '2025-07-18 07:26:03', '2025-07-19', '2025-07-26', 'Subscription แพ็กเกจ 4 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-18 07:26:03', '2025-07-18 07:26:03'),
+('d17472bc-04f4-4f57-9281-101ead5102d3', '46b5f974-39ee-4ddd-8d86-7831b0f069dd', '3ce9049e-c5bd-4f92-8ca7-1d5d3a981ec3', 'paypal', NULL, 'TXN-20250722-121343-cd5ed8', NULL, '399.00', 'USD', '0.00', '399.00', 'completed', '2025-07-22 12:13:43', '2025-07-23', '2025-07-30', 'Subscription แพ็กเกจ 5 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-22 12:13:43', '2025-07-22 12:13:43'),
+('d4cdeaaf-1825-4e74-bb9e-c8b91ecddf68', 'fc4a97dc-71e1-4a4a-b7ab-3f8b8b40c6ed', '29e6fe85-124c-480f-bcf2-0d174721936f', 'paypal', NULL, 'TXN-20250714-110237-d1ab54', NULL, '399.00', 'USD', '0.00', '399.00', 'failed', '2025-07-14 11:02:37', '2025-07-27', '2025-08-03', 'Subscription แพ็กเกจ 5 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-14 11:02:37', '2025-07-14 11:51:14'),
+('d6800c82-7c1c-4f74-9a01-9114b56a6969', 'e3591792-336a-4ca7-8377-b5cdad5628c8', '29e6fe85-124c-480f-bcf2-0d174721936f', 'paypal', NULL, 'TXN-20250710-075706-e35917', NULL, '499.00', 'USD', '0.00', '499.00', 'completed', '2025-07-10 07:57:06', '2025-07-11', '2025-07-18', 'Subscription แพ็กเกจ 4 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-10 07:57:06', '2025-07-10 07:57:06'),
+('d6b94d49-dcc1-4cad-9a8b-ec2ca9034cf3', 'ed9c0493-82b6-497f-af16-796a2d1b8c95', '29e6fe85-124c-480f-bcf2-0d174721936f', 'paypal', NULL, 'TXN-20250714-045603-ed9c04', NULL, '499.00', 'USD', '0.00', '499.00', 'completed', '2025-07-14 04:56:03', '2025-07-20', '2025-07-27', 'Subscription แพ็กเกจ 4 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-14 04:56:03', '2025-07-14 04:56:03'),
+('dbfea0e5-2dee-4430-a64b-23fa7b8a4813', 'c87d8cde-3f78-4e62-8762-d5aea0e56b4b', '3ecffe25-a2ee-4779-87e3-94d1908f668e', 'paypal', NULL, 'TXN-20250805-160725-887a53', NULL, '59.99', 'USD', '0.00', '59.99', 'completed', '2025-08-05 16:07:25', '2025-08-06', '2025-08-13', 'Subscription Essentials', NULL, '0.00', NULL, NULL, '2025-08-05 16:07:25', '2025-08-05 16:07:25'),
+('dd720d4d-7fd6-47ef-99a6-d16542e56134', 'f36c1c70-b651-495a-9fc5-5252bade2fd6', '29e6fe85-124c-480f-bcf2-0d174721936f', 'paypal', NULL, 'TXN-20250726-050839-369e4a', NULL, '59.99', 'USD', '0.00', '59.99', 'completed', '2025-07-26 05:08:39', '2025-07-26', '2025-08-02', 'Subscription Essentials', NULL, '0.00', NULL, NULL, '2025-07-26 05:08:39', '2025-07-26 05:08:39'),
+('ddb17a17-880c-46b5-bb2e-e3afc6e3b48b', '766168a3-f202-449e-a16a-44e8cdd19010', '29e6fe85-124c-480f-bcf2-0d174721936f', 'apple_pay', NULL, 'TXN-20250714-150835-766168', NULL, '399.00', 'USD', '0.00', '399.00', 'completed', '2025-07-14 15:08:35', '2025-07-15', '2025-07-22', 'Subscription แพ็กเกจ 5 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-14 15:08:35', '2025-07-14 15:08:35'),
+('df0b32dc-a76a-4917-9571-8d617cac1c77', '476a2565-e455-41a2-bdc8-c0e7e4534761', '29e6fe85-124c-480f-bcf2-0d174721936f', 'apple_pay', NULL, 'TXN-20250715-034952-9e64b3', NULL, '499.00', 'USD', '0.00', '499.00', 'completed', '2025-07-15 03:49:52', '2025-07-19', '2025-07-26', 'Subscription แพ็กเกจ 4 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-15 03:49:52', '2025-07-15 03:49:52'),
+('dfb239af-9ad8-4626-b4d5-7413e889ffb7', '7927a4a2-30c9-44ae-a2ea-3294cc64d60a', '550e8400-e29b-41d4-a716-446655440003', 'bank_transfer', NULL, 'TXN-20250715-034116-8134a2', NULL, '499.00', 'USD', '0.00', '499.00', 'completed', '2025-07-15 03:41:16', '2025-08-10', '2025-08-17', 'Subscription แพ็กเกจ 4 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-15 03:41:16', '2025-07-15 03:41:16'),
+('e41433a8-c4e1-4939-a1bf-02dd2e17ffe5', 'd91072d4-076a-4973-b819-9d04d6a83da7', '29e6fe85-124c-480f-bcf2-0d174721936f', 'credit_card', NULL, 'TXN-20250729-071345-cf4919', NULL, '59.99', 'USD', '0.00', '59.99', 'completed', '2025-07-29 07:13:45', '2025-07-30', '2025-08-06', 'Subscription Essentials', NULL, '0.00', NULL, NULL, '2025-07-29 07:13:45', '2025-07-29 07:13:45'),
+('e8acc84f-0372-4ebd-a509-cf32f6c79ee0', '349433d9-60c0-4ee7-982a-9deea50c4225', '550e8400-e29b-41d4-a716-446655440003', 'paypal', NULL, 'TXN-20250721-035118-1c6e97', NULL, '599.00', 'USD', '0.00', '599.00', 'completed', '2025-07-21 03:51:18', '2025-07-23', '2025-07-30', 'Subscription แพ็กเกจ 7 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-21 03:51:18', '2025-07-21 03:51:18'),
+('eaf664ac-7577-417c-bdee-2f049c7b03d5', '393e600c-4672-4b2e-98c9-0fb03ddfe4c4', '29e6fe85-124c-480f-bcf2-0d174721936f', 'paypal', NULL, 'TXN-20250720-025030-ace765', NULL, '499.00', 'USD', '0.00', '499.00', 'completed', '2025-07-20 02:50:30', '2025-07-20', '2025-07-27', 'Subscription แพ็กเกจ 4 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-20 02:50:30', '2025-07-20 02:50:30'),
+('ecfa17e3-7119-4769-9158-262b96407ed0', '197905d6-628d-4f43-bbf5-801e011b0e8e', 'd06d0b12-7184-4f53-9342-ede1b18414f5', 'google_pay', NULL, 'TXN-20250722-122706-187407', NULL, '499.00', 'USD', '0.00', '499.00', 'completed', '2025-07-22 12:27:06', '2025-07-23', '2025-07-30', 'Subscription แพ็กเกจ 4 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-22 12:27:06', '2025-07-22 12:27:06'),
+('f2194bfb-dae2-4aae-bf6e-191043b82a58', '85291cae-d5eb-42f6-9b56-a4f37b5cdd62', '29e6fe85-124c-480f-bcf2-0d174721936f', 'apple_pay', NULL, 'TXN-20250726-044247-e36dae', NULL, '59.99', 'USD', '0.00', '59.99', 'completed', '2025-07-26 04:42:47', '2025-07-30', '2025-08-06', 'Subscription Essentials', NULL, '0.00', NULL, NULL, '2025-07-26 04:42:47', '2025-07-26 04:42:47'),
+('f653eacf-7407-40c3-a3e0-e7c77444e83a', 'daab6f86-1f1a-4a21-a03b-e4b5f12dca5d', '550e8400-e29b-41d4-a716-446655440003', 'credit_card', NULL, 'TXN-20250728-085603-ac9b92', NULL, '59.99', 'USD', '0.00', '59.99', 'completed', '2025-07-28 08:56:03', '2025-08-02', '2025-08-09', 'Subscription Essentials', NULL, '0.00', NULL, NULL, '2025-07-28 08:56:03', '2025-07-28 08:56:03'),
+('f6fbcae9-d924-4594-a4ab-cefc01b593f1', '3b193ef1-27a8-4b32-a389-6be6fda26683', '29e6fe85-124c-480f-bcf2-0d174721936f', 'credit_card', NULL, 'TXN-20250726-040335-dbc31f', NULL, '87.99', 'USD', '0.00', '87.99', 'completed', '2025-07-26 04:03:35', '2025-07-26', '2025-08-02', 'Subscription Smart Choice', NULL, '0.00', NULL, NULL, '2025-07-26 04:03:35', '2025-07-26 04:03:35'),
+('f73a2e0d-7185-465c-90e2-d952e3144c6b', '7faac785-fb6b-4d97-86a2-2f44a5c10261', '977b32bf-db86-47dc-9a61-12ab9dc241b9', 'paypal', NULL, 'TXN-20250721-085754-28ebcf', NULL, '499.00', 'USD', '0.00', '499.00', 'completed', '2025-07-21 08:57:54', '2025-07-23', '2025-07-30', 'Subscription แพ็กเกจ 4 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-21 08:57:54', '2025-07-21 08:57:54'),
+('f85f6a7d-8aed-4a58-99e2-47c539020561', '22f5c830-264b-4b69-9f5c-6098011a7e40', '29e6fe85-124c-480f-bcf2-0d174721936f', 'paypal', NULL, 'TXN-20250726-042708-2009e6', NULL, '59.99', 'USD', '0.00', '59.99', 'completed', '2025-07-26 04:27:08', '2025-07-26', '2025-08-02', 'Subscription Essentials', NULL, '0.00', NULL, NULL, '2025-07-26 04:27:08', '2025-07-26 04:27:08'),
+('f88286bf-6096-4617-b702-3f7533024282', 'be8c3b24-114f-49e7-a816-e60e43899cde', '550e8400-e29b-41d4-a716-446655440003', 'google_pay', NULL, 'TXN-20250714-103651-9c04aa', NULL, '499.00', 'USD', '0.00', '499.00', 'completed', '2025-07-14 10:36:51', '2025-07-20', '2025-07-27', 'Subscription แพ็กเกจ 4 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-14 10:36:51', '2025-07-14 10:36:51'),
+('fba58ba4-deb6-45ef-8ec8-d1fc1c30eb17', 'a9955447-3212-4995-8abd-9be1c313f537', '29e6fe85-124c-480f-bcf2-0d174721936f', 'paypal', NULL, 'TXN-20250715-161852-3f7f3e', NULL, '499.00', 'USD', '0.00', '499.00', 'completed', '2025-07-15 16:18:52', '2025-07-19', '2025-07-26', 'Subscription แพ็กเกจ 4 มื้อ', NULL, '0.00', NULL, NULL, '2025-07-15 16:18:52', '2025-07-15 16:18:52'),
+('fcf85771-fe01-470b-9dfd-ed1d8f29ba78', '65e0f10b-9c97-4034-a4f9-4b35d1782fab', '29e6fe85-124c-480f-bcf2-0d174721936f', 'credit_card', NULL, 'TXN-20250727-075730-f6a732', NULL, '87.99', 'USD', '0.00', '87.99', 'completed', '2025-07-27 07:57:30', '2025-08-13', '2025-08-20', 'Subscription Smart Choice', NULL, '0.00', NULL, NULL, '2025-07-27 07:57:30', '2025-07-27 07:57:30'),
+('fd8ec8b6-3de6-4b5f-b397-05bb3e0a0904', '127ea3b3-2807-4583-a3f0-c999188bb2e0', '29e6fe85-124c-480f-bcf2-0d174721936f', 'paypal', NULL, 'TXN-20250804-073956-f20f39', NULL, '59.99', 'USD', '0.00', '59.99', 'completed', '2025-08-04 07:39:56', '2025-08-06', '2025-08-13', 'Subscription Essentials', NULL, '0.00', NULL, NULL, '2025-08-04 07:39:56', '2025-08-04 07:39:56'),
+('feb68724-056b-4e50-8a55-88f95b2e4311', '05a54dfa-21ac-4b7c-8a99-612029bc2fb2', '29e6fe85-124c-480f-bcf2-0d174721936f', 'paypal', NULL, 'TXN-20250726-044146-ff5ec6', NULL, '59.99', 'USD', '0.00', '59.99', 'completed', '2025-07-26 04:41:46', '2025-07-26', '2025-08-02', 'Subscription Essentials', NULL, '0.00', NULL, NULL, '2025-07-26 04:41:46', '2025-07-26 04:41:46'),
+('ff98b27c-d957-4a55-9e14-3f9f075ee4b4', '8c5f6119-2cf7-4130-9010-eb66e417d1f0', '29e6fe85-124c-480f-bcf2-0d174721936f', 'credit_card', NULL, 'TXN-20250729-041410-ee4999', NULL, '59.99', 'USD', '0.00', '59.99', 'completed', '2025-07-29 04:14:10', '2025-08-02', '2025-08-09', 'Subscription Essentials', NULL, '0.00', NULL, NULL, '2025-07-29 04:14:10', '2025-07-29 04:14:10');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `payment_status_log`
+--
+
+CREATE TABLE `payment_status_log` (
+  `id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `payment_id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `old_status` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `new_status` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `changed_by` char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `notes` text COLLATE utf8mb4_unicode_ci,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `payment_status_log`
+--
+
+INSERT INTO `payment_status_log` (`id`, `payment_id`, `old_status`, `new_status`, `changed_by`, `notes`, `created_at`) VALUES
+('0c0e06ac9d9c6d7e812b9d38aae36142', 'd4cdeaaf-1825-4e74-bb9e-c8b91ecddf68', 'failed', 'pending', '550e8400-e29b-41d4-a716-446655440002', '', '2025-07-14 11:45:30'),
+('0d2a54d60682f04d0f25d1f44f02c192', 'd4cdeaaf-1825-4e74-bb9e-c8b91ecddf68', 'completed', 'failed', '550e8400-e29b-41d4-a716-446655440002', '', '2025-07-14 11:51:14'),
+('0e19e1373933e1019595ebce9f16d1a2', 'd4cdeaaf-1825-4e74-bb9e-c8b91ecddf68', 'completed', 'pending', '550e8400-e29b-41d4-a716-446655440002', '', '2025-07-14 11:48:34'),
+('2a07a6464a9408a2e3dcc68f48f2caba', 'adfb18aa-5896-4d79-9740-bd2f58f9350d', 'completed', 'pending', '550e8400-e29b-41d4-a716-446655440002', '', '2025-07-14 16:32:43'),
+('2d9e28e741c87a6c4afe1f0feb16a35c', 'd4cdeaaf-1825-4e74-bb9e-c8b91ecddf68', 'completed', 'completed', '550e8400-e29b-41d4-a716-446655440002', '', '2025-07-14 11:48:29'),
+('3684ead2856049c2859b1b060197e0fc', 'd4cdeaaf-1825-4e74-bb9e-c8b91ecddf68', 'failed', 'completed', '550e8400-e29b-41d4-a716-446655440002', '', '2025-07-14 11:50:51'),
+('54dec67e5f28d473d523b5b348a5ee38', 'd4cdeaaf-1825-4e74-bb9e-c8b91ecddf68', 'completed', 'failed', '550e8400-e29b-41d4-a716-446655440002', '', '2025-07-14 11:45:06'),
+('647bd8e57060fae4b8309f4db9fc22f4', 'adfb18aa-5896-4d79-9740-bd2f58f9350d', 'pending', 'completed', '550e8400-e29b-41d4-a716-446655440002', '', '2025-07-14 16:32:52'),
+('73f64dd80157b11bdc004051d0d42e04', 'd4cdeaaf-1825-4e74-bb9e-c8b91ecddf68', 'failed', 'completed', '550e8400-e29b-41d4-a716-446655440002', '', '2025-07-14 11:48:21'),
+('76e65dc6b3db062cfba4c8d8e5833b15', 'd4cdeaaf-1825-4e74-bb9e-c8b91ecddf68', 'pending', 'failed', '550e8400-e29b-41d4-a716-446655440002', '', '2025-07-14 11:48:17'),
+('a4207d832579be1fa97ce6ca0f6fb7dc', 'd4cdeaaf-1825-4e74-bb9e-c8b91ecddf68', 'completed', 'pending', '550e8400-e29b-41d4-a716-446655440002', '', '2025-07-14 11:50:59'),
+('ceeec41d9e8306cd2766666eace7886b', 'd4cdeaaf-1825-4e74-bb9e-c8b91ecddf68', 'pending', 'failed', '550e8400-e29b-41d4-a716-446655440002', '', '2025-07-14 11:48:40'),
+('f5d0efc17650ba3f74bd7d4131441d0c', 'd4cdeaaf-1825-4e74-bb9e-c8b91ecddf68', 'pending', 'completed', '550e8400-e29b-41d4-a716-446655440002', '', '2025-07-14 11:51:05');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `payment_status_logs`
+--
+
+CREATE TABLE `payment_status_logs` (
+  `id` int(11) NOT NULL,
+  `payment_id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `old_status` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `new_status` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `changed_by` char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `admin_note` text COLLATE utf8mb4_unicode_ci,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `reviews`
+--
+
+CREATE TABLE `reviews` (
+  `id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `order_id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `user_id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `menu_id` char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `overall_rating` tinyint(4) NOT NULL,
+  `food_quality_rating` tinyint(4) DEFAULT NULL,
+  `delivery_rating` tinyint(4) DEFAULT NULL,
+  `packaging_rating` tinyint(4) DEFAULT NULL,
+  `title` varchar(200) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `comment` text COLLATE utf8mb4_unicode_ci,
+  `pros` text COLLATE utf8mb4_unicode_ci,
+  `cons` text COLLATE utf8mb4_unicode_ci,
+  `would_recommend` tinyint(1) DEFAULT NULL,
+  `photos` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin,
+  `admin_response` text COLLATE utf8mb4_unicode_ci,
+  `admin_response_at` timestamp NULL DEFAULT NULL,
+  `admin_response_by` char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `is_verified` tinyint(1) DEFAULT '0',
+  `is_featured` tinyint(1) DEFAULT '0',
+  `is_public` tinyint(1) DEFAULT '1',
+  `moderation_status` enum('pending','approved','rejected') COLLATE utf8mb4_unicode_ci DEFAULT 'pending',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `reviews`
+--
+
+INSERT INTO `reviews` (`id`, `order_id`, `user_id`, `menu_id`, `overall_rating`, `food_quality_rating`, `delivery_rating`, `packaging_rating`, `title`, `comment`, `pros`, `cons`, `would_recommend`, `photos`, `admin_response`, `admin_response_at`, `admin_response_by`, `is_verified`, `is_featured`, `is_public`, `moderation_status`, `created_at`, `updated_at`) VALUES
+('1fdd8085fdaa1eae2f312b79816778bb', 'c3726e6c93bf9658707a77c5aaa15e0b', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 5, NULL, NULL, NULL, 'eeee', 'eeee', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 1, 'pending', '2025-07-29 06:24:59', '2025-07-29 06:24:59'),
+('43aa5ab691edf0b6b8486470290dcbe5', '58420208f4d7ef27ce63abe35e73e864', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 5, NULL, NULL, NULL, '222222', '222222', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 1, 'pending', '2025-07-25 03:59:35', '2025-07-25 03:59:35'),
+('4e85f64d0541e3d70d95a2b400d44b92', 'df07c14b-41b3-4ace-bf1b-2770f8460697', '550e8400-e29b-41d4-a716-446655440003', NULL, 5, NULL, NULL, NULL, '4444444', '4444444', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 1, 'pending', '2025-07-25 03:13:22', '2025-07-25 03:13:22'),
+('62f3362f9ecd9a76617fb5511d78e037', '50d16a3a0f3ce0bf8765cc1254bfadf5', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 5, NULL, NULL, NULL, '444444444', '444444444', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 1, 'pending', '2025-07-24 07:49:19', '2025-07-24 07:49:19'),
+('73b62b1456e2bf7ad8b0c78727231eec', '0197d98a9eedb7faffb1564c33b50d9e', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 5, NULL, NULL, NULL, 'test', 'test', NULL, NULL, NULL, NULL, 'fefeff', '2025-08-12 02:42:47', '550e8400-e29b-41d4-a716-446655440002', 0, 0, 1, 'pending', '2025-08-04 07:40:34', '2025-08-12 02:42:47'),
+('7c6997e9235197c6080e3d890240cebf', '15bf811c69efceed97c1976673f46a5b', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 5, NULL, NULL, NULL, 'แแแแ', 'แแแแแ', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 1, 'pending', '2025-07-29 12:53:54', '2025-07-29 12:53:54'),
+('c2bb577bb355b270f3f4a93286b17f7a', '279eb23581f768548583ae7049a88a35', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 5, NULL, NULL, NULL, 'good', 'good', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 1, 'pending', '2025-07-29 14:21:06', '2025-07-29 14:21:06');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `subscriptions`
+--
+
+CREATE TABLE `subscriptions` (
+  `id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `user_id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `assigned_rider_id` char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `plan_id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `status` enum('active','paused','cancelled','expired','pending_payment') COLLATE utf8mb4_unicode_ci DEFAULT 'pending_payment',
+  `start_date` date NOT NULL,
+  `end_date` date DEFAULT NULL,
+  `next_billing_date` date DEFAULT NULL,
+  `billing_cycle` enum('weekly','monthly') COLLATE utf8mb4_unicode_ci NOT NULL,
+  `total_amount` decimal(8,2) NOT NULL,
+  `discount_applied` decimal(8,2) DEFAULT '0.00',
+  `delivery_days` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin,
+  `preferred_delivery_time` enum('09:00-12:00','12:00-15:00','15:00-18:00','18:00-21:00') COLLATE utf8mb4_unicode_ci DEFAULT '12:00-15:00',
+  `special_instructions` text COLLATE utf8mb4_unicode_ci,
+  `pause_start_date` date DEFAULT NULL,
+  `pause_end_date` date DEFAULT NULL,
+  `skip_dates` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin,
+  `auto_renew` tinyint(1) DEFAULT '1',
+  `cancellation_reason` text COLLATE utf8mb4_unicode_ci,
+  `cancelled_at` timestamp NULL DEFAULT NULL,
+  `cancelled_by` char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `subscriptions`
+--
+
+INSERT INTO `subscriptions` (`id`, `user_id`, `assigned_rider_id`, `plan_id`, `status`, `start_date`, `end_date`, `next_billing_date`, `billing_cycle`, `total_amount`, `discount_applied`, `delivery_days`, `preferred_delivery_time`, `special_instructions`, `pause_start_date`, `pause_end_date`, `skip_dates`, `auto_renew`, `cancellation_reason`, `cancelled_at`, `cancelled_by`, `created_at`, `updated_at`) VALUES
+('002a5635-19c2-496c-97f6-7d9b867d9ceb', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'smart-choice-plan-2025', 'paused', '2025-07-14', NULL, '2025-07-21', 'weekly', '399.00', '0.00', '[\"sat_1\",\"sun_1\"]', '15:00-18:00', '', '2025-07-14', '2025-07-15', NULL, 1, NULL, NULL, NULL, '2025-07-13 12:39:59', '2025-07-25 04:27:22'),
+('0463a886-ab5b-4447-ad7e-f42ee0c70433', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'active', '2025-07-20', NULL, '2025-07-27', 'weekly', '499.00', '0.00', '[\"sun_0\"]', '09:00-12:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-15 11:33:33', '2025-07-25 04:27:22'),
+('04a206fe-78ed-43ab-8c4f-7574d91a5066', '6fdc8ff8-db01-406a-b34a-8fdc701bff70', NULL, 'essentials-plan-2025', 'active', '2025-07-23', NULL, '2025-07-30', 'weekly', '499.00', '0.00', '[\"wed_0\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-22 12:21:26', '2025-07-25 04:27:22'),
+('05a54dfa-21ac-4b7c-8a99-612029bc2fb2', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'active', '2025-07-26', NULL, '2025-08-02', 'weekly', '59.99', '0.00', '[\"sat_0\"]', '15:00-18:00', 'tttttt', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-26 04:41:46', '2025-07-26 04:41:46'),
+('0637e1ce-9417-46a1-be75-cfb96c85e0c0', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'smart-choice-plan-2025', 'active', '2025-07-30', NULL, '2025-08-06', 'weekly', '87.99', '0.00', '[\"wed_0\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-28 14:11:45', '2025-07-28 14:11:45'),
+('08088294-f964-4dad-9615-786155382e06', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'active', '2025-07-14', NULL, '2025-07-21', 'weekly', '499.00', '0.00', '[\"sat_1\",\"sun_1\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-13 12:55:10', '2025-07-25 04:27:22'),
+('081de44b-56d9-4745-acdc-19a129ac5b97', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'smart-choice-plan-2025', 'active', '2025-07-28', NULL, '2025-08-04', 'weekly', '87.99', '0.00', '[\"wed_20250730\"]', '15:00-18:00', 'tttttt', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-27 03:07:23', '2025-07-27 03:07:23'),
+('0948600f-bdb7-42f4-8dc6-0093ae804b5b', '7587f6a4-cd3e-42e6-84df-2fc30df52b3f', NULL, 'smart-choice-plan-2025', 'active', '2025-07-23', NULL, '2025-07-30', 'weekly', '399.00', '0.00', '[\"wed_0\"]', '09:00-12:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-21 08:28:09', '2025-07-25 04:27:22'),
+('09d2a30f-8ae6-4956-8b6a-400bc4d2a7eb', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'smart-choice-plan-2025', 'cancelled', '2025-07-19', NULL, '2025-07-26', 'weekly', '599.00', '0.00', '[\"sat_0\"]', '12:00-15:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-16 07:04:00', '2025-07-25 04:27:22'),
+('0bf75805-f0ab-4207-a172-25912a12ecb4', '550e8400-e29b-41d4-a716-446655440003', NULL, 'smart-choice-plan-2025', 'active', '2025-07-19', NULL, '2025-07-26', 'weekly', '599.00', '0.00', '[\"sat_0\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-14 02:16:49', '2025-07-25 04:27:22'),
+('0e960c81-fefa-455a-b9cd-b04d22410477', '550e8400-e29b-41d4-a716-446655440004', NULL, 'smart-choice-plan-2025', 'active', '2025-07-26', NULL, '2025-08-02', 'weekly', '399.00', '0.00', '[\"sat_0\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-21 01:17:08', '2025-07-25 04:27:22'),
+('127ea3b3-2807-4583-a3f0-c999188bb2e0', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'cancelled', '2025-08-06', NULL, '2025-08-13', 'weekly', '59.99', '0.00', '[\"2025-08-06\"]', '12:00-15:00', 'deee3333rrrd', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-08-04 07:39:56', '2025-08-05 08:24:49'),
+('172bac7b-8248-46c8-b3d6-9070e2ce8755', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'active', '2025-07-26', NULL, '2025-08-02', 'weekly', '59.99', '0.00', '[\"sat_0\"]', '15:00-18:00', 'tttttt', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-26 04:27:44', '2025-07-26 04:27:44'),
+('197905d6-628d-4f43-bbf5-801e011b0e8e', 'd06d0b12-7184-4f53-9342-ede1b18414f5', NULL, 'essentials-plan-2025', 'active', '2025-07-23', NULL, '2025-07-30', 'weekly', '499.00', '0.00', '[\"wed_0\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-22 12:27:06', '2025-07-25 04:27:22'),
+('1a5d3ec4-757b-480d-838a-e1bd53034a67', '6c9391f3-0772-4393-a703-a035cc68d3d7', NULL, 'smart-choice-plan-2025', 'pending_payment', '2025-07-08', NULL, '2025-07-15', 'weekly', '800.00', '0.00', '[\"monday\", \"thursday\", \"friday\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-04 07:36:50', '2025-07-25 04:27:22'),
+('1b8fa3b4-6c61-475d-bd90-47b11657b92e', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'smart-choice-plan-2025', 'active', '2025-07-14', NULL, '2025-07-21', 'weekly', '599.00', '0.00', '[\"sat_1\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-13 12:36:11', '2025-07-25 04:27:22'),
+('1fa52d11-2f99-451e-8151-0914626b0d58', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'active', '2025-07-19', NULL, '2025-07-26', 'weekly', '499.00', '0.00', '[\"sat_0\",\"sun_0\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-14 02:13:22', '2025-07-25 04:27:22'),
+('22f5c830-264b-4b69-9f5c-6098011a7e40', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'active', '2025-07-26', NULL, '2025-08-02', 'weekly', '59.99', '0.00', '[\"sat_0\"]', '15:00-18:00', 'tttttt', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-26 04:27:08', '2025-07-26 04:27:08'),
+('28e75278-75c2-448d-bef9-d6c2886ec531', '550e8400-e29b-41d4-a716-446655440001', NULL, 'smart-choice-plan-2025', 'active', '2025-07-03', '2025-08-03', '2025-08-03', 'monthly', '1200.00', '120.00', '[\"monday\", \"wednesday\", \"friday\"]', '15:00-18:00', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-03 14:23:22', '2025-07-25 04:27:22'),
+('2fd75d4e-7618-435d-879b-d1e6001ca014', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'smart-choice-plan-2025', 'active', '2025-08-02', NULL, '2025-08-09', 'weekly', '87.99', '0.00', '[\"sat_0\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-28 07:56:40', '2025-07-28 07:56:40'),
+('330aded2-fb8c-4acc-8fb6-e83403ce573d', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'active', '2025-08-13', NULL, '2025-08-20', 'weekly', '59.99', '0.00', '[\"2025-08-13\"]', '09:00-12:00', 'deee3333rrrd', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-08-08 03:29:29', '2025-08-08 03:29:29'),
+('349433d9-60c0-4ee7-982a-9deea50c4225', '550e8400-e29b-41d4-a716-446655440003', NULL, 'smart-choice-plan-2025', 'active', '2025-07-23', NULL, '2025-07-30', 'weekly', '599.00', '0.00', '[\"wed_0\"]', '12:00-15:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-21 03:51:18', '2025-07-25 04:27:22'),
+('350663c4-d1b2-42f2-ab87-ed36aab9e7d0', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'active', '2025-07-19', NULL, '2025-07-26', 'weekly', '499.00', '0.00', '[\"sat_0\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-15 11:13:08', '2025-07-25 04:27:22'),
+('354ad47b-fa66-4e43-9bf8-75c2f962c64b', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'smart-choice-plan-2025', 'active', '2025-07-26', NULL, '2025-08-02', 'weekly', '87.99', '0.00', '[\"sat_0\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-25 08:50:16', '2025-07-25 08:50:16'),
+('35cf6ed8-05d1-4da6-b069-72c2dfb665a4', '550e8400-e29b-41d4-a716-446655440003', NULL, 'essentials-plan-2025', 'active', '2025-08-10', NULL, '2025-08-17', 'weekly', '499.00', '0.00', '[\"sun_3\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-15 03:04:02', '2025-07-25 04:27:22'),
+('36a7e729-a869-4aeb-8d41-6300cc9d2959', '79b6e774-aede-4aed-b82b-c17536a80bb9', NULL, 'essentials-plan-2025', 'active', '2025-08-20', NULL, '2025-08-27', 'weekly', '59.99', '0.00', '[\"2025-08-20\"]', '15:00-18:00', '2222222', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-08-03 07:22:17', '2025-08-03 07:22:17'),
+('36ecb782-ce8c-428a-b8a9-afd7e02bcfe8', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'active', '2025-07-15', NULL, '2025-07-22', 'weekly', '499.00', '0.00', '[\"sat_0\",\"sun_0\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-14 01:42:25', '2025-07-25 04:27:22'),
+('393e600c-4672-4b2e-98c9-0fb03ddfe4c4', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'active', '2025-07-20', NULL, '2025-07-27', 'weekly', '499.00', '0.00', '[\"sun_0\"]', '09:00-12:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-20 02:50:30', '2025-07-25 04:27:22'),
+('395d369f-4d05-4353-8238-e0956cee736e', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'active', '2025-08-09', NULL, '2025-08-16', 'weekly', '59.99', '0.00', '[\"2025-08-09\"]', '15:00-18:00', 'deee3333rrrd', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-08-07 02:06:23', '2025-08-07 02:18:25'),
+('3b193ef1-27a8-4b32-a389-6be6fda26683', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'smart-choice-plan-2025', 'active', '2025-07-26', NULL, '2025-08-02', 'weekly', '87.99', '0.00', '[\"sat_0\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-26 04:03:35', '2025-07-26 04:03:35'),
+('3b8765cb-3002-458a-b569-68e971bd456f', '56ec0a53-cf99-4e73-89d7-a3300ddafa4f', '550e8400-e29b-41d4-a716-446655440004', 'essentials-plan-2025', 'cancelled', '2025-08-06', NULL, '2025-08-13', 'weekly', '59.99', '0.00', '[\"2025-08-06\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-08-05 16:04:39', '2025-08-06 07:42:28'),
+('3eead7a4-a66c-41a6-b9d4-58ba218bfbec', '6fdc8ff8-db01-406a-b34a-8fdc701bff70', NULL, 'essentials-plan-2025', 'active', '2025-08-06', NULL, '2025-08-13', 'weekly', '59.99', '0.00', '[\"2025-08-06\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-08-05 16:10:31', '2025-08-05 16:10:31'),
+('406ec6aa-88d3-4c09-9ca2-14a191ce7443', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'active', '2025-07-26', NULL, '2025-08-02', 'weekly', '59.99', '0.00', '[\"sat_0\"]', '15:00-18:00', 'tttttt', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-26 09:24:25', '2025-07-26 09:24:25'),
+('417e5469-f89b-4ee1-a9bb-dd4a9a8a973f', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'active', '2025-07-30', NULL, '2025-08-06', 'weekly', '59.99', '0.00', '[\"2025-07-30\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-29 13:05:42', '2025-07-29 13:05:42'),
+('44c83ddd-b28c-447b-85cc-5eb8926e6061', '6c9391f3-0772-4393-a703-a035cc68d3d7', NULL, 'essentials-plan-2025', 'active', '2025-07-08', NULL, '2025-07-15', 'weekly', '499.00', '0.00', '[\"monday\", \"tuesday\"]', '15:00-18:00', 'Please call upon arrival at the lobby. Do not leave food with the security guard.', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-07 09:38:46', '2025-07-25 04:27:22'),
+('460ab3f2-889e-4a16-80a6-4e951cb7d3c6', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'active', '2025-07-27', NULL, '2025-08-03', 'weekly', '499.00', '0.00', '[\"sun_1\",\"sat_2\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-14 07:01:34', '2025-07-25 04:27:22'),
+('4623a948-ae81-4cdb-979f-25102e9a8ec3', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'active', '2025-07-30', NULL, '2025-08-06', 'weekly', '59.99', '0.00', '[\"wed_0\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-27 13:32:18', '2025-07-27 13:32:18'),
+('46b5f974-39ee-4ddd-8d86-7831b0f069dd', '3ce9049e-c5bd-4f92-8ca7-1d5d3a981ec3', NULL, 'smart-choice-plan-2025', 'active', '2025-07-23', NULL, '2025-07-30', 'weekly', '399.00', '0.00', '[\"wed_0\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-22 12:13:43', '2025-07-25 04:27:22'),
+('46def7f0-dd69-4e62-af4d-da389cfbc6bb', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'active', '2025-07-26', NULL, '2025-08-02', 'weekly', '499.00', '0.00', '[\"sat_1\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-14 02:07:14', '2025-07-25 04:27:22'),
+('476a2565-e455-41a2-bdc8-c0e7e4534761', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'active', '2025-07-19', NULL, '2025-07-26', 'weekly', '499.00', '0.00', '[\"sat_0\",\"sun_0\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-15 03:49:52', '2025-07-25 04:27:22'),
+('476b9536-ab53-42a7-98c9-e224d368f12d', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'cancelled', '2025-07-15', NULL, '2025-07-22', 'weekly', '499.00', '0.00', '[\"sat_0\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-14 15:13:11', '2025-07-25 04:27:22'),
+('48c6a9b9-5082-42bf-9e24-f5376e1b3f0e', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'active', '2025-07-26', NULL, '2025-08-02', 'weekly', '59.99', '0.00', '[\"sat_0\"]', '15:00-18:00', 'tttttt', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-26 04:46:42', '2025-07-26 04:46:42'),
+('4c54b901-68c6-4f6e-b1de-821a540166fe', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'smart-choice-plan-2025', 'active', '2025-07-26', NULL, '2025-08-02', 'weekly', '87.99', '0.00', '[\"sat_0\"]', '15:00-18:00', 'tttttt', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-26 09:17:45', '2025-07-26 09:17:45'),
+('4f718c97-3c23-4cc2-9f99-cd485c9bab13', '550e8400-e29b-41d4-a716-446655440003', NULL, 'essentials-plan-2025', 'active', '2025-07-19', NULL, '2025-07-26', 'weekly', '499.00', '0.00', '[\"sat_0\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-15 02:22:06', '2025-07-25 04:27:22'),
+('507020f8-63bc-4379-9a1f-8eb56df8390f', 'bd1259a5-57b1-4fc7-babb-61baad5a6e03', NULL, 'smart-choice-plan-2025', 'active', '2025-07-23', NULL, '2025-07-30', 'weekly', '399.00', '0.00', '[\"wed_0\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-21 04:32:42', '2025-07-25 04:27:22'),
+('5249821f-18f8-4fd4-85d7-91f2546d7089', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'active', '2025-07-11', NULL, '2025-07-18', 'weekly', '499.00', '0.00', '[\"sat_0\",\"sun_0\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-10 08:16:16', '2025-07-25 04:27:22'),
+('5adf19e4-f653-4c00-9b11-830afd96d3d9', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'active', '2025-07-30', NULL, '2025-08-06', 'weekly', '1427.50', '0.00', '[\"wed_0\"]', '12:00-15:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-27 09:50:06', '2025-07-27 09:50:06'),
+('5e4785f7-1825-400f-b096-daac3ac8a5a4', '550e8400-e29b-41d4-a716-446655440003', NULL, 'essentials-plan-2025', 'active', '2025-07-19', NULL, '2025-07-26', 'weekly', '499.00', '0.00', '[\"sat_0\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-15 03:04:42', '2025-07-25 04:27:22'),
+('634e7e93-9dbf-4e20-98d2-69922f7d4357', '5af6d9cd-5e46-41de-b6d7-632cb21330a5', NULL, 'smart-choice-plan-2025', 'active', '2025-07-26', NULL, '2025-08-02', 'weekly', '399.00', '0.00', '[\"sat_1\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-19 08:23:44', '2025-07-25 04:27:22'),
+('65e0f10b-9c97-4034-a4f9-4b35d1782fab', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'smart-choice-plan-2025', 'active', '2025-08-13', NULL, '2025-08-20', 'weekly', '87.99', '0.00', '[\"wed_2\"]', '15:00-18:00', 'tttttt', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-27 07:57:30', '2025-07-27 07:57:30'),
+('676a5c1a-39de-4aac-bc0e-4a5729c0a022', '550e8400-e29b-41d4-a716-446655440001', NULL, 'smart-choice-plan-2025', 'active', '2025-06-26', '2025-07-03', '2025-07-10', 'weekly', '800.00', '0.00', '[\"tuesday\", \"thursday\"]', '09:00-12:00', NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-03 14:23:22', '2025-07-25 04:27:22'),
+('6dcdf617-feb4-4075-9fd4-1478d7d0b8bf', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'active', '2025-08-02', NULL, '2025-08-09', 'weekly', '59.99', '0.00', '[\"2025-08-02\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-30 08:15:05', '2025-07-30 08:15:05'),
+('6eae9f70-8676-4865-9891-3a411758272f', 'bd1259a5-57b1-4fc7-babb-61baad5a6e03', NULL, 'essentials-plan-2025', 'active', '2025-07-23', NULL, '2025-07-30', 'weekly', '499.00', '0.00', '[\"wed_0\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-21 06:40:03', '2025-07-25 04:27:22'),
+('6f580044-7bbc-4e2a-a171-653b9b4df57c', 'aa526847-33b7-4113-b8db-9cf03c97a656', NULL, 'essentials-plan-2025', 'cancelled', '2025-07-09', NULL, '2025-07-16', 'weekly', '499.00', '0.00', '[\"monday\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-08 07:30:41', '2025-07-25 04:27:22'),
+('6fde2876-d423-4090-a160-975427211953', '56ec0a53-cf99-4e73-89d7-a3300ddafa4f', NULL, 'essentials-plan-2025', 'active', '2025-07-23', NULL, '2025-07-30', 'weekly', '499.00', '0.00', '[\"wed_0\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-21 09:14:59', '2025-07-25 04:27:22'),
+('755c9d5c-9642-45a7-b698-786077e6b8b8', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'cancelled', '2025-08-02', NULL, '2025-08-09', 'weekly', '59.99', '0.00', '[\"2025-08-02\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-30 08:47:04', '2025-08-07 02:18:17'),
+('766168a3-f202-449e-a16a-44e8cdd19010', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'smart-choice-plan-2025', 'active', '2025-07-15', NULL, '2025-07-22', 'weekly', '399.00', '0.00', '[\"sat_0\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-14 15:08:35', '2025-07-25 04:27:22'),
+('7927a4a2-30c9-44ae-a2ea-3294cc64d60a', '550e8400-e29b-41d4-a716-446655440003', NULL, 'essentials-plan-2025', 'paused', '2025-08-10', NULL, '2025-08-17', 'weekly', '499.00', '0.00', '[\"sun_3\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-15 03:41:16', '2025-07-25 04:27:22'),
+('79c5d78e-11d4-44b1-9270-dc9fde5cfe25', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'smart-choice-plan-2025', 'active', '2025-07-30', NULL, '2025-08-06', 'weekly', '87.99', '0.00', '[\"wed_0\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-27 13:31:49', '2025-07-27 13:31:49'),
+('7a76610b-74ae-4312-8489-c37d065083f2', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'smart-choice-plan-2025', 'active', '2025-07-19', NULL, '2025-07-26', 'weekly', '599.00', '0.00', '[\"sat_0\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-14 07:06:52', '2025-07-25 04:27:22'),
+('7faac785-fb6b-4d97-86a2-2f44a5c10261', '977b32bf-db86-47dc-9a61-12ab9dc241b9', NULL, 'essentials-plan-2025', 'cancelled', '2025-07-23', NULL, '2025-07-30', 'weekly', '499.00', '0.00', '[\"wed_0\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-21 08:57:54', '2025-08-03 14:17:00'),
+('80e45f1e-1ab4-4f37-980d-488627fc713b', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'active', '2025-08-02', NULL, '2025-08-09', 'weekly', '259.99', '0.00', '[\"sat_20250802\"]', '09:00-12:00', 'tttttt', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-26 13:46:08', '2025-07-26 13:46:08'),
+('80e669b2-3085-46ea-ad6b-642f22fa0b35', '7587f6a4-cd3e-42e6-84df-2fc30df52b3f', NULL, 'essentials-plan-2025', 'active', '2025-07-26', NULL, '2025-08-02', 'weekly', '499.00', '0.00', '[\"sat_0\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-21 08:30:08', '2025-07-25 04:27:22'),
+('85291cae-d5eb-42f6-9b56-a4f37b5cdd62', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'active', '2025-07-30', NULL, '2025-08-06', 'weekly', '59.99', '0.00', '[\"wed_0\"]', '15:00-18:00', 'tttttt', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-26 04:42:47', '2025-07-26 04:42:47'),
+('8c5f6119-2cf7-4130-9010-eb66e417d1f0', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'active', '2025-08-02', NULL, '2025-08-09', 'weekly', '59.99', '0.00', '[\"2025-08-02\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-29 04:14:10', '2025-07-29 04:14:10'),
+('8daae380-9b24-43d5-86e8-13aa455b09d4', '550e8400-e29b-41d4-a716-446655440004', NULL, 'essentials-plan-2025', 'active', '2025-07-19', NULL, '2025-07-26', 'weekly', '499.00', '0.00', '[\"sat_0\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-14 02:34:01', '2025-07-25 04:27:22'),
+('90a1b331-9e41-4e9f-b757-cf9b91586387', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'smart-choice-plan-2025', 'active', '2025-07-08', NULL, '2025-07-15', 'weekly', '899.00', '0.00', '[\"monday\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-07 09:47:26', '2025-07-25 04:27:22'),
+('92e80649-9c4a-4649-aac1-f559b4861834', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'smart-choice-plan-2025', 'active', '2025-07-15', NULL, '2025-07-22', 'weekly', '399.00', '0.00', '[\"sat_0\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-14 04:39:00', '2025-07-25 04:27:22'),
+('94e1d12d-a30f-4c99-b13d-dc801f7d26de', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'active', '2025-07-15', NULL, '2025-07-22', 'weekly', '499.00', '0.00', '[\"sat_0\",\"sun_0\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-14 01:41:51', '2025-07-25 04:27:22'),
+('97b9e7bd-e350-4d19-8ea5-022bcfdf74d0', '550e8400-e29b-41d4-a716-446655440003', NULL, 'smart-choice-plan-2025', 'active', '2025-07-19', NULL, '2025-07-26', 'weekly', '399.00', '0.00', '[\"sat_0\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-15 02:09:32', '2025-07-25 04:27:22'),
+('9a5ba398-ddd5-4c07-8016-145eb42618e8', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'active', '2025-07-11', NULL, '2025-07-18', 'weekly', '499.00', '0.00', '[\"sat_1\",\"sun_1\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-10 09:50:32', '2025-07-25 04:27:22'),
+('9aea8db1-bb47-4143-9b5d-b91d0e377a6c', '550e8400-e29b-41d4-a716-446655440004', NULL, 'smart-choice-plan-2025', 'paused', '2025-07-27', NULL, '2025-08-03', 'weekly', '399.00', '0.00', '[\"sun_1\"]', '09:00-12:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-15 04:32:30', '2025-07-25 04:27:22'),
+('9e0d5ae0-baa5-475c-b860-566c4b5f7548', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'active', '2025-07-26', NULL, '2025-08-02', 'weekly', '59.99', '0.00', '[\"sat_0\"]', '15:00-18:00', 'tttttt', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-26 05:02:43', '2025-07-26 05:02:43'),
+('a586353a-4092-48ea-a663-e75479330d20', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'smart-choice-plan-2025', 'active', '2025-07-15', NULL, '2025-07-22', 'weekly', '599.00', '0.00', '[\"sat_0\",\"sun_0\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-14 01:44:32', '2025-07-25 04:27:22'),
+('a5e23f87-bb26-4bf8-8dac-1b1e482c88c7', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'active', '2025-07-26', NULL, '2025-08-02', 'weekly', '59.99', '0.00', '[\"sat_0\"]', '18:00-21:00', 'tttttt', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-26 09:25:50', '2025-07-26 09:25:50'),
+('a60ae27d-1ea2-4e86-a000-556f6fba9433', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'active', '2025-08-13', NULL, '2025-08-20', 'weekly', '1430.00', '0.00', '[\"wed_2\"]', '09:00-12:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-27 09:50:29', '2025-07-27 09:50:29'),
+('a9955447-3212-4995-8abd-9be1c313f537', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'active', '2025-07-19', NULL, '2025-07-26', 'weekly', '499.00', '0.00', '[\"sat_0\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-15 16:18:52', '2025-07-25 04:27:22'),
+('aa0d4793-daaf-4af7-a63a-b19993ea67f8', 'aa526847-33b7-4113-b8db-9cf03c97a656', NULL, 'smart-choice-plan-2025', 'cancelled', '2025-07-09', NULL, '2025-07-16', 'weekly', '800.00', '0.00', '[\"monday\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-08 07:31:11', '2025-07-25 04:27:22'),
+('afcd9a79-71e7-4808-8206-b47acc722a0f', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'smart-choice-plan-2025', 'active', '2025-07-30', NULL, '2025-08-06', 'weekly', '87.99', '0.00', '[\"wed_0\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-28 02:11:40', '2025-07-28 02:11:40'),
+('b389ea4d-adf2-41a0-b593-ba6e8bea9c8e', '5af6d9cd-5e46-41de-b6d7-632cb21330a5', NULL, 'smart-choice-plan-2025', 'active', '2025-07-19', NULL, '2025-07-26', 'weekly', '599.00', '0.00', '[\"sat_0\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-18 08:11:31', '2025-07-25 04:27:22'),
+('b84ce1b4-96a3-4318-a807-fdee7345fbff', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'active', '2025-07-30', NULL, '2025-08-06', 'weekly', '59.99', '0.00', '[\"2025-07-30\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-29 12:34:19', '2025-07-29 12:34:19'),
+('bc11f476-4fe9-44b1-a4bb-8d5f51ca1d20', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'active', '2025-07-13', NULL, '2025-07-20', 'weekly', '499.00', '0.00', '[\"sun_0\",\"sat_1\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-12 09:23:49', '2025-07-25 04:27:22'),
+('be8c3b24-114f-49e7-a816-e60e43899cde', '550e8400-e29b-41d4-a716-446655440003', NULL, 'essentials-plan-2025', 'active', '2025-07-20', NULL, '2025-07-27', 'weekly', '499.00', '0.00', '[\"sun_0\",\"sat_2\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-14 10:36:51', '2025-07-25 04:27:22'),
+('bf0b8b17-60dd-43b6-bc02-574a3b4da914', '550e8400-e29b-41d4-a716-446655440003', NULL, 'essentials-plan-2025', 'paused', '2025-07-19', NULL, '2025-07-26', 'weekly', '499.00', '0.00', '[\"sat_0\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-15 03:05:22', '2025-07-25 04:27:22'),
+('bf8b8ba5-c77c-4983-9705-0b63f9414f99', '550e8400-e29b-41d4-a716-446655440004', NULL, 'essentials-plan-2025', 'active', '2025-07-19', NULL, '2025-07-26', 'weekly', '499.00', '0.00', '[\"sat_0\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-18 07:26:03', '2025-07-25 04:27:22'),
+('c0d0c70d-0bf8-4e03-a410-cf58476cd225', '79b6e774-aede-4aed-b82b-c17536a80bb9', NULL, 'essentials-plan-2025', 'active', '2025-08-13', NULL, '2025-08-20', 'weekly', '59.99', '0.00', '[\"2025-08-13\"]', '15:00-18:00', '2222222', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-08-03 07:12:24', '2025-08-03 07:12:24'),
+('c0e22f45-8a3d-451e-971d-9b4ad27b5bd9', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'active', '2025-08-09', NULL, '2025-08-16', 'weekly', '59.99', '0.00', '[\"2025-08-09\"]', '15:00-18:00', 'deee3333rrrd', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-08-07 02:19:11', '2025-08-07 02:19:11'),
+('c539a7cc-b04f-4a5c-ba64-944f52feded2', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'active', '2025-07-11', NULL, '2025-07-18', 'weekly', '499.00', '0.00', '[\"sat_0\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-10 09:49:18', '2025-07-25 04:27:22'),
+('c87d8cde-3f78-4e62-8762-d5aea0e56b4b', '3ecffe25-a2ee-4779-87e3-94d1908f668e', 'aedb1144-5ba5-11f0-96aa-e4b3d1018dc3', 'essentials-plan-2025', 'active', '2025-08-06', NULL, '2025-08-13', 'weekly', '59.99', '0.00', '[\"2025-08-06\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-08-05 16:07:25', '2025-08-05 16:51:27'),
+('d0fd5c76-2364-44b2-9ed4-fd2233f57e33', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'smart-choice-plan-2025', 'active', '2025-07-26', NULL, '2025-08-02', 'weekly', '87.99', '0.00', '[\"sat_0\"]', '15:00-18:00', 'tttttt', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-26 08:20:45', '2025-07-26 08:20:45'),
+('d25b172c-1e0f-4b79-a7e9-f5d35c054a8f', '29e6fe85-124c-480f-bcf2-0d174721936f', '550e8400-e29b-41d4-a716-446655440004', 'essentials-plan-2025', 'active', '2025-08-06', NULL, '2025-08-13', 'weekly', '59.99', '0.00', '[\"2025-08-06\"]', '15:00-18:00', 'deee3333rrrd', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-08-05 08:32:43', '2025-08-05 16:46:11'),
+('d5492ba5-f6e3-4e5b-b520-4ad36e6d0ed3', '3ecffe25-a2ee-4779-87e3-94d1908f668e', NULL, 'essentials-plan-2025', 'active', '2025-07-23', NULL, '2025-07-30', 'weekly', '499.00', '0.00', '[\"wed_0\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-21 08:48:58', '2025-07-25 04:27:22'),
+('d5f927b4-1a43-4fa9-a859-f0fe06b6d5ca', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'active', '2025-07-26', NULL, '2025-08-02', 'weekly', '499.00', '0.00', '[\"sat_1\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-15 15:52:48', '2025-07-25 04:27:22'),
+('d6831992-8062-4cbe-b90a-b5c7f2fd3ffb', '550e8400-e29b-41d4-a716-446655440003', NULL, 'essentials-plan-2025', 'active', '2025-08-02', NULL, '2025-08-09', 'weekly', '499.00', '0.00', '[\"sat_2\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-14 02:16:01', '2025-07-25 04:27:22'),
+('d91072d4-076a-4973-b819-9d04d6a83da7', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'active', '2025-07-30', NULL, '2025-08-06', 'weekly', '59.99', '0.00', '[\"2025-07-30\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-29 07:13:45', '2025-07-29 07:13:45'),
+('daab6f86-1f1a-4a21-a03b-e4b5f12dca5d', '550e8400-e29b-41d4-a716-446655440003', NULL, 'essentials-plan-2025', 'cancelled', '2025-08-02', NULL, '2025-08-09', 'weekly', '59.99', '0.00', '[\"sat_0\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-28 08:56:03', '2025-08-06 07:40:31'),
+('db29bea4-1c9a-4124-8242-e1f5500a606a', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'active', '2025-07-11', NULL, '2025-07-18', 'weekly', '499.00', '0.00', '[\"sat_0\",\"sun_0\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-10 08:27:50', '2025-07-25 04:27:22'),
+('df7aa1f1-8c96-4dc4-ba9e-faeb78fbf892', '5af6d9cd-5e46-41de-b6d7-632cb21330a5', NULL, 'essentials-plan-2025', 'active', '2025-07-19', NULL, '2025-07-26', 'weekly', '499.00', '0.00', '[\"sat_0\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-18 08:12:28', '2025-07-25 04:27:22'),
+('e0f8eeba-f3d0-48bc-bb21-7bb716f6f145', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'active', '2025-07-19', NULL, '2025-07-26', 'weekly', '499.00', '0.00', '[\"sat_0\",\"sun_1\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-14 06:59:33', '2025-07-25 04:27:22'),
+('e14f072d-d727-42e1-b13a-54a4de2d8c07', '79b6e774-aede-4aed-b82b-c17536a80bb9', '550e8400-e29b-41d4-a716-446655440004', 'essentials-plan-2025', 'cancelled', '2025-08-06', NULL, '2025-08-13', 'weekly', '59.99', '0.00', '[\"2025-08-06\"]', '15:00-18:00', '2222222', NULL, NULL, NULL, 1, 'dddd', '2025-08-03 13:51:14', '550e8400-e29b-41d4-a716-446655440002', '2025-08-03 07:45:08', '2025-08-03 13:51:14'),
+('e2f94945-f45f-4f01-aff1-4fb48c593266', 'aa526847-33b7-4113-b8db-9cf03c97a656', NULL, 'smart-choice-plan-2025', 'active', '2025-07-09', NULL, '2025-07-16', 'weekly', '800.00', '0.00', '[\"monday\",\"tuesday\",\"wednesday\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-08 09:38:27', '2025-07-25 04:27:22'),
+('e3567d9c-a8ef-4662-8ddf-68da5f569ee7', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'active', '2025-07-26', NULL, '2025-08-02', 'weekly', '59.99', '0.00', '[\"sat_0\"]', '15:00-18:00', 'tttttt', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-26 06:37:48', '2025-07-26 06:37:48'),
+('e3591792-336a-4ca7-8377-b5cdad5628c8', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'active', '2025-07-11', NULL, '2025-07-18', 'weekly', '499.00', '0.00', '[\"monday\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-10 07:57:06', '2025-07-25 04:27:22'),
+('e55cb19d-5910-4d8b-8593-209ff7ca1cbe', 'dc10bf31-b2a6-437a-a4da-a2f88bcdec9a', NULL, 'essentials-plan-2025', 'active', '2025-07-26', NULL, '2025-08-02', 'weekly', '59.99', '0.00', '[\"sat_0\"]', '15:00-18:00', '1111', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-26 04:56:40', '2025-07-26 04:56:40'),
+('e684d621-c7e6-4eed-a8a5-38abc0d72366', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'smart-choice-plan-2025', 'active', '2025-08-03', NULL, '2025-08-10', 'weekly', '399.00', '0.00', '[\"sun_2\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-16 07:04:33', '2025-07-25 04:27:22'),
+('e8580062-4b9a-4b95-8293-dcb76f621210', '47c2e78d-515a-4b8e-bb56-d6fd9c6a9cd8', NULL, 'smart-choice-plan-2025', 'active', '2025-07-23', NULL, '2025-07-30', 'weekly', '399.00', '0.00', '[\"wed_0\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-21 09:12:18', '2025-07-25 04:27:22'),
+('ecaa5b9d-44dc-4564-b077-248692b8e812', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'smart-choice-plan-2025', 'active', '2025-07-19', NULL, '2025-07-26', 'weekly', '599.00', '0.00', '[\"sat_0\",\"sun_0\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-14 01:47:10', '2025-07-25 04:27:22'),
+('ed9c0493-82b6-497f-af16-796a2d1b8c95', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'active', '2025-07-20', NULL, '2025-07-27', 'weekly', '499.00', '0.00', '[\"sun_0\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-14 04:56:03', '2025-07-25 04:27:22'),
+('eda16d0d-beed-4842-a0c9-da52ceeeb7c5', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'cancelled', '2025-08-06', NULL, '2025-08-13', 'weekly', '59.99', '0.00', '[\"2025-08-06\"]', '12:00-15:00', 'deee3333rrrd', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-08-05 07:10:46', '2025-08-05 08:22:44'),
+('edaecbd2-da7e-438d-bd32-cf0dadd1508b', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'active', '2025-07-30', NULL, '2025-08-06', 'weekly', '59.99', '0.00', '[\"2025-07-30\"]', '12:00-15:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-29 12:53:35', '2025-07-29 12:53:35'),
+('efac4af3-3a57-45b8-b41f-30bec6f79334', '550e8400-e29b-41d4-a716-446655440003', NULL, 'essentials-plan-2025', 'active', '2025-07-19', NULL, '2025-07-26', 'weekly', '499.00', '0.00', '[\"sat_0\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-15 03:00:50', '2025-07-25 04:27:22'),
+('f0e9bfd8-538d-4c64-b910-939ec367cbcf', '47c2e78d-515a-4b8e-bb56-d6fd9c6a9cd8', '5af6d9cd-5e46-41de-b6d7-632cb21330a5', 'essentials-plan-2025', 'active', '2025-08-06', NULL, '2025-08-13', 'weekly', '59.99', '0.00', '[\"2025-08-06\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-08-05 16:09:28', '2025-08-05 16:46:36'),
+('f1cd09f7-8b60-4e2f-b26d-a478e1ec1e3a', '56ec0a53-cf99-4e73-89d7-a3300ddafa4f', NULL, 'essentials-plan-2025', 'active', '2025-08-09', NULL, '2025-08-16', 'weekly', '59.99', '0.00', '[\"2025-08-09\"]', '12:00-15:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-08-06 08:31:50', '2025-08-06 08:31:50'),
+('f36c1c70-b651-495a-9fc5-5252bade2fd6', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'active', '2025-07-26', NULL, '2025-08-02', 'weekly', '59.99', '0.00', '[\"sat_0\"]', '15:00-18:00', 'tttttt', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-26 05:08:39', '2025-07-26 05:08:39'),
+('f4a3040e-2316-483a-8914-e0faceaaf58b', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'active', '2025-07-14', NULL, '2025-07-21', 'weekly', '499.00', '0.00', '[\"sat_1\",\"sun_1\",\"sat_2\",\"sun_2\",\"sat_3\",\"sun_3\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-13 12:55:55', '2025-07-25 04:27:22'),
+('f8234164-aa26-469f-82d1-8d91f50a4407', '550e8400-e29b-41d4-a716-446655440003', NULL, 'essentials-plan-2025', 'active', '2025-07-19', NULL, '2025-07-26', 'weekly', '499.00', '0.00', '[\"sat_0\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-15 03:35:16', '2025-07-25 04:27:22'),
+('fbba995f-8221-4a6f-afe7-cc29afd8d26c', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'smart-choice-plan-2025', 'active', '2025-07-14', NULL, '2025-07-21', 'weekly', '599.00', '0.00', '[\"sat_1\",\"sun_1\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-13 13:11:02', '2025-07-25 04:27:22'),
+('fc4a97dc-71e1-4a4a-b7ab-3f8b8b40c6ed', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'smart-choice-plan-2025', 'active', '2025-07-27', NULL, '2025-08-03', 'weekly', '399.00', '0.00', '[\"sun_1\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-14 11:02:37', '2025-07-25 04:27:22'),
+('fe2fed4b-bd42-4e54-b391-bd0256ae403f', 'bd1259a5-57b1-4fc7-babb-61baad5a6e03', NULL, 'essentials-plan-2025', 'active', '2025-07-23', NULL, '2025-07-30', 'weekly', '499.00', '0.00', '[\"wed_0\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-21 07:30:58', '2025-07-25 04:27:22'),
+('febed4c8-d71c-4b57-bc75-4a8276a00e2c', '29e6fe85-124c-480f-bcf2-0d174721936f', NULL, 'essentials-plan-2025', 'active', '2025-08-10', NULL, '2025-08-17', 'weekly', '499.00', '0.00', '[\"sun_3\"]', '15:00-18:00', '', NULL, NULL, NULL, 1, NULL, NULL, NULL, '2025-07-17 03:13:44', '2025-07-25 04:27:22');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `subscription_menus`
+--
+
+CREATE TABLE `subscription_menus` (
+  `id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `subscription_id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `menu_id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `delivery_date` date NOT NULL,
+  `quantity` int(11) DEFAULT '1',
+  `customizations` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin,
+  `special_requests` text COLLATE utf8mb4_unicode_ci,
+  `status` enum('scheduled','modified','skipped','delivered') COLLATE utf8mb4_unicode_ci DEFAULT 'scheduled',
+  `modified_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `subscription_menus`
+--
+
+INSERT INTO `subscription_menus` (`id`, `subscription_id`, `menu_id`, `delivery_date`, `quantity`, `customizations`, `special_requests`, `status`, `modified_at`, `created_at`, `updated_at`) VALUES
+('001589ec-d8ae-400c-a0c5-f6b74862de67', '22f5c830-264b-4b69-9f5c-6098011a7e40', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 04:27:08', '2025-07-26 04:27:08'),
+('00ca2a34-7017-4594-b3e2-6a7f03ca1427', 'df7aa1f1-8c96-4dc4-ba9e-faeb78fbf892', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-18 08:12:28', '2025-07-18 08:12:28'),
+('013324d9-e8d5-4c01-af2d-0be6c476c1a0', '634e7e93-9dbf-4e20-98d2-69922f7d4357', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-19 08:23:44', '2025-07-19 08:23:44'),
+('021b94f1-2f11-4595-bf30-afac08666775', '4f718c97-3c23-4cc2-9f99-cd485c9bab13', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 02:22:06', '2025-07-15 02:22:06'),
+('02834ce0-a1ec-41dc-a07d-a2fcfe1848de', 'c539a7cc-b04f-4a5c-ba64-944f52feded2', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-11', 1, NULL, NULL, 'scheduled', NULL, '2025-07-10 09:49:18', '2025-07-10 09:49:18'),
+('02add833-83cf-4b6a-86b5-6aaccf203b81', '4623a948-ae81-4cdb-979f-25102e9a8ec3', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-30', 1, NULL, NULL, 'scheduled', NULL, '2025-07-27 13:32:18', '2025-07-27 13:32:18'),
+('02b5d9ab-73cc-44b9-bd54-bbe0b56d146d', '5adf19e4-f653-4c00-9b11-830afd96d3d9', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-30', 1, 'null', NULL, 'scheduled', NULL, '2025-07-27 09:50:06', '2025-07-27 09:50:06'),
+('02d10ad2-4341-468e-b91b-996a95eb0585', '65e0f10b-9c97-4034-a4f9-4b35d1782fab', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-08-13', 1, NULL, NULL, 'scheduled', NULL, '2025-07-27 07:57:30', '2025-07-27 07:57:30'),
+('02e14dbd-5a2b-4625-9e0b-1f512d346e38', '330aded2-fb8c-4acc-8fb6-e83403ce573d', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-08-13', 1, NULL, NULL, 'scheduled', NULL, '2025-08-08 03:29:29', '2025-08-08 03:29:29'),
+('02e69413-2730-414b-bd1f-6b1fa0cb55fc', 'ecaa5b9d-44dc-4564-b077-248692b8e812', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 01:47:10', '2025-07-14 01:47:10'),
+('035f1ecc-83f0-4f72-9256-781bdf502a66', '6fde2876-d423-4090-a160-975427211953', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 09:14:59', '2025-07-21 09:14:59'),
+('03a2297c-b1d6-4818-b364-7601ad82b68f', '4c54b901-68c6-4f6e-b1de-821a540166fe', 'eda83eb5-d471-45a7-ad9e-339b89e68789', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 09:17:45', '2025-07-26 09:17:45'),
+('03c268ae-8554-4571-b350-b8e228a5349e', '127ea3b3-2807-4583-a3f0-c999188bb2e0', '6cae13fc-b181-43bf-babb-99cb2ce39d3c', '2025-08-06', 1, NULL, NULL, 'scheduled', NULL, '2025-08-04 07:39:56', '2025-08-04 07:39:56'),
+('046c1046-4300-4a9d-8a6d-39611d7f6736', '8c5f6119-2cf7-4130-9010-eb66e417d1f0', '6cae13fc-b181-43bf-babb-99cb2ce39d3c', '2025-08-02', 1, NULL, NULL, 'scheduled', NULL, '2025-07-29 04:14:10', '2025-07-29 04:14:10'),
+('05137c5e-05b9-470b-bfa6-168d94056369', 'be8c3b24-114f-49e7-a816-e60e43899cde', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-08-02', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 10:36:51', '2025-07-14 10:36:51'),
+('052b9edc-bb26-4c7f-948e-49379e8a3257', 'a9955447-3212-4995-8abd-9be1c313f537', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 16:18:52', '2025-07-15 16:18:52'),
+('05634c17-453a-491e-83b3-f01669e6196f', 'b84ce1b4-96a3-4318-a807-fdee7345fbff', 'eda83eb5-d471-45a7-ad9e-339b89e68789', '2025-07-30', 1, NULL, NULL, 'scheduled', NULL, '2025-07-29 12:34:19', '2025-07-29 12:34:19'),
+('07164f44-f78f-463d-98b3-a710413e25f5', 'a586353a-4092-48ea-a663-e75479330d20', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-20', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 01:44:32', '2025-07-14 01:44:32'),
+('074c7da7-03f3-49c2-a284-62ba349306a3', '349433d9-60c0-4ee7-982a-9deea50c4225', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 03:51:18', '2025-07-21 03:51:18'),
+('07970416-3977-4655-808e-6dd64bd3c70b', '80e45f1e-1ab4-4f37-980d-488627fc713b', 'eda83eb5-d471-45a7-ad9e-339b89e68789', '2025-08-02', 1, '[]', NULL, 'scheduled', NULL, '2025-07-26 13:46:08', '2025-07-26 13:46:08'),
+('07a05ec1-018f-4d5b-a680-50119d12fbcb', '349433d9-60c0-4ee7-982a-9deea50c4225', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 03:51:18', '2025-07-21 03:51:18'),
+('07d6bb54-f6af-4880-8423-76688c58510a', '5249821f-18f8-4fd4-85d7-91f2546d7089', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-11', 1, NULL, NULL, 'scheduled', NULL, '2025-07-10 08:16:16', '2025-07-10 08:16:16'),
+('081f62e0-f5d7-42e0-90e6-fa82054fec18', 'f0e9bfd8-538d-4c64-b910-939ec367cbcf', '416cc737-c6a1-4b0d-a0d0-a40f384f496e', '2025-08-06', 1, NULL, NULL, 'scheduled', NULL, '2025-08-05 16:09:28', '2025-08-05 16:09:28'),
+('0874c5cf-9777-4b92-a8fe-35a5cf28736c', '36ecb782-ce8c-428a-b8a9-afd7e02bcfe8', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-20', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 01:42:25', '2025-07-14 01:42:25'),
+('09301cc5-732e-4669-bd1b-2aaca22c134c', '002a5635-19c2-496c-97f6-7d9b867d9ceb', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-14', 1, NULL, NULL, 'scheduled', NULL, '2025-07-13 12:39:59', '2025-07-13 12:39:59'),
+('0947d0c9-70f7-4f3a-9ae3-0e63bc5e2074', '0463a886-ab5b-4447-ad7e-f42ee0c70433', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-20', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 11:33:33', '2025-07-15 11:33:33'),
+('096816d4-8771-48f4-9e88-72981f77a3f4', '1b8fa3b4-6c61-475d-bd90-47b11657b92e', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-14', 1, NULL, NULL, 'scheduled', NULL, '2025-07-13 12:36:11', '2025-07-13 12:36:11'),
+('0a2a5508-a6f2-4fa6-b5a1-976d7b079c55', 'a586353a-4092-48ea-a663-e75479330d20', '19f1b8d3-7d75-4cc6-b804-58cf8d136d9d', '2025-07-20', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 01:44:32', '2025-07-14 01:44:32'),
+('0b644e6c-ffd5-46df-9e05-be66e1915dc1', 'b389ea4d-adf2-41a0-b593-ba6e8bea9c8e', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-18 08:11:31', '2025-07-18 08:11:31'),
+('0c73f338-7498-47eb-874e-f452aebfcccc', '3eead7a4-a66c-41a6-b9d4-58ba218bfbec', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-08-06', 1, NULL, NULL, 'scheduled', NULL, '2025-08-05 16:10:31', '2025-08-05 16:10:31'),
+('0c9b2dbc-333f-4e49-85b1-bff2e1ddfc3b', '65e0f10b-9c97-4034-a4f9-4b35d1782fab', 'eda83eb5-d471-45a7-ad9e-339b89e68789', '2025-08-13', 1, NULL, NULL, 'scheduled', NULL, '2025-07-27 07:57:30', '2025-07-27 07:57:30'),
+('0d9c0b0b-e86a-4d38-b897-612f83c5bfb8', 'f8234164-aa26-469f-82d1-8d91f50a4407', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 03:35:16', '2025-07-15 03:35:16'),
+('0dd9f754-bfed-4cd1-905e-2881c0311425', '7faac785-fb6b-4d97-86a2-2f44a5c10261', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 08:57:54', '2025-07-21 08:57:54'),
+('0df2b142-24a9-43a3-9776-aa60c695b4bf', '354ad47b-fa66-4e43-9bf8-75c2f962c64b', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-25 08:50:16', '2025-07-25 08:50:16'),
+('0e734e9a-dea9-432a-be97-b4d177cbd636', 'd5f927b4-1a43-4fa9-a859-f0fe06b6d5ca', '6cae13fc-b181-43bf-babb-99cb2ce39d3c', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 15:52:48', '2025-07-15 15:52:48'),
+('0eb6ac93-2b26-4fee-bcd3-d7a03e10f152', '354ad47b-fa66-4e43-9bf8-75c2f962c64b', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-25 08:50:16', '2025-07-25 08:50:16'),
+('0f4d83d3-7a9a-4e95-9e78-d93b886c0481', 'be8c3b24-114f-49e7-a816-e60e43899cde', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-20', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 10:36:51', '2025-07-14 10:36:51'),
+('0fbc4644-6c52-4688-9dea-40f8dca3e159', '5e4785f7-1825-400f-b096-daac3ac8a5a4', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 03:04:42', '2025-07-15 03:04:42'),
+('0fcf84d0-3022-4328-a68a-2df9afceec5b', '0637e1ce-9417-46a1-be75-cfb96c85e0c0', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', '2025-07-30', 1, NULL, NULL, 'scheduled', NULL, '2025-07-28 14:11:45', '2025-07-28 14:11:45'),
+('10643ec4-e757-4b99-84cb-4a13ea42212c', '9aea8db1-bb47-4143-9b5d-b91d0e377a6c', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-27', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 04:32:30', '2025-07-15 04:32:30'),
+('1073d70d-29f6-4f4c-956d-5bf000b77efa', 'edaecbd2-da7e-438d-bd32-cf0dadd1508b', '6cae13fc-b181-43bf-babb-99cb2ce39d3c', '2025-07-30', 1, NULL, NULL, 'scheduled', NULL, '2025-07-29 12:53:35', '2025-07-29 12:53:35'),
+('10f925c3-3e08-42bb-978b-3dd515748fe2', 'c539a7cc-b04f-4a5c-ba64-944f52feded2', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-11', 1, NULL, NULL, 'scheduled', NULL, '2025-07-10 09:49:18', '2025-07-10 09:49:18'),
+('12a227c6-d22b-4355-a660-21df8b000006', '6fde2876-d423-4090-a160-975427211953', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 09:14:59', '2025-07-21 09:14:59'),
+('13030d88-407c-439f-9133-8f9a41bc3e08', '9a5ba398-ddd5-4c07-8016-145eb42618e8', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-11', 1, NULL, NULL, 'scheduled', NULL, '2025-07-10 09:50:32', '2025-07-10 09:50:32'),
+('13049f49-ace6-4f00-a70a-41930ced628c', 'ecaa5b9d-44dc-4564-b077-248692b8e812', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-20', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 01:47:10', '2025-07-14 01:47:10'),
+('137f9eba-5b3e-4a56-9381-98b44495aa66', '79c5d78e-11d4-44b1-9270-dc9fde5cfe25', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-30', 1, NULL, NULL, 'scheduled', NULL, '2025-07-27 13:31:49', '2025-07-27 13:31:49'),
+('1388ebd1-66c7-49e1-a520-b377fe6b8dc1', 'd0fd5c76-2364-44b2-9ed4-fd2233f57e33', 'eda83eb5-d471-45a7-ad9e-339b89e68789', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 08:20:45', '2025-07-26 08:20:45'),
+('151a5157-fb78-4817-a9ff-f7fcf174a048', '002a5635-19c2-496c-97f6-7d9b867d9ceb', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-14', 1, NULL, NULL, 'scheduled', NULL, '2025-07-13 12:39:59', '2025-07-13 12:39:59'),
+('15783ad8-9216-4964-8d78-1879dcc438a2', '476a2565-e455-41a2-bdc8-c0e7e4534761', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 03:49:52', '2025-07-15 03:49:52'),
+('15c0e84a-90a2-4ee8-a41b-5af46b48b14d', 'e3567d9c-a8ef-4662-8ddf-68da5f569ee7', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 06:37:48', '2025-07-26 06:37:48'),
+('15e9189f-1ac8-48d3-b2a6-d5483d2a59f4', 'afcd9a79-71e7-4808-8206-b47acc722a0f', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', '2025-07-30', 1, NULL, NULL, 'scheduled', NULL, '2025-07-28 02:11:40', '2025-07-28 02:11:40'),
+('16047da7-c864-4540-a2cc-488f31f083fb', '6eae9f70-8676-4865-9891-3a411758272f', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 06:40:03', '2025-07-21 06:40:03'),
+('16455eb0-9ce3-4c6f-8d89-f30965d2cbe5', '197905d6-628d-4f43-bbf5-801e011b0e8e', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-22 12:27:06', '2025-07-22 12:27:06'),
+('164d31de-6e9b-4e9a-95c1-70bd32aa8d76', 'e3591792-336a-4ca7-8377-b5cdad5628c8', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-11', 1, NULL, NULL, 'scheduled', NULL, '2025-07-10 07:57:06', '2025-07-10 07:57:06'),
+('16513e17-1081-4d82-abe5-72c59e04a572', 'f8234164-aa26-469f-82d1-8d91f50a4407', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 03:35:16', '2025-07-15 03:35:16'),
+('17277362-7220-4d35-a95d-9f7380f16e1d', '0948600f-bdb7-42f4-8dc6-0093ae804b5b', '19f1b8d3-7d75-4cc6-b804-58cf8d136d9d', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 08:28:09', '2025-07-21 08:28:09'),
+('172abd30-186f-4819-8b69-a35ea6068e9c', 'fe2fed4b-bd42-4e54-b391-bd0256ae403f', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 07:30:58', '2025-07-21 07:30:58'),
+('177a4db1-d0f7-4592-a1a3-56677def0b84', '460ab3f2-889e-4a16-80a6-4e951cb7d3c6', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-27', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 07:01:34', '2025-07-14 07:01:34'),
+('17937782-af47-42e3-9240-fbef43588e05', '354ad47b-fa66-4e43-9bf8-75c2f962c64b', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-25 08:50:16', '2025-07-25 08:50:16'),
+('17f4b8b7-e9aa-4905-ba02-c5627ea1dfec', 'bf0b8b17-60dd-43b6-bc02-574a3b4da914', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 03:05:22', '2025-07-15 03:05:22'),
+('18609bc1-8f3e-4c28-9adf-c4d97dd04b47', '7faac785-fb6b-4d97-86a2-2f44a5c10261', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 08:57:54', '2025-07-21 08:57:54'),
+('19203bd0-e52a-41a7-9b7f-fe437b986cc0', '1fa52d11-2f99-451e-8151-0914626b0d58', '6cae13fc-b181-43bf-babb-99cb2ce39d3c', '2025-07-20', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 02:13:22', '2025-07-14 02:13:22'),
+('19714f9c-efa2-4ec2-8417-dc7aea24f9cb', 'ecaa5b9d-44dc-4564-b077-248692b8e812', '6cae13fc-b181-43bf-babb-99cb2ce39d3c', '2025-07-20', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 01:47:10', '2025-07-14 01:47:10'),
+('198dc342-eb6c-4372-bfe1-f00a0835e39c', 'ecaa5b9d-44dc-4564-b077-248692b8e812', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 01:47:10', '2025-07-14 01:47:10'),
+('1a0526a3-27b8-493c-83c1-0bdf7c5a5265', '0637e1ce-9417-46a1-be75-cfb96c85e0c0', '19f1b8d3-7d75-4cc6-b804-58cf8d136d9d', '2025-07-30', 1, NULL, NULL, 'scheduled', NULL, '2025-07-28 14:11:45', '2025-07-28 14:11:45'),
+('1a1a3a2d-7381-466b-8e93-2c29c2b10b04', 'e3591792-336a-4ca7-8377-b5cdad5628c8', '19f1b8d3-7d75-4cc6-b804-58cf8d136d9d', '2025-07-11', 1, NULL, NULL, 'scheduled', NULL, '2025-07-10 07:57:06', '2025-07-10 07:57:06'),
+('1a886c89-bd2f-4fbb-b984-012f7bb06dbb', '406ec6aa-88d3-4c09-9ca2-14a191ce7443', '6cae13fc-b181-43bf-babb-99cb2ce39d3c', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 09:24:25', '2025-07-26 09:24:25'),
+('1ac87a0e-4989-4df2-ab96-270325dbd4ce', '406ec6aa-88d3-4c09-9ca2-14a191ce7443', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 09:24:25', '2025-07-26 09:24:25'),
+('1addba6a-5066-4a60-9d52-0a7b04c6fd19', '354ad47b-fa66-4e43-9bf8-75c2f962c64b', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-25 08:50:16', '2025-07-25 08:50:16'),
+('1ae311f9-a1cd-48aa-82eb-6166022ee00f', '507020f8-63bc-4379-9a1f-8eb56df8390f', 'eda83eb5-d471-45a7-ad9e-339b89e68789', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 04:32:42', '2025-07-21 04:32:42'),
+('1ba49e41-e159-4c52-a70b-0d73294a54ee', 'eda16d0d-beed-4842-a0c9-da52ceeeb7c5', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-08-06', 1, NULL, NULL, 'scheduled', NULL, '2025-08-05 07:10:46', '2025-08-05 07:10:46'),
+('1bcf4cde-db2e-4cff-b405-4b4d01760b0d', '04a206fe-78ed-43ab-8c4f-7574d91a5066', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-22 12:21:26', '2025-07-22 12:21:26'),
+('1bd97f0b-ec01-47f1-8f9f-c2145b92b397', '09d2a30f-8ae6-4956-8b6a-400bc4d2a7eb', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-16 07:04:00', '2025-07-16 07:04:00'),
+('1ca3c6db-110b-4ba0-b5a2-5e7698453550', 'c0e22f45-8a3d-451e-971d-9b4ad27b5bd9', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-08-09', 1, NULL, NULL, 'scheduled', NULL, '2025-08-07 02:19:11', '2025-08-07 02:19:11'),
+('1cbc016a-e5a1-466d-9232-d9fd489b50a3', 'e8580062-4b9a-4b95-8293-dcb76f621210', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 09:12:18', '2025-07-21 09:12:18'),
+('1d23fd87-8085-48a8-9885-b1029f2ccb5b', 'df7aa1f1-8c96-4dc4-ba9e-faeb78fbf892', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-18 08:12:28', '2025-07-18 08:12:28'),
+('1d5b2a4c-3b95-46aa-b1ad-f124cd938409', '507020f8-63bc-4379-9a1f-8eb56df8390f', '416cc737-c6a1-4b0d-a0d0-a40f384f496e', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 04:32:42', '2025-07-21 04:32:42'),
+('1dca17ad-ee3b-4376-9731-30d629c710e1', '9a5ba398-ddd5-4c07-8016-145eb42618e8', '19f1b8d3-7d75-4cc6-b804-58cf8d136d9d', '2025-07-11', 1, NULL, NULL, 'scheduled', NULL, '2025-07-10 09:50:32', '2025-07-10 09:50:32'),
+('1f287c46-44d3-4a12-b277-ca920f96b94a', '7faac785-fb6b-4d97-86a2-2f44a5c10261', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 08:57:54', '2025-07-21 08:57:54'),
+('1f378e86-deb6-4564-be33-7f5b6a9b7f33', '4623a948-ae81-4cdb-979f-25102e9a8ec3', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-30', 1, NULL, NULL, 'scheduled', NULL, '2025-07-27 13:32:18', '2025-07-27 13:32:18'),
+('1f5adee6-3652-410a-a0b7-edc7ae954038', '7927a4a2-30c9-44ae-a2ea-3294cc64d60a', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-08-10', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 03:41:16', '2025-07-15 03:41:16'),
+('21e0f16f-ce8d-407d-b5ba-0694e4fd4dd2', '0bf75805-f0ab-4207-a172-25912a12ecb4', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 02:16:49', '2025-07-14 02:16:49'),
+('22bb9089-62f0-4e5f-9b05-e5d145a734c0', '350663c4-d1b2-42f2-ab87-ed36aab9e7d0', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 11:13:08', '2025-07-15 11:13:08'),
+('2452d2ac-d069-4a18-a70a-98fd82548ebe', 'e3591792-336a-4ca7-8377-b5cdad5628c8', 'eda83eb5-d471-45a7-ad9e-339b89e68789', '2025-07-11', 1, NULL, NULL, 'scheduled', NULL, '2025-07-10 07:57:06', '2025-07-10 07:57:06'),
+('24d1ee35-e324-464f-a4e6-d313bf0882e5', '2fd75d4e-7618-435d-879b-d1e6001ca014', 'eda83eb5-d471-45a7-ad9e-339b89e68789', '2025-08-02', 1, NULL, NULL, 'scheduled', NULL, '2025-07-28 07:56:40', '2025-07-28 07:56:40'),
+('251c7e42-16b2-4dae-84d7-7e0731ea5503', '3b193ef1-27a8-4b32-a389-6be6fda26683', '416cc737-c6a1-4b0d-a0d0-a40f384f496e', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 04:03:35', '2025-07-26 04:03:35'),
+('25ce6d62-8190-4d8a-8d2f-4f7e893eb27f', 'd25b172c-1e0f-4b79-a7e9-f5d35c054a8f', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-08-06', 1, NULL, NULL, 'scheduled', NULL, '2025-08-05 08:32:43', '2025-08-05 08:32:43'),
+('263f6765-cf57-419a-bd72-4abcc427fdc0', '2fd75d4e-7618-435d-879b-d1e6001ca014', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-08-02', 1, NULL, NULL, 'scheduled', NULL, '2025-07-28 07:56:40', '2025-07-28 07:56:40'),
+('266cb876-6ffb-4649-b1b8-3c32c9d7fa1e', 'c0d0c70d-0bf8-4e03-a410-cf58476cd225', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-08-13', 1, NULL, NULL, 'scheduled', NULL, '2025-08-03 07:12:24', '2025-08-03 07:12:24'),
+('27ad2752-857c-4da7-bfc4-087b4ffcc16a', '3eead7a4-a66c-41a6-b9d4-58ba218bfbec', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-08-06', 1, NULL, NULL, 'scheduled', NULL, '2025-08-05 16:10:31', '2025-08-05 16:10:31'),
+('2811b161-ebd4-46cc-856d-fd1681cfd351', 'e3591792-336a-4ca7-8377-b5cdad5628c8', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', '2025-07-11', 1, NULL, NULL, 'scheduled', NULL, '2025-07-10 07:57:06', '2025-07-10 07:57:06'),
+('284e7883-0123-45d0-82fb-4e5b32ce52ec', 'eda16d0d-beed-4842-a0c9-da52ceeeb7c5', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-08-06', 1, NULL, NULL, 'scheduled', NULL, '2025-08-05 07:10:46', '2025-08-05 07:10:46'),
+('28db4cf9-ab4b-45c5-a22e-8ff87956c014', '476a2565-e455-41a2-bdc8-c0e7e4534761', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-20', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 03:49:52', '2025-07-15 03:49:52'),
+('292501a9-e00b-48c2-85e2-8c4a71194887', '349433d9-60c0-4ee7-982a-9deea50c4225', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 03:51:18', '2025-07-21 03:51:18'),
+('296397f1-6142-47aa-be38-d290173d918c', '1b8fa3b4-6c61-475d-bd90-47b11657b92e', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', '2025-07-14', 1, NULL, NULL, 'scheduled', NULL, '2025-07-13 12:36:11', '2025-07-13 12:36:11'),
+('29dcaa4b-8a39-4f2c-93d1-9e7e58a1f658', 'c539a7cc-b04f-4a5c-ba64-944f52feded2', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-11', 1, NULL, NULL, 'scheduled', NULL, '2025-07-10 09:49:18', '2025-07-10 09:49:18'),
+('2a0dad10-661e-443f-9aaa-cabbcb683586', 'e0f8eeba-f3d0-48bc-bb21-7bb716f6f145', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 06:59:33', '2025-07-14 06:59:33'),
+('2a20b306-cbf8-4bd4-8b74-309848c825de', '4c54b901-68c6-4f6e-b1de-821a540166fe', '6cae13fc-b181-43bf-babb-99cb2ce39d3c', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 09:17:45', '2025-07-26 09:17:45'),
+('2b7441ba-642b-4409-8f72-5ec794e134ba', '35cf6ed8-05d1-4da6-b069-72c2dfb665a4', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-08-10', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 03:04:02', '2025-07-15 03:04:02'),
+('2b95c6ca-db9d-4bb3-a88f-8cb142aefc5d', '766168a3-f202-449e-a16a-44e8cdd19010', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-15', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 15:08:35', '2025-07-14 15:08:35'),
+('2d0e6b75-ad91-418a-892c-0bf963361dc6', '48c6a9b9-5082-42bf-9e24-f5376e1b3f0e', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 04:46:42', '2025-07-26 04:46:42'),
+('2d353b93-19cc-4c44-bbbe-3e9fd91037dc', '7927a4a2-30c9-44ae-a2ea-3294cc64d60a', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-08-10', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 03:41:16', '2025-07-15 03:41:16'),
+('2dccde11-089a-4ec4-b838-cdc3807bca12', '476a2565-e455-41a2-bdc8-c0e7e4534761', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-20', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 03:49:52', '2025-07-15 03:49:52'),
+('2f1023d9-6e56-4b9a-bf6e-2b8e6a772fc2', '081de44b-56d9-4745-acdc-19a129ac5b97', '6cae13fc-b181-43bf-babb-99cb2ce39d3c', '2025-07-28', 1, NULL, NULL, 'scheduled', NULL, '2025-07-27 03:07:23', '2025-07-27 03:07:23'),
+('2f57c874-65a3-47e8-a7ca-ec9d693e5dc2', '09d2a30f-8ae6-4956-8b6a-400bc4d2a7eb', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-16 07:04:00', '2025-07-16 07:04:00'),
+('2f6bd648-5deb-4d53-8bea-a4fee8ea3cd8', 'd91072d4-076a-4973-b819-9d04d6a83da7', 'meal-kit-panang-curry-2025', '2025-07-30', 1, NULL, NULL, 'scheduled', NULL, '2025-07-29 07:13:45', '2025-07-29 07:13:45'),
+('2fce251e-7b79-4312-a9b9-ed8e0491d055', '8daae380-9b24-43d5-86e8-13aa455b09d4', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 02:34:01', '2025-07-14 02:34:01'),
+('2fdc3d14-bfc9-4100-a42a-c13c7cfca388', '349433d9-60c0-4ee7-982a-9deea50c4225', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 03:51:18', '2025-07-21 03:51:18'),
+('30519af8-033f-45c3-8aad-9c1162d43753', '7927a4a2-30c9-44ae-a2ea-3294cc64d60a', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-08-10', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 03:41:16', '2025-07-15 03:41:16'),
+('3100462e-de74-402f-b847-05304b7fc858', 'd0fd5c76-2364-44b2-9ed4-fd2233f57e33', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 08:20:45', '2025-07-26 08:20:45'),
+('313ae4ba-1c27-47d3-9721-27c24d4eb8f4', '081de44b-56d9-4745-acdc-19a129ac5b97', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-28', 1, NULL, NULL, 'scheduled', NULL, '2025-07-27 03:07:23', '2025-07-27 03:07:23'),
+('315dc88f-73d3-4c68-933c-a3c8217af97a', '6dcdf617-feb4-4075-9fd4-1478d7d0b8bf', 'meal-kit-pad-thai-2025', '2025-08-02', 1, NULL, NULL, 'scheduled', NULL, '2025-07-30 08:15:05', '2025-07-30 08:15:05'),
+('326a3662-474f-4081-906d-152bc01fd3ff', 'f4a3040e-2316-483a-8914-e0faceaaf58b', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-14', 1, NULL, NULL, 'scheduled', NULL, '2025-07-13 12:55:55', '2025-07-13 12:55:55'),
+('32866ad5-fb4e-4274-a9d0-9158d8db8734', 'e3567d9c-a8ef-4662-8ddf-68da5f569ee7', '6cae13fc-b181-43bf-babb-99cb2ce39d3c', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 06:37:48', '2025-07-26 06:37:48'),
+('32bb11f8-d5ba-427e-8565-ada320c1d7cd', '94e1d12d-a30f-4c99-b13d-dc801f7d26de', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 01:41:52', '2025-07-14 01:41:52'),
+('331c2c38-4df0-46fa-b664-7451daf64527', '1b8fa3b4-6c61-475d-bd90-47b11657b92e', '416cc737-c6a1-4b0d-a0d0-a40f384f496e', '2025-07-14', 1, NULL, NULL, 'scheduled', NULL, '2025-07-13 12:36:11', '2025-07-13 12:36:11'),
+('333adef1-fdd5-438c-9afd-bc1d687a4c48', 'fe2fed4b-bd42-4e54-b391-bd0256ae403f', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 07:30:58', '2025-07-21 07:30:58'),
+('3359c14b-e07a-460e-91cb-5c799c39a0fc', 'db29bea4-1c9a-4124-8242-e1f5500a606a', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-11', 1, NULL, NULL, 'scheduled', NULL, '2025-07-10 08:27:50', '2025-07-10 08:27:50'),
+('33b58ebc-b820-49b1-a5d3-3ccb5e931586', 'be8c3b24-114f-49e7-a816-e60e43899cde', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-20', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 10:36:51', '2025-07-14 10:36:51'),
+('33eff1c6-d15f-413c-85c6-8859f85a82a5', '476b9536-ab53-42a7-98c9-e224d368f12d', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-15', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 15:13:11', '2025-07-14 15:13:11'),
+('342c96ce-4485-4c90-9a4e-7cc132c7c848', 'a5e23f87-bb26-4bf8-8dac-1b1e482c88c7', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 09:25:50', '2025-07-26 09:25:50'),
+('34b0b8a3-016f-4c19-adb2-150e00cb31e3', 'e14f072d-d727-42e1-b13a-54a4de2d8c07', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-08-06', 1, NULL, NULL, 'scheduled', NULL, '2025-08-03 07:45:08', '2025-08-03 07:45:08'),
+('34be196c-13c1-4183-8a8f-0864ae657702', '755c9d5c-9642-45a7-b698-786077e6b8b8', '19f1b8d3-7d75-4cc6-b804-58cf8d136d9d', '2025-08-02', 1, NULL, NULL, 'scheduled', NULL, '2025-07-30 08:47:04', '2025-07-30 08:47:04'),
+('351db1cf-9d94-45ec-96f7-17ac3d93305e', 'f36c1c70-b651-495a-9fc5-5252bade2fd6', '6cae13fc-b181-43bf-babb-99cb2ce39d3c', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 05:08:39', '2025-07-26 05:08:39'),
+('35313f45-babd-4b19-b0f7-326fce99171e', '65e0f10b-9c97-4034-a4f9-4b35d1782fab', '416cc737-c6a1-4b0d-a0d0-a40f384f496e', '2025-08-13', 1, NULL, NULL, 'scheduled', NULL, '2025-07-27 07:57:30', '2025-07-27 07:57:30'),
+('36660e83-ebd2-4f37-a026-557534747d63', '349433d9-60c0-4ee7-982a-9deea50c4225', '19f1b8d3-7d75-4cc6-b804-58cf8d136d9d', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 03:51:18', '2025-07-21 03:51:18'),
+('3674801f-f579-4beb-845a-e486f51aef46', '172bac7b-8248-46c8-b3d6-9070e2ce8755', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 04:27:44', '2025-07-26 04:27:44'),
+('367c21fa-9765-4b4b-ae5f-366ee5fe0da0', '9e0d5ae0-baa5-475c-b860-566c4b5f7548', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 05:02:43', '2025-07-26 05:02:43'),
+('36d3628f-fc74-4133-b519-d1cfff9acd2a', '9aea8db1-bb47-4143-9b5d-b91d0e377a6c', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-27', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 04:32:30', '2025-07-15 04:32:30'),
+('370c5844-430d-4f90-9fba-13e84a6d952c', '0bf75805-f0ab-4207-a172-25912a12ecb4', '416cc737-c6a1-4b0d-a0d0-a40f384f496e', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 02:16:49', '2025-07-14 02:16:49'),
+('371920cc-32ef-4939-954b-e21308a8bb05', 'f36c1c70-b651-495a-9fc5-5252bade2fd6', '416cc737-c6a1-4b0d-a0d0-a40f384f496e', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 05:08:39', '2025-07-26 05:08:39'),
+('373169f9-da45-4365-a32a-669faffe188c', 'f1cd09f7-8b60-4e2f-b26d-a478e1ec1e3a', 'meal-kit-pad-thai-2025', '2025-08-09', 1, NULL, NULL, 'scheduled', NULL, '2025-08-06 08:31:50', '2025-08-06 08:31:50'),
+('37545831-060a-41e3-9ca3-1890c750659e', '36ecb782-ce8c-428a-b8a9-afd7e02bcfe8', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-20', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 01:42:25', '2025-07-14 01:42:25'),
+('3832e310-820d-4c7f-98b2-bd349b72c99b', '0bf75805-f0ab-4207-a172-25912a12ecb4', '6cae13fc-b181-43bf-babb-99cb2ce39d3c', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 02:16:49', '2025-07-14 02:16:49'),
+('38dce7c4-ece3-4082-8051-7eddd9c1aad5', 'e8580062-4b9a-4b95-8293-dcb76f621210', '6cae13fc-b181-43bf-babb-99cb2ce39d3c', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 09:12:18', '2025-07-21 09:12:18'),
+('3a885746-6557-4127-a25b-d84c9d9bcef5', '3b193ef1-27a8-4b32-a389-6be6fda26683', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 04:03:35', '2025-07-26 04:03:35'),
+('3bb1d04c-3bd4-48cf-9307-596c4e3d00bd', '6fde2876-d423-4090-a160-975427211953', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 09:14:59', '2025-07-21 09:14:59'),
+('3c7309a5-0149-4145-a0dd-a88653d19b8e', '09d2a30f-8ae6-4956-8b6a-400bc4d2a7eb', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-16 07:04:00', '2025-07-16 07:04:00'),
+('3c81fc94-3f33-424a-a45a-301172c5fd51', 'e2f94945-f45f-4f01-aff1-4fb48c593266', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-09', 1, NULL, NULL, 'scheduled', NULL, '2025-07-08 09:38:27', '2025-07-08 09:38:27'),
+('3c94294c-9485-4a8d-a0ae-b0920fec8b82', 'afcd9a79-71e7-4808-8206-b47acc722a0f', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-30', 1, NULL, NULL, 'scheduled', NULL, '2025-07-28 02:11:40', '2025-07-28 02:11:40'),
+('3c9e4faa-c1eb-40bd-83e4-86482e6b532d', 'be8c3b24-114f-49e7-a816-e60e43899cde', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-08-02', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 10:36:51', '2025-07-14 10:36:51'),
+('3cb1dcf1-41ae-4c5f-a29f-f223f99eb84a', '4c54b901-68c6-4f6e-b1de-821a540166fe', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 09:17:45', '2025-07-26 09:17:45'),
+('3cf82c22-78fd-4277-8a03-e4e2382a0359', '7a76610b-74ae-4312-8489-c37d065083f2', '416cc737-c6a1-4b0d-a0d0-a40f384f496e', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 07:06:52', '2025-07-14 07:06:52'),
+('3dfac873-5f83-45e8-87ac-4c85af3e73d3', '80e45f1e-1ab4-4f37-980d-488627fc713b', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', '2025-08-02', 1, '[]', NULL, 'scheduled', NULL, '2025-07-26 13:46:08', '2025-07-26 13:46:08'),
+('3e214a8b-3cd9-4f09-aa45-090de8d6dcce', '05a54dfa-21ac-4b7c-8a99-612029bc2fb2', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 04:41:46', '2025-07-26 04:41:46'),
+('3e36a084-cdcd-4cab-b22b-ebddc6fec1d3', 'febed4c8-d71c-4b57-bc75-4a8276a00e2c', 'eda83eb5-d471-45a7-ad9e-339b89e68789', '2025-08-10', 1, NULL, NULL, 'scheduled', NULL, '2025-07-17 03:13:44', '2025-07-17 03:13:44'),
+('3e4811bc-fec0-477c-92a9-f64436e973ef', 'df7aa1f1-8c96-4dc4-ba9e-faeb78fbf892', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-18 08:12:28', '2025-07-18 08:12:28'),
+('3e4915cb-c6b9-4984-a8ad-0216e86c640a', 'efac4af3-3a57-45b8-b41f-30bec6f79334', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 03:00:50', '2025-07-15 03:00:50'),
+('3f36a2b7-30b6-4d55-8f15-7eb978dadbc2', '395d369f-4d05-4353-8238-e0956cee736e', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-08-09', 1, NULL, NULL, 'scheduled', NULL, '2025-08-07 02:06:23', '2025-08-07 02:06:23'),
+('3f634617-868c-4661-b27f-3d974a86570c', '507020f8-63bc-4379-9a1f-8eb56df8390f', '6cae13fc-b181-43bf-babb-99cb2ce39d3c', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 04:32:42', '2025-07-21 04:32:42'),
+('3f8015df-7ad8-4dee-9e47-574102489ac4', 'db29bea4-1c9a-4124-8242-e1f5500a606a', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-11', 1, NULL, NULL, 'scheduled', NULL, '2025-07-10 08:27:50', '2025-07-10 08:27:50'),
+('3f93d399-e2be-4885-b80e-6cbd3f0a5642', '349433d9-60c0-4ee7-982a-9deea50c4225', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 03:51:18', '2025-07-21 03:51:18'),
+('404b5929-b8c3-40af-bcf5-6337f415a501', 'e0f8eeba-f3d0-48bc-bb21-7bb716f6f145', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 06:59:33', '2025-07-14 06:59:33'),
+('40e487ce-bf59-4796-bdb3-8ec90d548134', '0e960c81-fefa-455a-b9cd-b04d22410477', 'eda83eb5-d471-45a7-ad9e-339b89e68789', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 01:17:08', '2025-07-21 01:17:08'),
+('40f49026-1742-41e9-a818-e22755535502', '36a7e729-a869-4aeb-8d41-6300cc9d2959', 'meal-kit-tom-yum-2025', '2025-08-20', 1, NULL, NULL, 'scheduled', NULL, '2025-08-03 07:22:17', '2025-08-03 07:22:17'),
+('40fb9d33-d601-446e-a481-3774fadf01e3', 'ecaa5b9d-44dc-4564-b077-248692b8e812', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 01:47:10', '2025-07-14 01:47:10'),
+('41c3350b-27ee-47b4-96ec-a2eeb9caefb8', '5e4785f7-1825-400f-b096-daac3ac8a5a4', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 03:04:42', '2025-07-15 03:04:42'),
+('433f0024-0b94-49c7-9016-2135c2c1c2ad', '393e600c-4672-4b2e-98c9-0fb03ddfe4c4', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-20', 1, NULL, NULL, 'scheduled', NULL, '2025-07-20 02:50:30', '2025-07-20 02:50:30'),
+('4369c9e5-7353-40ad-9aa5-b72b85a7e7d4', '349433d9-60c0-4ee7-982a-9deea50c4225', 'eda83eb5-d471-45a7-ad9e-339b89e68789', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 03:51:18', '2025-07-21 03:51:18'),
+('43ac7be7-d2f0-45b5-8fe3-c7bee9a5933e', '80e669b2-3085-46ea-ad6b-642f22fa0b35', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 08:30:08', '2025-07-21 08:30:08'),
+('43b4edb8-baf5-4e7f-ad7e-e97c2995bd39', 'a9955447-3212-4995-8abd-9be1c313f537', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 16:18:52', '2025-07-15 16:18:52'),
+('445eaebe-0a2b-428a-9c38-ef84bc58b4c9', '766168a3-f202-449e-a16a-44e8cdd19010', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-15', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 15:08:35', '2025-07-14 15:08:35'),
+('44832446-50ec-4106-8c01-ff5c1c80dabf', '9e0d5ae0-baa5-475c-b860-566c4b5f7548', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 05:02:43', '2025-07-26 05:02:43'),
+('44e30977-c22e-4c5a-b4ac-27238cea1170', '406ec6aa-88d3-4c09-9ca2-14a191ce7443', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 09:24:25', '2025-07-26 09:24:25'),
+('45bd1b4b-cbcc-47f0-b18b-c397dd4f2eb8', '766168a3-f202-449e-a16a-44e8cdd19010', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-15', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 15:08:35', '2025-07-14 15:08:35'),
+('468e84e4-75de-4ffe-a9e7-0dc0aff4ea05', 'e0f8eeba-f3d0-48bc-bb21-7bb716f6f145', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-27', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 06:59:33', '2025-07-14 06:59:33'),
+('46aa386a-dc04-4981-806c-2ba7c0dd13db', 'e684d621-c7e6-4eed-a8a5-38abc0d72366', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-08-03', 1, NULL, NULL, 'scheduled', NULL, '2025-07-16 07:04:33', '2025-07-16 07:04:33'),
+('46bf6aa7-d5eb-437d-ac8e-12655c100d27', '46def7f0-dd69-4e62-af4d-da389cfbc6bb', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 02:07:14', '2025-07-14 02:07:14'),
+('46ca8213-55ad-47fc-8534-6b9408b2270a', 'd5f927b4-1a43-4fa9-a859-f0fe06b6d5ca', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 15:52:48', '2025-07-15 15:52:48'),
+('475724d3-d8aa-44fb-8d84-d9de8d513428', 'fbba995f-8221-4a6f-afe7-cc29afd8d26c', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-14', 1, NULL, NULL, 'scheduled', NULL, '2025-07-13 13:11:02', '2025-07-13 13:11:02'),
+('477a545b-fe94-49cb-bdeb-71adec852105', '354ad47b-fa66-4e43-9bf8-75c2f962c64b', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-25 08:50:16', '2025-07-25 08:50:16'),
+('480bb4ca-be44-4536-a3fd-2189a2a13eb6', 'f4a3040e-2316-483a-8914-e0faceaaf58b', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', '2025-07-14', 1, NULL, NULL, 'scheduled', NULL, '2025-07-13 12:55:55', '2025-07-13 12:55:55'),
+('4902a977-f7ea-4605-be3a-fe4f05d2113f', 'c0d0c70d-0bf8-4e03-a410-cf58476cd225', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-08-13', 1, NULL, NULL, 'scheduled', NULL, '2025-08-03 07:12:24', '2025-08-03 07:12:24'),
+('4910bce3-7cd4-4908-a3a6-92dcfc39381e', '0bf75805-f0ab-4207-a172-25912a12ecb4', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 02:16:49', '2025-07-14 02:16:49'),
+('496c7678-052a-44e2-b4c5-34be5de67d5d', 'afcd9a79-71e7-4808-8206-b47acc722a0f', '6cae13fc-b181-43bf-babb-99cb2ce39d3c', '2025-07-30', 1, NULL, NULL, 'scheduled', NULL, '2025-07-28 02:11:40', '2025-07-28 02:11:40'),
+('497cc885-6986-44f5-9ccb-8f7fb8a02722', 'd6831992-8062-4cbe-b90a-b5c7f2fd3ffb', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-08-02', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 02:16:01', '2025-07-14 02:16:01'),
+('4ad9048d-9977-46a9-bb9b-01478c6f59eb', '80e45f1e-1ab4-4f37-980d-488627fc713b', '416cc737-c6a1-4b0d-a0d0-a40f384f496e', '2025-08-02', 1, '[]', NULL, 'scheduled', NULL, '2025-07-26 13:46:08', '2025-07-26 13:46:08'),
+('4add2dde-95b4-465b-9e07-843d72955242', '417e5469-f89b-4ee1-a9bb-dd4a9a8a973f', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-30', 1, NULL, NULL, 'scheduled', NULL, '2025-07-29 13:05:42', '2025-07-29 13:05:42'),
+('4af9b241-4487-4e79-bddf-c1ca12a852d0', 'd6831992-8062-4cbe-b90a-b5c7f2fd3ffb', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-08-02', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 02:16:01', '2025-07-14 02:16:01'),
+('4b1d237a-8dc4-4442-8d25-1e2735589ffc', '1fa52d11-2f99-451e-8151-0914626b0d58', '19f1b8d3-7d75-4cc6-b804-58cf8d136d9d', '2025-07-20', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 02:13:22', '2025-07-14 02:13:22'),
+('4b4d3ebb-2840-4df0-98af-ed57d6353332', 'a586353a-4092-48ea-a663-e75479330d20', 'eda83eb5-d471-45a7-ad9e-339b89e68789', '2025-07-20', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 01:44:32', '2025-07-14 01:44:32'),
+('4b4fd9c6-5c08-45c9-b9d3-f46e02c24873', '0e960c81-fefa-455a-b9cd-b04d22410477', '19f1b8d3-7d75-4cc6-b804-58cf8d136d9d', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 01:17:08', '2025-07-21 01:17:08'),
+('4d25f79e-22b1-40a4-a4f0-947fe7077a08', 'ecaa5b9d-44dc-4564-b077-248692b8e812', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-20', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 01:47:10', '2025-07-14 01:47:10'),
+('4e0c69b7-e65e-418b-a772-a3486620e49b', '354ad47b-fa66-4e43-9bf8-75c2f962c64b', '6cae13fc-b181-43bf-babb-99cb2ce39d3c', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-25 08:50:16', '2025-07-25 08:50:16'),
+('4e28cd48-c8ee-4496-9173-e51cba84250c', 'e0f8eeba-f3d0-48bc-bb21-7bb716f6f145', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-27', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 06:59:33', '2025-07-14 06:59:33'),
+('4f306748-d4c0-45f0-88e0-3aa48bf95778', '48c6a9b9-5082-42bf-9e24-f5376e1b3f0e', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 04:46:42', '2025-07-26 04:46:42'),
+('4f9da63d-9734-4099-8eb0-9252d0fa9db3', '393e600c-4672-4b2e-98c9-0fb03ddfe4c4', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-20', 1, NULL, NULL, 'scheduled', NULL, '2025-07-20 02:50:30', '2025-07-20 02:50:30'),
+('50899fc9-9d28-4d4d-b369-4cbf664ba90b', '4c54b901-68c6-4f6e-b1de-821a540166fe', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 09:17:45', '2025-07-26 09:17:45'),
+('50bbf228-98d1-498c-bc9b-6c847a884c2b', '08088294-f964-4dad-9615-786155382e06', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-14', 1, NULL, NULL, 'scheduled', NULL, '2025-07-13 12:55:10', '2025-07-13 12:55:10'),
+('523b5088-ab1c-4034-9f7c-c747d1de4c10', '04a206fe-78ed-43ab-8c4f-7574d91a5066', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-22 12:21:26', '2025-07-22 12:21:26'),
+('525f75c2-04f1-4dfc-bca6-e49257f82133', '0637e1ce-9417-46a1-be75-cfb96c85e0c0', '416cc737-c6a1-4b0d-a0d0-a40f384f496e', '2025-07-30', 1, NULL, NULL, 'scheduled', NULL, '2025-07-28 14:11:45', '2025-07-28 14:11:45'),
+('528f4140-a92b-4e08-8eed-7ca0fa157818', '350663c4-d1b2-42f2-ab87-ed36aab9e7d0', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 11:13:08', '2025-07-15 11:13:08'),
+('52a56f56-b770-49c4-8db0-a46367dee7a2', 'c0e22f45-8a3d-451e-971d-9b4ad27b5bd9', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-08-09', 1, NULL, NULL, 'scheduled', NULL, '2025-08-07 02:19:11', '2025-08-07 02:19:11'),
+('52b61bbb-c75d-43d1-ac3a-86dc603e5f98', '417e5469-f89b-4ee1-a9bb-dd4a9a8a973f', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-30', 1, NULL, NULL, 'scheduled', NULL, '2025-07-29 13:05:42', '2025-07-29 13:05:42'),
+('538fb099-2543-49da-ae04-a67c0a6faf73', '0bf75805-f0ab-4207-a172-25912a12ecb4', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 02:16:49', '2025-07-14 02:16:49'),
+('5398e6b4-f439-46f6-80d7-0663796d5fd2', 'a586353a-4092-48ea-a663-e75479330d20', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 01:44:32', '2025-07-14 01:44:32'),
+('54517090-26ce-4d27-b6dc-e2ddc3a06265', '3b8765cb-3002-458a-b569-68e971bd456f', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-08-06', 1, NULL, NULL, 'scheduled', NULL, '2025-08-05 16:04:39', '2025-08-05 16:04:39'),
+('547c5c64-9620-4cca-a077-74af8302bc13', '94e1d12d-a30f-4c99-b13d-dc801f7d26de', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-20', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 01:41:52', '2025-07-14 01:41:52'),
+('55835d0a-6558-4253-99fa-8dd7a643f73b', '05a54dfa-21ac-4b7c-8a99-612029bc2fb2', '19f1b8d3-7d75-4cc6-b804-58cf8d136d9d', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 04:41:46', '2025-07-26 04:41:46'),
+('55a128a6-028c-492d-b322-d807c4acc7b6', 'be8c3b24-114f-49e7-a816-e60e43899cde', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-08-02', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 10:36:51', '2025-07-14 10:36:51'),
+('55c1b559-d000-41ca-b931-672f8dd59569', 'a586353a-4092-48ea-a663-e75479330d20', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-20', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 01:44:32', '2025-07-14 01:44:32'),
+('56602dff-4475-4bed-86fe-bb0bffb9d3c8', '85291cae-d5eb-42f6-9b56-a4f37b5cdd62', '416cc737-c6a1-4b0d-a0d0-a40f384f496e', '2025-07-30', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 04:42:47', '2025-07-26 04:42:47'),
+('568e024e-7da3-4860-b094-a2f23797d356', 'daab6f86-1f1a-4a21-a03b-e4b5f12dca5d', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-08-02', 1, NULL, NULL, 'scheduled', NULL, '2025-07-28 08:56:03', '2025-07-28 08:56:03'),
+('56ebf010-3708-4a67-9b70-21642f24d95c', '97b9e7bd-e350-4d19-8ea5-022bcfdf74d0', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 02:09:32', '2025-07-15 02:09:32'),
+('573b65b1-b278-4547-b021-76c4ca1769db', '9aea8db1-bb47-4143-9b5d-b91d0e377a6c', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-27', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 04:32:30', '2025-07-15 04:32:30'),
+('581f3a6f-c109-4ad8-9f55-885adf5513c6', 'febed4c8-d71c-4b57-bc75-4a8276a00e2c', '416cc737-c6a1-4b0d-a0d0-a40f384f496e', '2025-08-10', 1, NULL, NULL, 'scheduled', NULL, '2025-07-17 03:13:44', '2025-07-17 03:13:44'),
+('5850a0d8-5538-4963-9a8f-29167a3247bd', 'b389ea4d-adf2-41a0-b593-ba6e8bea9c8e', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-18 08:11:31', '2025-07-18 08:11:31'),
+('593c2c9f-aca3-4a57-8e47-14234f3df2c8', '22f5c830-264b-4b69-9f5c-6098011a7e40', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 04:27:08', '2025-07-26 04:27:08'),
+('59a42290-7873-4e2d-90b5-95edad7ff467', 'ed9c0493-82b6-497f-af16-796a2d1b8c95', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-20', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 04:56:03', '2025-07-14 04:56:03'),
+('59a77ec2-3c83-4361-b16c-14fe9380e799', 'e684d621-c7e6-4eed-a8a5-38abc0d72366', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-08-03', 1, NULL, NULL, 'scheduled', NULL, '2025-07-16 07:04:33', '2025-07-16 07:04:33'),
+('5ad88a9d-e577-443e-8b2d-25809ed10e4a', '0637e1ce-9417-46a1-be75-cfb96c85e0c0', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-30', 1, NULL, NULL, 'scheduled', NULL, '2025-07-28 14:11:45', '2025-07-28 14:11:45'),
+('5b358cc0-092f-473e-bb2d-daa91cb0eb75', '460ab3f2-889e-4a16-80a6-4e951cb7d3c6', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-08-02', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 07:01:34', '2025-07-14 07:01:34'),
+('5d6ba16a-9b61-48c4-9ab1-ad3e74c3343a', '4623a948-ae81-4cdb-979f-25102e9a8ec3', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-30', 1, NULL, NULL, 'scheduled', NULL, '2025-07-27 13:32:18', '2025-07-27 13:32:18'),
+('5e55df08-b6fd-409e-8efb-29be909010fe', 'afcd9a79-71e7-4808-8206-b47acc722a0f', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-30', 1, NULL, NULL, 'scheduled', NULL, '2025-07-28 02:11:40', '2025-07-28 02:11:40'),
+('5ede354a-9e77-4115-aaf1-a2d03f23d07a', 'c0d0c70d-0bf8-4e03-a410-cf58476cd225', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-08-13', 1, NULL, NULL, 'scheduled', NULL, '2025-08-03 07:12:24', '2025-08-03 07:12:24'),
+('5fe341c1-6284-4bbb-a11c-41f42fb1cf24', '406ec6aa-88d3-4c09-9ca2-14a191ce7443', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 09:24:25', '2025-07-26 09:24:25'),
+('5fecb695-b981-4faf-9698-b449babee320', '08088294-f964-4dad-9615-786155382e06', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-14', 1, NULL, NULL, 'scheduled', NULL, '2025-07-13 12:55:10', '2025-07-13 12:55:10'),
+('5ff67941-e2f8-4cc6-bd83-06dd300178c8', '65e0f10b-9c97-4034-a4f9-4b35d1782fab', '6cae13fc-b181-43bf-babb-99cb2ce39d3c', '2025-08-13', 1, NULL, NULL, 'scheduled', NULL, '2025-07-27 07:57:30', '2025-07-27 07:57:30'),
+('601da770-fb80-4f80-a0eb-8baf787e346e', 'e2f94945-f45f-4f01-aff1-4fb48c593266', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', '2025-07-09', 1, NULL, NULL, 'scheduled', NULL, '2025-07-08 09:38:27', '2025-07-08 09:38:27'),
+('6129de02-dd42-45bf-a58c-e23df5540977', '354ad47b-fa66-4e43-9bf8-75c2f962c64b', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-25 08:50:16', '2025-07-25 08:50:16'),
+('616404f7-0770-4f4d-99df-a29293b81eca', '3b193ef1-27a8-4b32-a389-6be6fda26683', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 04:03:35', '2025-07-26 04:03:35'),
+('617ae850-ca29-4910-ab8d-dea5b248d6b0', 'd25b172c-1e0f-4b79-a7e9-f5d35c054a8f', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-08-06', 1, NULL, NULL, 'scheduled', NULL, '2025-08-05 08:32:43', '2025-08-05 08:32:43'),
+('625ea737-d8e1-41d5-9bf8-f2f4ef138119', 'f36c1c70-b651-495a-9fc5-5252bade2fd6', 'eda83eb5-d471-45a7-ad9e-339b89e68789', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 05:08:39', '2025-07-26 05:08:39'),
+('62932615-68e5-4d82-a399-034df120bb3f', '081de44b-56d9-4745-acdc-19a129ac5b97', '416cc737-c6a1-4b0d-a0d0-a40f384f496e', '2025-07-28', 1, NULL, NULL, 'scheduled', NULL, '2025-07-27 03:07:23', '2025-07-27 03:07:23'),
+('6484ca77-c1f8-4167-817a-5df1538fd1d4', 'f0e9bfd8-538d-4c64-b910-939ec367cbcf', '19f1b8d3-7d75-4cc6-b804-58cf8d136d9d', '2025-08-06', 1, NULL, NULL, 'scheduled', NULL, '2025-08-05 16:09:28', '2025-08-05 16:09:28'),
+('64853495-6dc2-44e8-a15e-07d8a7eed203', 'd0fd5c76-2364-44b2-9ed4-fd2233f57e33', '416cc737-c6a1-4b0d-a0d0-a40f384f496e', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 08:20:45', '2025-07-26 08:20:45'),
+('652b9666-fc4f-4685-9fd5-c04e86c7e884', '330aded2-fb8c-4acc-8fb6-e83403ce573d', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-08-13', 1, NULL, NULL, 'scheduled', NULL, '2025-08-08 03:29:29', '2025-08-08 03:29:29'),
+('6585bc1f-e83c-4412-87d4-7a2f610a6bb9', 'df7aa1f1-8c96-4dc4-ba9e-faeb78fbf892', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-18 08:12:28', '2025-07-18 08:12:28'),
+('65fbca15-253c-4d5b-b59b-5c1d59b9af49', '9aea8db1-bb47-4143-9b5d-b91d0e377a6c', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-27', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 04:32:30', '2025-07-15 04:32:30'),
+('6633e496-4c29-41eb-ae6f-55dfe28fafa2', '0e960c81-fefa-455a-b9cd-b04d22410477', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 01:17:08', '2025-07-21 01:17:08'),
+('66984d74-da0b-4fca-b0e6-1a6bb30a6108', '85291cae-d5eb-42f6-9b56-a4f37b5cdd62', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', '2025-07-30', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 04:42:47', '2025-07-26 04:42:47'),
+('6728068d-62ce-4d95-8cc2-b309ab4e1029', 'afcd9a79-71e7-4808-8206-b47acc722a0f', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-30', 1, NULL, NULL, 'scheduled', NULL, '2025-07-28 02:11:40', '2025-07-28 02:11:40');
+INSERT INTO `subscription_menus` (`id`, `subscription_id`, `menu_id`, `delivery_date`, `quantity`, `customizations`, `special_requests`, `status`, `modified_at`, `created_at`, `updated_at`) VALUES
+('67b8542b-1cf8-49e0-af87-ae73e6a3f005', 'efac4af3-3a57-45b8-b41f-30bec6f79334', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 03:00:50', '2025-07-15 03:00:50'),
+('67bdca15-8330-4cf4-85d1-2d0a1e08a7d4', 'c87d8cde-3f78-4e62-8762-d5aea0e56b4b', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-08-06', 1, NULL, NULL, 'scheduled', NULL, '2025-08-05 16:07:25', '2025-08-05 16:07:25'),
+('6930a32f-74b9-4b8d-92fc-ddb12698da19', '634e7e93-9dbf-4e20-98d2-69922f7d4357', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-19 08:23:44', '2025-07-19 08:23:44'),
+('696ad4d1-3cb3-45fb-ab74-b79e88f4681f', 'ecaa5b9d-44dc-4564-b077-248692b8e812', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 01:47:10', '2025-07-14 01:47:10'),
+('696c8f9e-6de0-420c-a027-6945f8a1ef53', '36ecb782-ce8c-428a-b8a9-afd7e02bcfe8', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 01:42:25', '2025-07-14 01:42:25'),
+('6979ae7a-97f5-48a1-8819-eff9cad9810f', '330aded2-fb8c-4acc-8fb6-e83403ce573d', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-08-13', 1, NULL, NULL, 'scheduled', NULL, '2025-08-08 03:29:29', '2025-08-08 04:28:25'),
+('6b1a4f3f-42b9-4f6e-adef-252d2c9f5efe', '393e600c-4672-4b2e-98c9-0fb03ddfe4c4', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-20', 1, NULL, NULL, 'scheduled', NULL, '2025-07-20 02:50:30', '2025-07-20 02:50:30'),
+('6b5dbcb5-6a7a-4852-951c-349e641d1e0f', '2fd75d4e-7618-435d-879b-d1e6001ca014', '19f1b8d3-7d75-4cc6-b804-58cf8d136d9d', '2025-08-02', 1, NULL, NULL, 'scheduled', NULL, '2025-07-28 07:56:40', '2025-07-28 07:56:40'),
+('6b8480e7-a617-42d9-b277-4d70e8aa1da8', 'd0fd5c76-2364-44b2-9ed4-fd2233f57e33', '6cae13fc-b181-43bf-babb-99cb2ce39d3c', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 08:20:45', '2025-07-26 08:20:45'),
+('6bdd9da1-4e98-4ed0-9f48-a0146587ff2b', '36ecb782-ce8c-428a-b8a9-afd7e02bcfe8', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', '2025-07-20', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 01:42:25', '2025-07-14 01:42:25'),
+('6bfb0e7d-c227-4f20-b997-b8f75ad75c0f', 'ecaa5b9d-44dc-4564-b077-248692b8e812', '19f1b8d3-7d75-4cc6-b804-58cf8d136d9d', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 01:47:10', '2025-07-14 01:47:10'),
+('6c8e5646-a16b-4ed7-b3f9-3c950bf43920', 'daab6f86-1f1a-4a21-a03b-e4b5f12dca5d', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-08-02', 1, NULL, NULL, 'scheduled', NULL, '2025-07-28 08:56:03', '2025-07-28 08:56:03'),
+('6d2cdcdd-2e3b-42e7-9f7a-325a56c6664a', '36ecb782-ce8c-428a-b8a9-afd7e02bcfe8', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 01:42:25', '2025-07-14 01:42:25'),
+('6d4862b9-d1c1-4111-bc81-f17e1fe225bc', '0463a886-ab5b-4447-ad7e-f42ee0c70433', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-20', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 11:33:33', '2025-07-15 11:33:33'),
+('6da83492-2feb-4be6-8db9-17a228892504', 'bf8b8ba5-c77c-4983-9705-0b63f9414f99', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-18 07:26:03', '2025-07-18 07:26:03'),
+('6ddc1a9f-6313-41c9-b65b-2d3f11277be3', '3b193ef1-27a8-4b32-a389-6be6fda26683', '19f1b8d3-7d75-4cc6-b804-58cf8d136d9d', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 04:03:35', '2025-07-26 04:03:35'),
+('6e00dde3-17db-4d88-8c8c-cd3897704751', '1fa52d11-2f99-451e-8151-0914626b0d58', '416cc737-c6a1-4b0d-a0d0-a40f384f496e', '2025-07-20', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 02:13:22', '2025-07-14 02:13:22'),
+('6eaba9a9-d38c-43d1-8ef7-610de40adf3d', '0637e1ce-9417-46a1-be75-cfb96c85e0c0', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-30', 1, NULL, NULL, 'scheduled', NULL, '2025-07-28 14:11:45', '2025-07-28 14:11:45'),
+('6fd6bd4d-6fe7-48f4-b561-c40cf19eaef5', '634e7e93-9dbf-4e20-98d2-69922f7d4357', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-19 08:23:44', '2025-07-19 08:23:44'),
+('6fe0a416-4b17-4704-bad9-e6f7bb802b25', '09d2a30f-8ae6-4956-8b6a-400bc4d2a7eb', 'eda83eb5-d471-45a7-ad9e-339b89e68789', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-16 07:04:00', '2025-07-16 07:04:00'),
+('6ff34510-b946-49cd-85d2-53db9ee1ee5c', '6eae9f70-8676-4865-9891-3a411758272f', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 06:40:03', '2025-07-21 06:40:03'),
+('707a7bbe-1a5c-4f74-9f6a-9821bd35509f', '5e4785f7-1825-400f-b096-daac3ac8a5a4', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 03:04:42', '2025-07-15 03:04:42'),
+('707e4532-9ea5-4762-be71-a0a8641e7a0b', 'fc4a97dc-71e1-4a4a-b7ab-3f8b8b40c6ed', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-27', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 11:02:37', '2025-07-14 11:02:37'),
+('70c8d4c0-6059-4318-bb9d-b692c44344c0', 'f0e9bfd8-538d-4c64-b910-939ec367cbcf', '6cae13fc-b181-43bf-babb-99cb2ce39d3c', '2025-08-06', 1, NULL, NULL, 'scheduled', NULL, '2025-08-05 16:09:28', '2025-08-05 16:09:28'),
+('70da8f53-b32e-4108-826a-defb2ed70a9d', 'e8580062-4b9a-4b95-8293-dcb76f621210', '416cc737-c6a1-4b0d-a0d0-a40f384f496e', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 09:12:18', '2025-07-21 09:12:18'),
+('711b1897-123f-4d18-9fb2-d1bc97cd0a46', 'e2f94945-f45f-4f01-aff1-4fb48c593266', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-09', 1, NULL, NULL, 'scheduled', NULL, '2025-07-08 09:38:27', '2025-07-08 09:38:27'),
+('7244060b-c815-4e96-bb2d-32e4f323daf0', '197905d6-628d-4f43-bbf5-801e011b0e8e', '416cc737-c6a1-4b0d-a0d0-a40f384f496e', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-22 12:27:06', '2025-07-22 12:27:06'),
+('724bb48a-07d4-42c7-b9b3-d54a83aec43f', 'bf0b8b17-60dd-43b6-bc02-574a3b4da914', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 03:05:22', '2025-07-15 03:05:22'),
+('72ed507b-d6ea-4a65-b7aa-64bbd968c7e7', '127ea3b3-2807-4583-a3f0-c999188bb2e0', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-08-06', 1, NULL, NULL, 'scheduled', NULL, '2025-08-04 07:39:56', '2025-08-04 07:39:56'),
+('732d9645-fbcd-4e1b-93a9-b40933b10a3d', '460ab3f2-889e-4a16-80a6-4e951cb7d3c6', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-27', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 07:01:34', '2025-07-14 07:01:34'),
+('735e2029-50d2-4d16-b8a7-86dd3faa20cc', '4623a948-ae81-4cdb-979f-25102e9a8ec3', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-30', 1, NULL, NULL, 'scheduled', NULL, '2025-07-27 13:32:18', '2025-07-27 13:32:18'),
+('741b01b0-2d2e-45b6-8227-e95c5680ea69', '79c5d78e-11d4-44b1-9270-dc9fde5cfe25', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-30', 1, NULL, NULL, 'scheduled', NULL, '2025-07-27 13:31:49', '2025-07-27 13:31:49'),
+('74a8726a-c5d7-463d-a078-9efbbaeff14d', '002a5635-19c2-496c-97f6-7d9b867d9ceb', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-14', 1, NULL, NULL, 'scheduled', NULL, '2025-07-13 12:39:59', '2025-07-13 12:39:59'),
+('7501d7c3-64f2-4f3c-a546-76fee3f40614', 'f8234164-aa26-469f-82d1-8d91f50a4407', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 03:35:16', '2025-07-15 03:35:16'),
+('750da633-0e28-4305-8067-848e47675fbd', '94e1d12d-a30f-4c99-b13d-dc801f7d26de', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-20', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 01:41:52', '2025-07-14 01:41:52'),
+('75ddcb1b-dfde-4f35-b46c-c6a784057c36', '35cf6ed8-05d1-4da6-b069-72c2dfb665a4', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-08-10', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 03:04:02', '2025-07-15 03:04:02'),
+('75e09789-5aa0-4114-ae33-50f0406ffd9c', '7faac785-fb6b-4d97-86a2-2f44a5c10261', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 08:57:54', '2025-07-21 08:57:54'),
+('76296cbc-98af-4fdc-b6e8-d6f2d5b93d33', 'be8c3b24-114f-49e7-a816-e60e43899cde', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-20', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 10:36:51', '2025-07-14 10:36:51'),
+('7678f45d-9578-4983-8781-b4bea9ce10dc', 'd5492ba5-f6e3-4e5b-b520-4ad36e6d0ed3', 'eda83eb5-d471-45a7-ad9e-339b89e68789', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 08:48:58', '2025-07-21 08:48:58'),
+('76c8271f-fa8a-4333-8419-b862282e6819', '3b193ef1-27a8-4b32-a389-6be6fda26683', '6cae13fc-b181-43bf-babb-99cb2ce39d3c', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 04:03:35', '2025-07-26 04:03:35'),
+('76ea49bc-8336-4c40-90d0-134acde014b1', 'a586353a-4092-48ea-a663-e75479330d20', '19f1b8d3-7d75-4cc6-b804-58cf8d136d9d', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 01:44:32', '2025-07-14 01:44:32'),
+('77e89abb-c638-41ed-8aee-52b9f2d83f1d', '460ab3f2-889e-4a16-80a6-4e951cb7d3c6', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-27', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 07:01:34', '2025-07-14 07:01:34'),
+('782bcbfb-0093-4042-b7d0-c49c3ea377cd', '1b8fa3b4-6c61-475d-bd90-47b11657b92e', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-14', 1, NULL, NULL, 'scheduled', NULL, '2025-07-13 12:36:11', '2025-07-13 12:36:11'),
+('787a7e60-3959-467a-9e7c-7e24f29e5e12', '08088294-f964-4dad-9615-786155382e06', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-14', 1, NULL, NULL, 'scheduled', NULL, '2025-07-13 12:55:10', '2025-07-13 12:55:10'),
+('7896507e-b792-4ebf-ae1c-7ccc69f75437', 'ecaa5b9d-44dc-4564-b077-248692b8e812', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-20', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 01:47:10', '2025-07-14 01:47:10'),
+('78c06901-fe61-4634-bda1-01885a6f4e9a', 'd25b172c-1e0f-4b79-a7e9-f5d35c054a8f', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-08-06', 1, NULL, NULL, 'scheduled', NULL, '2025-08-05 08:32:43', '2025-08-05 08:32:43'),
+('78dea31f-69c7-4260-b999-3a6df48d13a7', 'efac4af3-3a57-45b8-b41f-30bec6f79334', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 03:00:50', '2025-07-15 03:00:50'),
+('795f5631-9d80-4f55-9658-c200ee7bbae0', '94e1d12d-a30f-4c99-b13d-dc801f7d26de', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 01:41:52', '2025-07-14 01:41:52'),
+('79a6bad8-e28c-43c0-ae7f-12571d84ce34', '80e669b2-3085-46ea-ad6b-642f22fa0b35', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 08:30:08', '2025-07-21 08:30:08'),
+('7a16e710-5a52-4399-9e94-bfdcd808c0d0', '0bf75805-f0ab-4207-a172-25912a12ecb4', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 02:16:49', '2025-07-14 02:16:49'),
+('7a375a85-de55-4f36-9dad-24474023ab21', 'e0f8eeba-f3d0-48bc-bb21-7bb716f6f145', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-27', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 06:59:33', '2025-07-14 06:59:33'),
+('7b500950-6b79-4d11-bca7-085f3540d0a7', '05a54dfa-21ac-4b7c-8a99-612029bc2fb2', '6cae13fc-b181-43bf-babb-99cb2ce39d3c', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 04:41:46', '2025-07-26 04:41:46'),
+('7c135bfc-2fa4-4c99-9b81-7fc244a1f8d3', 'e55cb19d-5910-4d8b-8593-209ff7ca1cbe', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 04:56:40', '2025-07-26 04:56:40'),
+('7c421c4c-2bfb-41d1-92d9-1f5b225132df', '09d2a30f-8ae6-4956-8b6a-400bc4d2a7eb', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-16 07:04:00', '2025-07-16 07:04:00'),
+('7c7a9d65-9f57-4153-bdac-75b275cb647f', '766168a3-f202-449e-a16a-44e8cdd19010', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-15', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 15:08:35', '2025-07-14 15:08:35'),
+('7d2b234e-3a66-4e14-bd29-6e3f03b4f93a', 'a60ae27d-1ea2-4e86-a000-556f6fba9433', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-08-13', 1, 'null', NULL, 'scheduled', NULL, '2025-07-27 09:50:29', '2025-07-27 09:50:29'),
+('7d8c90a8-0b72-4cd5-b3e9-aa541aa79ee3', 'f1cd09f7-8b60-4e2f-b26d-a478e1ec1e3a', 'meal-kit-tom-yum-2025', '2025-08-09', 1, NULL, NULL, 'scheduled', NULL, '2025-08-06 08:31:50', '2025-08-06 08:31:50'),
+('7e22a8df-746b-4326-8259-6010de5537ed', '476a2565-e455-41a2-bdc8-c0e7e4534761', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 03:49:52', '2025-07-15 03:49:52'),
+('7ea3b9c8-5398-4953-a86a-ae26f3198bef', '3eead7a4-a66c-41a6-b9d4-58ba218bfbec', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-08-06', 1, NULL, NULL, 'scheduled', NULL, '2025-08-05 16:10:31', '2025-08-05 16:10:31'),
+('7f0ce082-84a2-49e3-8ae0-02c90426ebdd', 'd5f927b4-1a43-4fa9-a859-f0fe06b6d5ca', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 15:52:48', '2025-07-15 15:52:48'),
+('7fcf2a33-aae3-4e38-9433-188750116dc9', '94e1d12d-a30f-4c99-b13d-dc801f7d26de', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-20', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 01:41:52', '2025-07-14 01:41:52'),
+('80bcd96a-6637-4945-aaa9-68b125206432', 'd91072d4-076a-4973-b819-9d04d6a83da7', 'meal-kit-green-curry-2025', '2025-07-30', 1, NULL, NULL, 'scheduled', NULL, '2025-07-29 07:13:45', '2025-07-29 07:13:45'),
+('80e9baa8-19e2-45dc-85a0-4ae3a7e64e85', 'bf0b8b17-60dd-43b6-bc02-574a3b4da914', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 03:05:22', '2025-07-15 03:05:22'),
+('81a1aadc-9154-49c7-8bc2-4198762d170e', '4c54b901-68c6-4f6e-b1de-821a540166fe', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 09:17:45', '2025-07-26 09:17:45'),
+('81b99ac3-f8b4-423e-a306-059680d26588', '7a76610b-74ae-4312-8489-c37d065083f2', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 07:06:52', '2025-07-14 07:06:52'),
+('81c3eb70-f95a-4c60-91f7-a6330b9161fc', '79c5d78e-11d4-44b1-9270-dc9fde5cfe25', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-30', 1, NULL, NULL, 'scheduled', NULL, '2025-07-27 13:31:49', '2025-07-27 13:31:49'),
+('82a8882c-bff5-4f3d-b048-581c19b4a18a', 'e684d621-c7e6-4eed-a8a5-38abc0d72366', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-08-03', 1, NULL, NULL, 'scheduled', NULL, '2025-07-16 07:04:33', '2025-07-16 07:04:33'),
+('82e8d0f9-18cb-4760-8f21-6d90090ecaa1', '5249821f-18f8-4fd4-85d7-91f2546d7089', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-11', 1, NULL, NULL, 'scheduled', NULL, '2025-07-10 08:16:16', '2025-07-10 08:16:16'),
+('8331bc22-a0dd-4955-bea9-3a050abd2639', '65e0f10b-9c97-4034-a4f9-4b35d1782fab', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-08-13', 1, NULL, NULL, 'scheduled', NULL, '2025-07-27 07:57:30', '2025-07-27 07:57:30'),
+('83ff14ab-8611-4316-a294-a2dd289c2507', '081de44b-56d9-4745-acdc-19a129ac5b97', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-28', 1, NULL, NULL, 'scheduled', NULL, '2025-07-27 03:07:23', '2025-07-27 03:07:23'),
+('84f84218-88bc-4c8e-8c7a-3d8f6555236a', 'd5492ba5-f6e3-4e5b-b520-4ad36e6d0ed3', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 08:48:58', '2025-07-21 08:48:58'),
+('850988b8-092f-427c-845e-bcc34d46589a', 'ecaa5b9d-44dc-4564-b077-248692b8e812', '19f1b8d3-7d75-4cc6-b804-58cf8d136d9d', '2025-07-20', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 01:47:10', '2025-07-14 01:47:10'),
+('8519afb3-8175-4d35-a7de-ee148e78cfd0', '1fa52d11-2f99-451e-8151-0914626b0d58', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 02:13:22', '2025-07-14 02:13:22'),
+('8617457c-73d2-4fbf-93fa-f4f93788ac82', '2fd75d4e-7618-435d-879b-d1e6001ca014', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', '2025-08-02', 1, NULL, NULL, 'scheduled', NULL, '2025-07-28 07:56:40', '2025-07-28 07:56:40'),
+('8721f384-c57f-41a5-8c43-43ba93ecaa0c', 'c87d8cde-3f78-4e62-8762-d5aea0e56b4b', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-08-06', 1, NULL, NULL, 'scheduled', NULL, '2025-08-05 16:07:25', '2025-08-05 16:07:25'),
+('8745501e-d5f3-4bd4-a0e3-a3f88e4a6951', 'ed9c0493-82b6-497f-af16-796a2d1b8c95', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-20', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 04:56:03', '2025-07-14 04:56:03'),
+('88b8f5ac-9b33-48e6-b083-49c7293a3192', 'ecaa5b9d-44dc-4564-b077-248692b8e812', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 01:47:10', '2025-07-14 01:47:10'),
+('8938c3a7-db11-40ac-a46b-4bf0d0fa2d6f', '0637e1ce-9417-46a1-be75-cfb96c85e0c0', '6cae13fc-b181-43bf-babb-99cb2ce39d3c', '2025-07-30', 1, NULL, NULL, 'scheduled', NULL, '2025-07-28 14:11:45', '2025-07-28 14:11:45'),
+('89e0a589-14a8-427e-8895-fb9e4b0e6313', '4f718c97-3c23-4cc2-9f99-cd485c9bab13', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 02:22:06', '2025-07-15 02:22:06'),
+('89e7f19b-f0f1-4588-81ff-72bb01c8c715', '755c9d5c-9642-45a7-b698-786077e6b8b8', '6cae13fc-b181-43bf-babb-99cb2ce39d3c', '2025-08-02', 1, NULL, NULL, 'scheduled', NULL, '2025-07-30 08:47:04', '2025-07-30 08:47:04'),
+('8a0b0d2a-db43-4432-bc3d-d142e5d56f0b', '460ab3f2-889e-4a16-80a6-4e951cb7d3c6', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-08-02', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 07:01:34', '2025-07-14 07:01:34'),
+('8a12ffbf-a8a3-4590-8721-46bf6248a816', '6eae9f70-8676-4865-9891-3a411758272f', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 06:40:03', '2025-07-21 06:40:03'),
+('8a7b3dc6-004d-4a1d-b136-aedf9815a7fc', '05a54dfa-21ac-4b7c-8a99-612029bc2fb2', '416cc737-c6a1-4b0d-a0d0-a40f384f496e', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 04:41:46', '2025-07-26 04:41:46'),
+('8a981f75-4af2-47a4-82ff-a59763075ff9', 'd6831992-8062-4cbe-b90a-b5c7f2fd3ffb', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-08-02', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 02:16:01', '2025-07-14 02:16:01'),
+('8af33425-0f78-4724-91f0-8df03bccf3ab', '395d369f-4d05-4353-8238-e0956cee736e', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-08-09', 1, NULL, NULL, 'scheduled', NULL, '2025-08-07 02:06:23', '2025-08-07 02:06:23'),
+('8b0dbbb1-0772-47a4-8f23-a6caa5feb7c5', 'f36c1c70-b651-495a-9fc5-5252bade2fd6', '19f1b8d3-7d75-4cc6-b804-58cf8d136d9d', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 05:08:39', '2025-07-26 05:08:39'),
+('8be65ef1-5ee0-487e-9ae4-8bae7eda8f58', '6dcdf617-feb4-4075-9fd4-1478d7d0b8bf', 'meal-kit-panang-curry-2025', '2025-08-02', 1, NULL, NULL, 'scheduled', NULL, '2025-07-30 08:15:05', '2025-07-30 08:15:05'),
+('8e79bb8e-ffc3-4b0a-9bbe-6e3df9469a5f', '3b193ef1-27a8-4b32-a389-6be6fda26683', 'eda83eb5-d471-45a7-ad9e-339b89e68789', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 04:03:35', '2025-07-26 04:03:35'),
+('8f730646-553e-49ea-8504-468795511305', 'e2f94945-f45f-4f01-aff1-4fb48c593266', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-09', 1, NULL, NULL, 'scheduled', NULL, '2025-07-08 09:38:27', '2025-07-08 09:38:27'),
+('8fa1126a-9800-4c0f-a2dc-cf8c9463f8ea', '7927a4a2-30c9-44ae-a2ea-3294cc64d60a', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-08-10', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 03:41:16', '2025-07-15 03:41:16'),
+('8fe60603-c0ed-44b2-b938-70b7aa29db50', '09d2a30f-8ae6-4956-8b6a-400bc4d2a7eb', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-16 07:04:00', '2025-07-16 07:04:00'),
+('90525330-b07c-4819-8367-83942cd5ada7', '476a2565-e455-41a2-bdc8-c0e7e4534761', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-20', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 03:49:52', '2025-07-15 03:49:52'),
+('906a7a56-1f7e-47f3-8d0f-e077de9b04f9', 'febed4c8-d71c-4b57-bc75-4a8276a00e2c', '19f1b8d3-7d75-4cc6-b804-58cf8d136d9d', '2025-08-10', 1, NULL, NULL, 'scheduled', NULL, '2025-07-17 03:13:44', '2025-07-17 03:13:44'),
+('909dd8f6-3565-45f1-90cd-4523fe90ba9b', '7a76610b-74ae-4312-8489-c37d065083f2', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 07:06:52', '2025-07-14 07:06:52'),
+('91fd21a0-2abe-4c0c-b7b8-87579a662110', '2fd75d4e-7618-435d-879b-d1e6001ca014', '6cae13fc-b181-43bf-babb-99cb2ce39d3c', '2025-08-02', 1, NULL, NULL, 'scheduled', NULL, '2025-07-28 07:56:40', '2025-07-28 07:56:40'),
+('92311d95-1cd6-49df-8049-6f972e6f1b6e', '3b8765cb-3002-458a-b569-68e971bd456f', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-08-06', 1, NULL, NULL, 'scheduled', NULL, '2025-08-05 16:04:39', '2025-08-05 16:04:39'),
+('9254f3bf-f5b3-445b-8202-0f2e3ce2e8f8', '460ab3f2-889e-4a16-80a6-4e951cb7d3c6', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-08-02', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 07:01:34', '2025-07-14 07:01:34'),
+('93d7b8be-b135-4d4c-824f-b012d63a5f40', 'e3567d9c-a8ef-4662-8ddf-68da5f569ee7', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 06:37:48', '2025-07-26 06:37:48'),
+('950f92a7-dddf-4ea2-a59f-e44062a19097', 'e0f8eeba-f3d0-48bc-bb21-7bb716f6f145', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 06:59:33', '2025-07-14 06:59:33'),
+('96174771-259a-4107-8193-963402b07cdc', '80e45f1e-1ab4-4f37-980d-488627fc713b', '6cae13fc-b181-43bf-babb-99cb2ce39d3c', '2025-08-02', 1, '[]', NULL, 'scheduled', NULL, '2025-07-26 13:46:08', '2025-07-26 13:46:08'),
+('96502c19-3e61-4de9-b4e8-32ce8367d9a1', '507020f8-63bc-4379-9a1f-8eb56df8390f', '19f1b8d3-7d75-4cc6-b804-58cf8d136d9d', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 04:32:42', '2025-07-21 04:32:42'),
+('9656923b-339f-4115-8033-fe1402a16391', 'afcd9a79-71e7-4808-8206-b47acc722a0f', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-30', 1, NULL, NULL, 'scheduled', NULL, '2025-07-28 02:11:40', '2025-07-28 02:11:40'),
+('967b80f4-6a3c-4598-8094-9cd1d625fd0c', '127ea3b3-2807-4583-a3f0-c999188bb2e0', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-08-06', 1, NULL, NULL, 'scheduled', NULL, '2025-08-04 07:39:56', '2025-08-04 07:39:56'),
+('96f14aa1-7ed0-4974-bd47-4f39d6078d47', '94e1d12d-a30f-4c99-b13d-dc801f7d26de', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 01:41:52', '2025-07-14 01:41:52'),
+('976a8f9c-44dd-4c12-9aee-37730d35c1cf', 'd6831992-8062-4cbe-b90a-b5c7f2fd3ffb', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-08-02', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 02:16:01', '2025-07-14 02:16:01'),
+('97d2b53b-3d90-42c8-9c21-19b2d73c98b0', '197905d6-628d-4f43-bbf5-801e011b0e8e', '6cae13fc-b181-43bf-babb-99cb2ce39d3c', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-22 12:27:06', '2025-07-22 12:27:06'),
+('98319a44-eb6f-4cac-9285-43f31d4a5fd4', '7a76610b-74ae-4312-8489-c37d065083f2', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 07:06:52', '2025-07-14 07:06:52'),
+('98696d40-e43f-4d4c-8430-3a902ce29e05', '460ab3f2-889e-4a16-80a6-4e951cb7d3c6', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-27', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 07:01:34', '2025-07-14 07:01:34'),
+('99e61a8a-9cc6-43b3-8f35-ae189b29461c', '4f718c97-3c23-4cc2-9f99-cd485c9bab13', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 02:22:06', '2025-07-15 02:22:06'),
+('99f50264-78bd-401b-8739-7737e9e6ea60', 'c0d0c70d-0bf8-4e03-a410-cf58476cd225', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-08-13', 1, NULL, NULL, 'scheduled', NULL, '2025-08-03 07:12:24', '2025-08-03 07:12:24'),
+('99fe08a2-dff2-42b2-9dd1-d2539996c67f', 'e0f8eeba-f3d0-48bc-bb21-7bb716f6f145', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 06:59:33', '2025-07-14 06:59:33'),
+('9a45ee41-ff4c-4549-ab11-bf117fb5b88f', 'a586353a-4092-48ea-a663-e75479330d20', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-20', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 01:44:32', '2025-07-14 01:44:32'),
+('9a5fb016-b2cf-47a6-b1c1-8bf21f9c14f6', '081de44b-56d9-4745-acdc-19a129ac5b97', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-28', 1, NULL, NULL, 'scheduled', NULL, '2025-07-27 03:07:23', '2025-07-27 03:07:23'),
+('9a7c4187-aa49-45bd-a70a-dffd35763d52', '1fa52d11-2f99-451e-8151-0914626b0d58', '19f1b8d3-7d75-4cc6-b804-58cf8d136d9d', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 02:13:22', '2025-07-14 02:13:22'),
+('9affb3f0-669f-4e47-9a05-dd9c9a83d923', 'e0f8eeba-f3d0-48bc-bb21-7bb716f6f145', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', '2025-07-27', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 06:59:33', '2025-07-14 06:59:33'),
+('9c58e51f-791f-475b-b70f-9b373b150f60', '1b8fa3b4-6c61-475d-bd90-47b11657b92e', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-14', 1, NULL, NULL, 'scheduled', NULL, '2025-07-13 12:36:11', '2025-07-13 12:36:11'),
+('9c7d4219-4af0-464d-b10c-c01b1456ba90', '22f5c830-264b-4b69-9f5c-6098011a7e40', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 04:27:08', '2025-07-26 04:27:08'),
+('9d2552b1-57ad-49b2-afa9-77430cf25561', '2fd75d4e-7618-435d-879b-d1e6001ca014', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-08-02', 1, NULL, NULL, 'scheduled', NULL, '2025-07-28 07:56:40', '2025-07-28 07:56:40'),
+('9df0ac09-5385-436a-bdb7-bd64947038cb', 'c0e22f45-8a3d-451e-971d-9b4ad27b5bd9', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-08-09', 1, NULL, NULL, 'scheduled', NULL, '2025-08-07 02:19:11', '2025-08-07 02:19:11'),
+('9f1a31e1-d607-40db-8213-e47f2f2ac808', 'bf8b8ba5-c77c-4983-9705-0b63f9414f99', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-18 07:26:03', '2025-07-18 07:26:03'),
+('9f8e5d28-fd8b-491c-9995-5bb66379102e', '002a5635-19c2-496c-97f6-7d9b867d9ceb', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-14', 1, NULL, NULL, 'scheduled', NULL, '2025-07-13 12:39:59', '2025-07-13 12:39:59'),
+('a040a585-398f-4a68-a402-3b0ccce736df', '2fd75d4e-7618-435d-879b-d1e6001ca014', '416cc737-c6a1-4b0d-a0d0-a40f384f496e', '2025-08-02', 1, NULL, NULL, 'scheduled', NULL, '2025-07-28 07:56:40', '2025-07-28 07:56:40'),
+('a09857c3-110a-448c-9cc7-5eb950154b9d', '65e0f10b-9c97-4034-a4f9-4b35d1782fab', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-08-13', 1, NULL, NULL, 'scheduled', NULL, '2025-07-27 07:57:30', '2025-07-27 07:57:30'),
+('a0c240ad-bcbb-4bea-bb18-69a1c7b7294a', 'a5e23f87-bb26-4bf8-8dac-1b1e482c88c7', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 09:25:50', '2025-07-26 09:25:50'),
+('a11069f1-18a7-4744-b82d-e8c6cc94909f', '476b9536-ab53-42a7-98c9-e224d368f12d', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-15', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 15:13:11', '2025-07-14 15:13:11'),
+('a29d3964-dd1b-4b35-96a4-b6a8c5bcd826', 'fbba995f-8221-4a6f-afe7-cc29afd8d26c', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', '2025-07-14', 1, NULL, NULL, 'scheduled', NULL, '2025-07-13 13:11:02', '2025-07-13 13:11:02'),
+('a2f6130e-bb30-4ec4-bb63-1e7f0c49f29e', 'be8c3b24-114f-49e7-a816-e60e43899cde', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-20', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 10:36:51', '2025-07-14 10:36:51'),
+('a3646f17-1a78-4f8a-8045-8123f4a398a0', '634e7e93-9dbf-4e20-98d2-69922f7d4357', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-19 08:23:44', '2025-07-19 08:23:44'),
+('a3d76299-0eba-4c9b-804a-a20f58bb807c', '8daae380-9b24-43d5-86e8-13aa455b09d4', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 02:34:01', '2025-07-14 02:34:01'),
+('a3f6c8b1-4cb8-4824-a9af-e8210dc3de3e', 'fbba995f-8221-4a6f-afe7-cc29afd8d26c', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-14', 1, NULL, NULL, 'scheduled', NULL, '2025-07-13 13:11:02', '2025-07-13 13:11:02'),
+('a4c60430-80e5-4489-b232-04d832df9883', 'e684d621-c7e6-4eed-a8a5-38abc0d72366', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-08-03', 1, NULL, NULL, 'scheduled', NULL, '2025-07-16 07:04:33', '2025-07-16 07:04:33'),
+('a54fea28-0546-46bb-ae33-17d9437efdf6', '350663c4-d1b2-42f2-ab87-ed36aab9e7d0', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 11:13:08', '2025-07-15 11:13:08'),
+('a7654f2f-cc33-4809-a9ec-f0ac908849a9', '1b8fa3b4-6c61-475d-bd90-47b11657b92e', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-14', 1, NULL, NULL, 'scheduled', NULL, '2025-07-13 12:36:11', '2025-07-13 12:36:11'),
+('a7d6522f-217f-40f2-93b7-6ab3f0a2a556', '97b9e7bd-e350-4d19-8ea5-022bcfdf74d0', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 02:09:32', '2025-07-15 02:09:32'),
+('a7f7c78f-cfd1-4c35-b70a-72d4d0bad967', '197905d6-628d-4f43-bbf5-801e011b0e8e', '19f1b8d3-7d75-4cc6-b804-58cf8d136d9d', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-22 12:27:06', '2025-07-22 12:27:06'),
+('a836b4f1-5eb0-42b0-83ad-bce09f566e33', 'bf8b8ba5-c77c-4983-9705-0b63f9414f99', '6cae13fc-b181-43bf-babb-99cb2ce39d3c', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-18 07:26:03', '2025-07-18 07:26:03'),
+('a8915adc-3fec-44d1-acac-4db6c167b988', 'd0fd5c76-2364-44b2-9ed4-fd2233f57e33', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 08:20:45', '2025-07-26 08:20:45'),
+('a8c6c7e0-d303-4a31-b8fa-38d8adbc44f4', 'f1cd09f7-8b60-4e2f-b26d-a478e1ec1e3a', 'meal-kit-green-curry-2025', '2025-08-09', 1, NULL, NULL, 'scheduled', NULL, '2025-08-06 08:31:50', '2025-08-08 04:27:50'),
+('a95907e5-dbfa-4c87-9ec8-935d0a1255e8', '755c9d5c-9642-45a7-b698-786077e6b8b8', '416cc737-c6a1-4b0d-a0d0-a40f384f496e', '2025-08-02', 1, NULL, NULL, 'scheduled', NULL, '2025-07-30 08:47:04', '2025-07-30 08:47:04'),
+('a9638b66-8a9b-4586-b1b6-70034aac3776', '5e4785f7-1825-400f-b096-daac3ac8a5a4', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 03:04:42', '2025-07-15 03:04:42'),
+('a99bdf50-921c-4898-956b-2f660ca81feb', '80e669b2-3085-46ea-ad6b-642f22fa0b35', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 08:30:08', '2025-07-21 08:30:08'),
+('a9f2c850-3c85-498b-aa2b-b196c5822ce1', 'ecaa5b9d-44dc-4564-b077-248692b8e812', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', '2025-07-20', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 01:47:10', '2025-07-14 01:47:10'),
+('aa14c4e9-c8ba-4b1e-8f29-a60c2c20ba2d', 'e2f94945-f45f-4f01-aff1-4fb48c593266', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-09', 1, NULL, NULL, 'scheduled', NULL, '2025-07-08 09:38:27', '2025-07-08 09:38:27'),
+('aaab66d5-bffe-4077-9c13-22b0b70eb85e', '8daae380-9b24-43d5-86e8-13aa455b09d4', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 02:34:01', '2025-07-14 02:34:01'),
+('aacecb37-5335-4059-8434-3367e1e944ab', 'b84ce1b4-96a3-4318-a807-fdee7345fbff', '6cae13fc-b181-43bf-babb-99cb2ce39d3c', '2025-07-30', 1, NULL, NULL, 'scheduled', NULL, '2025-07-29 12:34:19', '2025-07-29 12:34:19'),
+('ab417338-be4d-424f-8840-9d0c4d30f7cc', '330aded2-fb8c-4acc-8fb6-e83403ce573d', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-08-13', 1, NULL, NULL, 'scheduled', NULL, '2025-08-08 03:29:29', '2025-08-08 03:29:29'),
+('ab4ecff0-84e6-4fa6-9ccf-8f4d031eae97', 'a60ae27d-1ea2-4e86-a000-556f6fba9433', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-08-13', 1, 'null', NULL, 'scheduled', NULL, '2025-07-27 09:50:29', '2025-07-27 09:50:29'),
+('ac9d4cd7-5459-48e4-8c59-7e5fd47dc6a9', '081de44b-56d9-4745-acdc-19a129ac5b97', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', '2025-07-28', 1, NULL, NULL, 'scheduled', NULL, '2025-07-27 03:07:23', '2025-07-27 03:07:23'),
+('ae136d87-fa63-436c-a4c8-d1d83363fbb3', 'a586353a-4092-48ea-a663-e75479330d20', '6cae13fc-b181-43bf-babb-99cb2ce39d3c', '2025-07-20', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 01:44:32', '2025-07-14 01:44:32'),
+('ae970f8f-c2cc-4816-9ddd-05773658c982', 'ecaa5b9d-44dc-4564-b077-248692b8e812', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-20', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 01:47:10', '2025-07-14 01:47:10'),
+('af16b37c-deff-4d65-b38d-0e6600a42e47', '0e960c81-fefa-455a-b9cd-b04d22410477', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 01:17:08', '2025-07-21 01:17:08'),
+('af49dfa8-481d-4516-9b90-6f14311d15e3', '6fde2876-d423-4090-a160-975427211953', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 09:14:59', '2025-07-21 09:14:59'),
+('afe8aab5-ccfb-472d-a2d7-1a48e7b12a52', 'f1cd09f7-8b60-4e2f-b26d-a478e1ec1e3a', 'meal-kit-panang-curry-2025', '2025-08-09', 1, NULL, NULL, 'scheduled', NULL, '2025-08-06 08:31:50', '2025-08-06 08:31:50'),
+('afe8ce84-aa4b-435d-924c-48a2b30097f2', '634e7e93-9dbf-4e20-98d2-69922f7d4357', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-19 08:23:44', '2025-07-19 08:23:44'),
+('aff2e073-3f91-48a3-ab15-a1027439fc9e', '4c54b901-68c6-4f6e-b1de-821a540166fe', '19f1b8d3-7d75-4cc6-b804-58cf8d136d9d', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 09:17:45', '2025-07-26 09:17:45'),
+('aff6b792-cb71-48d6-a605-e04540120d98', 'fbba995f-8221-4a6f-afe7-cc29afd8d26c', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-14', 1, NULL, NULL, 'scheduled', NULL, '2025-07-13 13:11:02', '2025-07-13 13:11:02'),
+('b0012471-62d0-4a1c-ba83-6cd5154deca0', 'a5e23f87-bb26-4bf8-8dac-1b1e482c88c7', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 09:25:50', '2025-07-26 09:25:50'),
+('b0e7e7cd-9c03-4051-80f9-563af12fa4fa', '48c6a9b9-5082-42bf-9e24-f5376e1b3f0e', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 04:46:42', '2025-07-26 04:46:42'),
+('b1678d42-f693-4c58-8b2d-87e0a1c70f5b', '5adf19e4-f653-4c00-9b11-830afd96d3d9', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-30', 1, 'null', NULL, 'scheduled', NULL, '2025-07-27 09:50:06', '2025-07-27 09:50:06'),
+('b2210df9-fe68-43b5-8def-8bcbb4b21aa1', '6dcdf617-feb4-4075-9fd4-1478d7d0b8bf', 'meal-kit-green-curry-2025', '2025-08-02', 1, NULL, NULL, 'scheduled', NULL, '2025-07-30 08:15:05', '2025-07-30 08:15:05'),
+('b2efd0ff-6c8d-46f1-8893-5ef8c6bde0e4', 'f0e9bfd8-538d-4c64-b910-939ec367cbcf', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', '2025-08-06', 1, NULL, NULL, 'scheduled', NULL, '2025-08-05 16:09:28', '2025-08-05 16:09:28'),
+('b2f32220-1e48-47f2-b266-dbf0371a447a', '35cf6ed8-05d1-4da6-b069-72c2dfb665a4', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-08-10', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 03:04:02', '2025-07-15 03:04:02'),
+('b31782d5-5e66-48d5-b85c-3e7e411920be', 'd0fd5c76-2364-44b2-9ed4-fd2233f57e33', '19f1b8d3-7d75-4cc6-b804-58cf8d136d9d', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 08:20:45', '2025-07-26 08:20:45'),
+('b4057a7b-5031-497d-80f9-840bbd0312cd', 'a9955447-3212-4995-8abd-9be1c313f537', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 16:18:52', '2025-07-15 16:18:52'),
+('b4094bd0-469b-4fcd-bd6d-d44705d10862', 'b389ea4d-adf2-41a0-b593-ba6e8bea9c8e', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-18 08:11:31', '2025-07-18 08:11:31'),
+('b40c3a8f-c34e-437f-a37a-35d9e042674a', 'db29bea4-1c9a-4124-8242-e1f5500a606a', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-11', 1, NULL, NULL, 'scheduled', NULL, '2025-07-10 08:27:50', '2025-07-10 08:27:50'),
+('b46fb4a6-610c-4cf0-a57f-ae014846adc7', '36ecb782-ce8c-428a-b8a9-afd7e02bcfe8', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-20', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 01:42:25', '2025-07-14 01:42:25'),
+('b4b93c41-3682-488c-88ed-dc4c95dd7289', '79c5d78e-11d4-44b1-9270-dc9fde5cfe25', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-30', 1, NULL, NULL, 'scheduled', NULL, '2025-07-27 13:31:49', '2025-07-27 13:31:49'),
+('b5073e56-73a1-4e30-9867-f9315ca8d4a2', '172bac7b-8248-46c8-b3d6-9070e2ce8755', 'eda83eb5-d471-45a7-ad9e-339b89e68789', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 04:27:44', '2025-07-26 04:27:44'),
+('b62935de-c1eb-46d2-9006-99f46942a584', 'a60ae27d-1ea2-4e86-a000-556f6fba9433', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-08-13', 1, 'null', NULL, 'scheduled', NULL, '2025-07-27 09:50:29', '2025-07-27 09:50:29'),
+('b689e12d-02cf-4138-8f81-558e0d255014', '766168a3-f202-449e-a16a-44e8cdd19010', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-15', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 15:08:35', '2025-07-14 15:08:35'),
+('b6963a47-0fe0-4db4-babb-4d1df9709763', '1b8fa3b4-6c61-475d-bd90-47b11657b92e', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-14', 1, NULL, NULL, 'scheduled', NULL, '2025-07-13 12:36:11', '2025-07-13 12:36:11'),
+('b6a02acb-3176-47bc-9cbc-3144ea973cb7', '97b9e7bd-e350-4d19-8ea5-022bcfdf74d0', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 02:09:32', '2025-07-15 02:09:32'),
+('b6c2ffd7-f018-4ca9-95e8-527424aa20c7', 'ed9c0493-82b6-497f-af16-796a2d1b8c95', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-20', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 04:56:03', '2025-07-14 04:56:03'),
+('b6f22ec1-8ea0-47d8-b54d-82c5852bdc46', 'fe2fed4b-bd42-4e54-b391-bd0256ae403f', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 07:30:58', '2025-07-21 07:30:58'),
+('b73c364d-029b-4266-8c0e-df6dfda2023c', '081de44b-56d9-4745-acdc-19a129ac5b97', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-28', 1, NULL, NULL, 'scheduled', NULL, '2025-07-27 03:07:23', '2025-07-27 03:07:23'),
+('b77adbff-80c8-4633-afaa-8453eb28e658', '79c5d78e-11d4-44b1-9270-dc9fde5cfe25', '416cc737-c6a1-4b0d-a0d0-a40f384f496e', '2025-07-30', 1, NULL, NULL, 'scheduled', NULL, '2025-07-27 13:31:49', '2025-07-27 13:31:49'),
+('b870a500-06c2-4eca-bed4-3362cfd12d0d', 'b389ea4d-adf2-41a0-b593-ba6e8bea9c8e', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-18 08:11:31', '2025-07-18 08:11:31'),
+('b8ae2309-3c58-4910-bfec-2d71667286cb', 'f4a3040e-2316-483a-8914-e0faceaaf58b', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-14', 1, NULL, NULL, 'scheduled', NULL, '2025-07-13 12:55:55', '2025-07-13 12:55:55'),
+('b9542571-fe7a-4c17-aece-b1354696bfd2', '08088294-f964-4dad-9615-786155382e06', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-14', 1, NULL, NULL, 'scheduled', NULL, '2025-07-13 12:55:10', '2025-07-13 12:55:10'),
+('b955ba97-2439-49df-bd1e-32c3bcf20b80', '9e0d5ae0-baa5-475c-b860-566c4b5f7548', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 05:02:43', '2025-07-26 05:02:43'),
+('b9acd88f-0d8d-40c9-be9c-df07ddf8fc9f', '7a76610b-74ae-4312-8489-c37d065083f2', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 07:06:52', '2025-07-14 07:06:52'),
+('b9d43605-0d58-4f27-9ac9-e41a52fb3740', '350663c4-d1b2-42f2-ab87-ed36aab9e7d0', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 11:13:08', '2025-07-15 11:13:08'),
+('ba673d98-3252-47af-8b20-00545a989378', 'febed4c8-d71c-4b57-bc75-4a8276a00e2c', '6cae13fc-b181-43bf-babb-99cb2ce39d3c', '2025-08-10', 1, NULL, NULL, 'scheduled', NULL, '2025-07-17 03:13:44', '2025-07-17 03:13:44'),
+('bba5bfe9-a69a-4bb0-811f-51c238c3d89b', '36ecb782-ce8c-428a-b8a9-afd7e02bcfe8', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 01:42:25', '2025-07-14 01:42:25'),
+('bc1ef1da-c3af-447f-82b2-90c1c87479d2', '0e960c81-fefa-455a-b9cd-b04d22410477', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 01:17:08', '2025-07-21 01:17:08'),
+('bc25ef75-eddc-492a-a6a0-d3a66e8282a2', 'e684d621-c7e6-4eed-a8a5-38abc0d72366', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-08-03', 1, NULL, NULL, 'scheduled', NULL, '2025-07-16 07:04:33', '2025-07-16 07:04:33'),
+('bc7e8775-9ddf-4d9a-9368-4284e821cc9c', 'a586353a-4092-48ea-a663-e75479330d20', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 01:44:32', '2025-07-14 01:44:32'),
+('bd06f809-40d0-47a0-8088-f2aa488a6c2c', 'b389ea4d-adf2-41a0-b593-ba6e8bea9c8e', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-18 08:11:31', '2025-07-18 08:11:31'),
+('bd64921f-d252-4bb3-8bf6-656bf9dfb25c', '172bac7b-8248-46c8-b3d6-9070e2ce8755', '6cae13fc-b181-43bf-babb-99cb2ce39d3c', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 04:27:44', '2025-07-26 04:27:44'),
+('bde9a874-c384-40e0-8b5b-7dcba86ff5bf', '5249821f-18f8-4fd4-85d7-91f2546d7089', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', '2025-07-11', 1, NULL, NULL, 'scheduled', NULL, '2025-07-10 08:16:16', '2025-07-10 08:16:16'),
+('be1a1a96-4065-494c-bbd3-19bf50e7aedd', 'd5492ba5-f6e3-4e5b-b520-4ad36e6d0ed3', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 08:48:58', '2025-07-21 08:48:58'),
+('be3017bb-bd4c-4d62-96e3-6b276b371cea', 'eda16d0d-beed-4842-a0c9-da52ceeeb7c5', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-08-06', 1, NULL, NULL, 'scheduled', NULL, '2025-08-05 07:10:46', '2025-08-05 07:10:46'),
+('be5d3d4e-d0e4-45fd-878e-f44fc7380a79', '1fa52d11-2f99-451e-8151-0914626b0d58', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-20', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 02:13:22', '2025-07-14 02:13:22'),
+('beb34469-7ba4-4bab-a7b7-f7c43e7a7593', '8c5f6119-2cf7-4130-9010-eb66e417d1f0', 'eda83eb5-d471-45a7-ad9e-339b89e68789', '2025-08-02', 1, NULL, NULL, 'scheduled', NULL, '2025-07-29 04:14:10', '2025-07-29 04:14:10'),
+('bebf2a6f-a271-452c-839c-1bafdeec1706', '0948600f-bdb7-42f4-8dc6-0093ae804b5b', '416cc737-c6a1-4b0d-a0d0-a40f384f496e', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 08:28:09', '2025-07-21 08:28:09'),
+('bf632004-a710-487b-8045-8a7da4ba3177', '48c6a9b9-5082-42bf-9e24-f5376e1b3f0e', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 04:46:42', '2025-07-26 04:46:42'),
+('bf82e229-f0b6-4aa8-9569-89a388332853', 'd0fd5c76-2364-44b2-9ed4-fd2233f57e33', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 08:20:45', '2025-07-26 08:20:45'),
+('c01ffc22-b2da-46ae-bfae-94c496c74022', 'a586353a-4092-48ea-a663-e75479330d20', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-20', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 01:44:32', '2025-07-14 01:44:32'),
+('c056bf3a-2cf9-4e00-87d9-4e7b23502360', 'fbba995f-8221-4a6f-afe7-cc29afd8d26c', '416cc737-c6a1-4b0d-a0d0-a40f384f496e', '2025-07-14', 1, NULL, NULL, 'scheduled', NULL, '2025-07-13 13:11:02', '2025-07-13 13:11:02'),
+('c0d2dfc5-7bd0-4937-a767-4a8b98c78631', 'a586353a-4092-48ea-a663-e75479330d20', 'eda83eb5-d471-45a7-ad9e-339b89e68789', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 01:44:32', '2025-07-14 01:44:32'),
+('c16a5a10-6dc6-4a60-a9d8-8354d9708a3a', 'a60ae27d-1ea2-4e86-a000-556f6fba9433', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', '2025-08-13', 1, 'null', NULL, 'scheduled', NULL, '2025-07-27 09:50:29', '2025-07-27 09:50:29'),
+('c1ed12e5-3c63-41c3-a096-a6b5d9418407', '8daae380-9b24-43d5-86e8-13aa455b09d4', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 02:34:01', '2025-07-14 02:34:01'),
+('c264aa52-39b9-48ac-a71d-90f709d7fd35', 'fc4a97dc-71e1-4a4a-b7ab-3f8b8b40c6ed', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-27', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 11:02:37', '2025-07-14 11:02:37'),
+('c318f9a6-50d1-4c96-999e-679a60c604e7', '1fa52d11-2f99-451e-8151-0914626b0d58', '416cc737-c6a1-4b0d-a0d0-a40f384f496e', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 02:13:22', '2025-07-14 02:13:22'),
+('c447b452-8cb1-4b92-bb59-b334573d7cf7', '97b9e7bd-e350-4d19-8ea5-022bcfdf74d0', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 02:09:32', '2025-07-15 02:09:32'),
+('c4d47482-9e06-4456-901b-55a4051b6d44', 'fc4a97dc-71e1-4a4a-b7ab-3f8b8b40c6ed', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-27', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 11:02:37', '2025-07-14 11:02:37'),
+('c55b22ae-55b8-491f-865a-7dbf4882ce03', '04a206fe-78ed-43ab-8c4f-7574d91a5066', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-22 12:21:26', '2025-07-22 12:21:26'),
+('c5d36cc2-eaeb-4d6d-9ab8-ff7120ea06dc', 'bf0b8b17-60dd-43b6-bc02-574a3b4da914', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 03:05:22', '2025-07-15 03:05:22'),
+('c6f669cc-d795-4bf8-8cb8-8962a3d4ceb4', '35cf6ed8-05d1-4da6-b069-72c2dfb665a4', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-08-10', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 03:04:02', '2025-07-15 03:04:02'),
+('c70aedc3-b335-4dd2-b60e-5fb4ced135da', 'b389ea4d-adf2-41a0-b593-ba6e8bea9c8e', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-18 08:11:31', '2025-07-18 08:11:31'),
+('c7c06470-25e0-42c7-9bde-566169e64c71', '4f718c97-3c23-4cc2-9f99-cd485c9bab13', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 02:22:06', '2025-07-15 02:22:06'),
+('c905961f-5901-48a9-938d-5b7511a593ee', 'e8580062-4b9a-4b95-8293-dcb76f621210', 'eda83eb5-d471-45a7-ad9e-339b89e68789', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 09:12:18', '2025-07-21 09:12:18'),
+('c92ef96a-364d-4b73-8b09-83bc54e3b122', '3eead7a4-a66c-41a6-b9d4-58ba218bfbec', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-08-06', 1, NULL, NULL, 'scheduled', NULL, '2025-08-05 16:10:31', '2025-08-05 16:10:31'),
+('c9c49a23-c87d-48a3-93cc-71dbc0d606ad', '476b9536-ab53-42a7-98c9-e224d368f12d', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-15', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 15:13:11', '2025-07-14 15:13:11'),
+('ca2da278-d008-4de4-aa0f-5a5b51d57699', 'eda16d0d-beed-4842-a0c9-da52ceeeb7c5', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-08-06', 1, NULL, NULL, 'scheduled', NULL, '2025-08-05 07:10:46', '2025-08-05 07:10:46'),
+('ca6c4e4b-5875-4553-b097-c4d7a9a4f564', 'bc11f476-4fe9-44b1-a4bb-8d5f51ca1d20', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-13', 1, NULL, NULL, 'scheduled', NULL, '2025-07-12 09:23:49', '2025-07-12 09:23:49'),
+('caf8251d-33d7-4981-a0a8-84e7b35ae69c', 'a5e23f87-bb26-4bf8-8dac-1b1e482c88c7', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 09:25:50', '2025-07-26 09:25:50'),
+('cbae9e89-26cd-45f7-a333-ca0e73c649a1', '46def7f0-dd69-4e62-af4d-da389cfbc6bb', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 02:07:14', '2025-07-14 02:07:14'),
+('cbbb18f4-4e43-4a18-a429-00fcb7b001df', '79c5d78e-11d4-44b1-9270-dc9fde5cfe25', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', '2025-07-30', 1, NULL, NULL, 'scheduled', NULL, '2025-07-27 13:31:49', '2025-07-27 13:31:49'),
+('cc407409-3ed9-4b5a-b5b0-ab82f4446568', 'e14f072d-d727-42e1-b13a-54a4de2d8c07', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-08-06', 1, NULL, NULL, 'scheduled', NULL, '2025-08-03 07:45:08', '2025-08-03 07:45:08'),
+('cce7a29f-c44a-48fe-9859-1ea01bf71306', '46b5f974-39ee-4ddd-8d86-7831b0f069dd', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-22 12:13:43', '2025-07-22 12:13:43'),
+('cd97a27e-4940-47de-8d8f-345e444fc1a6', '460ab3f2-889e-4a16-80a6-4e951cb7d3c6', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-08-02', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 07:01:34', '2025-07-14 07:01:34'),
+('cdc323d0-6789-4052-a597-3373299ad225', 'edaecbd2-da7e-438d-bd32-cf0dadd1508b', 'eda83eb5-d471-45a7-ad9e-339b89e68789', '2025-07-30', 1, NULL, NULL, 'scheduled', NULL, '2025-07-29 12:53:35', '2025-07-29 12:53:35'),
+('cdd934e8-8f5d-423a-beac-92fbcf4c5c19', 'e2f94945-f45f-4f01-aff1-4fb48c593266', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-09', 1, NULL, NULL, 'scheduled', NULL, '2025-07-08 09:38:27', '2025-07-08 09:38:27'),
+('ce7afa14-c29f-4a72-ab54-ac5e83d2d16b', 'edaecbd2-da7e-438d-bd32-cf0dadd1508b', '19f1b8d3-7d75-4cc6-b804-58cf8d136d9d', '2025-07-30', 1, NULL, NULL, 'scheduled', NULL, '2025-07-29 12:53:35', '2025-07-29 12:53:35'),
+('ce803074-bfa3-4858-aa08-c47dbbf41b31', '081de44b-56d9-4745-acdc-19a129ac5b97', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-28', 1, NULL, NULL, 'scheduled', NULL, '2025-07-27 03:07:23', '2025-07-27 03:07:23'),
+('ceb30900-05ca-4aa0-8bc6-8d38683c384e', '94e1d12d-a30f-4c99-b13d-dc801f7d26de', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 01:41:52', '2025-07-14 01:41:52'),
+('cf13c3ca-0518-4c80-9d89-1f91cf2e4f81', 'a586353a-4092-48ea-a663-e75479330d20', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 01:44:32', '2025-07-14 01:44:32'),
+('cf2d48b0-72a1-4166-bfac-250886dcdd57', 'c87d8cde-3f78-4e62-8762-d5aea0e56b4b', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-08-06', 1, NULL, NULL, 'scheduled', NULL, '2025-08-05 16:07:25', '2025-08-05 16:07:25'),
+('cfbfb37d-7adb-43df-b28c-de2df7654b57', 'a9955447-3212-4995-8abd-9be1c313f537', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 16:18:52', '2025-07-15 16:18:52'),
+('d05c4dfc-0d1a-4ec5-8c24-306a6bd7619a', '46b5f974-39ee-4ddd-8d86-7831b0f069dd', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-22 12:13:43', '2025-07-22 12:13:43');
+INSERT INTO `subscription_menus` (`id`, `subscription_id`, `menu_id`, `delivery_date`, `quantity`, `customizations`, `special_requests`, `status`, `modified_at`, `created_at`, `updated_at`) VALUES
+('d0b66d46-98b2-43a8-bfa4-7fe642f57f39', '0637e1ce-9417-46a1-be75-cfb96c85e0c0', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-30', 1, NULL, NULL, 'scheduled', NULL, '2025-07-28 14:11:45', '2025-07-28 14:11:45'),
+('d0d5ff97-302f-433b-98c7-57eebdee90eb', 'c539a7cc-b04f-4a5c-ba64-944f52feded2', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-11', 1, NULL, NULL, 'scheduled', NULL, '2025-07-10 09:49:18', '2025-07-10 09:49:18'),
+('d230592c-703d-11f0-8f25-51dd60484996', 'e14f072d-d727-42e1-b13a-54a4de2d8c07', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-08-04', 1, NULL, NULL, 'scheduled', NULL, '2025-08-03 07:45:27', '2025-08-03 07:45:27'),
+('d2308ffa-703d-11f0-8f25-51dd60484996', 'e14f072d-d727-42e1-b13a-54a4de2d8c07', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-08-05', 1, NULL, NULL, 'scheduled', NULL, '2025-08-03 07:45:27', '2025-08-03 07:45:27'),
+('d2355e4f-b357-4b67-b1f9-44da58781009', 'daab6f86-1f1a-4a21-a03b-e4b5f12dca5d', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-08-02', 1, NULL, NULL, 'scheduled', NULL, '2025-07-28 08:56:03', '2025-07-28 08:56:03'),
+('d4b618d6-52bb-49ce-84ea-16047302e387', 'bc11f476-4fe9-44b1-a4bb-8d5f51ca1d20', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-13', 1, NULL, NULL, 'scheduled', NULL, '2025-07-12 09:23:49', '2025-07-12 09:23:49'),
+('d5d7f835-dcc1-4ed6-9583-c425243c6b21', '22f5c830-264b-4b69-9f5c-6098011a7e40', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 04:27:08', '2025-07-26 04:27:08'),
+('d6f84f78-fc58-413d-9a91-43eba5b401d8', '36a7e729-a869-4aeb-8d41-6300cc9d2959', 'meal-kit-panang-curry-2025', '2025-08-20', 1, NULL, NULL, 'scheduled', NULL, '2025-08-03 07:22:17', '2025-08-03 07:22:17'),
+('d764f91f-e059-44bb-b80e-1c16d59afc04', '4c54b901-68c6-4f6e-b1de-821a540166fe', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 09:17:45', '2025-07-26 09:17:45'),
+('d791d832-987a-4478-915e-b671470fab26', '04a206fe-78ed-43ab-8c4f-7574d91a5066', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-22 12:21:26', '2025-07-22 12:21:26'),
+('d8d0f061-a4ff-4fdf-9132-eef014491781', '6eae9f70-8676-4865-9891-3a411758272f', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 06:40:03', '2025-07-21 06:40:03'),
+('d908c00c-c8c7-46ca-b269-87d2b9fad6c1', 'd91072d4-076a-4973-b819-9d04d6a83da7', 'meal-kit-pad-thai-2025', '2025-07-30', 1, NULL, NULL, 'scheduled', NULL, '2025-07-29 07:13:45', '2025-07-29 07:13:45'),
+('d917ee6d-da0f-4e59-a7e1-58d4ee34ad46', '65e0f10b-9c97-4034-a4f9-4b35d1782fab', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', '2025-08-13', 1, NULL, NULL, 'scheduled', NULL, '2025-07-27 07:57:30', '2025-07-27 07:57:30'),
+('dad6a0fb-90b1-4cda-8ffc-8791208d7c8d', 'fbba995f-8221-4a6f-afe7-cc29afd8d26c', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-14', 1, NULL, NULL, 'scheduled', NULL, '2025-07-13 13:11:02', '2025-07-13 13:11:02'),
+('daf8d294-8e6e-420f-a0d7-9fa2a61244a2', 'e14f072d-d727-42e1-b13a-54a4de2d8c07', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-08-06', 1, NULL, NULL, 'scheduled', NULL, '2025-08-03 07:45:08', '2025-08-03 07:45:08'),
+('db34d76c-879f-4a2b-9c33-5d36f6d6d9c0', 'd91072d4-076a-4973-b819-9d04d6a83da7', '6cae13fc-b181-43bf-babb-99cb2ce39d3c', '2025-07-30', 1, NULL, NULL, 'scheduled', NULL, '2025-07-29 07:13:45', '2025-07-29 07:13:45'),
+('dc156b61-82c1-4afd-932f-07e920e0c61f', '09d2a30f-8ae6-4956-8b6a-400bc4d2a7eb', '19f1b8d3-7d75-4cc6-b804-58cf8d136d9d', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-16 07:04:00', '2025-07-16 07:04:00'),
+('dc483045-bfbf-41d4-9cee-153264962ea1', '172bac7b-8248-46c8-b3d6-9070e2ce8755', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 04:27:44', '2025-07-26 04:27:44'),
+('dc4e20f2-3dd8-461c-ae8e-3e67fae00584', 'a586353a-4092-48ea-a663-e75479330d20', '6cae13fc-b181-43bf-babb-99cb2ce39d3c', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 01:44:32', '2025-07-14 01:44:32'),
+('dc656c26-79a0-4077-bcbf-db2d8d54781a', '7a76610b-74ae-4312-8489-c37d065083f2', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 07:06:52', '2025-07-14 07:06:52'),
+('dc86bf21-d2ba-4a67-ab94-a4f44fcebca8', '46b5f974-39ee-4ddd-8d86-7831b0f069dd', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-22 12:13:43', '2025-07-22 12:13:43'),
+('dcff5b23-435f-4c0c-97de-95d4851885c7', '476a2565-e455-41a2-bdc8-c0e7e4534761', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-20', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 03:49:52', '2025-07-15 03:49:52'),
+('dd5afb80-801c-4eba-8836-679ae74ddd10', '354ad47b-fa66-4e43-9bf8-75c2f962c64b', '416cc737-c6a1-4b0d-a0d0-a40f384f496e', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-25 08:50:16', '2025-07-25 08:50:16'),
+('de65dcf8-05c6-439d-80f1-fa930b186bf5', 'bc11f476-4fe9-44b1-a4bb-8d5f51ca1d20', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-13', 1, NULL, NULL, 'scheduled', NULL, '2025-07-12 09:23:49', '2025-07-12 09:23:49'),
+('dfbc1ca4-c04d-432b-bad5-1ddde92257a4', '9e0d5ae0-baa5-475c-b860-566c4b5f7548', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 05:02:43', '2025-07-26 05:02:43'),
+('dff66120-c16a-4fff-953e-ca34cf9d5bdb', '0948600f-bdb7-42f4-8dc6-0093ae804b5b', 'eda83eb5-d471-45a7-ad9e-339b89e68789', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 08:28:09', '2025-07-21 08:28:09'),
+('e03deb63-809a-4c06-9c3b-7f37da63b327', 'd5492ba5-f6e3-4e5b-b520-4ad36e6d0ed3', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 08:48:58', '2025-07-21 08:48:58'),
+('e04fa658-b429-4598-a84f-a5e91ad1e3ce', '755c9d5c-9642-45a7-b698-786077e6b8b8', 'eda83eb5-d471-45a7-ad9e-339b89e68789', '2025-08-02', 1, NULL, NULL, 'scheduled', NULL, '2025-07-30 08:47:04', '2025-07-30 08:47:04'),
+('e0b24c3b-1469-4ed1-89db-2d5fb99ce867', 'fc4a97dc-71e1-4a4a-b7ab-3f8b8b40c6ed', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-27', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 11:02:37', '2025-07-14 11:02:37'),
+('e0c526c0-0889-493d-b8ee-1b55346cf6b6', '5249821f-18f8-4fd4-85d7-91f2546d7089', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-11', 1, NULL, NULL, 'scheduled', NULL, '2025-07-10 08:16:16', '2025-07-10 08:16:16'),
+('e2655a71-90bf-4a0f-915b-7c686228adaf', '0bf75805-f0ab-4207-a172-25912a12ecb4', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 02:16:49', '2025-07-14 02:16:49'),
+('e39f36fb-3ae1-4118-8d47-cbc2012d6d7e', 'fc4a97dc-71e1-4a4a-b7ab-3f8b8b40c6ed', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-27', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 11:02:37', '2025-07-14 11:02:37'),
+('e3f50758-d43a-41a9-883b-902a469ec441', '476a2565-e455-41a2-bdc8-c0e7e4534761', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 03:49:52', '2025-07-15 03:49:52'),
+('e4236731-1a36-43ce-b2fa-461e8e582c60', 'e55cb19d-5910-4d8b-8593-209ff7ca1cbe', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 04:56:40', '2025-07-26 04:56:40'),
+('e48100ce-899e-4794-ac43-416494141ef5', 'c87d8cde-3f78-4e62-8762-d5aea0e56b4b', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-08-06', 1, NULL, NULL, 'scheduled', NULL, '2025-08-05 16:07:25', '2025-08-05 16:07:25'),
+('e49ba2f2-12f5-4b90-b17f-5715ddbd75c7', 'fbba995f-8221-4a6f-afe7-cc29afd8d26c', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-14', 1, NULL, NULL, 'scheduled', NULL, '2025-07-13 13:11:02', '2025-07-13 13:11:02'),
+('e4fe7e09-b27a-4dcf-95d8-aa66faba8bba', 'e3567d9c-a8ef-4662-8ddf-68da5f569ee7', '19f1b8d3-7d75-4cc6-b804-58cf8d136d9d', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 06:37:48', '2025-07-26 06:37:48'),
+('e530058a-9d11-4c20-913a-b25a5a083529', 'c0e22f45-8a3d-451e-971d-9b4ad27b5bd9', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-08-09', 1, NULL, NULL, 'scheduled', NULL, '2025-08-07 02:19:11', '2025-08-07 02:19:11'),
+('e5b12a36-cd51-4692-abfa-88dd35f28886', '46b5f974-39ee-4ddd-8d86-7831b0f069dd', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-22 12:13:43', '2025-07-22 12:13:43'),
+('e5d5df48-2250-4547-9d16-d7868140a323', 'e55cb19d-5910-4d8b-8593-209ff7ca1cbe', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 04:56:40', '2025-07-26 04:56:40'),
+('e72dffc2-2305-45f3-9e41-403e981f89ff', '97b9e7bd-e350-4d19-8ea5-022bcfdf74d0', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 02:09:32', '2025-07-15 02:09:32'),
+('e877eed6-c8a1-4a88-954d-11886a09e0d9', 'f4a3040e-2316-483a-8914-e0faceaaf58b', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-14', 1, NULL, NULL, 'scheduled', NULL, '2025-07-13 12:55:55', '2025-07-13 12:55:55'),
+('e88bdf66-93af-4bac-9eee-a16643aee74c', 'd0fd5c76-2364-44b2-9ed4-fd2233f57e33', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 08:20:45', '2025-07-26 08:20:45'),
+('e8ade5c0-f9ce-4226-b14c-3be501ef55a2', '7a76610b-74ae-4312-8489-c37d065083f2', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 07:06:52', '2025-07-14 07:06:52'),
+('e916dc7c-6f49-4a38-85fc-620e9c67d26e', '4c54b901-68c6-4f6e-b1de-821a540166fe', '416cc737-c6a1-4b0d-a0d0-a40f384f496e', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 09:17:45', '2025-07-26 09:17:45'),
+('e97ce485-9ca9-4bc4-91e5-97065bb86f84', '46def7f0-dd69-4e62-af4d-da389cfbc6bb', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 02:07:14', '2025-07-14 02:07:14'),
+('ea037268-6002-4c0c-8acb-bc810327384b', '002a5635-19c2-496c-97f6-7d9b867d9ceb', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-14', 1, NULL, NULL, 'scheduled', NULL, '2025-07-13 12:39:59', '2025-07-13 12:39:59'),
+('ea11eaa5-ef46-46de-9498-d75d723e979d', '476a2565-e455-41a2-bdc8-c0e7e4534761', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 03:49:52', '2025-07-15 03:49:52'),
+('ea13f2e4-e453-45ff-bef2-5d69a268c9a6', 'afcd9a79-71e7-4808-8206-b47acc722a0f', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-30', 1, NULL, NULL, 'scheduled', NULL, '2025-07-28 02:11:40', '2025-07-28 02:11:40'),
+('ea2108d0-bb70-42b0-8318-26f14f1988b7', '9a5ba398-ddd5-4c07-8016-145eb42618e8', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-11', 1, NULL, NULL, 'scheduled', NULL, '2025-07-10 09:50:32', '2025-07-10 09:50:32'),
+('ea80e6eb-6940-433e-881f-9816b26c6a7a', '36a7e729-a869-4aeb-8d41-6300cc9d2959', 'eda83eb5-d471-45a7-ad9e-339b89e68789', '2025-08-20', 1, NULL, NULL, 'scheduled', NULL, '2025-08-03 07:22:17', '2025-08-03 07:22:17'),
+('eb2c71e2-0933-4fb3-83ef-aa14b28eca76', 'd25b172c-1e0f-4b79-a7e9-f5d35c054a8f', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-08-06', 1, NULL, NULL, 'scheduled', NULL, '2025-08-05 08:32:43', '2025-08-05 08:32:43'),
+('eb54356d-a63c-4027-adc2-48b7b331725d', '0948600f-bdb7-42f4-8dc6-0093ae804b5b', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 08:28:09', '2025-07-21 08:28:09'),
+('eb74c6e8-a3b5-42fd-808e-ff23ce5af433', 'f8234164-aa26-469f-82d1-8d91f50a4407', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 03:35:16', '2025-07-15 03:35:16'),
+('ebda7f00-bc6d-44b3-a4d6-b8aa6afcddf0', '36ecb782-ce8c-428a-b8a9-afd7e02bcfe8', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 01:42:25', '2025-07-14 01:42:25'),
+('ec03005d-4a5a-4d58-a76b-0241c1c0a39c', 'db29bea4-1c9a-4124-8242-e1f5500a606a', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-11', 1, NULL, NULL, 'scheduled', NULL, '2025-07-10 08:27:50', '2025-07-10 08:27:50'),
+('ec2cfdc0-cc8c-4bb4-b81c-824b844d5ca0', '5adf19e4-f653-4c00-9b11-830afd96d3d9', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', '2025-07-30', 1, 'null', NULL, 'scheduled', NULL, '2025-07-27 09:50:06', '2025-07-27 09:50:06'),
+('ecf08d20-699f-4343-a024-565a56faa0c9', '9a5ba398-ddd5-4c07-8016-145eb42618e8', '416cc737-c6a1-4b0d-a0d0-a40f384f496e', '2025-07-11', 1, NULL, NULL, 'scheduled', NULL, '2025-07-10 09:50:32', '2025-07-10 09:50:32'),
+('ed24a6f9-c151-490e-b03d-cf750fefc6c8', 'be8c3b24-114f-49e7-a816-e60e43899cde', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-08-02', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 10:36:51', '2025-07-14 10:36:51'),
+('ed65e4ea-b28d-4f6d-bcf1-797da73fd65d', 'afcd9a79-71e7-4808-8206-b47acc722a0f', '416cc737-c6a1-4b0d-a0d0-a40f384f496e', '2025-07-30', 1, NULL, NULL, 'scheduled', NULL, '2025-07-28 02:11:40', '2025-07-28 02:11:40'),
+('ed6625fc-38c2-44f5-82f1-a87de3670a64', '85291cae-d5eb-42f6-9b56-a4f37b5cdd62', '6cae13fc-b181-43bf-babb-99cb2ce39d3c', '2025-07-30', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 04:42:47', '2025-07-26 04:42:47'),
+('eda62468-d571-418a-96d3-45bcb891a7d2', 'e14f072d-d727-42e1-b13a-54a4de2d8c07', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-08-06', 1, NULL, NULL, 'scheduled', NULL, '2025-08-03 07:45:08', '2025-08-03 07:45:08'),
+('eda6d30d-7f22-4ade-bd19-1d1930b0307e', '393e600c-4672-4b2e-98c9-0fb03ddfe4c4', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-20', 1, NULL, NULL, 'scheduled', NULL, '2025-07-20 02:50:30', '2025-07-20 02:50:30'),
+('ede283f6-0cbb-44c6-aa17-62bc39fa1ae4', '395d369f-4d05-4353-8238-e0956cee736e', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-08-09', 1, NULL, NULL, 'scheduled', NULL, '2025-08-07 02:06:23', '2025-08-07 02:06:23'),
+('ee80acee-d1a9-49b9-8b13-e5a23ce04864', '395d369f-4d05-4353-8238-e0956cee736e', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-08-09', 1, NULL, NULL, 'scheduled', NULL, '2025-08-07 02:06:23', '2025-08-07 02:06:23'),
+('eef0e4b9-1796-472f-bacd-1753da3de369', '0948600f-bdb7-42f4-8dc6-0093ae804b5b', '6cae13fc-b181-43bf-babb-99cb2ce39d3c', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 08:28:09', '2025-07-21 08:28:09'),
+('eef2fdae-f2e1-485c-9987-132c308dfbea', '417e5469-f89b-4ee1-a9bb-dd4a9a8a973f', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-30', 1, NULL, NULL, 'scheduled', NULL, '2025-07-29 13:05:42', '2025-07-29 13:05:42'),
+('ef3b11cc-5841-4e9d-9419-c24264aa3522', '1fa52d11-2f99-451e-8151-0914626b0d58', '6cae13fc-b181-43bf-babb-99cb2ce39d3c', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 02:13:22', '2025-07-14 02:13:22'),
+('ef43759f-6d3c-4534-9fb0-ca3096e0fef4', 'edaecbd2-da7e-438d-bd32-cf0dadd1508b', '416cc737-c6a1-4b0d-a0d0-a40f384f496e', '2025-07-30', 1, NULL, NULL, 'scheduled', NULL, '2025-07-29 12:53:35', '2025-07-29 12:53:35'),
+('ef5785d0-e7ef-4300-a7b6-23a13a0fb240', '127ea3b3-2807-4583-a3f0-c999188bb2e0', '416cc737-c6a1-4b0d-a0d0-a40f384f496e', '2025-08-06', 1, NULL, NULL, 'scheduled', NULL, '2025-08-04 07:39:56', '2025-08-04 07:39:56'),
+('f0922167-4b6e-4ffa-a29f-6343a7860db6', '0637e1ce-9417-46a1-be75-cfb96c85e0c0', 'eda83eb5-d471-45a7-ad9e-339b89e68789', '2025-07-30', 1, NULL, NULL, 'scheduled', NULL, '2025-07-28 14:11:45', '2025-07-28 14:11:45'),
+('f111a0b1-316f-4660-a0de-158978ff19ad', 'e8580062-4b9a-4b95-8293-dcb76f621210', '19f1b8d3-7d75-4cc6-b804-58cf8d136d9d', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 09:12:18', '2025-07-21 09:12:18'),
+('f1399c9e-0038-49c1-b843-501b5cea39fe', 'daab6f86-1f1a-4a21-a03b-e4b5f12dca5d', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-08-02', 1, NULL, NULL, 'scheduled', NULL, '2025-07-28 08:56:03', '2025-07-28 08:56:03'),
+('f2599313-755c-45c4-8936-39685a7f9f65', '8c5f6119-2cf7-4130-9010-eb66e417d1f0', '19f1b8d3-7d75-4cc6-b804-58cf8d136d9d', '2025-08-02', 1, NULL, NULL, 'scheduled', NULL, '2025-07-29 04:14:10', '2025-07-29 04:14:10'),
+('f270e1d8-0cac-4d25-9949-8daf66d1605f', '65e0f10b-9c97-4034-a4f9-4b35d1782fab', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-08-13', 1, NULL, NULL, 'scheduled', NULL, '2025-07-27 07:57:30', '2025-07-27 07:57:30'),
+('f2b7f42e-ff40-470c-a2ff-de56ddaf924a', '80e669b2-3085-46ea-ad6b-642f22fa0b35', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 08:30:08', '2025-07-21 08:30:08'),
+('f2d7c14c-b2fc-4cc5-9230-82a258207b9d', '5adf19e4-f653-4c00-9b11-830afd96d3d9', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-30', 1, 'null', NULL, 'scheduled', NULL, '2025-07-27 09:50:06', '2025-07-27 09:50:06'),
+('f3d25527-5eb2-423b-8676-b9fb8e3c67d9', '3b8765cb-3002-458a-b569-68e971bd456f', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-08-06', 1, NULL, NULL, 'scheduled', NULL, '2025-08-05 16:04:39', '2025-08-05 16:04:39'),
+('f3ec84b2-d70b-4541-8295-0e304a84fdbf', 'b389ea4d-adf2-41a0-b593-ba6e8bea9c8e', '416cc737-c6a1-4b0d-a0d0-a40f384f496e', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-18 08:11:31', '2025-07-18 08:11:31'),
+('f4b31e60-9b62-4ae7-8ec7-172fd0e35c90', '46def7f0-dd69-4e62-af4d-da389cfbc6bb', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 02:07:14', '2025-07-14 02:07:14'),
+('f4e5de85-cf98-4654-855e-83355a0e50e1', '8c5f6119-2cf7-4130-9010-eb66e417d1f0', '416cc737-c6a1-4b0d-a0d0-a40f384f496e', '2025-08-02', 1, NULL, NULL, 'scheduled', NULL, '2025-07-29 04:14:10', '2025-07-29 04:14:10'),
+('f561151c-1220-4541-a102-eb8de63a758e', '507020f8-63bc-4379-9a1f-8eb56df8390f', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 04:32:42', '2025-07-21 04:32:42'),
+('f60c4086-99d2-40b0-934f-c34ba66e2906', 'a586353a-4092-48ea-a663-e75479330d20', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 01:44:32', '2025-07-14 01:44:32'),
+('f6280e69-7dbb-4688-a5fe-8e55b392b4e7', '3b193ef1-27a8-4b32-a389-6be6fda26683', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 04:03:35', '2025-07-26 04:03:35'),
+('f6d13f81-0a1b-4a75-9973-4692c9b02bb8', 'b84ce1b4-96a3-4318-a807-fdee7345fbff', '19f1b8d3-7d75-4cc6-b804-58cf8d136d9d', '2025-07-30', 1, NULL, NULL, 'scheduled', NULL, '2025-07-29 12:34:19', '2025-07-29 12:34:19'),
+('f73fce31-456f-42e2-9333-43bc2cce80a8', 'ed9c0493-82b6-497f-af16-796a2d1b8c95', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-20', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 04:56:03', '2025-07-14 04:56:03'),
+('f7b7d3de-072b-49c8-b3ad-b19c5520dd0f', 'efac4af3-3a57-45b8-b41f-30bec6f79334', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 03:00:50', '2025-07-15 03:00:50'),
+('f7fd6737-c465-40f3-af70-37619ab10db9', '476b9536-ab53-42a7-98c9-e224d368f12d', 'dbdb771f-bf70-4ccc-ad99-d307f9d89418', '2025-07-15', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 15:13:11', '2025-07-14 15:13:11'),
+('f8967843-15d7-4014-9a92-6f028d0ac914', '46b5f974-39ee-4ddd-8d86-7831b0f069dd', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-22 12:13:43', '2025-07-22 12:13:43'),
+('f89e468a-dcc4-4c69-8214-cdc5134aa931', 'b84ce1b4-96a3-4318-a807-fdee7345fbff', '416cc737-c6a1-4b0d-a0d0-a40f384f496e', '2025-07-30', 1, NULL, NULL, 'scheduled', NULL, '2025-07-29 12:34:19', '2025-07-29 12:34:19'),
+('f8c6d99b-4283-474b-9053-341c47a3e9b0', '3b8765cb-3002-458a-b569-68e971bd456f', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-08-06', 1, NULL, NULL, 'scheduled', NULL, '2025-08-05 16:04:39', '2025-08-05 16:04:39'),
+('f96913b8-b7cd-4e12-b6f8-6f26d3d98b39', '79c5d78e-11d4-44b1-9270-dc9fde5cfe25', '6cae13fc-b181-43bf-babb-99cb2ce39d3c', '2025-07-30', 1, NULL, NULL, 'scheduled', NULL, '2025-07-27 13:31:49', '2025-07-27 13:31:49'),
+('f9d82bbe-6825-4829-b884-a50dd5dcb72b', '79c5d78e-11d4-44b1-9270-dc9fde5cfe25', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-30', 1, NULL, NULL, 'scheduled', NULL, '2025-07-27 13:31:49', '2025-07-27 13:31:49'),
+('fa22d5c5-9d0b-43da-b11f-f0d3c70ea346', '0463a886-ab5b-4447-ad7e-f42ee0c70433', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-20', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 11:33:33', '2025-07-15 11:33:33'),
+('fac6b1fd-10f1-43b8-97a4-b2f4c0af68d8', '0463a886-ab5b-4447-ad7e-f42ee0c70433', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-20', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 11:33:33', '2025-07-15 11:33:33'),
+('fae6d4f4-9522-4ad6-89f4-d514ce7283e6', 'e55cb19d-5910-4d8b-8593-209ff7ca1cbe', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 04:56:40', '2025-07-26 04:56:40'),
+('fb0afe3f-9d27-42c1-a42a-3bfbac2bf7d8', '94e1d12d-a30f-4c99-b13d-dc801f7d26de', 'f01cd2bf-4a3b-4311-90b2-5f35a48a394d', '2025-07-20', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 01:41:52', '2025-07-14 01:41:52'),
+('fb3e6558-53ba-49d4-82aa-03723b368d01', '6dcdf617-feb4-4075-9fd4-1478d7d0b8bf', 'meal-kit-tom-yum-2025', '2025-08-02', 1, NULL, NULL, 'scheduled', NULL, '2025-07-30 08:15:05', '2025-07-30 08:15:05'),
+('fc0b9892-e165-415e-980f-02910b301cc9', 'd5f927b4-1a43-4fa9-a859-f0fe06b6d5ca', '416cc737-c6a1-4b0d-a0d0-a40f384f496e', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 15:52:48', '2025-07-15 15:52:48'),
+('fd2006f4-5f32-46b4-817d-0b66493a619d', '85291cae-d5eb-42f6-9b56-a4f37b5cdd62', 'fbcf20f5-b77e-4d14-b560-8c3b1baac0fd', '2025-07-30', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 04:42:47', '2025-07-26 04:42:47'),
+('fd5788ad-96ba-4299-9523-6077e9871967', '2fd75d4e-7618-435d-879b-d1e6001ca014', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-08-02', 1, NULL, NULL, 'scheduled', NULL, '2025-07-28 07:56:40', '2025-07-28 07:56:40'),
+('fdcd0058-d1b1-4275-83cf-235d18e20772', '417e5469-f89b-4ee1-a9bb-dd4a9a8a973f', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-30', 1, NULL, NULL, 'scheduled', NULL, '2025-07-29 13:05:42', '2025-07-29 13:05:42'),
+('fe198dc1-1287-4acf-9d1d-e00749f5bdfc', '3b193ef1-27a8-4b32-a389-6be6fda26683', 'd76f0a21-6b41-490a-8dba-249481978176', '2025-07-26', 1, NULL, NULL, 'scheduled', NULL, '2025-07-26 04:03:35', '2025-07-26 04:03:35'),
+('fe839b78-deb6-4f7a-84be-b388d91c059a', 'bc11f476-4fe9-44b1-a4bb-8d5f51ca1d20', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-13', 1, NULL, NULL, 'scheduled', NULL, '2025-07-12 09:23:49', '2025-07-12 09:23:49'),
+('fea7eec8-d339-4632-b1ac-2af97ab6341f', '36a7e729-a869-4aeb-8d41-6300cc9d2959', 'meal-kit-pad-thai-2025', '2025-08-20', 1, NULL, NULL, 'scheduled', NULL, '2025-08-03 07:22:17', '2025-08-03 07:22:17'),
+('fead2efb-4bfb-4e9f-b2be-e8bbcdf48653', 'ecaa5b9d-44dc-4564-b077-248692b8e812', '6cae13fc-b181-43bf-babb-99cb2ce39d3c', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-14 01:47:10', '2025-07-14 01:47:10'),
+('feebef36-8f45-4a44-93ee-f680c4a56d2f', 'e2f94945-f45f-4f01-aff1-4fb48c593266', '416cc737-c6a1-4b0d-a0d0-a40f384f496e', '2025-07-09', 1, NULL, NULL, 'scheduled', NULL, '2025-07-08 09:38:27', '2025-07-08 09:38:27'),
+('ff30b570-103b-4854-a1d9-f79f54802117', '9aea8db1-bb47-4143-9b5d-b91d0e377a6c', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-27', 1, NULL, NULL, 'scheduled', NULL, '2025-07-15 04:32:30', '2025-07-15 04:32:30'),
+('ff54a73e-5b07-4c0e-9108-8d77b4a0f991', 'fe2fed4b-bd42-4e54-b391-bd0256ae403f', '275059d8-4497-43ec-b5e3-669fb18981d9', '2025-07-23', 1, NULL, NULL, 'scheduled', NULL, '2025-07-21 07:30:58', '2025-07-21 07:30:58'),
+('ff6296ed-5348-4496-a73b-8fb98c5c93d0', 'bf8b8ba5-c77c-4983-9705-0b63f9414f99', '9429bc0e-f065-4ea8-9481-1bcb887e8454', '2025-07-19', 1, NULL, NULL, 'scheduled', NULL, '2025-07-18 07:26:03', '2025-07-18 07:26:03');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `subscription_plans`
+--
+
+CREATE TABLE `subscription_plans` (
+  `id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `name_thai` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `description` text COLLATE utf8mb4_unicode_ci,
+  `plan_type` enum('weekly','monthly','custom') COLLATE utf8mb4_unicode_ci NOT NULL,
+  `meals_per_week` int(11) NOT NULL,
+  `weeks_duration` int(11) DEFAULT '4',
+  `base_price` decimal(8,2) NOT NULL,
+  `discount_percentage` decimal(5,2) DEFAULT '0.00',
+  `final_price` decimal(8,2) NOT NULL,
+  `features` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin,
+  `max_skips_per_week` int(11) DEFAULT '2',
+  `advance_ordering_days` int(11) DEFAULT '7',
+  `is_active` tinyint(1) DEFAULT '1',
+  `is_popular` tinyint(1) DEFAULT '0',
+  `sort_order` int(11) DEFAULT '0',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `subscription_plans`
+--
+
+INSERT INTO `subscription_plans` (`id`, `name`, `name_thai`, `description`, `plan_type`, `meals_per_week`, `weeks_duration`, `base_price`, `discount_percentage`, `final_price`, `features`, `max_skips_per_week`, `advance_ordering_days`, `is_active`, `is_popular`, `sort_order`, `created_at`, `updated_at`) VALUES
+('0f047d6f-9d0a-4296-985b-3b4090b8ca8a', 'Weekly Premium', 'แพ็กเกจ 7 มื้อ', NULL, 'weekly', 7, 1, '599.00', '0.00', '599.00', NULL, 2, 7, 0, 0, 0, '2025-07-12 14:11:26', '2025-07-25 04:27:52'),
+('2a0f552c-be51-44c2-8b28-f68dcb2080e1', 'Monthly Family', 'แพ็กเกจครอบครัว', NULL, 'monthly', 14, 4, '1599.00', '0.00', '1599.00', NULL, 2, 7, 0, 0, 0, '2025-07-12 14:11:18', '2025-07-25 04:27:52'),
+('4010421c-79a8-4eb7-9d05-aad41cad5103', 'Weekly Basic', 'แพ็กเกจ 5 มื้อ', NULL, 'weekly', 5, 1, '399.00', '0.00', '399.00', NULL, 2, 7, 0, 0, 0, '2025-07-12 14:11:07', '2025-07-25 04:27:52'),
+('6a30109d-0cdb-4967-b3da-6df686c440c8', 'Weekly Basic', 'แพ็กเกจ 5 มื้อ', NULL, 'weekly', 5, 1, '399.00', '0.00', '399.00', NULL, 2, 7, 0, 0, 0, '2025-07-12 14:11:26', '2025-07-25 04:27:52'),
+('6b9a750b-a1b4-4384-b6d6-2b5e8d4c061d', 'Monthly Family', 'แพ็กเกจครอบครัว', NULL, 'monthly', 14, 4, '1599.00', '0.00', '1599.00', NULL, 2, 7, 0, 0, 0, '2025-07-12 14:11:07', '2025-07-25 04:27:52'),
+('6ef7d815-f13c-4f1f-b180-aa0ed3d7ef1d', 'Monthly Family', 'แพ็กเกจครอบครัว', NULL, 'monthly', 14, 4, '1599.00', '0.00', '1599.00', NULL, 2, 7, 0, 0, 0, '2025-07-12 14:11:15', '2025-07-25 04:27:52'),
+('74c0ed20-5afc-11f0-8b7f-3f129bd34f14', 'Mini Plan', 'แพ็กเกจ 4 มื้อ', 'สำหรับทดลองกินสุขภาพ', 'weekly', 4, 1, '499.00', '0.00', '499.00', NULL, 1, 2, 0, 0, 1, '2025-07-07 06:34:38', '2025-07-25 04:27:52'),
+('9303a458-afa2-4ee0-aeb0-e70a54a794d5', 'Monthly Family', 'แพ็กเกจครอบครัว', NULL, 'monthly', 14, 4, '1599.00', '0.00', '1599.00', NULL, 2, 7, 0, 0, 0, '2025-07-12 14:11:26', '2025-07-25 04:27:52'),
+('9d41847d-da80-4121-9ff2-0da4efeb371d', 'Monthly Plan', 'แพ็คเกจรายเดือน', 'Healthy Thai meals for 1 month', 'monthly', 7, 4, '1200.00', '10.00', '1080.00', '[\"Fresh ingredients\", \"Nutrition tracking\", \"Free delivery\"]', 2, 7, 0, 1, 0, '2025-07-03 14:23:22', '2025-07-07 06:39:09'),
+('a601efdf-cb35-427d-a077-02d82e4d2673', 'Weekly Basic', 'แพ็กเกจ 5 มื้อ', NULL, 'weekly', 5, 1, '399.00', '0.00', '399.00', NULL, 2, 7, 0, 0, 0, '2025-07-12 14:11:15', '2025-07-25 04:27:52'),
+('a9129f4a-6c73-461b-9814-6888ab8ebe73', 'Weekly Premium', 'แพ็กเกจ 7 มื้อ', NULL, 'weekly', 7, 1, '599.00', '0.00', '599.00', NULL, 2, 7, 0, 0, 0, '2025-07-12 14:11:18', '2025-07-25 04:27:52'),
+('ae3f098d-c260-4252-9ff8-ad45b1751298', 'Monthly Family', 'แพ็กเกจครอบครัว', NULL, 'monthly', 14, 4, '1599.00', '0.00', '1599.00', NULL, 2, 7, 0, 0, 0, '2025-07-12 14:11:22', '2025-07-25 04:27:52'),
+('c52e2693-5121-4abe-ad95-95c068367b92', 'Weekly Plan', 'แพ็คเกจรายสัปดาห์', 'Healthy Thai meals for 1 week', 'weekly', 7, 1, '800.00', '0.00', '800.00', '[\"Fresh ingredients\", \"Nutrition tracking\"]', 2, 7, 0, 0, 0, '2025-07-03 14:23:22', '2025-07-25 04:27:52'),
+('d67f9601-cadc-42ec-ae13-52145ed005d2', 'Weekly Premium', 'แพ็กเกจ 7 มื้อ', NULL, 'weekly', 7, 1, '599.00', '0.00', '599.00', NULL, 2, 7, 0, 0, 0, '2025-07-12 14:11:22', '2025-07-25 04:27:52'),
+('d6e98c56-5afb-11f0-8b7f-3f129bd34f14', 'Lite Plan', 'แพ็กเกจ 8 มื้อ', 'สำหรับคนกินเบาๆ', 'weekly', 8, 1, '899.00', '0.00', '899.00', NULL, 1, 2, 0, 0, 2, '2025-07-07 06:30:13', '2025-07-25 04:27:52'),
+('d6e98d96-5afb-11f0-8b7f-3f129bd34f14', 'Family Plan', 'แพ็กเกจ 12 มื้อ', 'สุขภาพทั้งบ้าน', 'weekly', 12, 1, '1499.00', '0.00', '1499.00', NULL, 2, 3, 0, 1, 3, '2025-07-07 06:30:13', '2025-07-25 04:27:52'),
+('d6e98e7c-5afb-11f0-8b7f-3f129bd34f14', 'Premium Plan', 'แพ็กเกจ 15 มื้อ', 'สาย Healthy จัดเต็ม', 'weekly', 15, 1, '1799.00', '0.00', '1799.00', NULL, 3, 4, 0, 1, 4, '2025-07-07 06:30:13', '2025-07-25 04:27:52'),
+('e12526f5-9de5-4f55-80f8-f6c556c11bac', 'Weekly Premium', 'แพ็กเกจ 7 มื้อ', NULL, 'weekly', 7, 1, '599.00', '0.00', '599.00', NULL, 2, 7, 0, 0, 0, '2025-07-12 14:11:07', '2025-07-25 04:27:52'),
+('essentials-plan-2025', 'Essentials', 'Essentials', 'Perfect for individuals who want to try authentic Thai cuisine. High cost per meal but low commitment.', 'weekly', 4, 1, '59.99', '0.00', '59.99', '[\"4 healthy Thai meals per week\", \"Free home delivery\", \"Flexible scheduling\", \"Premium quality ingredients\", \"Perfect for trying our service\"]', 2, 7, 1, 0, 1, '2025-07-25 04:26:20', '2025-07-25 04:26:20'),
+('f4de5a33-e117-4f6f-8b98-dae2b2d3ef75', 'Weekly Basic', 'แพ็กเกจ 5 มื้อ', NULL, 'weekly', 5, 1, '399.00', '0.00', '399.00', NULL, 2, 7, 0, 0, 0, '2025-07-12 14:11:22', '2025-07-25 04:27:52'),
+('founding-feast-plan-2025', 'Founding Feast', 'Founding Feast', 'Bulk value perfect for families or serious food enthusiasts. Best savings with premium benefits.', 'weekly', 12, 1, '119.99', '0.00', '119.99', '[\"12 healthy Thai meals per week\", \"Free home delivery\", \"Flexible scheduling\", \"Premium quality ingredients\", \"Best value for families\", \"Free Thai snack or drink gift\", \"Priority customer support\"]', 3, 7, 1, 0, 3, '2025-07-25 04:26:21', '2025-07-25 04:26:21'),
+('smart-choice-plan-2025', 'Smart Choice', 'Smart Choice', 'Balanced value with the best perceived deal. Most popular choice for regular customers.', 'weekly', 8, 1, '87.99', '0.00', '87.99', '[\"8 healthy Thai meals per week\", \"Free home delivery\", \"Flexible scheduling\", \"Premium quality ingredients\", \"Best value per meal\", \"Most popular choice\"]', 2, 7, 1, 1, 2, '2025-07-25 04:26:21', '2025-07-25 04:26:21');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `system_settings`
+--
+
+CREATE TABLE `system_settings` (
+  `id` int(11) NOT NULL,
+  `setting_key` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `setting_value` text COLLATE utf8mb4_unicode_ci,
+  `setting_type` enum('string','number','boolean','json') COLLATE utf8mb4_unicode_ci DEFAULT 'string',
+  `description` text COLLATE utf8mb4_unicode_ci,
+  `category` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT 'general',
+  `is_public` tinyint(1) DEFAULT '0',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `system_settings`
+--
+
+INSERT INTO `system_settings` (`id`, `setting_key`, `setting_value`, `setting_type`, `description`, `category`, `is_public`, `created_at`, `updated_at`) VALUES
+(1, 'site_name', 'Krua Thai', 'string', 'Website name', 'general', 1, '2025-07-03 15:19:17', '2025-07-03 15:19:17'),
+(2, 'site_description', 'Authentic Thai Meals, Made Healthy', 'string', 'Website description', 'general', 1, '2025-07-03 15:19:17', '2025-07-03 15:19:17'),
+(3, 'delivery_fee', '50.00', 'number', 'Default delivery fee (THB)', 'delivery', 1, '2025-07-03 15:19:17', '2025-07-03 15:19:17'),
+(4, 'free_delivery_minimum', '500.00', 'number', 'Minimum order for free delivery (THB)', 'delivery', 1, '2025-07-03 15:19:17', '2025-07-03 15:19:17'),
+(5, 'max_order_items', '10', 'number', 'Maximum items per order', 'orders', 0, '2025-07-03 15:19:17', '2025-07-03 15:19:17'),
+(6, 'order_preparation_time', '30', 'number', 'Default preparation time (minutes)', 'orders', 0, '2025-07-03 15:19:17', '2025-07-03 15:19:17'),
+(7, 'enable_notifications', '1', 'boolean', 'Enable system notifications', 'notifications', 0, '2025-07-03 15:19:17', '2025-07-03 15:19:17'),
+(8, 'email_notifications', '1', 'boolean', 'Enable email notifications', 'notifications', 0, '2025-07-03 15:19:17', '2025-07-03 15:19:17'),
+(9, 'business_hours', '{\"open\":\"09:00\",\"close\":\"21:00\",\"timezone\":\"Asia/Bangkok\"}', 'json', 'Business operating hours', 'general', 1, '2025-07-03 15:19:17', '2025-07-03 15:19:17'),
+(10, 'contact_phone', '02-123-4567', 'string', 'Contact phone number', 'contact', 1, '2025-07-03 15:19:17', '2025-07-03 15:19:17'),
+(11, 'contact_email', 'info@kruathai.com', 'string', 'Contact email address', 'contact', 1, '2025-07-03 15:19:17', '2025-07-03 15:19:17'),
+(12, 'maintenance_mode', '0', 'boolean', 'Enable maintenance mode', 'system', 0, '2025-07-03 15:19:17', '2025-07-03 15:19:17'),
+(13, 'currency', 'THB', 'string', 'Default currency', 'general', 1, '2025-07-03 15:19:17', '2025-07-03 15:19:17'),
+(14, 'tax_rate', '7.00', 'number', 'Tax rate percentage', 'financial', 0, '2025-07-03 15:19:17', '2025-07-03 15:19:17');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `users`
+--
+
+CREATE TABLE `users` (
+  `id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `email` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `password_hash` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `first_name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `last_name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `phone` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `facebook_id` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `google_id` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `registration_method` enum('email','facebook','google') COLLATE utf8mb4_unicode_ci DEFAULT 'email',
+  `date_of_birth` date DEFAULT NULL,
+  `gender` enum('male','female','other') COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `role` enum('customer','admin','kitchen','rider','support') COLLATE utf8mb4_unicode_ci DEFAULT 'customer',
+  `status` enum('active','inactive','suspended','pending_verification','pending_profile') COLLATE utf8mb4_unicode_ci DEFAULT 'pending_verification',
+  `email_verified` tinyint(1) DEFAULT '0',
+  `email_verification_token` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `delivery_address` text COLLATE utf8mb4_unicode_ci,
+  `address_line_2` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `city` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `state` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `zip_code` varchar(10) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `country` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT 'Thailand',
+  `delivery_instructions` text COLLATE utf8mb4_unicode_ci,
+  `dietary_preferences` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin,
+  `allergies` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin,
+  `spice_level` enum('mild','medium','hot','extra_hot') COLLATE utf8mb4_unicode_ci DEFAULT 'medium',
+  `last_login` timestamp NULL DEFAULT NULL,
+  `failed_login_attempts` int(11) DEFAULT '0',
+  `locked_until` timestamp NULL DEFAULT NULL,
+  `password_reset_token` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `password_reset_expires` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `social_provider` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'OAuth provider: facebook, google, apple',
+  `social_id` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Unique ID from social provider',
+  `avatar_url` text COLLATE utf8mb4_unicode_ci COMMENT 'Profile picture URL from social provider'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `users`
+--
+
+INSERT INTO `users` (`id`, `email`, `password_hash`, `first_name`, `last_name`, `phone`, `facebook_id`, `google_id`, `registration_method`, `date_of_birth`, `gender`, `role`, `status`, `email_verified`, `email_verification_token`, `delivery_address`, `address_line_2`, `city`, `state`, `zip_code`, `country`, `delivery_instructions`, `dietary_preferences`, `allergies`, `spice_level`, `last_login`, `failed_login_attempts`, `locked_until`, `password_reset_token`, `password_reset_expires`, `created_at`, `updated_at`, `social_provider`, `social_id`, `avatar_url`) VALUES
+('1aee9a0c-8a37-4b6c-8a90-af07a113f7f7', 'chompoo@gmail.com', '$2y$10$L8UKu4rUAl5CslyVST7l5eykhO.nQMRQCUalLSreFCLJzcwfdW0La', 'chompoo', 'poo', '0899946684', NULL, NULL, 'email', NULL, NULL, 'customer', 'active', 0, NULL, '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei\r\n(Optional) Q-House Building, Room 1705', NULL, 'Placentia', NULL, '92801', 'USA', NULL, NULL, NULL, 'medium', NULL, 1, NULL, NULL, NULL, '2025-07-21 08:32:06', '2025-07-21 08:40:32', NULL, NULL, NULL),
+('29e6fe85-124c-480f-bcf2-0d174721936f', 'topkung567@gmail.com', '$2y$10$tz2nx5uyd7wF3W.t8T7pveJpn9cAXyDi5Rzrbn3ZRVIUL218z9xvK', 'pppppp', 'ppppp', '0899946687', NULL, NULL, 'email', '2002-01-04', 'male', 'customer', 'active', 0, NULL, '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei333', '(Optional) Q-House Building, Room 170533', 'Fullerton3', 'DE', '92835', 'USA', 'deee3333rrrd', '[\"vegetarian\",\"vegan\"]', '[\"nuts\",\"peanuts\",\"soy\"]', 'extra_hot', '2025-08-13 02:31:58', 0, NULL, '1daccb75f5e7b4bdca45e1512f46f71aff09f2bbf186167b4affbd66dbc91006', '2025-08-11 16:36:19', '2025-07-04 04:00:20', '2025-08-13 02:31:58', NULL, NULL, NULL),
+('38ead54a-63ad-11f0-b4b5-834ae8afb477', 'testuser1@example.com', '$2y$10$dummyhashplaceholder', 'Emily', 'Carter', '714-555-0101', NULL, NULL, 'email', NULL, NULL, 'customer', 'active', 0, NULL, '1900 Associated Rd, Fullerton, CA', NULL, 'Fullerton', 'CA', '92831', 'USA', NULL, NULL, NULL, 'medium', NULL, 5, '2025-07-18 01:17:01', NULL, NULL, '2025-07-18 08:00:08', '2025-07-18 08:02:01', NULL, NULL, NULL),
+('38eae92c-63ad-11f0-b4b5-834ae8afb477', 'testuser2@example.com', '$2y$10$dummyhashplaceholder', 'Daniel', 'Lee', '714-555-0102', NULL, NULL, 'email', NULL, NULL, 'customer', 'active', 0, NULL, '400 N Brea Blvd, Brea, CA', NULL, 'Brea', 'CA', '92821', 'USA', NULL, NULL, NULL, 'medium', NULL, 0, NULL, NULL, NULL, '2025-07-18 08:00:08', '2025-07-18 08:00:08', NULL, NULL, NULL),
+('38eaea6c-63ad-11f0-b4b5-834ae8afb477', 'testuser3@example.com', '$2y$10$dummyhashplaceholder', 'Sophia', 'Garcia', '714-555-0103', NULL, NULL, 'email', NULL, NULL, 'customer', 'active', 0, NULL, '130 E Yorba Linda Blvd, Placentia, CA', NULL, 'Placentia', 'CA', '92870', 'USA', NULL, NULL, NULL, 'medium', NULL, 0, NULL, NULL, NULL, '2025-07-18 08:00:08', '2025-07-18 08:00:08', NULL, NULL, NULL),
+('38eaf660-63ad-11f0-b4b5-834ae8afb477', 'testuser4@example.com', '$2y$10$dummyhashplaceholder', 'Liam', 'Chen', '714-555-0104', NULL, NULL, 'email', NULL, NULL, 'customer', 'active', 0, NULL, '800 N State College Blvd, Fullerton, CA', NULL, 'Fullerton', 'CA', '92831', 'USA', NULL, NULL, NULL, 'medium', NULL, 0, NULL, NULL, NULL, '2025-07-18 08:00:08', '2025-07-18 08:00:08', NULL, NULL, NULL),
+('38eaf796-63ad-11f0-b4b5-834ae8afb477', 'testuser5@example.com', '$2y$10$dummyhashplaceholder', 'Olivia', 'Patel', '714-555-0105', NULL, NULL, 'email', NULL, NULL, 'customer', 'active', 0, NULL, '1600 E Birch St, Brea, CA', NULL, 'Brea', 'CA', '92821', 'USA', NULL, NULL, NULL, 'medium', NULL, 0, NULL, NULL, NULL, '2025-07-18 08:00:08', '2025-07-18 08:00:08', NULL, NULL, NULL),
+('3ce9049e-c5bd-4f92-8ca7-1d5d3a981ec3', 'test5@gmail.com', '$2y$10$Zo9egJCRhsbq/7Q4sz4BHOQQwYa/OaW7CKPbl9VJWobCV3mRxE3.G', 'test5', 'test5', '11111111', NULL, NULL, 'email', '2025-07-08', 'male', 'customer', 'active', 0, NULL, '90631', NULL, 'Brea', NULL, '92821', 'Thailand', '', '[\"vegan\"]', '[]', 'medium', '2025-07-22 12:17:30', 0, NULL, NULL, NULL, '2025-07-22 12:12:49', '2025-07-22 12:17:30', NULL, NULL, NULL),
+('3ecffe25-a2ee-4779-87e3-94d1908f668e', 'chompoo1@gmail.com', '$2y$10$Z8K7CK8lsxCZqgRuvbPD/.tiI.3emMkUORdIkYtbtgKkX/jzp.59G', 'chompoo1', 'poo', '0899946689', NULL, NULL, 'email', '2020-02-06', 'female', 'customer', 'active', 0, NULL, '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei(Optional) Q-House Building, Room 1705', NULL, 'USA', NULL, '92801', 'Thailand', '', '[\"dairy_free\"]', '[]', 'medium', '2025-08-05 16:07:10', 0, NULL, NULL, NULL, '2025-07-21 08:46:05', '2025-08-05 16:07:25', NULL, NULL, NULL),
+('44b89e7e-dedc-49c0-b704-5dbddb6e04c2', 'test99@gmail.com', '$2y$10$PWyrReq9yBBOpgdjPdiTvuBiRoxO4.KDTxA9/B09nnAlAW7wmxw0G', 'สมชาย', 'ใจดีมาก', '0818514942', NULL, NULL, 'email', '2012-08-02', 'male', 'customer', 'pending_verification', 0, '4d2a8876c771d43e5118ffabf12fe8fb74450bbd74faebd1057db227e2a738b7', '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', '(Optional) Q-House Building, Room 1705', 'Bangkok', 'Bangkok', '10110', 'Thailand', 'fffff', '[\"gluten_free\",\"keto\"]', NULL, 'extra_hot', NULL, 0, NULL, NULL, NULL, '2025-08-05 04:20:46', '2025-08-05 04:20:46', NULL, NULL, NULL),
+('460ee60a-8f56-4a4b-b9ef-873aab28c84f', 'test2@example.com', '$2y$10$nWKiOVBCHLB1Cf30.iljqeFLz/AvBh.LgxD31qCb0GAoQPDwMa15G', '\'; UPDATE users SET role=\'admin\' WHERE email=\'test@test.com\'--', 'Test', '0812345222', NULL, NULL, 'email', '2012-08-01', 'male', 'customer', 'inactive', 0, '46b80db135d605c9c4258b241719a24174bc6295b3c6fdc3c8cdb281f66503c0', '18120 wego[dvkopewkgpojf[oje', '222222', 'Saraburi', '22222', '22222', 'Thailand', 'efefefwefew', '[\"vegetarian\",\"gluten_free\"]', '[\"ff\"]', 'medium', NULL, 0, NULL, NULL, NULL, '2025-08-05 04:55:52', '2025-08-06 04:00:16', NULL, NULL, NULL),
+('47c2e78d-515a-4b8e-bb56-d6fd9c6a9cd8', 'Test3@gmail.com', '$2y$10$5NynPttTPgwAwUfHsRUMA.UJYZvjUigbmHoVs01HMZx.e2qF5daPW', 'test3', '33333', '0818514444', NULL, NULL, 'email', '2001-10-16', 'male', 'customer', 'active', 0, NULL, 'Garden Grove', NULL, 'Garden Grove', NULL, '92843', 'Thailand', '', '[\"low_sodium\"]', '[]', 'hot', '2025-08-07 02:04:49', 0, NULL, NULL, NULL, '2025-07-21 09:10:36', '2025-08-07 02:04:49', NULL, NULL, NULL),
+('550e8400-e29b-41d4-a716-446655440001', 'customer@kruathai.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'สมชาย', 'ใจดี', '0812345678', NULL, NULL, 'email', NULL, NULL, 'customer', 'active', 1, NULL, '123 ถ.สุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพฯ 10110', NULL, NULL, NULL, '10110', 'Thailand', NULL, '[\"vegetarian\"]', NULL, 'medium', NULL, 0, NULL, NULL, NULL, '2025-07-02 02:47:49', '2025-07-04 07:30:42', NULL, NULL, NULL),
+('550e8400-e29b-41d4-a716-446655440002', 'admin@kruathai.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'อดมิน', 'ผู้จัดการ', '0898765432', NULL, NULL, 'email', NULL, NULL, 'admin', 'active', 1, NULL, NULL, NULL, NULL, NULL, NULL, 'Thailand', NULL, NULL, NULL, 'medium', '2025-08-13 03:01:24', 0, NULL, NULL, NULL, '2025-07-02 02:47:49', '2025-08-13 03:01:24', NULL, NULL, NULL),
+('550e8400-e29b-41d4-a716-446655440003', 'kitchen@kruathai.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'เชฟ', 'มือทอง', '0887654321', NULL, NULL, 'email', '2022-01-01', 'male', 'kitchen', 'active', 1, NULL, 'Anaheim', NULL, 'Anaheim', NULL, '92801', 'Thailand', '', '[]', '[]', 'medium', '2025-08-06 07:40:18', 0, NULL, NULL, NULL, '2025-07-02 02:47:49', '2025-08-06 07:40:18', NULL, NULL, NULL),
+('550e8400-e29b-41d4-a716-446655440004', 'rider@kruathai.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'ไรเดอร์', 'รวดเร็ว', '0876543210', NULL, NULL, 'email', NULL, NULL, 'rider', 'active', 1, NULL, '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', NULL, 'Fullerton', 'CA', '92831', 'USA', '', NULL, NULL, 'medium', '2025-08-03 13:39:31', 0, NULL, NULL, NULL, '2025-07-02 02:47:49', '2025-08-03 13:39:31', NULL, NULL, NULL),
+('56ec0a53-cf99-4e73-89d7-a3300ddafa4f', 'Test4@gmail.com', '$2y$10$2h1a/CnUblP1.hk29yqMce08t9ulDiAUZi5wM8gyIEL1PGaJv.9rO', 'test4', '4444', '0818512222', NULL, NULL, 'email', NULL, NULL, 'customer', 'active', 0, NULL, 'Anaheim', NULL, 'Anaheim', NULL, '92802', 'Thailand', '', NULL, NULL, 'medium', '2025-08-06 08:32:16', 0, NULL, NULL, NULL, '2025-07-21 09:13:45', '2025-08-06 08:32:16', NULL, NULL, NULL),
+('5af6d9cd-5e46-41de-b6d7-632cb21330a5', 'wee@gmail.com', '$2y$10$BDXr7jQtSFEDNHgqY6jgPueHSA/GUzz.nZJhA08M8L/4Oir5rRlTO', 'boat', 'pp', '0818514949', NULL, NULL, 'email', '2012-07-04', 'female', 'rider', 'active', 0, NULL, '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', '(Optional) Q-House Building, Room 1705', 'Brea', 'Brea', '92821', 'Thailand', '', '[\"vegetarian\",\"low_sodium\"]', NULL, 'hot', '2025-07-19 09:43:30', 1, NULL, NULL, NULL, '2025-07-18 08:10:42', '2025-07-21 04:30:32', NULL, NULL, NULL),
+('6c9391f3-0772-4393-a703-a035cc68d3d7', 'topkung72@gmail.com', '$2y$10$x3EnJfvQLLoEZWUh.B2jFuCF2Cmwrp0CVqp7uY1iNUF42qy3nJ7hK', 'werawutt', 'Promrunway', '0616625931', NULL, NULL, 'email', '2001-11-04', 'male', 'customer', 'active', 0, NULL, '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', '(Optional) Q-House Building, Room 1705', 'Brea', 'CA', '92821', 'Thailand', 'Please call upon arrival at the lobby. Do not leave food with the security guard.', '[\"vegetarian\"]', NULL, 'mild', '2025-08-12 02:43:28', 0, NULL, 'c58e5e4612216e2ef85395d6e48f9c1856464718713a203fb258cec9bd8c566a', '2025-08-10 16:13:38', '2025-07-02 06:58:30', '2025-08-12 02:43:28', NULL, NULL, NULL),
+('6fdc8ff8-db01-406a-b34a-8fdc701bff70', 'Test6@gmail.com', '$2y$10$6VmmhvCLa1o9Vb.4Z/IWHuvaRQezk1ZnwvXUOlOoB2yyd1NteLfUO', 'test6', '666666', '6666666666', NULL, NULL, 'email', '2025-07-02', 'female', 'customer', 'active', 0, NULL, 'Garden Grove', NULL, 'Garden Grove', NULL, '92840', 'Thailand', '', '[\"vegetarian\"]', '[]', 'medium', '2025-08-05 16:10:12', 0, NULL, NULL, NULL, '2025-07-22 12:19:46', '2025-08-05 16:10:31', NULL, NULL, NULL),
+('7587f6a4-cd3e-42e6-84df-2fc30df52b3f', 'AA@gmail.com', '$2y$10$8rdG8tweBqs1OF4EvfIQ8ucs9vMlsP/L4w11xfHq4oY/fJzNlmIqm', 'AA', 'AA', '0818514943', NULL, NULL, 'email', NULL, NULL, 'customer', 'active', 0, NULL, '123 Sukhumvit Road, Q-House Building, Room 1705, Floor 17, Khlong Toei', NULL, 'Brea', NULL, '92831', 'Thailand', '', NULL, NULL, 'medium', '2025-07-21 08:37:02', 0, NULL, NULL, NULL, '2025-07-21 08:27:03', '2025-07-21 08:37:02', NULL, NULL, NULL),
+('79b6e774-aede-4aed-b82b-c17536a80bb9', 'test8@gmail.com', '$2y$10$.zwCYMB01QFxoTTcNC80Euv6qLCcTSw4Wapt7Rqbw58p0g1WZnJs6', 'test8', 'test8', '0616635934', NULL, NULL, 'email', '2012-07-04', 'female', 'admin', 'active', 0, 'f6b1df2554a66767c45047aaa99c63ab9bf294852c81a08dd63cb1a34397f96a', '222222cewecsacqc', 'ss222222', 'newyork', '2222ss2', '22222', 'Thailand', '2222222', '[\"vegetarian\",\"vegan\"]', '[\"2223322\"]', 'medium', '2025-08-05 16:04:54', 0, NULL, NULL, NULL, '2025-07-31 04:38:59', '2025-08-05 16:04:54', NULL, NULL, NULL),
+('977b32bf-db86-47dc-9a61-12ab9dc241b9', 'test1@gmail.com', '$2y$10$BWGYnOnMozlV2RNf31YSyOBkGd9gH.XTaZyBAOEQR7fpOXn7Zt5HS', 'test1', '11', '0000000000', NULL, NULL, 'email', '2000-05-10', 'male', 'customer', 'inactive', 0, NULL, 'Santa Ana', NULL, 'Santa Ana', NULL, '92703', 'Thailand', '', '[\"vegan\"]', '[]', 'medium', '2025-08-03 14:17:08', 0, NULL, NULL, NULL, '2025-07-21 08:56:50', '2025-08-03 14:18:27', NULL, NULL, NULL),
+('a605d40d-12fe-4511-bd89-322a6b7004e6', 'boomboom@gmail.com', '$2y$10$QGtNWdIKFOt2N9QD1rhHk.SdjkVXKj2EtnU1x4w0L8aDseuQTy4eq', 'พำพเำพเำพเำะ้ะำพเภะ้ภุ้ภะเำพ้ะภ้ภะสเะภาภะน้เานะภาเยนภาพเพยนาภยนเาะภยนาเยะภาเยาภยเาภยเนะภยนเายนภะเาภะ', 'ะเภยเายนภะาเยนภายนเาภะยนเาภะเนะภาเยนะภาาภนยเายะนภาเยนาะภยนเภาะยนเายนะภ', '0812345674', NULL, NULL, 'email', '2012-08-04', 'male', 'customer', 'pending_verification', 0, '4b38ff032ff527beb63b26b92817adad77d7b2fb5ace69c8ba7b2b72d24a7d89', '18120 wego[dvkopewkgpojf[oje', '=', 'Saraburi', 'Placentia', '92870', 'Thailand', '', '[\"gluten_free\"]', NULL, 'medium', NULL, 0, NULL, NULL, NULL, '2025-08-05 04:22:04', '2025-08-05 04:22:04', NULL, NULL, NULL),
+('aa526847-33b7-4113-b8db-9cf03c97a656', 'oak.thanakorn@gmail.com', '$2y$10$0eEHCsSdQ7SvDPRGh4Ajou/1zD6IgDTC8O1P8AFDzhclLQOhTLy1C', 'Thanakorn', 'Tuanwachat', '0970502913', NULL, NULL, 'email', '1991-08-21', 'male', 'customer', 'active', 1, '77a081af54c536376173b40ed8278d8c2157fe9a0a39b2d1ddb21b536ef276ad', '13th Street 47 W 13th St, New York, NY 10011, USA', '', 'NY', 'New York', '10011', 'Thailand', '', NULL, NULL, 'medium', '2025-07-08 09:42:48', 0, NULL, NULL, NULL, '2025-07-08 07:15:48', '2025-07-18 06:10:45', NULL, NULL, NULL),
+('aedb1144-5ba5-11f0-96aa-e4b3d1018dc3', 'rider2@kruathai.com', '$2y$10$...', 'ไรเดอร์', 'คนที่ 2', NULL, NULL, NULL, 'email', NULL, NULL, 'rider', 'active', 1, NULL, NULL, NULL, NULL, NULL, NULL, 'Thailand', NULL, NULL, NULL, 'medium', NULL, 0, NULL, NULL, NULL, '2025-07-08 02:46:00', '2025-07-21 08:40:58', NULL, NULL, NULL),
+('bd1259a5-57b1-4fc7-babb-61baad5a6e03', 'wee1@gmail.com', '$2y$10$Q6sT3X0ffmDeFjk77IuH.Oq5z7Dsl75uxYsLKK.VwlanW4qHo9ZNe', 'pai11111', '11111pp', '0616625932', NULL, NULL, 'email', NULL, NULL, 'customer', 'active', 0, NULL, '130 E Yorba Linda Blvd, Placentia, CA=', NULL, 'Placentia', NULL, '92870', 'Thailand', '', NULL, NULL, 'medium', '2025-07-21 07:31:05', 0, NULL, NULL, NULL, '2025-07-21 04:31:29', '2025-07-21 07:31:05', NULL, NULL, NULL),
+('d06d0b12-7184-4f53-9342-ede1b18414f5', 'Test7@gmail.com', '$2y$10$s9IRj6JydYFzXFXaKte6m.Xq2LFe5W9q8AuapheLdldWPBAbmYO6S', 'test7', '77777', '77777777', NULL, NULL, 'email', '2021-01-22', 'male', 'customer', 'active', 0, NULL, '92887', NULL, 'Yorba Linda', NULL, '92887', 'Thailand', '', '[\"vegetarian\"]', '[]', 'medium', '2025-07-22 12:31:26', 3, NULL, NULL, NULL, '2025-07-22 12:26:17', '2025-08-06 04:37:21', NULL, NULL, NULL),
+('d8991d11-5682-42dd-8fd3-06ffa0eb5125', 'admin222@kruathai.com', '$2y$10$XNjerSnkATquddkX5StkJuoPyosI20CuLLXjqLsTX0enYtEMLL3rS', '\'; UPDATE users SET role=\'admin\' WHERE email=\'test@test.com\'--', 'user2', '0812345673', NULL, NULL, 'email', '2012-07-31', 'male', 'customer', 'pending_verification', 0, '312a7d080e2e4812d081eae40ab710cb9fc5491a9c717f1ca23e145f2d0c1d6d', '18120 wego[dvkopewkgpojf[oje', '(Optional) Q-House Building, Room 1705', 'Saraburi', 'Texas', '92821', 'Thailand', 'YTJTYJTYJTYJTY', '[\"vegan\",\"keto\"]', NULL, 'medium', NULL, 0, NULL, NULL, NULL, '2025-08-05 04:40:17', '2025-08-05 04:40:17', NULL, NULL, NULL),
+('dc10bf31-b2a6-437a-a4da-a2f88bcdec9a', 'boom@gmail.com', '$2y$10$osHYFt.FpqAun0UpmDjT4.1sbh4W9e315q9XLV9r16cJrlRWYsmzW', 'boomm', 'boom', '0812345677', NULL, NULL, 'email', '2001-08-15', 'female', 'customer', 'active', 0, 'c0bcce719bc6042e5b5db554e4349653d9c24ea1293ff256523ba7d58b861487', '18120 wego[dvkopewkgpojf[oje', '1111', 'Saraburi', 'Sara Buri', '91129', 'Thailand', '1111', '[\"vegetarian\"]', '[\"111\"]', 'medium', '2025-07-26 04:58:10', 0, NULL, '7a30a3d65b1f1dd64e3608609bb0e8e48a33a1910e86b28309411d9b0212cd11', '2025-08-10 09:26:19', '2025-07-26 04:55:03', '2025-08-10 08:26:19', NULL, NULL, NULL);
+
+--
+-- Indexes for dumped tables
+--
+
+--
+-- Indexes for table `cart_activities`
+--
+ALTER TABLE `cart_activities`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_user_id` (`user_id`),
+  ADD KEY `idx_item_id` (`item_id`),
+  ADD KEY `idx_action` (`action`),
+  ADD KEY `idx_created_at` (`created_at`);
+
+--
+-- Indexes for table `complaints`
+--
+ALTER TABLE `complaints`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `complaint_number` (`complaint_number`),
+  ADD KEY `order_id` (`subscription_id`),
+  ADD KEY `assigned_to` (`assigned_to`),
+  ADD KEY `idx_user` (`user_id`),
+  ADD KEY `idx_status_priority` (`status`,`priority`),
+  ADD KEY `idx_complaint_number` (`complaint_number`);
+
+--
+-- Indexes for table `daily_nutrition_tracking`
+--
+ALTER TABLE `daily_nutrition_tracking`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `unique_user_tracking_date` (`user_id`,`tracking_date`),
+  ADD KEY `idx_user_date` (`user_id`,`tracking_date`);
+
+--
+-- Indexes for table `delivery_zones`
+--
+ALTER TABLE `delivery_zones`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_active` (`is_active`);
+
+--
+-- Indexes for table `inventory`
+--
+ALTER TABLE `inventory`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_category` (`category`),
+  ADD KEY `idx_stock_level` (`current_stock`,`minimum_stock`),
+  ADD KEY `idx_expiry` (`expiry_date`);
+
+--
+-- Indexes for table `menus`
+--
+ALTER TABLE `menus`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `slug` (`slug`),
+  ADD KEY `idx_category` (`category_id`),
+  ADD KEY `idx_available` (`is_available`),
+  ADD KEY `idx_featured` (`is_featured`),
+  ADD KEY `idx_price` (`base_price`),
+  ADD KEY `idx_slug` (`slug`);
+
+--
+-- Indexes for table `menu_categories`
+--
+ALTER TABLE `menu_categories`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_active_sort` (`is_active`,`sort_order`);
+
+--
+-- Indexes for table `menu_ingredients`
+--
+ALTER TABLE `menu_ingredients`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `unique_menu_ingredient` (`menu_id`,`inventory_id`),
+  ADD KEY `idx_menu` (`menu_id`),
+  ADD KEY `idx_inventory` (`inventory_id`);
+
+--
+-- Indexes for table `notifications`
+--
+ALTER TABLE `notifications`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_user_read` (`user_id`,`is_read`),
+  ADD KEY `idx_type` (`type`),
+  ADD KEY `idx_sent` (`is_sent`);
+
+--
+-- Indexes for table `nutrition_goals`
+--
+ALTER TABLE `nutrition_goals`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_user_active` (`user_id`,`is_active`);
+
+--
+-- Indexes for table `orders`
+--
+ALTER TABLE `orders`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `order_number` (`order_number`),
+  ADD KEY `subscription_id` (`subscription_id`),
+  ADD KEY `idx_delivery_date_status` (`delivery_date`,`status`),
+  ADD KEY `idx_user_delivery` (`user_id`,`delivery_date`),
+  ADD KEY `idx_rider_date` (`assigned_rider_id`,`delivery_date`),
+  ADD KEY `idx_order_number` (`order_number`);
+
+--
+-- Indexes for table `order_items`
+--
+ALTER TABLE `order_items`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `subscription_menu_id` (`subscription_menu_id`),
+  ADD KEY `idx_order` (`order_id`),
+  ADD KEY `idx_menu` (`menu_id`);
+
+--
+-- Indexes for table `payments`
+--
+ALTER TABLE `payments`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_subscription` (`subscription_id`),
+  ADD KEY `idx_user` (`user_id`),
+  ADD KEY `idx_status` (`status`),
+  ADD KEY `idx_payment_date` (`payment_date`);
+
+--
+-- Indexes for table `payment_status_log`
+--
+ALTER TABLE `payment_status_log`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_payment_id` (`payment_id`),
+  ADD KEY `idx_created_at` (`created_at`);
+
+--
+-- Indexes for table `payment_status_logs`
+--
+ALTER TABLE `payment_status_logs`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_payment_id` (`payment_id`),
+  ADD KEY `idx_created_at` (`created_at`);
+
+--
+-- Indexes for table `reviews`
+--
+ALTER TABLE `reviews`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `unique_user_order_review` (`user_id`,`order_id`),
+  ADD KEY `admin_response_by` (`admin_response_by`),
+  ADD KEY `idx_order` (`order_id`),
+  ADD KEY `idx_menu_rating` (`menu_id`,`overall_rating`),
+  ADD KEY `idx_public_approved` (`is_public`,`moderation_status`);
+
+--
+-- Indexes for table `subscriptions`
+--
+ALTER TABLE `subscriptions`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `plan_id` (`plan_id`),
+  ADD KEY `cancelled_by` (`cancelled_by`),
+  ADD KEY `idx_user_status` (`user_id`,`status`),
+  ADD KEY `idx_status` (`status`),
+  ADD KEY `idx_billing_date` (`next_billing_date`),
+  ADD KEY `idx_assigned_rider` (`assigned_rider_id`);
+
+--
+-- Indexes for table `subscription_menus`
+--
+ALTER TABLE `subscription_menus`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `unique_subscription_menu_date` (`subscription_id`,`menu_id`,`delivery_date`),
+  ADD KEY `idx_subscription_date` (`subscription_id`,`delivery_date`),
+  ADD KEY `idx_delivery_date` (`delivery_date`),
+  ADD KEY `idx_menu` (`menu_id`);
+
+--
+-- Indexes for table `subscription_plans`
+--
+ALTER TABLE `subscription_plans`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_active_sort` (`is_active`,`sort_order`),
+  ADD KEY `idx_type` (`plan_type`);
+
+--
+-- Indexes for table `system_settings`
+--
+ALTER TABLE `system_settings`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `setting_key` (`setting_key`),
+  ADD KEY `idx_category` (`category`);
+
+--
+-- Indexes for table `users`
+--
+ALTER TABLE `users`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `email` (`email`),
+  ADD KEY `idx_email` (`email`),
+  ADD KEY `idx_role` (`role`),
+  ADD KEY `idx_status` (`status`),
+  ADD KEY `idx_zip_code` (`zip_code`),
+  ADD KEY `idx_social_login` (`social_provider`,`social_id`),
+  ADD KEY `idx_social_provider` (`social_provider`),
+  ADD KEY `idx_social` (`social_provider`,`social_id`),
+  ADD KEY `idx_facebook_id` (`facebook_id`),
+  ADD KEY `idx_google_id` (`google_id`);
+
+--
+-- AUTO_INCREMENT for dumped tables
+--
+
+--
+-- AUTO_INCREMENT for table `payment_status_logs`
+--
+ALTER TABLE `payment_status_logs`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `system_settings`
+--
+ALTER TABLE `system_settings`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+
+--
+-- Constraints for dumped tables
+--
+
+--
+-- Constraints for table `cart_activities`
+--
+ALTER TABLE `cart_activities`
+  ADD CONSTRAINT `cart_activities_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `complaints`
+--
+ALTER TABLE `complaints`
+  ADD CONSTRAINT `complaints_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `complaints_ibfk_2` FOREIGN KEY (`subscription_id`) REFERENCES `subscriptions` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `complaints_ibfk_3` FOREIGN KEY (`assigned_to`) REFERENCES `users` (`id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `daily_nutrition_tracking`
+--
+ALTER TABLE `daily_nutrition_tracking`
+  ADD CONSTRAINT `daily_nutrition_tracking_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `menus`
+--
+ALTER TABLE `menus`
+  ADD CONSTRAINT `menus_ibfk_1` FOREIGN KEY (`category_id`) REFERENCES `menu_categories` (`id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `menu_ingredients`
+--
+ALTER TABLE `menu_ingredients`
+  ADD CONSTRAINT `menu_ingredients_ibfk_1` FOREIGN KEY (`menu_id`) REFERENCES `menus` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `menu_ingredients_ibfk_2` FOREIGN KEY (`inventory_id`) REFERENCES `inventory` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `notifications`
+--
+ALTER TABLE `notifications`
+  ADD CONSTRAINT `notifications_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `nutrition_goals`
+--
+ALTER TABLE `nutrition_goals`
+  ADD CONSTRAINT `nutrition_goals_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `orders`
+--
+ALTER TABLE `orders`
+  ADD CONSTRAINT `orders_ibfk_1` FOREIGN KEY (`subscription_id`) REFERENCES `subscriptions` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `orders_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `orders_ibfk_3` FOREIGN KEY (`assigned_rider_id`) REFERENCES `users` (`id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `order_items`
+--
+ALTER TABLE `order_items`
+  ADD CONSTRAINT `order_items_ibfk_1` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `order_items_ibfk_2` FOREIGN KEY (`menu_id`) REFERENCES `menus` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `order_items_ibfk_3` FOREIGN KEY (`subscription_menu_id`) REFERENCES `subscription_menus` (`id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `payments`
+--
+ALTER TABLE `payments`
+  ADD CONSTRAINT `payments_ibfk_1` FOREIGN KEY (`subscription_id`) REFERENCES `subscriptions` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `payments_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `reviews`
+--
+ALTER TABLE `reviews`
+  ADD CONSTRAINT `reviews_ibfk_1` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `reviews_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `reviews_ibfk_3` FOREIGN KEY (`menu_id`) REFERENCES `menus` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `reviews_ibfk_4` FOREIGN KEY (`admin_response_by`) REFERENCES `users` (`id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `subscriptions`
+--
+ALTER TABLE `subscriptions`
+  ADD CONSTRAINT `subscriptions_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `subscriptions_ibfk_2` FOREIGN KEY (`plan_id`) REFERENCES `subscription_plans` (`id`),
+  ADD CONSTRAINT `subscriptions_ibfk_3` FOREIGN KEY (`cancelled_by`) REFERENCES `users` (`id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `subscription_menus`
+--
+ALTER TABLE `subscription_menus`
+  ADD CONSTRAINT `subscription_menus_ibfk_1` FOREIGN KEY (`subscription_id`) REFERENCES `subscriptions` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `subscription_menus_ibfk_2` FOREIGN KEY (`menu_id`) REFERENCES `menus` (`id`) ON DELETE CASCADE;
+COMMIT;
+
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;

@@ -1,23 +1,49 @@
 <?php
 session_start();
 
-// 🔥 Debug Form Submission 🔥
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    echo "<div style='background: #fff3cd; padding: 15px; margin: 10px; border-radius: 5px; position: fixed; top: 10px; left: 10px; z-index: 9999; width: 400px;'>";
-    echo "<h4>📝 Form Submitted!</h4>";
-    echo "<p><strong>Method:</strong> " . $_SERVER['REQUEST_METHOD'] . "</p>";
-    echo "<p><strong>place_order:</strong> " . (isset($_POST['place_order']) ? 'YES' : 'NO') . "</p>";
-    echo "<p><strong>POST keys:</strong> " . implode(', ', array_keys($_POST)) . "</p>";
+// 🔧 EMERGENCY DEBUG SECTION 🔧
+echo "<!-- ================ DEBUG INFO ================ -->";
+echo "<!-- Cart Items Count: " . count($_SESSION['cart'] ?? []) . " -->";
+echo "<!-- Session Cart: " . json_encode($_SESSION['cart'] ?? []) . " -->";
+
+// แสดง debug info ถ้ามี ?debug=1
+if (isset($_GET['debug'])) {
+    echo "<div style='background: #fff3cd; padding: 20px; margin: 20px; border-radius: 8px; border: 2px solid #ffc107;'>";
+    echo "<h3>🔍 DEBUG MODE ACTIVE</h3>";
+    echo "<h4>📦 SESSION CART:</h4>";
+    echo "<pre>" . print_r($_SESSION['cart'] ?? [], true) . "</pre>";
+    echo "<h4>📊 CALCULATED VALUES:</h4>";
+    echo "<pre>";
+    if (!empty($_SESSION['cart'])) {
+        $debug_total = 0;
+        foreach ($_SESSION['cart'] as $item) {
+            $item_total = ($item['base_price'] ?? 0) * ($item['quantity'] ?? 1);
+            echo "Item: " . ($item['name'] ?? 'Unknown') . "\n";
+            echo "  Price: $" . ($item['base_price'] ?? 0) . "\n";
+            echo "  Qty: " . ($item['quantity'] ?? 1) . "\n";
+            echo "  Total: $" . $item_total . "\n\n";
+            $debug_total += $item_total;
+        }
+        echo "CART SUBTOTAL: $" . $debug_total . "\n";
+    }
+    echo "</pre>";
+    echo "<a href='?' style='background: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;'>Exit Debug Mode</a>";
     echo "</div>";
-} else {
-    echo "<div style='background: #f8d7da; padding: 10px; margin: 10px; border-radius: 5px; position: fixed; top: 10px; right: 10px; z-index: 9999; width: 200px;'>";
-    echo "<p><strong>Method:</strong> " . $_SERVER['REQUEST_METHOD'] . "</p>";
-    echo "<p>No POST data</p>";
+}
+
+// ตรวจสอบ POST submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    echo "<div style='background: #d4edda; padding: 15px; margin: 10px; border-radius: 5px; position: fixed; top: 10px; left: 10px; z-index: 9999; width: 400px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);'>";
+    echo "<h4 style='margin: 0 0 10px 0; color: #155724;'>📝 FORM SUBMITTED!</h4>";
+    echo "<p style='margin: 5px 0; font-size: 14px;'><strong>Method:</strong> " . $_SERVER['REQUEST_METHOD'] . "</p>";
+    echo "<p style='margin: 5px 0; font-size: 14px;'><strong>place_order:</strong> " . (isset($_POST['place_order']) ? '✅ YES' : '❌ NO') . "</p>";
+    echo "<p style='margin: 5px 0; font-size: 14px;'><strong>POST keys:</strong> " . implode(', ', array_keys($_POST)) . "</p>";
     echo "</div>";
 }
 
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
+ini_set('log_errors', 1);
 
 require_once 'config/database.php';
 
@@ -54,31 +80,47 @@ class GuestCheckoutUtils {
         return '$' . number_format($price, 2);
     }
     
+    // 🔧 FIXED: การคำนวณราคาที่แน่นอน
     public static function calculateCartTotals($cart_items) {
         $subtotal = 0;
         $total_items = 0;
         
         foreach ($cart_items as $item) {
-            $item_total = ($item['base_price'] ?? 0) * ($item['quantity'] ?? 1);
+            // ป้องกันค่า null และค่าผิดปกติ
+            $price = max(0, floatval($item['base_price'] ?? 0));
+            $quantity = max(1, intval($item['quantity'] ?? 1));
+            
+            // จำกัด quantity ไม่ให้เกิน 100 (ป้องกันราคาแพงผิดปกติ)
+            if ($quantity > 100) {
+                error_log("⚠️ Suspicious quantity detected: " . $quantity . " for item " . ($item['name'] ?? 'Unknown'));
+                $quantity = 1; // Reset เป็น 1
+            }
+            
+            $item_total = $price * $quantity;
             
             // Add extra charges
             if (isset($item['customizations'])) {
                 if (isset($item['customizations']['extra_protein']) && $item['customizations']['extra_protein']) {
-                    $item_total += 2.99 * $item['quantity'];
+                    $item_total += 2.99 * $quantity;
                 }
                 if (isset($item['customizations']['extra_vegetables']) && $item['customizations']['extra_vegetables']) {
-                    $item_total += 1.99 * $item['quantity'];
+                    $item_total += 1.99 * $quantity;
                 }
             }
             
             $subtotal += $item_total;
-            $total_items += $item['quantity'];
+            $total_items += $quantity;
+            
+            // Debug logging
+            error_log("Cart Item: " . ($item['name'] ?? 'Unknown') . " | Price: $" . $price . " | Qty: " . $quantity . " | Total: $" . $item_total);
         }
         
         $delivery_fee = $subtotal >= 25 ? 0 : 3.99;
         $tax_rate = 0.0825; // 8.25%
         $tax_amount = $subtotal * $tax_rate;
         $total = $subtotal + $delivery_fee + $tax_amount;
+        
+        error_log("💰 CART TOTALS - Subtotal: $" . $subtotal . " | Delivery: $" . $delivery_fee . " | Tax: $" . $tax_amount . " | Total: $" . $total);
         
         return [
             'subtotal' => $subtotal,
@@ -104,7 +146,7 @@ try {
     $database = new Database();
     $pdo = $database->getConnection();
     
-    // Determine checkout source - IMPROVED LOGIC
+    // 🔧 FIXED: Logic การตรวจสอบ source
     $checkout_source = $_GET['source'] ?? 'auto';
     
     // Auto-detect source if not specified
@@ -129,6 +171,22 @@ try {
         if (empty($cart_items)) {
             throw new Exception("Your cart is empty. Please add items to cart first.");
         }
+        
+        // 🔧 FIXED: ทำความสะอาด cart ก่อนคำนวณ
+        $cleaned_cart = [];
+        foreach ($cart_items as $item) {
+            // ตรวจสอบและแก้ไขข้อมูลที่ผิดปกติ
+            $cleaned_item = [
+                'id' => $item['id'] ?? 'unknown-' . uniqid(),
+                'name' => $item['name'] ?? 'Unknown Item',
+                'base_price' => max(0, min(200, floatval($item['base_price'] ?? 18.99))), // จำกัดราคา 0-200
+                'quantity' => max(1, min(10, intval($item['quantity'] ?? 1))), // จำกัด quantity 1-10
+                'type' => $item['type'] ?? 'meal_kit',
+                'customizations' => $item['customizations'] ?? []
+            ];
+            $cleaned_cart[] = $cleaned_item;
+        }
+        $cart_items = $cleaned_cart;
         
         // Calculate totals
         $cart_totals = GuestCheckoutUtils::calculateCartTotals($cart_items);
@@ -233,11 +291,22 @@ try {
         $total = $cart_totals['total'];
     }
     
+    // 🔧 ADDED: ตรวจสอบราคาผิดปกติ
+    if ($total > 500) {
+        error_log("🚨 SUSPICIOUS TOTAL DETECTED: $" . $total);
+        echo "<div style='background: #f8d7da; color: #721c24; padding: 15px; margin: 20px; border-radius: 8px; border: 2px solid #f5c6cb;'>";
+        echo "<h4>⚠️ Price Alert</h4>";
+        echo "<p>The total amount seems unusually high: <strong>" . GuestCheckoutUtils::formatPrice($total) . "</strong></p>";
+        echo "<p>If this looks incorrect, please <a href='?debug=1'>click here to debug</a> or <a href='cart.php'>check your cart</a>.</p>";
+        echo "</div>";
+    }
+    
     // Update debug variables after processing
     $kit_id = $kit_id ?? 'auto-detected';
     
 } catch (Exception $e) {
     $errors[] = $e->getMessage();
+    error_log("❌ Checkout initialization error: " . $e->getMessage());
     // Set default values if there's an error
     $subtotal = 0;
     $delivery_fee = 3.99;
@@ -245,10 +314,9 @@ try {
     $total = 0;
 }
 
-// Process form submission - FIXED VERSION
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
+// 🔧 ENHANCED: Process form submission with better error handling
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
-    // 🔧 Debug: ตรวจสอบว่า Form ถูกส่งมาจริง
     error_log("🔥 GUEST CHECKOUT: Form submitted with place_order button");
     error_log("POST keys: " . implode(', ', array_keys($_POST)));
     
@@ -265,13 +333,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
     $payment_method = $_POST['payment_method'] ?? '';
     $delivery_date = $_POST['delivery_date'] ?? '';
     
-    // 🔧 Debug: แสดงข้อมูลที่ได้รับ
-    error_log("Customer: $first_name $last_name");
-    error_log("Email: $email");
-    error_log("Payment: $payment_method");
-    error_log("Delivery Date: $delivery_date");
-    
-    // Validation
+    // Enhanced validation
     if (empty($first_name)) $errors[] = "First name is required.";
     if (empty($last_name)) $errors[] = "Last name is required.";
     if (!GuestCheckoutUtils::validateEmail($email)) $errors[] = "Valid email address is required.";
@@ -288,11 +350,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
         $errors[] = "Delivery date must be at least tomorrow.";
     }
     
-    // 🔧 Debug: แสดงผลการตรวจสอบ
-    if (!empty($errors)) {
-        error_log("❌ Validation errors: " . implode(', ', $errors));
-    } else {
-        error_log("✅ Validation passed, proceeding with order creation");
+    // 🔧 ADDED: ตรวจสอบราคาก่อน submit
+    if ($total <= 0) {
+        $errors[] = "Invalid order total. Please refresh and try again.";
+    }
+    
+    if ($total > 500) {
+        $errors[] = "Order total seems unusually high. Please verify your cart.";
     }
     
     if (empty($errors)) {
@@ -300,7 +364,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
             $pdo->beginTransaction();
             error_log("🔄 Database transaction started");
             
-            // Create or find guest user
+            // สร้าง Guest User
             $user_id = GuestCheckoutUtils::generateUUID();
             
             // Check if email already exists
@@ -311,38 +375,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
             if ($existing_user) {
                 $user_id = $existing_user['id'];
                 error_log("👤 Using existing user: $user_id");
-                
-                // Update existing user's information
-                $stmt = $pdo->prepare("
-                    UPDATE users SET 
-                        first_name = ?, last_name = ?, phone = ?,
-                        delivery_address = ?, city = ?, state = ?, zip_code = ?,
-                        delivery_instructions = ?, updated_at = NOW()
-                    WHERE id = ?
-                ");
-                $stmt->execute([
-                    $first_name, $last_name, $phone,
-                    $delivery_address, $city, $state, $zip_code,
-                    $delivery_instructions, $user_id
-                ]);
             } else {
                 error_log("👤 Creating new user: $user_id");
                 
-                // Create new guest user
+                $default_password_hash = password_hash('guest_' . time(), PASSWORD_DEFAULT);
+                
                 $stmt = $pdo->prepare("
                     INSERT INTO users (
                         id, first_name, last_name, email, phone, 
-                        delivery_address, city, state, zip_code, delivery_instructions,
-                        role, is_guest, created_at, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'customer', 1, NOW(), NOW())
+                        password_hash, delivery_address, city, state, zip_code, 
+                        delivery_instructions, role, status, email_verified,
+                        created_at, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'customer', 'active', 0, NOW(), NOW())
                 ");
                 $stmt->execute([
                     $user_id, $first_name, $last_name, $email, $phone,
-                    $delivery_address, $city, $state, $zip_code, $delivery_instructions
+                    $default_password_hash, $delivery_address, $city, $state, $zip_code,
+                    $delivery_instructions
                 ]);
             }
             
-            // Create order
+            // สร้าง Order
             $order_id = GuestCheckoutUtils::generateUUID();
             $order_number = GuestCheckoutUtils::generateOrderNumber();
             
@@ -350,21 +403,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
             
             $stmt = $pdo->prepare("
                 INSERT INTO orders (
-                    id, user_id, order_number, status, total_amount, 
+                    id, order_number, user_id, 
                     delivery_date, delivery_address, delivery_instructions,
-                    payment_method, created_at, updated_at
-                ) VALUES (?, ?, ?, 'pending', ?, ?, ?, ?, ?, NOW(), NOW())
+                    subtotal, delivery_fee, tax_amount, total,
+                    status, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW(), NOW())
             ");
             $stmt->execute([
-                $order_id, $user_id, $order_number, $total,
-                $delivery_date, $delivery_address, $delivery_instructions, $payment_method
+                $order_id, $order_number, $user_id,
+                $delivery_date, $delivery_address, $delivery_instructions,
+                $subtotal, $delivery_fee, $tax_amount, $total
             ]);
             
-            // Create order items for all cart items
+            // สร้าง Order Items
             foreach ($cart_items as $item) {
                 $order_item_id = GuestCheckoutUtils::generateUUID();
                 
-                // Calculate item total with customizations
                 $item_total = $item['base_price'] * $item['quantity'];
                 if (isset($item['customizations'])) {
                     if (isset($item['customizations']['extra_protein']) && $item['customizations']['extra_protein']) {
@@ -379,19 +433,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
                 
                 $stmt = $pdo->prepare("
                     INSERT INTO order_items (
-                        id, order_id, menu_id, quantity, unit_price, total_price,
-                        customizations, special_requests, created_at, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+                        id, order_id, menu_id, menu_name, menu_price,
+                        quantity, total_price, customizations, special_requests,
+                        created_at, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
                 ");
                 $stmt->execute([
-                    $order_item_id, $order_id, $item['id'], 
-                    $item['quantity'], $item['base_price'], $item_total,
+                    $order_item_id, $order_id, $item['id'],
+                    $item['name'], $item['base_price'],
+                    $item['quantity'], $item_total,
                     json_encode($item['customizations'] ?? []),
                     $delivery_instructions
                 ]);
             }
             
-            // Create payment record
+            // สร้าง Payment record
             $payment_id = GuestCheckoutUtils::generateUUID();
             $transaction_id = 'TXN-' . date('Ymd-His') . '-' . substr($order_id, 0, 6);
             
@@ -399,9 +455,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
             
             $stmt = $pdo->prepare("
                 INSERT INTO payments (
-                    id, user_id, transaction_id, amount, currency, status,
-                    payment_method, payment_date, description, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, 'USD', 'pending', ?, NOW(), ?, NOW(), NOW())
+                    id, user_id, transaction_id, amount, currency, 
+                    payment_method, status, payment_date, description,
+                    created_at, updated_at
+                ) VALUES (?, ?, ?, ?, 'USD', ?, 'pending', NOW(), ?, NOW(), NOW())
             ");
             
             $description = $checkout_source === 'cart' 
@@ -418,6 +475,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
             // Store success data in session
             $_SESSION['order_success'] = [
                 'order_number' => $order_number,
+                'order_id' => $order_id,
                 'total' => $total,
                 'items' => $cart_items,
                 'email' => $email,
@@ -433,8 +491,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
                 unset($_SESSION['checkout_action']);
             }
 
-            // Redirect to confirmation page
-            header("Location: order-confirmation.php?order=" . $order_id);
+            // 🔧 FIXED: ตรวจสอบว่ามี order-confirmation.php หรือไม่
+            if (file_exists('order-confirmation.php')) {
+                header("Location: order-confirmation.php?order=" . $order_id);
+            } else {
+                // Fallback: สร้างหน้า confirmation เรียบง่าย
+                echo "<div style='background: #d4edda; padding: 40px; margin: 20px; border-radius: 12px; text-align: center;'>";
+                echo "<h2 style='color: #155724; margin-bottom: 20px;'>🎉 Order Confirmed!</h2>";
+                echo "<p style='font-size: 18px; margin-bottom: 10px;'>Order Number: <strong>" . $order_number . "</strong></p>";
+                echo "<p style='font-size: 18px; margin-bottom: 10px;'>Total: <strong>" . GuestCheckoutUtils::formatPrice($total) . "</strong></p>";
+                echo "<p style='margin-bottom: 20px;'>Delivery Date: <strong>" . date('F j, Y', strtotime($delivery_date)) . "</strong></p>";
+                echo "<p>Thank you for your order! We'll send you a confirmation email shortly.</p>";
+                echo "<a href='home2.php' style='background: #28a745; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 20px; display: inline-block;'>Return to Home</a>";
+                echo "</div>";
+            }
             exit;
             
         } catch (Exception $e) {
@@ -442,6 +512,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
             error_log("❌ Order creation failed: " . $e->getMessage());
             $errors[] = "Failed to place order: " . $e->getMessage();
         }
+    } else {
+        error_log("❌ Validation errors: " . implode(', ', $errors));
     }
 }
 
@@ -1342,13 +1414,20 @@ for ($i = 1; $i <= 7; $i++) {
                     }
                 }
                 
-                if (phoneInput && phoneInput.value) {
-                    const phoneRegex = /^\(\d{3}\) \d{3}-\d{4}$/;
-                    if (!phoneRegex.test(phoneInput.value)) {
-                        errors.push('Please enter a valid phone number');
-                        phoneInput.style.borderColor = 'var(--error-color)';
-                    }
-                }
+               // ✅ โค้ดใหม่ - รองรับเบอร์ไทยและ US
+if (phoneInput && phoneInput.value) {
+    const phoneClean = phoneInput.value.replace(/\D/g, ''); // เอาเฉพาะตัวเลข
+    
+    // ตรวจสอบเบอร์ไทย (10 หลัก เริ่มด้วย 0) หรือ US (10-11 หลัก)
+    const isValidPhone = (phoneClean.length === 10 && phoneClean.startsWith('0')) || // เบอร์ไทย
+                        (phoneClean.length === 10 && /^[2-9]/.test(phoneClean)) || // US 10 หลัก
+                        (phoneClean.length === 11 && phoneClean.startsWith('1')); // US 11 หลัก
+    
+    if (!isValidPhone) {
+        errors.push('Please enter a valid phone number (Thai: 0812345678 or US: 5551234567)');
+        phoneInput.style.borderColor = 'var(--error-color)';
+    }
+}   
                 
                 if (zipInput && zipInput.value) {
                     const zipRegex = /^\d{5}$/;
