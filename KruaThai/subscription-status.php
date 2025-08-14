@@ -50,29 +50,67 @@ function mapOrderStatusToCustomer($order_status) {
 }
 
 function getStatusFromSubscriptionMenus($subscription_id, $pdo) {
+    // หา delivery_date ถัดไปจาก subscription_menus
     $stmt = $pdo->prepare("
-        SELECT 
-            COUNT(*) as total,
-            COUNT(CASE WHEN status = 'delivered' THEN 1 END) as delivered,
-            COUNT(CASE WHEN status = 'scheduled' THEN 1 END) as scheduled
+        SELECT delivery_date
         FROM subscription_menus 
-        WHERE subscription_id = ? AND delivery_date >= CURDATE()
+        WHERE subscription_id = ? 
+        AND delivery_date >= CURDATE() 
+        AND status = 'scheduled'
+        ORDER BY delivery_date ASC 
+        LIMIT 1
     ");
     $stmt->execute([$subscription_id]);
-    $result = $stmt->fetch();
+    $nextDelivery = $stmt->fetch(PDO::FETCH_ASSOC);
     
-    if (!$result || $result['total'] == 0) {
+    if (!$nextDelivery) {
+        return 'completed'; // ไม่มีการส่งข้างหน้าแล้ว
+    }
+        
+    $delivery_date = $nextDelivery['delivery_date'];
+    // ✅ ถูก - ใช้ timezone เดียวกัน
+            $now = new DateTime('now', new DateTimeZone('America/Los_Angeles'));
+            $delivery_datetime = new DateTime($delivery_date, new DateTimeZone('America/Los_Angeles'));
+    
+    // คำนวณ cutoff time
+    $day_of_week = $delivery_datetime->format('N'); // 1=Mon, 3=Wed, 6=Sat
+    
+    if ($day_of_week == 3) { // Wednesday delivery
+        $cutoff = clone $delivery_datetime;
+        $cutoff->sub(new DateInterval('P2D')); // Monday
+        $cutoff->setTime(8, 0, 0);
+    } elseif ($day_of_week == 6) { // Saturday delivery  
+        $cutoff = clone $delivery_datetime;
+        $cutoff->sub(new DateInterval('P2D')); // Thursday
+        $cutoff->setTime(8, 0, 0);
+    } else {
+        // วันอื่นๆ (ในกรณีที่มีการขยาย)
         return 'order_received';
     }
     
-    if ($result['delivered'] == $result['total'] && $result['total'] > 0) {
-        return 'completed';
-    } elseif ($result['delivered'] > 0) {
-        return 'delivering';
-    } elseif ($result['scheduled'] < $result['total']) {
-        return 'in_kitchen';
+    // คำนวณวันทำอาหาร (1 วันก่อนส่ง)
+    $cooking_date = clone $delivery_datetime;
+    $cooking_date->sub(new DateInterval('P1D')); // วันก่อนส่ง
+    $cooking_start = clone $cooking_date;
+    $cooking_start->setTime(8, 0, 0); // เริ่ม 08:00
+    
+    // คำนวณวันส่ง
+    $delivery_start = clone $delivery_datetime;
+    $delivery_start->setTime(10, 0, 0); // เริ่มส่ง 10:00
+    $delivery_end = clone $delivery_datetime;  
+    $delivery_end->setTime(15, 0, 0); // ส่งเสร็จ 15:00
+    
+    // ตรวจสอบสถานะตามเวลาปัจจุบัน
+    if ($now < $cutoff) {
+        return 'order_received'; // ยังไม่ถึง cutoff
+    } elseif ($now >= $cutoff && $now < $cooking_start) {
+        return 'order_received'; // ผ่าน cutoff แต่ยังไม่ถึงเวลาทำอาหาร
+    } elseif ($now >= $cooking_start && $now < $delivery_start) {
+        return 'in_kitchen'; // กำลังทำอาหาร
+    } elseif ($now >= $delivery_start && $now < $delivery_end) {
+        return 'delivering'; // กำลังส่ง
     } else {
-        return 'order_received';
+        return 'completed'; // ส่งเสร็จแล้ว
     }
 }
 
@@ -1836,8 +1874,9 @@ function getDayName($day) {
                                                 $nextDelivery = $stmt->fetch(PDO::FETCH_ASSOC);
                                                 
                                                 if ($nextDelivery && $nextDelivery['cutoff_time']) {
-                                                    $now = new DateTime('now', new DateTimeZone('Asia/Bangkok'));
-                                                    $cutoff = new DateTime($nextDelivery['cutoff_time'], new DateTimeZone('Asia/Bangkok'));
+                                              // ✅ ถูก - ใช้ timezone เดียวกัน
+                                                    $now = new DateTime('now', new DateTimeZone('America/Los_Angeles'));
+                                                    $cutoff = new DateTime($nextDelivery['cutoff_time'], new DateTimeZone('America/Los_Angeles'));
                                                     
                                                     if ($now > $cutoff) {
                                                         $canCancelSubscription = false;
