@@ -1,7 +1,7 @@
 <?php
 /**
- * Krua Thai - Meal Kits Page
- * File: meal-kit.php
+ * Somdul Table - Meal Kits Page
+ * File: meal-kits.php
  * Description: Browse and order Thai meal kits for home cooking
  */
 
@@ -104,52 +104,73 @@ $is_logged_in = isset($_SESSION['user_id']);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Thai Meal Kits - Cook Authentic Thai at Home | Krua Thai</title>
+    <title>Thai Meal Kits - Cook Authentic Thai at Home | Somdul Table</title>
     <meta name="description" content="Discover authentic Thai meal kits delivered to your door. Everything you need to cook restaurant-quality Thai food at home.">
     
-    <!-- BaticaSans Font Import -->
-    <link rel="preconnect" href="https://ydpschool.com">
     <style>
+        /* BaticaSans Font Import - Local Files */
         @font-face {
             font-family: 'BaticaSans';
-            src: url('https://ydpschool.com/fonts/BaticaSans-Regular.woff2') format('woff2'),
-                 url('https://ydpschool.com/fonts/BaticaSans-Regular.woff') format('woff'),
-                 url('https://ydpschool.com/fonts/BaticaSans-Regular.ttf') format('truetype');
+            src: url('./Font/BaticaSans-Regular.woff2') format('woff2'),
+                url('./Font/BaticaSans-Regular.woff') format('woff'),
+                url('./Font/BaticaSans-Regular.ttf') format('truetype');
             font-weight: 400;
             font-style: normal;
             font-display: swap;
         }
-        
+
         @font-face {
             font-family: 'BaticaSans';
-            src: url('https://ydpschool.com/fonts/BaticaSans-Bold.woff2') format('woff2'),
-                 url('https://ydpschool.com/fonts/BaticaSans-Bold.woff') format('woff'),
-                 url('https://ydpschool.com/fonts/BaticaSans-Bold.ttf') format('truetype');
-            font-weight: 700;
-            font-style: normal;
+            src: url('./Font/BaticaSans-Italic.woff2') format('woff2'),
+                url('./Font/BaticaSans-Italic.woff') format('woff'),
+                url('./Font/BaticaSans-Italic.ttf') format('truetype');
+            font-weight: 400;
+            font-style: italic;
             font-display: swap;
         }
-        
+
+        /* Fallback for bold/medium weights - browser will simulate them */
         @font-face {
             font-family: 'BaticaSans';
-            src: url('https://ydpschool.com/fonts/BaticaSans-Medium.woff2') format('woff2'),
-                 url('https://ydpschool.com/fonts/BaticaSans-Medium.woff') format('woff'),
-                 url('https://ydpschool.com/fonts/BaticaSans-Medium.ttf') format('truetype');
+            src: url('./Font/BaticaSans-Regular.woff2') format('woff2'),
+                url('./Font/BaticaSans-Regular.woff') format('woff'),
+                url('./Font/BaticaSans-Regular.ttf') format('truetype');
             font-weight: 500;
             font-style: normal;
             font-display: swap;
         }
 
-        /* CSS Custom Properties for Krua Thai Design System */
+        @font-face {
+            font-family: 'BaticaSans';
+            src: url('./Font/BaticaSans-Regular.woff2') format('woff2'),
+                url('./Font/BaticaSans-Regular.woff') format('woff'),
+                url('./Font/BaticaSans-Regular.ttf') format('truetype');
+            font-weight: 700;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        /* IMPROVED CSS Custom Properties for Somdul Table Design System - COLOR HIERARCHY ONLY */
         :root {
+            /* LEVEL 1 (MOST IMPORTANT): BROWN #bd9379 + WHITE */
             --brown: #bd9379;
-            --cream: #ece8e1;
-            --sage: #adb89d;
-            --curry: #cf723a;
             --white: #ffffff;
+            
+            /* LEVEL 2 (SECONDARY): CREAM #ece8e1 */
+            --cream: #ece8e1;
+            
+            /* LEVEL 3 (SUPPORTING): SAGE #adb89d */
+            --sage: #adb89d;
+            
+            /* LEVEL 4 (ACCENT/CONTRAST - LEAST USED): CURRY #cf723a */
+            --curry: #cf723a;
+            
+            /* Text colors using brown hierarchy */
             --text-dark: #2c3e50;
             --text-gray: #7f8c8d;
-            --border-light: #e8e8e8;
+            --border-light: #d4c4b8; /* Brown-tinted border */
+            
+            /* Shadows using brown as base (Level 1) */
             --shadow-soft: 0 4px 12px rgba(189, 147, 121, 0.15);
             --shadow-medium: 0 8px 24px rgba(189, 147, 121, 0.25);
             --radius-sm: 8px;
@@ -172,22 +193,22 @@ $is_logged_in = isset($_SESSION['user_id']);
             font-weight: 400;
         }
 
-        /* Typography using BaticaSans */
+        /* Typography using BaticaSans - LEVEL 1: Brown for headings */
         h1, h2, h3, h4, h5, h6 {
             font-family: 'BaticaSans', sans-serif;
             font-weight: 700;
             line-height: 1.2;
-            color: var(--text-dark);
+            color: var(--brown); /* LEVEL 1: Brown instead of text-dark */
         }
 
-        /* Promotional Banner */
+        /* Promotional Banner Styles - LEVEL 4: Curry for special promos */
         .promo-banner {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
-            background: linear-gradient(135deg, var(--curry) 0%, #e67e22 100%);
-            color: var(--white);
+            background: #cf723a; /* LEVEL 4: Curry for promotional banner */
+            color: var(--white); /* LEVEL 1: White */
             text-align: center;
             padding: 8px 20px;
             font-family: 'BaticaSans', sans-serif;
@@ -195,6 +216,7 @@ $is_logged_in = isset($_SESSION['user_id']);
             font-size: 14px;
             z-index: 1001;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            animation: glow 2s ease-in-out infinite alternate;
         }
 
         .promo-banner-content {
@@ -208,6 +230,11 @@ $is_logged_in = isset($_SESSION['user_id']);
 
         .promo-icon {
             font-size: 16px;
+            animation: bounce 1.5s ease-in-out infinite;
+        }
+
+        .promo-text {
+            letter-spacing: 0.5px;
         }
 
         .promo-close {
@@ -217,7 +244,7 @@ $is_logged_in = isset($_SESSION['user_id']);
             transform: translateY(-50%);
             background: none;
             border: none;
-            color: var(--white);
+            color: var(--white); /* LEVEL 1: White */
             font-size: 18px;
             cursor: pointer;
             opacity: 0.8;
@@ -228,26 +255,52 @@ $is_logged_in = isset($_SESSION['user_id']);
             opacity: 1;
         }
 
+        @keyframes glow {
+            from {
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            }
+            to {
+                box-shadow: 0 2px 20px rgba(207, 114, 58, 0.3);
+            }
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-3px);
+            }
+            60% {
+                transform: translateY(-2px);
+            }
+        }
+
         /* Navigation */
         .navbar {
             position: fixed;
             top: 38px;
             left: 0;
             right: 0;
-            background: rgba(255, 255, 255, 0.95);
+            background: #ece8e1;
             backdrop-filter: blur(10px);
             z-index: 1000;
             transition: var(--transition);
             box-shadow: var(--shadow-soft);
         }
 
+        .navbar, .navbar * {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
         nav {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 1rem 2rem;
-            max-width: 1200px;
-            margin: 0 auto;
             width: 100%;
         }
 
@@ -256,13 +309,27 @@ $is_logged_in = isset($_SESSION['user_id']);
             align-items: center;
             gap: 0.8rem;
             text-decoration: none;
-            color: var(--text-dark);
+            color: var(--brown); /* LEVEL 1: Brown */
+        }
+
+        .logo-icon {
+            width: 45px;
+            height: 45px;
+            background: var(--brown); /* LEVEL 1: Solid brown instead of gradient */
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--white); /* LEVEL 1: White text */
+            font-size: 1.5rem;
+            font-family: 'BaticaSans', sans-serif;
+            font-weight: 700;
         }
 
         .logo-text {
             font-size: 1.8rem;
             font-weight: 800;
-            color: var(--curry);
+            color: var(--brown); /* LEVEL 1: Brown */
             font-family: 'BaticaSans', sans-serif;
         }
 
@@ -283,7 +350,7 @@ $is_logged_in = isset($_SESSION['user_id']);
 
         .nav-links a:hover,
         .nav-links a.active {
-            color: var(--curry);
+            color: var(--brown); /* LEVEL 1: Brown hover */
         }
 
         .nav-actions {
@@ -308,32 +375,63 @@ $is_logged_in = isset($_SESSION['user_id']);
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, var(--curry), var(--brown));
-            color: var(--white);
+            background: var(--brown); /* LEVEL 1: Brown primary */
+            color: var(--white); /* LEVEL 1: White text */
             box-shadow: var(--shadow-soft);
         }
 
         .btn-primary:hover {
+            background: #a8855f; /* Darker brown on hover */
             transform: translateY(-2px);
             box-shadow: var(--shadow-medium);
         }
 
         .btn-secondary {
             background: transparent;
-            color: var(--curry);
-            border: 2px solid var(--curry);
+            color: var(--brown); /* LEVEL 1: Brown */
+            border: 2px solid var(--brown); /* LEVEL 1: Brown border */
         }
 
         .btn-secondary:hover {
-            background: var(--curry);
-            color: var(--white);
+            background: var(--brown); /* LEVEL 1: Brown */
+            color: var(--white); /* LEVEL 1: White */
+        }
+
+        /* Profile Icon Styles */
+        .profile-link {
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .profile-icon {
+            width: 45px;
+            height: 45px;
+            background: var(--brown); /* LEVEL 1: Brown */
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--white); /* LEVEL 1: White */
+            transition: var(--transition);
+            box-shadow: var(--shadow-soft);
+        }
+
+        .profile-icon:hover {
+            background: #a8855f; /* Darker brown on hover */
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .profile-icon svg {
+            width: 24px;
+            height: 24px;
         }
 
         /* Hero Section */
         .hero-section {
             padding-top: 120px;
             min-height: 60vh;
-            background: linear-gradient(135deg, var(--cream) 0%, #f8f9fa 100%);
+            background: linear-gradient(135deg, var(--cream) 0%, #f8f9fa 100%); /* LEVEL 2: Cream background */
             display: flex;
             align-items: center;
             position: relative;
@@ -351,7 +449,7 @@ $is_logged_in = isset($_SESSION['user_id']);
             font-size: 3.5rem;
             margin-bottom: 1.5rem;
             font-weight: 800;
-            color: var(--text-dark);
+            color: var(--brown); /* LEVEL 1: Brown title */
             line-height: 1.1;
             font-family: 'BaticaSans', sans-serif;
         }
@@ -376,7 +474,7 @@ $is_logged_in = isset($_SESSION['user_id']);
         /* Meal Kits Grid */
         .meal-kits-section {
             padding: 5rem 2rem;
-            background: var(--white);
+            background: var(--white); /* LEVEL 1: White */
         }
 
         .section-container {
@@ -392,7 +490,7 @@ $is_logged_in = isset($_SESSION['user_id']);
         .section-title {
             font-size: 2.5rem;
             margin-bottom: 1rem;
-            color: var(--text-dark);
+            color: var(--brown); /* LEVEL 1: Brown */
             font-family: 'BaticaSans', sans-serif;
             font-weight: 700;
         }
@@ -411,7 +509,7 @@ $is_logged_in = isset($_SESSION['user_id']);
         }
 
         .meal-kit-card {
-            background: var(--white);
+            background: var(--white); /* LEVEL 1: White */
             border-radius: var(--radius-lg);
             overflow: hidden;
             box-shadow: var(--shadow-soft);
@@ -427,11 +525,11 @@ $is_logged_in = isset($_SESSION['user_id']);
         .kit-image {
             width: 100%;
             height: 250px;
-            background: linear-gradient(45deg, var(--curry), var(--brown));
+            background: linear-gradient(45deg, var(--brown), var(--sage)); /* LEVEL 1 & 3: Brown and sage */
             display: flex;
             align-items: center;
             justify-content: center;
-            color: var(--white);
+            color: var(--white); /* LEVEL 1: White */
             font-size: 3rem;
             position: relative;
             overflow: hidden;
@@ -457,7 +555,7 @@ $is_logged_in = isset($_SESSION['user_id']);
         .kit-title {
             font-size: 1.4rem;
             font-weight: 700;
-            color: var(--text-dark);
+            color: var(--brown); /* LEVEL 1: Brown */
             font-family: 'BaticaSans', sans-serif;
             margin-bottom: 0.5rem;
         }
@@ -465,7 +563,7 @@ $is_logged_in = isset($_SESSION['user_id']);
         .kit-price {
             font-size: 1.5rem;
             font-weight: 700;
-            color: var(--curry);
+            color: var(--curry); /* LEVEL 4: Curry for price accent */
             font-family: 'BaticaSans', sans-serif;
         }
 
@@ -495,7 +593,7 @@ $is_logged_in = isset($_SESSION['user_id']);
         .detail-icon {
             width: 16px;
             height: 16px;
-            fill: var(--curry);
+            fill: var(--brown); /* LEVEL 1: Brown icons */
         }
 
         .spice-level {
@@ -503,7 +601,7 @@ $is_logged_in = isset($_SESSION['user_id']);
             align-items: center;
             gap: 0.3rem;
             padding: 0.3rem 0.8rem;
-            background: var(--cream);
+            background: var(--cream); /* LEVEL 2: Cream background */
             border-radius: 20px;
             font-size: 0.8rem;
             font-weight: 500;
@@ -518,20 +616,20 @@ $is_logged_in = isset($_SESSION['user_id']);
 
         .btn-outline {
             background: transparent;
-            color: var(--curry);
-            border: 2px solid var(--curry);
+            color: var(--brown); /* LEVEL 1: Brown */
+            border: 2px solid var(--brown); /* LEVEL 1: Brown border */
             flex: 1;
         }
 
         .btn-outline:hover {
-            background: var(--curry);
-            color: var(--white);
+            background: var(--brown); /* LEVEL 1: Brown */
+            color: var(--white); /* LEVEL 1: White */
         }
 
         /* How It Works Section */
         .how-it-works {
             padding: 5rem 2rem;
-            background: var(--cream);
+            background: var(--cream); /* LEVEL 2: Cream background */
         }
 
         .steps-grid {
@@ -544,7 +642,7 @@ $is_logged_in = isset($_SESSION['user_id']);
         .step-card {
             text-align: center;
             padding: 2rem;
-            background: var(--white);
+            background: var(--white); /* LEVEL 1: White */
             border-radius: var(--radius-lg);
             box-shadow: var(--shadow-soft);
         }
@@ -552,8 +650,8 @@ $is_logged_in = isset($_SESSION['user_id']);
         .step-number {
             width: 80px;
             height: 80px;
-            background: var(--curry);
-            color: var(--white);
+            background: var(--brown); /* LEVEL 1: Brown */
+            color: var(--white); /* LEVEL 1: White */
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -567,7 +665,7 @@ $is_logged_in = isset($_SESSION['user_id']);
         .step-title {
             font-size: 1.3rem;
             margin-bottom: 1rem;
-            color: var(--text-dark);
+            color: var(--brown); /* LEVEL 1: Brown */
             font-family: 'BaticaSans', sans-serif;
             font-weight: 600;
         }
@@ -580,7 +678,7 @@ $is_logged_in = isset($_SESSION['user_id']);
         /* Features Section */
         .features-section {
             padding: 5rem 2rem;
-            background: var(--white);
+            background: var(--white); /* LEVEL 1: White */
         }
 
         .features-grid {
@@ -598,7 +696,7 @@ $is_logged_in = isset($_SESSION['user_id']);
         .feature-icon {
             width: 60px;
             height: 60px;
-            background: var(--cream);
+            background: var(--cream); /* LEVEL 2: Cream */
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -610,7 +708,7 @@ $is_logged_in = isset($_SESSION['user_id']);
         .feature-title {
             font-size: 1.2rem;
             margin-bottom: 1rem;
-            color: var(--text-dark);
+            color: var(--brown); /* LEVEL 1: Brown */
             font-family: 'BaticaSans', sans-serif;
             font-weight: 600;
         }
@@ -620,6 +718,18 @@ $is_logged_in = isset($_SESSION['user_id']);
             font-family: 'BaticaSans', sans-serif;
         }
 
+        /* Cart Counter Styles */
+        .cart-counter {
+            background: var(--curry); /* LEVEL 4: Curry for cart counter */
+            color: var(--white); /* LEVEL 1: White */
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 0.8rem;
+            margin-left: 5px;
+            font-family: 'BaticaSans', sans-serif;
+            font-weight: 600;
+        }
+
         /* Responsive Design */
         @media (max-width: 768px) {
             .promo-banner {
@@ -627,8 +737,13 @@ $is_logged_in = isset($_SESSION['user_id']);
                 padding: 6px 15px;
             }
             
-            .navbar {
-                top: 32px;
+            .promo-banner-content {
+                flex-direction: column;
+                gap: 5px;
+            }
+            
+            .promo-close {
+                right: 10px;
             }
             
             .hero-section {
@@ -697,40 +812,33 @@ $is_logged_in = isset($_SESSION['user_id']);
     <nav class="navbar">
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem; max-width: 1200px; margin: 0 auto; width: 100%;">
             <a href="home2.php" class="logo">
-                <img src="./assets/image/LOGO_BG.png" alt="Krua Thai" style="height: 50px; width: auto;">
-                <span class="logo-text">Krua Thai</span>
+                <img src="./assets/image/LOGO_BG2.png" alt="Somdul Table" style="height: 80px; width: auto;">
             </a>
             
             <ul class="nav-links">
-                <li><a href="./menus.php">Ready Meals</a></li>
-                <li><a href="./meal-kit.php" class="active">Meal Kits</a></li>
+                <li><a href="./menus.php">Menu</a></li>
+                <li><a href="./meal-kits.php" class="active">Meal-Kits</a></li>
                 <li><a href="#how-it-works">How It Works</a></li>
-                <li><a href="#about">About</a></li>
-                <li><a href="#contact">Contact</a></li>
+                <li><a href="./blogs.php">About</a></li>
+                <li><a href="./contact.php">Contact</a></li>
             </ul>
             
             <div class="nav-actions">
                 <?php if ($is_logged_in): ?>
-                    <a href="cart.php" class="btn btn-secondary">
-                        🛒 Cart 
-                        <?php
-// คำนวณ cart count แบบเดียวกับ cart.php
-$cart_count = 0;
-if (isset($_SESSION['cart']) && is_array($_SESSION['cart'])) {
-    foreach ($_SESSION['cart'] as $item) {
-        $cart_count += isset($item['quantity']) ? intval($item['quantity']) : 1;
-    }
-}
-?>
-<span class="cart-counter" id="cartCounter" style="background: var(--curry); color: var(--white); border-radius: 50%; padding: 2px 6px; font-size: 0.8rem; margin-left: 5px; <?php echo $cart_count > 0 ? 'display: inline-block;' : 'display: none;'; ?>">
-    <?php echo $cart_count; ?>
-</span>
+                    <!-- User is logged in - show profile icon -->
+                    <a href="dashboard.php" class="profile-link" title="Go to Dashboard">
+                        <div class="profile-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                        </div>
                     </a>
-                    <a href="dashboard.php" class="btn btn-primary">My Account</a>
                 <?php else: ?>
+                    <!-- User is not logged in - show sign in button -->
                     <a href="login.php" class="btn btn-secondary">Sign In</a>
-                    <a href="register.php" class="btn btn-primary">Get Started</a>
                 <?php endif; ?>
+                <a href="subscribe.php" class="btn btn-primary">Get Started</a>
             </div>
         </div>
     </nav>
@@ -766,7 +874,7 @@ if (isset($_SESSION['cart']) && is_array($_SESSION['cart'])) {
                                 <img src="<?php echo htmlspecialchars($kit['main_image_url']); ?>" 
                                      alt="<?php echo htmlspecialchars($kit['name']); ?>">
                             <?php else: ?>
-                                🍛
+                                🛒
                             <?php endif; ?>
                         </div>
                         

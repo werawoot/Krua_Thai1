@@ -122,49 +122,70 @@ try {
     <title>Menu - Somdul Table | Authentic Thai Restaurant Management</title>
     <meta name="description" content="Browse our healthy Thai food menu from Somdul Table with complete nutritional information and pricing">
     
-    <!-- BaticaSans Font Import -->
-    <link rel="preconnect" href="https://ydpschool.com">
     <style>
+        /* BaticaSans Font Import - Local Files (MATCHING home2.php) */
         @font-face {
             font-family: 'BaticaSans';
-            src: url('https://ydpschool.com/fonts/BaticaSans-Regular.woff2') format('woff2'),
-                 url('https://ydpschool.com/fonts/BaticaSans-Regular.woff') format('woff'),
-                 url('https://ydpschool.com/fonts/BaticaSans-Regular.ttf') format('truetype');
+            src: url('./Font/BaticaSans-Regular.woff2') format('woff2'),
+                url('./Font/BaticaSans-Regular.woff') format('woff'),
+                url('./Font/BaticaSans-Regular.ttf') format('truetype');
             font-weight: 400;
             font-style: normal;
             font-display: swap;
         }
-        
+
         @font-face {
             font-family: 'BaticaSans';
-            src: url('https://ydpschool.com/fonts/BaticaSans-Bold.woff2') format('woff2'),
-                 url('https://ydpschool.com/fonts/BaticaSans-Bold.woff') format('woff'),
-                 url('https://ydpschool.com/fonts/BaticaSans-Bold.ttf') format('truetype');
-            font-weight: 700;
-            font-style: normal;
+            src: url('./Font/BaticaSans-Italic.woff2') format('woff2'),
+                url('./Font/BaticaSans-Italic.woff') format('woff'),
+                url('./Font/BaticaSans-Italic.ttf') format('truetype');
+            font-weight: 400;
+            font-style: italic;
             font-display: swap;
         }
-        
+
+        /* Fallback for bold/medium weights - browser will simulate them */
         @font-face {
             font-family: 'BaticaSans';
-            src: url('https://ydpschool.com/fonts/BaticaSans-Medium.woff2') format('woff2'),
-                 url('https://ydpschool.com/fonts/BaticaSans-Medium.woff') format('woff'),
-                 url('https://ydpschool.com/fonts/BaticaSans-Medium.ttf') format('truetype');
+            src: url('./Font/BaticaSans-Regular.woff2') format('woff2'),
+                url('./Font/BaticaSans-Regular.woff') format('woff'),
+                url('./Font/BaticaSans-Regular.ttf') format('truetype');
             font-weight: 500;
             font-style: normal;
             font-display: swap;
         }
 
-        /* CSS Custom Properties for Somdul Table Design System */
+        @font-face {
+            font-family: 'BaticaSans';
+            src: url('./Font/BaticaSans-Regular.woff2') format('woff2'),
+                url('./Font/BaticaSans-Regular.woff') format('woff'),
+                url('./Font/BaticaSans-Regular.ttf') format('truetype');
+            font-weight: 700;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        /* IMPROVED CSS Custom Properties for Somdul Table Design System - COLOR HIERARCHY ONLY (MATCHING home2.php) */
         :root {
+            /* LEVEL 1 (MOST IMPORTANT): BROWN #bd9379 + WHITE */
             --brown: #bd9379;
-            --cream: #ece8e1;
-            --sage: #adb89d;
-            --curry: #cf723a;
             --white: #ffffff;
+            
+            /* LEVEL 2 (SECONDARY): CREAM #ece8e1 */
+            --cream: #ece8e1;
+            
+            /* LEVEL 3 (SUPPORTING): SAGE #adb89d */
+            --sage: #adb89d;
+            
+            /* LEVEL 4 (ACCENT/CONTRAST - LEAST USED): CURRY #cf723a */
+            --curry: #cf723a;
+            
+            /* Text colors using brown hierarchy */
             --text-dark: #2c3e50;
             --text-gray: #7f8c8d;
-            --border-light: #e8e8e8;
+            --border-light: #d4c4b8; /* Brown-tinted border */
+            
+            /* Shadows using brown as base (Level 1) */
             --shadow-soft: 0 4px 12px rgba(189, 147, 121, 0.15);
             --shadow-medium: 0 8px 24px rgba(189, 147, 121, 0.25);
             --radius-sm: 8px;
@@ -187,22 +208,22 @@ try {
             font-weight: 400;
         }
 
-        /* Typography using BaticaSans */
+        /* Typography using BaticaSans - LEVEL 1: Brown for headings (MATCHING home2.php) */
         h1, h2, h3, h4, h5, h6 {
             font-family: 'BaticaSans', sans-serif;
             font-weight: 700;
             line-height: 1.2;
-            color: var(--text-dark);
+            color: var(--brown); /* LEVEL 1: Brown instead of text-dark */
         }
 
-        /* Promotional Banner Styles */
+        /* Promotional Banner Styles - LEVEL 4: Curry for special promos (MATCHING home2.php) */
         .promo-banner {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
-            background: linear-gradient(135deg, var(--curry) 0%, #e67e22 100%);
-            color: var(--white);
+            background: var(--curry); /* LEVEL 4: Curry for promotional banner */
+            color: var(--white); /* LEVEL 1: White */
             text-align: center;
             padding: 8px 20px;
             font-family: 'BaticaSans', sans-serif;
@@ -214,12 +235,12 @@ try {
         }
 
         .promo-banner-content {
+            max-width: 1200px;
             margin: 0 auto;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 10px;
-            width: 100%;
         }
 
         .promo-icon {
@@ -238,7 +259,7 @@ try {
             transform: translateY(-50%);
             background: none;
             border: none;
-            color: var(--white);
+            color: var(--white); /* LEVEL 1: White */
             font-size: 18px;
             cursor: pointer;
             opacity: 0.8;
@@ -270,24 +291,31 @@ try {
             }
         }
 
-        /* Navigation */
+        /* Navigation (MATCHING home2.php EXACTLY) */
         .navbar {
             position: fixed;
             top: 38px;
             left: 0;
             right: 0;
-            background: rgba(255, 255, 255, 0.95);
+            background: #ece8e1;
             backdrop-filter: blur(10px);
             z-index: 1000;
             transition: var(--transition);
             box-shadow: var(--shadow-soft);
         }
 
+        .navbar, .navbar * {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
         nav {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 1rem 2rem;
             width: 100%;
         }
 
@@ -296,13 +324,27 @@ try {
             align-items: center;
             gap: 0.8rem;
             text-decoration: none;
-            color: var(--text-dark);
+            color: var(--brown); /* LEVEL 1: Brown */
+        }
+
+        .logo-icon {
+            width: 45px;
+            height: 45px;
+            background: var(--brown); /* LEVEL 1: Solid brown instead of gradient */
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--white); /* LEVEL 1: White text */
+            font-size: 1.5rem;
+            font-family: 'BaticaSans', sans-serif;
+            font-weight: 700;
         }
 
         .logo-text {
             font-size: 1.8rem;
             font-weight: 800;
-            color: var(--curry);
+            color: var(--brown); /* LEVEL 1: Brown */
             font-family: 'BaticaSans', sans-serif;
         }
 
@@ -322,7 +364,7 @@ try {
         }
 
         .nav-links a:hover {
-            color: var(--curry);
+            color: var(--brown); /* LEVEL 1: Brown hover */
         }
 
         .nav-actions {
@@ -347,30 +389,61 @@ try {
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, var(--curry), var(--brown));
-            color: var(--white);
+            background: var(--brown); /* LEVEL 1: Brown primary */
+            color: var(--white); /* LEVEL 1: White text */
             box-shadow: var(--shadow-soft);
         }
 
         .btn-primary:hover {
+            background: #a8855f; /* Darker brown on hover */
             transform: translateY(-2px);
             box-shadow: var(--shadow-medium);
         }
 
         .btn-secondary {
             background: transparent;
-            color: var(--curry);
-            border: 2px solid var(--curry);
+            color: var(--brown); /* LEVEL 1: Brown */
+            border: 2px solid var(--brown); /* LEVEL 1: Brown border */
         }
 
         .btn-secondary:hover {
-            background: var(--curry);
-            color: var(--white);
+            background: var(--brown); /* LEVEL 1: Brown */
+            color: var(--white); /* LEVEL 1: White */
         }
 
         .btn-sm {
             padding: 0.5rem 1rem;
             font-size: 0.9rem;
+        }
+
+        /* Profile Icon Styles (MATCHING home2.php) */
+        .profile-link {
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .profile-icon {
+            width: 45px;
+            height: 45px;
+            background: var(--brown); /* LEVEL 1: Brown */
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--white); /* LEVEL 1: White */
+            transition: var(--transition);
+            box-shadow: var(--shadow-soft);
+        }
+
+        .profile-icon:hover {
+            background: #a8855f; /* Darker brown on hover */
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .profile-icon svg {
+            width: 24px;
+            height: 24px;
         }
 
         /* Container */
@@ -395,7 +468,7 @@ try {
         .page-title {
             font-size: 2.5rem;
             font-weight: 800;
-            color: var(--text-dark);
+            color: var(--brown); /* Changed to brown to match home2.php */
             margin-bottom: 1rem;
             font-family: 'BaticaSans', sans-serif;
         }
@@ -408,158 +481,136 @@ try {
             font-family: 'BaticaSans', sans-serif;
         }
 
-        /* Category Navigation Filters with Arrow Navigation */
-        .category-nav-section {
-            background: var(--white);
-            padding: 2rem;
-            border-radius: var(--radius-lg);
-            margin-bottom: 3rem;
-            box-shadow: var(--shadow-soft);
-            border: 1px solid var(--border-light);
-            position: relative;
+        /* Menu Navigation Container - EXACT MATCH with home2.php */
+        .menu-nav-container {
+            margin-bottom: 32px;
+            margin-top: 2rem;
+            /* Remove max-width and centering margin */
+            width: 100%; /* Full width */
+            padding: 20px 0;
+            background: var(--cream); /* LEVEL 2: Cream background */
+            border-radius: 0; /* Remove border radius for full width */
+            box-shadow: none; /* Remove shadow for cleaner full-width look */
+            /* Add a subtle border instead */
+            border-top: 1px solid rgba(189, 147, 121, 0.1);
+            border-bottom: 1px solid rgba(189, 147, 121, 0.1);
         }
 
-        .category-nav-container {
+        .menu-nav-wrapper {
             overflow-x: auto;
-            scroll-behavior: smooth;
-            /* Hide scrollbar but keep functionality */
-            scrollbar-width: none; /* Firefox */
-            -ms-overflow-style: none; /* Internet Explorer 10+ */
-        }
-
-        .category-nav-container::-webkit-scrollbar {
-            display: none; /* Safari and Chrome */
-        }
-
-        .category-nav-wrapper {
-            display: flex;
-            gap: 1rem;
+            overflow-y: hidden;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
             padding: 0 1rem;
-            min-width: fit-content;
+            /* Center the content */
+            max-width: 1200px;
+            margin: 0 auto;
         }
 
-        /* Arrow Navigation Buttons */
-        .category-nav-arrow {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 45px;
-            height: 45px;
-            background: var(--white);
-            border: 2px solid var(--border-light);
-            border-radius: 50%;
+        .menu-nav-wrapper::-webkit-scrollbar {
+            display: none;
+        }
+
+        .menu-nav-list {
+            display: flex;
+            gap: 0;
+            min-width: max-content;
+            align-items: center;
+            justify-content: center; /* Center the navigation items */
+        }
+        /* Also prevent text selection on menu navigation */
+        .menu-nav-container,
+        .menu-nav-container * {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .menu-nav-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            height: 54px;
+            padding: 0 16px;
+            border: none;
+            border-bottom: 2px solid transparent;
+            background: transparent;
+            cursor: pointer;
+            font-family: 'BaticaSans', Arial, sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            color: #707070;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            text-decoration: none;
+            border-radius: var(--radius-sm);
+            /* Remove any focus outline */
+            outline: none !important;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .menu-nav-item:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(189, 147, 121, 0.3);
+        }
+
+        .menu-nav-item:hover {
+            color: var(--brown); /* LEVEL 1: Brown hover */
+            background: rgba(189, 147, 121, 0.1); /* Light brown background */
+            border-bottom-color: var(--brown); /* LEVEL 1: Brown */
+        }
+
+        .menu-nav-item.active {
+            color: var(--brown); /* LEVEL 1: Brown active */
+            background: var(--white); /* LEVEL 1: White background */
+            border-bottom-color: var(--brown); /* LEVEL 1: Brown */
+            box-shadow: var(--shadow-soft);
+        }
+
+        .menu-nav-icon {
+            width: 24px;
+            height: 24px;
             display: flex;
             align-items: center;
             justify-content: center;
-            cursor: pointer;
-            font-size: 1.2rem;
-            color: var(--text-gray);
-            transition: var(--transition);
-            z-index: 10;
-            box-shadow: var(--shadow-soft);
-            font-family: 'BaticaSans', sans-serif;
-            font-weight: 700;
         }
 
-        .category-nav-arrow:hover {
-            background: var(--curry);
-            color: var(--white);
-            border-color: var(--curry);
-            transform: translateY(-50%) scale(1.1);
-            box-shadow: var(--shadow-medium);
-        }
-
-        .category-nav-arrow:active {
-            transform: translateY(-50%) scale(0.95);
-        }
-
-        .category-nav-arrow.left {
-            left: 10px;
-        }
-
-        .category-nav-arrow.right {
-            right: 10px;
-        }
-
-        /* Hide arrows on small screens where they might interfere */
-        @media (max-width: 768px) {
-            .category-nav-arrow {
-                display: none;
-            }
-        }
-
-        .category-nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 1rem 1.5rem;
-            background: var(--white);
-            border: 2px solid var(--border-light);
-            border-radius: var(--radius-md);
-            cursor: pointer;
-            transition: var(--transition);
-            text-decoration: none;
-            color: var(--text-dark);
-            font-family: 'BaticaSans', sans-serif;
-            min-width: 100px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .category-nav-item::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
+        .menu-nav-icon svg {
             width: 100%;
             height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-            transition: left 0.5s;
+            fill: #707070;
+            transition: fill 0.3s ease;
         }
 
-        .category-nav-item:hover::before {
-            left: 100%;
+        .menu-nav-item:hover .menu-nav-icon svg {
+            fill: var(--brown); /* LEVEL 1: Brown */
         }
 
-        .category-nav-item:hover {
-            border-color: var(--curry);
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-soft);
+        .menu-nav-item.active .menu-nav-icon svg {
+            fill: var(--brown); /* LEVEL 1: Brown */
         }
 
-        .category-nav-item.active {
-            background: linear-gradient(135deg, var(--curry), var(--brown));
-            border-color: var(--curry);
-            color: var(--white);
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-medium);
-        }
-
-        .category-nav-icon {
-            font-size: 2rem;
-            margin-bottom: 0.2rem;
-            filter: grayscale(0.3);
-            transition: var(--transition);
-        }
-
-        .category-nav-item:hover .category-nav-icon,
-        .category-nav-item.active .category-nav-icon {
-            filter: grayscale(0);
-            transform: scale(1.1);
-        }
-
-        .category-nav-text {
-            font-size: 0.9rem;
+        .menu-nav-text {
+            font-size: 14px;
             font-weight: 600;
-            text-align: center;
-            transition: var(--transition);
-            letter-spacing: 0.3px;
-            white-space: nowrap;
         }
 
-        .category-nav-item.active .category-nav-text {
-            color: var(--white);
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .menu-nav-container {
+                margin-bottom: 24px;
+            }
+            
+            .menu-nav-item {
+                padding: 0 12px;
+                font-size: 13px;
+            }
+            
+            .menu-nav-icon {
+                width: 20px;
+                height: 20px;
+            }
         }
 
         /* Results Header */
@@ -639,7 +690,7 @@ try {
             top: 1rem;
             right: 1rem;
             background: rgba(255, 255, 255, 0.95);
-            color: var(--curry);
+            color: var(--brown); /* Changed to brown */
             padding: 0.4rem 0.8rem;
             border-radius: 20px;
             font-size: 0.8rem;
@@ -652,7 +703,7 @@ try {
             position: absolute;
             top: 1rem;
             left: 1rem;
-            background: var(--curry);
+            background: var(--brown); /* Changed to brown */
             color: var(--white);
             padding: 0.4rem 0.8rem;
             border-radius: 20px;
@@ -678,7 +729,7 @@ try {
         .menu-title {
             font-size: 1.3rem;
             font-weight: 700;
-            color: var(--text-dark);
+            color: var(--brown); /* Changed to brown to match home2.php */
             margin-bottom: 0.8rem;
             line-height: 1.3;
             font-family: 'BaticaSans', sans-serif;
@@ -753,7 +804,7 @@ try {
 
         .nutrition-value {
             font-weight: 700;
-            color: var(--curry);
+            color: var(--brown); /* Changed to brown */
             font-size: 0.9rem;
             font-family: 'BaticaSans', sans-serif;
         }
@@ -776,7 +827,7 @@ try {
         .menu-price {
             font-size: 1.3rem;
             font-weight: 800;
-            color: var(--curry);
+            color: var(--brown); /* Changed to brown */
             font-family: 'BaticaSans', sans-serif;
         }
 
@@ -801,7 +852,7 @@ try {
         .empty-state h3 {
             font-size: 1.5rem;
             margin-bottom: 0.5rem;
-            color: var(--text-dark);
+            color: var(--brown); /* Changed to brown */
             font-family: 'BaticaSans', sans-serif;
         }
 
@@ -849,7 +900,7 @@ try {
         .modal-title {
             font-size: 1.3rem;
             font-weight: 700;
-            color: var(--text-dark);
+            color: var(--brown); /* Changed to brown */
             font-family: 'BaticaSans', sans-serif;
         }
 
@@ -926,7 +977,7 @@ try {
         }
 
         .modal-thumbnail.active {
-            border-color: var(--curry);
+            border-color: var(--brown); /* Changed to brown */
             transform: scale(1.02);
         }
 
@@ -959,7 +1010,7 @@ try {
         .cta-section h2 {
             font-size: 1.8rem;
             font-weight: 700;
-            color: var(--text-dark);
+            color: var(--brown); /* Changed to brown */
             margin-bottom: 1rem;
             font-family: 'BaticaSans', sans-serif;
         }
@@ -986,7 +1037,7 @@ try {
         footer .logo-icon {
             width: 45px;
             height: 45px;
-            background: linear-gradient(135deg, var(--curry), var(--brown));
+            background: var(--brown); /* Changed to brown */
             border-radius: 50%;
             display: inline-flex;
             align-items: center;
@@ -1001,7 +1052,7 @@ try {
             font-family: 'BaticaSans', sans-serif;
         }
 
-        /* Responsive Design */
+        /* Responsive Design (MATCHING home2.php) */
         @media (max-width: 768px) {
             .promo-banner {
                 font-size: 12px;
@@ -1047,28 +1098,6 @@ try {
 
             .page-subtitle {
                 font-size: 1rem;
-            }
-
-            .category-nav-section {
-                padding: 1rem;
-            }
-
-            .category-nav-wrapper {
-                gap: 0.5rem;
-                padding: 0;
-            }
-
-            .category-nav-item {
-                min-width: 80px;
-                padding: 0.8rem 1rem;
-            }
-
-            .category-nav-icon {
-                font-size: 1.5rem;
-            }
-
-            .category-nav-text {
-                font-size: 0.8rem;
             }
 
             .results-header {
@@ -1169,39 +1198,45 @@ try {
     <!-- Promotional Banner -->
     <div class="promo-banner" id="promoBanner">
         <div class="promo-banner-content">
-            <span class="promo-icon">🍪</span>
+            <span class="promo-icon">🪙</span>
             <span class="promo-text">50% OFF First Week + Free Cookies for Life</span>
             <span class="promo-icon">🎉</span>
         </div>
         <button class="promo-close" onclick="closePromoBanner()" title="Close">×</button>
     </div>
 
-    <!-- Navigation -->
+    <!-- Navigation (EXACT MATCH with home2.php) -->
     <nav class="navbar">
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem; width: 100%;">
-            <a href="home2.php" class="logo">
-                <img src="./assets/image/LOGO_BG.png" alt="Somdul Table" style="height: 50px; width: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem; max-width: 1200px; margin: 0 auto; width: 100%;">
+            <a href="index.php" class="logo">
+                <img src="./assets/image/LOGO_BG2.png" alt="Somdul Table" style="height: 80px; width: auto;">
             </a>
-            <a href="home2.php" class="logo">
-                <span class="logo-text">Somdul Table</span>
-            </a>
+
             
             <ul class="nav-links">
-                <li><a href="home2.php">Home</a></li>
-                <li><a href="menus.php">Menu</a></li>
-                <li><a href="home2.php#how-it-works">How It Works</a></li>
-                <li><a href="home2.php#about">About</a></li>
-                <li><a href="home2.php#contact">Contact</a></li>
+                <li><a href="./menus.php">Menu</a></li>
+                <li><a href="./meal-kits.php">Meal-Kits</a></li>
+                <li><a href="#how-it-works">How It Works</a></li>
+                <li><a href="./blogs.php">About</a></li>
+                <li><a href="./contact.php">Contact</a></li>
             </ul>
             
             <div class="nav-actions">
-                <?php if ($is_logged_in): ?>
-                    <a href="dashboard.php" class="btn btn-secondary">My Account</a>
-                    <a href="logout.php" class="btn btn-primary">Logout</a>
+                <?php if (isset($_SESSION['user_id'])): ?>
+                    <!-- User is logged in - show profile icon -->
+                    <a href="dashboard.php" class="profile-link" title="Go to Dashboard">
+                        <div class="profile-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                        </div>
+                    </a>
                 <?php else: ?>
+                    <!-- User is not logged in - show sign in button -->
                     <a href="login.php" class="btn btn-secondary">Sign In</a>
-                    <a href="register.php" class="btn btn-primary">Get Started</a>
                 <?php endif; ?>
+                <a href="subscribe.php" class="btn btn-primary">Get Started</a>
             </div>
         </div>
     </nav>
@@ -1209,93 +1244,63 @@ try {
     <!-- Main Content -->
     <main class="main-content">
         <div class="container">
-            <!-- Page Header -->
-            <div class="page-header">
-                <h1 class="page-title">Healthy Thai Food Menu</h1>
-                <p class="page-subtitle">
-                    Browse our authentic Thai dishes adapted for health-conscious eating 
-                    with complete nutritional information
-                </p>
-            </div>
 
-            <!-- Category Navigation with Arrow Controls -->
-            <div class="category-nav-section">
-                <!-- Left Arrow -->
-                <button class="category-nav-arrow left" onclick="scrollCategories('left')" title="Scroll Left">
-                    ‹
-                </button>
-                
-                <!-- Right Arrow -->
-                <button class="category-nav-arrow right" onclick="scrollCategories('right')" title="Scroll Right">
-                    ›
-                </button>
-                
-                <div class="category-nav-container" id="categoryNavContainer">
-                    <div class="category-nav-wrapper">
-                        <!-- All Items -->
-                        <a href="menus.php" class="category-nav-item <?php echo empty($category_id) ? 'active' : ''; ?>">
-                            <div class="category-nav-icon">🍽️</div>
-                            <span class="category-nav-text">All Items</span>
-                        </a>
-                        
+            <!-- Menu Navigation Container - EXACT MATCH with home2.php -->
+            <div class="menu-nav-container">
+                <div class="menu-nav-wrapper">
+                    <div class="menu-nav-list">
                         <?php if (empty($categories)): ?>
                             <!-- Fallback categories if database is empty -->
-                            <a href="menus.php?category_id=rice_bowls" class="category-nav-item">
-                                <div class="category-nav-icon">🍚</div>
-                                <span class="category-nav-text">Rice Bowls</span>
-                            </a>
-                            <a href="menus.php?category_id=curries" class="category-nav-item">
-                                <div class="category-nav-icon">🍛</div>
-                                <span class="category-nav-text">Thai Curries</span>
-                            </a>
-                            <a href="menus.php?category_id=noodles" class="category-nav-item">
-                                <div class="category-nav-icon">🍜</div>
-                                <span class="category-nav-text">Noodle Dishes</span>
-                            </a>
-                            <a href="menus.php?category_id=stir_fry" class="category-nav-item">
-                                <div class="category-nav-icon">🥘</div>
-                                <span class="category-nav-text">Stir Fry</span>
-                            </a>
-                            <a href="menus.php?category_id=soups" class="category-nav-item">
-                                <div class="category-nav-icon">🍲</div>
-                                <span class="category-nav-text">Soups</span>
-                            </a>
-                            <a href="menus.php?category_id=salads" class="category-nav-item">
-                                <div class="category-nav-icon">🥗</div>
-                                <span class="category-nav-text">Salads</span>
-                            </a>
-                            <a href="menus.php?category_id=desserts" class="category-nav-item">
-                                <div class="category-nav-icon">🍮</div>
-                                <span class="category-nav-text">Desserts</span>
-                            </a>
-                            <a href="menus.php?category_id=beverages" class="category-nav-item">
-                                <div class="category-nav-icon">🧋</div>
-                                <span class="category-nav-text">Beverages</span>
+                            <a href="menus.php" class="menu-nav-item <?php echo empty($category_id) ? 'active' : ''; ?>">
+                                <span class="menu-nav-icon">
+                                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/>
+                                    </svg>
+                                </span>
+                                <span class="menu-nav-text">All Items</span>
                             </a>
                         <?php else: ?>
+                            <!-- All items button -->
+                            <a href="menus.php" class="menu-nav-item <?php echo empty($category_id) ? 'active' : ''; ?>">
+                                <span class="menu-nav-icon">
+                                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/>
+                                    </svg>
+                                </span>
+                                <span class="menu-nav-text">All Items</span>
+                            </a>
+                            
                             <!-- Dynamic categories from database -->
                             <?php 
                             $category_icons = [
-                                'Rice Bowls' => '🍚',
-                                'Thai Curries' => '🍛',
-                                'Noodle Dishes' => '🍜',
-                                'Stir Fry' => '🥘',
-                                'Rice Dishes' => '🍱',
-                                'Soups' => '🍲',
-                                'Salads' => '🥗',
-                                'Desserts' => '🍮',
-                                'Beverages' => '🧋'
+                                'Rice Bowls' => '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-2V4c0-1.1-.9-2-2-2zm0 2v2h-2V4h2zm-4 4h8v2h-8V8zm0 4h8v6H8v-6z"/>',
+                                'Thai Curries' => '<path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>',
+                                'Noodle Dishes' => '<path d="M22 2v20H2V2h20zm-2 2H4v16h16V4zM6 8h12v2H6V8zm0 4h12v2H6v-2zm0 4h8v2H6v-2z"/>',
+                                'Stir Fry' => '<path d="M12.5 3.5c0 .83-.67 1.5-1.5 1.5s-1.5-.67-1.5-1.5S10.17 2 11 2s1.5.67 1.5 1.5zM20 8H4c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2v-8c0-1.1-.9-2-2-2zm0 10H4v-8h16v8zm-8-6c1.38 0 2.5 1.12 2.5 2.5S13.38 17 12 17s-2.5-1.12-2.5-2.5S10.62 12 12 12z"/>',
+                                'Rice Dishes' => '<path d="M18 3H6c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H6V5h12v14zM8 7h8v2H8V7zm0 4h8v2H8v-2zm0 4h6v2H8v-2z"/>',
+                                'Soups' => '<path d="M4 18h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2zm0-10h16v8H4V8zm8-4c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z"/>',
+                                'Salads' => '<path d="M7 10c0-1.1.9-2 2-2s2 .9 2 2-.9 2-2 2-2-.9-2-2zm8 0c0-1.1.9-2 2-2s2 .9 2 2-.9 2-2 2-2-.9-2-2zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8 0-1.12.23-2.18.65-3.15C6.53 8.51 8 8 9.64 8c.93 0 1.83.22 2.64.61.81-.39 1.71-.61 2.64-.61 1.64 0 3.11.51 4.35.85.42.97.65 2.03.65 3.15 0 4.41-3.59 8-8 8z"/>',
+                                'Desserts' => '<path d="M12 3L8 6.5h8L12 3zm0 18c4.97 0 9-4.03 9-9H3c0 4.97 4.03 9 9 9zm0-16L8.5 8h7L12 5z"/>',
+                                'Beverages' => '<path d="M5 4v3h5.5v12h3V7H19V4H5z"/>'
                             ];
                             
-                            foreach ($categories as $category): 
-                                $cat_name = $category['name'] ?: $category['name_thai'];
-                                $icon = $category_icons[$cat_name] ?? '🍽️';
+                            $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-2V4c0-1.1-.9-2-2-2zm0 2v2h-2V4h2zm-4 4h8v2h-8V8zm0 4h8v6H8v-6z"/>';
+                            
+                            foreach ($categories as $index => $category): 
+                                $category_name = $category['name'] ?: $category['name_thai'];
+                                $icon_path = $category_icons[$category_name] ?? $default_icon;
                                 $is_active = ($category_id == $category['id']) ? 'active' : '';
                             ?>
                                 <a href="menus.php?category_id=<?php echo $category['id']; ?>" 
-                                   class="category-nav-item <?php echo $is_active; ?>">
-                                    <div class="category-nav-icon"><?php echo $icon; ?></div>
-                                    <span class="category-nav-text"><?php echo htmlspecialchars($cat_name); ?></span>
+                                   class="menu-nav-item <?php echo $is_active; ?>">
+                                    <span class="menu-nav-icon">
+                                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <?php echo $icon_path; ?>
+                                        </svg>
+                                    </span>
+                                    <span class="menu-nav-text">
+                                        <?php echo htmlspecialchars($category_name); ?>
+                                    </span>
                                 </a>
                             <?php endforeach; ?>
                         <?php endif; ?>
@@ -1494,7 +1499,7 @@ try {
             </div>
             <div class="modal-body" id="modalBody">
                 <div class="loading">
-                    <i>⏳</i>
+                    <i>⏿</i>
                     <p>Loading...</p>
                 </div>
             </div>
@@ -1518,24 +1523,6 @@ try {
     </footer>
 
 <script>
-        // Category Navigation Scroll Functions
-        function scrollCategories(direction) {
-            const navContainer = document.getElementById('categoryNavContainer');
-            const scrollAmount = 200; // pixels to scroll
-            
-            if (direction === 'left') {
-                navContainer.scrollBy({
-                    left: -scrollAmount,
-                    behavior: 'smooth'
-                });
-            } else {
-                navContainer.scrollBy({
-                    left: scrollAmount,
-                    behavior: 'smooth'
-                });
-            }
-        }
-
         // Modal Image Gallery Functions
         function changeModalImage(menuId, imageIndex, clickedThumbnail) {
             const mainImageElement = document.getElementById(`modal-main-image-${menuId}`);
@@ -1593,7 +1580,7 @@ try {
             modal.classList.add('show');
             modalBody.innerHTML = `
                 <div class="loading">
-                    <i>⏳</i>
+                    <i>⏿</i>
                     <p>Loading details...</p>
                 </div>
             `;
@@ -1697,17 +1684,17 @@ try {
 
                 <!-- Menu Information -->
                 <div style="text-align: center; margin-bottom: 2rem;">
-                    <h2 style="font-size: 1.8rem; font-weight: 700; color: var(--text-dark); margin-bottom: 0.5rem;">
+                    <h2 style="font-size: 1.8rem; font-weight: 700; color: var(--brown); margin-bottom: 0.5rem;">
                         ${menu.name || menu.name_thai}
                     </h2>
                     ${menu.name && menu.name_thai ? `<p style="color: var(--text-gray); margin-bottom: 1rem;">${menu.name_thai}</p>` : ''}
-                    <div style="font-size: 1.5rem; font-weight: 700; color: var(--curry);">
+                    <div style="font-size: 1.5rem; font-weight: 700; color: var(--brown);">
                         $${parseFloat(menu.base_price).toFixed(2)}
                     </div>
                 </div>
 
                 <div style="margin-bottom: 2rem;">
-                    <h4 style="font-weight: 600; margin-bottom: 0.8rem; color: var(--text-dark);">Description</h4>
+                    <h4 style="font-weight: 600; margin-bottom: 0.8rem; color: var(--brown);">Description</h4>
                     <p style="color: var(--text-gray); line-height: 1.6;">
                         ${menu.description || 'Healthy Thai cuisine'}
                     </p>
@@ -1715,7 +1702,7 @@ try {
 
                 ${menu.ingredients ? `
                     <div style="margin-bottom: 2rem;">
-                        <h4 style="font-weight: 600; margin-bottom: 0.8rem; color: var(--text-dark);">Ingredients</h4>
+                        <h4 style="font-weight: 600; margin-bottom: 0.8rem; color: var(--brown);">Ingredients</h4>
                         <p style="color: var(--text-gray); line-height: 1.6;">
                             ${menu.ingredients}
                         </p>
@@ -1723,41 +1710,41 @@ try {
                 ` : ''}
 
                 <div style="margin-bottom: 2rem;">
-                    <h4 style="font-weight: 600; margin-bottom: 1rem; color: var(--text-dark);">Nutritional Information</h4>
+                    <h4 style="font-weight: 600; margin-bottom: 1rem; color: var(--brown);">Nutritional Information</h4>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 1rem; background: var(--cream); padding: 1.5rem; border-radius: 12px;">
                         ${menu.calories_per_serving ? `
                             <div style="text-align: center;">
-                                <div style="font-weight: 700; font-size: 1.2rem; color: var(--curry);">${menu.calories_per_serving}</div>
+                                <div style="font-weight: 700; font-size: 1.2rem; color: var(--brown);">${menu.calories_per_serving}</div>
                                 <div style="font-size: 0.9rem; color: var(--text-gray);">Calories</div>
                             </div>
                         ` : ''}
                         ${menu.protein_g ? `
                             <div style="text-align: center;">
-                                <div style="font-weight: 700; font-size: 1.2rem; color: var(--curry);">${parseFloat(menu.protein_g).toFixed(1)}g</div>
+                                <div style="font-weight: 700; font-size: 1.2rem; color: var(--brown);">${parseFloat(menu.protein_g).toFixed(1)}g</div>
                                 <div style="font-size: 0.9rem; color: var(--text-gray);">Protein</div>
                             </div>
                         ` : ''}
                         ${menu.carbs_g ? `
                             <div style="text-align: center;">
-                                <div style="font-weight: 700; font-size: 1.2rem; color: var(--curry);">${parseFloat(menu.carbs_g).toFixed(1)}g</div>
+                                <div style="font-weight: 700; font-size: 1.2rem; color: var(--brown);">${parseFloat(menu.carbs_g).toFixed(1)}g</div>
                                 <div style="font-size: 0.9rem; color: var(--text-gray);">Carbohydrates</div>
                             </div>
                         ` : ''}
                         ${menu.fat_g ? `
                             <div style="text-align: center;">
-                                <div style="font-weight: 700; font-size: 1.2rem; color: var(--curry);">${parseFloat(menu.fat_g).toFixed(1)}g</div>
+                                <div style="font-weight: 700; font-size: 1.2rem; color: var(--brown);">${parseFloat(menu.fat_g).toFixed(1)}g</div>
                                 <div style="font-size: 0.9rem; color: var(--text-gray);">Fat</div>
                             </div>
                         ` : ''}
                         ${menu.fiber_g ? `
                             <div style="text-align: center;">
-                                <div style="font-weight: 700; font-size: 1.2rem; color: var(--curry);">${parseFloat(menu.fiber_g).toFixed(1)}g</div>
+                                <div style="font-weight: 700; font-size: 1.2rem; color: var(--brown);">${parseFloat(menu.fiber_g).toFixed(1)}g</div>
                                 <div style="font-size: 0.9rem; color: var(--text-gray);">Fiber</div>
                             </div>
                         ` : ''}
                         ${menu.sodium_mg ? `
                             <div style="text-align: center;">
-                                <div style="font-weight: 700; font-size: 1.2rem; color: var(--curry);">${parseFloat(menu.sodium_mg).toFixed(0)}mg</div>
+                                <div style="font-weight: 700; font-size: 1.2rem; color: var(--brown);">${parseFloat(menu.sodium_mg).toFixed(0)}mg</div>
                                 <div style="font-size: 0.9rem; color: var(--text-gray);">Sodium</div>
                             </div>
                         ` : ''}
@@ -1766,7 +1753,7 @@ try {
 
                 ${dietaryTags.length > 0 ? `
                     <div style="margin-bottom: 2rem;">
-                        <h4 style="font-weight: 600; margin-bottom: 0.8rem; color: var(--text-dark);">Diet Types</h4>
+                        <h4 style="font-weight: 600; margin-bottom: 0.8rem; color: var(--brown);">Diet Types</h4>
                         <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
                             ${dietaryTags.map(tag => `
                                 <span style="background: var(--cream); color: var(--brown); padding: 0.4rem 0.8rem; border-radius: 12px; font-size: 0.85rem; font-weight: 600;">
@@ -1779,10 +1766,10 @@ try {
 
                 ${menu.spice_level ? `
                     <div style="margin-bottom: 2rem;">
-                        <h4 style="font-weight: 600; margin-bottom: 0.8rem; color: var(--text-dark);">Spice Level</h4>
+                        <h4 style="font-weight: 600; margin-bottom: 0.8rem; color: var(--brown);">Spice Level</h4>
                         <div style="display: inline-flex; align-items: center; gap: 0.5rem; background: var(--cream); padding: 0.6rem 1rem; border-radius: 25px;">
                             <span style="font-size: 1.1rem;">🌶️</span>
-                            <span style="font-weight: 600; color: var(--curry);">
+                            <span style="font-weight: 600; color: var(--brown);">
                                 ${spiceLabels[menu.spice_level] || 'Medium'}
                             </span>
                         </div>
@@ -1791,7 +1778,7 @@ try {
 
                 ${healthBenefits.length > 0 ? `
                     <div style="margin-bottom: 2rem;">
-                        <h4 style="font-weight: 600; margin-bottom: 0.8rem; color: var(--text-dark);">Health Benefits</h4>
+                        <h4 style="font-weight: 600; margin-bottom: 0.8rem; color: var(--brown);">Health Benefits</h4>
                         <ul style="color: var(--text-gray); line-height: 1.8; padding-left: 1.5rem;">
                             ${healthBenefits.map(benefit => `<li>${benefit}</li>`).join('')}
                         </ul>
@@ -1850,9 +1837,9 @@ try {
         window.addEventListener('scroll', function() {
             const navbar = document.querySelector('.navbar');
             if (window.scrollY > 100) {
-                navbar.style.background = 'rgba(255, 255, 255, 0.98)';
+                navbar.style.background = '#ece8e1';
             } else {
-                navbar.style.background = 'rgba(255, 255, 255, 0.95)';
+                navbar.style.background = '#ece8e1';
             }
         });
     </script>

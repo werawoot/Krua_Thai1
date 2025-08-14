@@ -492,33 +492,89 @@ if ($success) {
     <meta charset="UTF-8">
     <title>Confirm Order | Somdul Table</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link href="https://ydpschool.com/fonts/BaticaSans.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
 /* ========================================================================
-   SOMDUL TABLE - MOBILE-OPTIMIZED CHECKOUT PAGE CSS
-   Complete CSS with mobile responsiveness and touch-friendly interface
+   SOMDUL TABLE - CHECKOUT PAGE CSS WITH THEME CONSISTENCY
+   Updated to match home2.php and meal-selection.php design
    ======================================================================== */
 
+/* BaticaSans Font Import - Local Files (EXACT MATCH to home2.php) */
+@font-face {
+    font-family: 'BaticaSans';
+    src: url('./Font/BaticaSans-Regular.woff2') format('woff2'),
+        url('./Font/BaticaSans-Regular.woff') format('woff'),
+        url('./Font/BaticaSans-Regular.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'BaticaSans';
+    src: url('./Font/BaticaSans-Italic.woff2') format('woff2'),
+        url('./Font/BaticaSans-Italic.woff') format('woff'),
+        url('./Font/BaticaSans-Italic.ttf') format('truetype');
+    font-weight: 400;
+    font-style: italic;
+    font-display: swap;
+}
+
+/* Fallback for bold/medium weights - browser will simulate them */
+@font-face {
+    font-family: 'BaticaSans';
+    src: url('./Font/BaticaSans-Regular.woff2') format('woff2'),
+        url('./Font/BaticaSans-Regular.woff') format('woff'),
+        url('./Font/BaticaSans-Regular.ttf') format('truetype');
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'BaticaSans';
+    src: url('./Font/BaticaSans-Regular.woff2') format('woff2'),
+        url('./Font/BaticaSans-Regular.woff') format('woff'),
+        url('./Font/BaticaSans-Regular.ttf') format('truetype');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+
+/* EXACT MATCH Color Hierarchy from home2.php and meal-selection.php */
 :root {
-    --cream: #ece8e1;
-    --sage: #adb89d;
+    /* LEVEL 1 (MOST IMPORTANT): BROWN #bd9379 + WHITE */
     --brown: #bd9379;
-    --curry: #cf723a;
     --white: #ffffff;
+    
+    /* LEVEL 2 (SECONDARY): CREAM #ece8e1 */
+    --cream: #ece8e1;
+    
+    /* LEVEL 3 (SUPPORTING): SAGE #adb89d */
+    --sage: #adb89d;
+    
+    /* LEVEL 4 (ACCENT/CONTRAST - LEAST USED): CURRY #cf723a */
+    --curry: #cf723a;
+    
+    /* Text colors using brown hierarchy */
     --text-dark: #2c3e50;
     --text-gray: #7f8c8d;
-    --border-light: #e8e8e8;
-    --shadow-soft: 0 4px 12px rgba(0,0,0,0.05);
-    --shadow-medium: 0 8px 24px rgba(0,0,0,0.1);
-    --radius-sm: 8px;
-    --radius-md: 12px;
-    --radius-lg: 16px;
-    --radius-xl: 24px;
+    --border-light: #d4c4b8; /* Brown-tinted border */
+    
+    /* Shadows using brown as base (Level 1) */
+    --shadow-soft: 0 4px 12px rgba(189, 147, 121, 0.15);
+    --shadow-medium: 0 8px 24px rgba(189, 147, 121, 0.25);
+    
+    /* REDUCED border radius to match meal-selection.php */
+    --radius-sm: 4px;
+    --radius-md: 6px;
+    --radius-lg: 8px;
+    --radius-xl: 12px;
+    
     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     --success: #27ae60;
     --danger: #e74c3c;
     --warning: #f39c12;
+    --info: #3498db;
     --vh: 1vh; /* Mobile viewport height fix */
 }
 
@@ -533,57 +589,66 @@ if ($success) {
 }
 
 body {
-    font-family: 'BaticaSans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: 'BaticaSans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background: linear-gradient(135deg, var(--cream) 0%, #f8f6f3 100%);
     color: var(--text-dark);
     line-height: 1.6;
     min-height: 100vh;
-    min-height: calc(var(--vh, 1vh) * 100); /* Mobile viewport fix */
+    min-height: calc(var(--vh, 1vh) * 100);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
+    font-weight: 400;
 }
 
-/* ========================================================================
-   MOBILE-FIRST TYPOGRAPHY
-   ======================================================================== */
-
+/* Typography using BaticaSans - LEVEL 1: Brown for headings */
 h1, h2, h3, h4, h5, h6 {
     font-family: 'BaticaSans', sans-serif;
     font-weight: 700;
     line-height: 1.2;
-    color: var(--text-dark);
+    color: var(--brown); /* LEVEL 1: Brown instead of text-dark */
 }
 
 /* ========================================================================
-   HEADER - MOBILE OPTIMIZED
+   HEADER - EXACT MATCH to home2.php
    ======================================================================== */
 
 .header {
-    background: var(--white);
+    position: fixed;
+    top: 38px;
+    left: 0;
+    right: 0;
+    background: #ece8e1;
+    backdrop-filter: blur(10px);
+    z-index: 1000;
+    transition: var(--transition);
     box-shadow: var(--shadow-soft);
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    border-bottom: 1px solid var(--border-light);
+}
+
+.header, .header * {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .header-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 1rem 2rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    flex-wrap: wrap;
+    padding: 1rem 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
 }
 
 .logo {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 0.8rem;
     text-decoration: none;
-    color: inherit;
+    color: var(--brown); /* LEVEL 1: Brown */
     transition: var(--transition);
 }
 
@@ -593,8 +658,9 @@ h1, h2, h3, h4, h5, h6 {
 
 .logo-text {
     font-size: 1.8rem;
-    font-weight: 700;
-    color: var(--curry);
+    font-weight: 800;
+    color: var(--brown); /* LEVEL 1: Brown */
+    font-family: 'BaticaSans', sans-serif;
     white-space: nowrap;
 }
 
@@ -607,8 +673,9 @@ h1, h2, h3, h4, h5, h6 {
 
 .nav-link {
     text-decoration: none;
-    color: var(--text-dark);
+    color: var(--text-gray);
     font-weight: 500;
+    font-family: 'BaticaSans', sans-serif;
     transition: var(--transition);
     padding: 0.5rem 1rem;
     border-radius: var(--radius-sm);
@@ -617,9 +684,114 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .nav-link:hover {
-    background: var(--cream);
-    color: var(--curry);
+    background: rgba(189, 147, 121, 0.1);
+    color: var(--brown); /* LEVEL 1: Brown hover */
     transform: translateY(-1px);
+}
+
+/* Profile Icon Styles */
+.profile-link {
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+.profile-icon {
+    width: 45px;
+    height: 45px;
+    background: var(--brown); /* LEVEL 1: Brown */
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--white); /* LEVEL 1: White */
+    transition: var(--transition);
+    box-shadow: var(--shadow-soft);
+}
+
+.profile-icon:hover {
+    background: #a8855f; /* Darker brown on hover */
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-medium);
+}
+
+.profile-icon svg {
+    width: 24px;
+    height: 24px;
+}
+
+/* Promotional Banner - LEVEL 4: Curry for special promos */
+.promo-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: #cf723a; /* LEVEL 4: Curry for promotional banner */
+    color: var(--white); /* LEVEL 1: White */
+    text-align: center;
+    padding: 8px 20px;
+    font-family: 'BaticaSans', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    z-index: 1001;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    animation: glow 2s ease-in-out infinite alternate;
+}
+
+.promo-banner-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.promo-icon {
+    font-size: 16px;
+    animation: bounce 1.5s ease-in-out infinite;
+}
+
+.promo-text {
+    letter-spacing: 0.5px;
+}
+
+.promo-close {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--white); /* LEVEL 1: White */
+    font-size: 18px;
+    cursor: pointer;
+    opacity: 0.8;
+    transition: opacity 0.3s ease;
+}
+
+.promo-close:hover {
+    opacity: 1;
+}
+
+@keyframes glow {
+    from {
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    to {
+        box-shadow: 0 2px 20px rgba(207, 114, 58, 0.3);
+    }
+}
+
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {
+        transform: translateY(0);
+    }
+    40% {
+        transform: translateY(-3px);
+    }
+    60% {
+        transform: translateY(-2px);
+    }
 }
 
 /* ========================================================================
@@ -629,12 +801,12 @@ h1, h2, h3, h4, h5, h6 {
 .container {
     max-width: 900px;
     margin: 0 auto;
-    padding: 2rem 20px 4rem;
+    padding: 120px 20px 4rem; /* Adjusted padding-top for new header */
     position: relative;
 }
 
 /* ========================================================================
-   PROGRESS BAR - MOBILE OPTIMIZED
+   PROGRESS BAR - UPDATED THEME COLORS
    ======================================================================== */
 
 .progress-container {
@@ -661,10 +833,11 @@ h1, h2, h3, h4, h5, h6 {
     align-items: center;
     gap: 0.5rem;
     padding: 0.8rem 1.5rem;
-    border-radius: var(--radius-xl);
+    border-radius: 25px; /* Reduced from 50px */
     font-weight: 600;
     font-size: 0.95rem;
-    background: var(--cream);
+    font-family: 'BaticaSans', sans-serif;
+    background: var(--white);
     color: var(--text-gray);
     border: 2px solid var(--cream);
     transition: var(--transition);
@@ -676,17 +849,17 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .progress-step.active {
-    background: var(--curry);
+    background: var(--brown); /* LEVEL 1: Brown instead of curry */
     color: var(--white);
-    border-color: var(--curry);
-    box-shadow: 0 4px 12px rgba(207, 114, 58, 0.3);
+    border-color: var(--brown);
+    box-shadow: 0 4px 12px rgba(189, 147, 121, 0.3);
     transform: scale(1.02);
 }
 
 .progress-step.completed {
-    background: var(--success);
+    background: var(--sage); /* LEVEL 3: Sage instead of success */
     color: var(--white);
-    border-color: var(--success);
+    border-color: var(--sage);
 }
 
 .progress-arrow {
@@ -706,8 +879,9 @@ h1, h2, h3, h4, h5, h6 {
     font-weight: 700;
     margin-bottom: 2rem;
     text-align: center;
-    color: var(--text-dark);
+    color: var(--brown); /* LEVEL 1: Brown title */
     position: relative;
+    font-family: 'BaticaSans', sans-serif;
 }
 
 .title i {
@@ -716,12 +890,12 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ========================================================================
-   SECTIONS - MOBILE OPTIMIZED
+   SECTIONS
    ======================================================================== */
 
 .section {
     background: var(--white);
-    border-radius: var(--radius-xl);
+    border-radius: var(--radius-lg); /* Reduced border radius */
     margin-bottom: 2rem;
     box-shadow: var(--shadow-soft);
     padding: 2rem;
@@ -743,9 +917,10 @@ h1, h2, h3, h4, h5, h6 {
 
 .label {
     font-weight: 700;
-    color: var(--curry);
+    color: var(--brown); /* LEVEL 1: Brown instead of curry */
     margin-bottom: 1rem;
     font-size: 1.1rem;
+    font-family: 'BaticaSans', sans-serif;
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -753,19 +928,21 @@ h1, h2, h3, h4, h5, h6 {
 
 .plan-title {
     font-size: 1.2rem;
-    color: var(--text-dark);
+    color: var(--brown); /* LEVEL 1: Brown */
     font-weight: 600;
     margin-bottom: 0.5rem;
+    font-family: 'BaticaSans', sans-serif;
 }
 
 .plan-price {
     color: var(--curry);
     font-size: 1.4rem;
     font-weight: 700;
+    font-family: 'BaticaSans', sans-serif;
 }
 
 /* ========================================================================
-   MEAL LIST - MOBILE OPTIMIZED
+   MEAL LIST
    ======================================================================== */
 
 .meal-list {
@@ -798,14 +975,16 @@ h1, h2, h3, h4, h5, h6 {
 .meal-name {
     flex: 1;
     font-weight: 600;
-    color: var(--text-dark);
+    color: var(--brown); /* LEVEL 1: Brown */
     line-height: 1.4;
+    font-family: 'BaticaSans', sans-serif;
 }
 
 .meal-price {
     color: var(--curry);
     font-weight: 600;
     margin-left: 1rem;
+    font-family: 'BaticaSans', sans-serif;
 }
 
 .no-meals-message {
@@ -814,6 +993,7 @@ h1, h2, h3, h4, h5, h6 {
     color: var(--text-gray);
     font-style: italic;
     line-height: 1.6;
+    font-family: 'BaticaSans', sans-serif;
 }
 
 /* ========================================================================
@@ -829,11 +1009,12 @@ h1, h2, h3, h4, h5, h6 {
     padding: 1.5rem;
     background: linear-gradient(135deg, var(--cream), #f5f3f0);
     border-radius: var(--radius-lg);
-    border: 2px solid rgba(207, 114, 58, 0.1);
+    border: 2px solid rgba(189, 147, 121, 0.1); /* Brown-tinted border */
+    font-family: 'BaticaSans', sans-serif;
 }
 
 /* ========================================================================
-   FORM INPUTS - MOBILE OPTIMIZED
+   FORM INPUTS
    ======================================================================== */
 
 .address-input, .input {
@@ -843,7 +1024,7 @@ h1, h2, h3, h4, h5, h6 {
     border: 2px solid var(--border-light);
     margin-bottom: 1.2rem;
     font-size: 1rem;
-    font-family: inherit;
+    font-family: 'BaticaSans', sans-serif;
     transition: var(--transition);
     background: var(--white);
     color: var(--text-dark);
@@ -854,9 +1035,9 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .input:focus, .address-input:focus {
-    border-color: var(--curry);
+    border-color: var(--brown); /* LEVEL 1: Brown focus */
     outline: none;
-    box-shadow: 0 0 15px rgba(207, 114, 58, 0.2);
+    box-shadow: 0 0 15px rgba(189, 147, 121, 0.2);
     transform: translateY(-1px);
 }
 
@@ -871,26 +1052,26 @@ select {
 }
 
 /* ========================================================================
-   BUTTONS - MOBILE OPTIMIZED
+   BUTTONS - UPDATED THEME COLORS
    ======================================================================== */
 
 .btn {
     width: 100%;
     padding: 1.2rem 2rem;
-    border-radius: var(--radius-xl);
-    background: linear-gradient(135deg, var(--curry), var(--brown));
+    border-radius: 25px; /* Reduced from 50px */
+    background: var(--brown); /* LEVEL 1: Brown instead of gradient */
     color: var(--white);
     font-size: 1.1rem;
     font-weight: 700;
     border: none;
     cursor: pointer;
     transition: var(--transition);
-    font-family: inherit;
+    font-family: 'BaticaSans', sans-serif;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.8rem;
-    box-shadow: 0 4px 12px rgba(207, 114, 58, 0.3);
+    box-shadow: var(--shadow-soft);
     touch-action: manipulation;
     min-height: 56px;
     position: relative;
@@ -913,14 +1094,14 @@ select {
 }
 
 .btn:hover {
-    background: linear-gradient(135deg, var(--brown), var(--sage));
+    background: #a8855f; /* Darker brown */
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(207, 114, 58, 0.4);
+    box-shadow: var(--shadow-medium);
 }
 
 .btn:active {
     transform: translateY(0);
-    box-shadow: 0 2px 8px rgba(207, 114, 58, 0.3);
+    box-shadow: 0 2px 8px rgba(189, 147, 121, 0.3);
 }
 
 .btn:disabled {
@@ -931,7 +1112,7 @@ select {
 }
 
 /* ========================================================================
-   PAYMENT METHODS - MOBILE OPTIMIZED
+   PAYMENT METHODS
    ======================================================================== */
 
 .payment-methods {
@@ -952,6 +1133,7 @@ select {
     transition: var(--transition);
     background: var(--white);
     font-weight: 600;
+    font-family: 'BaticaSans', sans-serif;
     position: relative;
     overflow: hidden;
     min-height: 60px;
@@ -965,7 +1147,7 @@ select {
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(135deg, rgba(207, 114, 58, 0.05), rgba(189, 147, 121, 0.05));
+    background: linear-gradient(135deg, rgba(189, 147, 121, 0.05), rgba(173, 184, 157, 0.05));
     opacity: 0;
     transition: var(--transition);
 }
@@ -975,17 +1157,17 @@ select {
 }
 
 .payment-methods label:hover {
-    border-color: var(--curry);
+    border-color: var(--brown); /* LEVEL 1: Brown */
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(207, 114, 58, 0.2);
+    box-shadow: 0 4px 12px rgba(189, 147, 121, 0.2);
 }
 
 .payment-methods input:checked + i {
-    color: var(--curry);
+    color: var(--brown); /* LEVEL 1: Brown */
 }
 
 .payment-methods input {
-    accent-color: var(--curry);
+    accent-color: var(--brown); /* LEVEL 1: Brown */
     margin-right: 0.5rem;
     transform: scale(1.2);
 }
@@ -1003,7 +1185,7 @@ select {
 }
 
 /* ========================================================================
-   CALENDAR - MOBILE OPTIMIZED
+   CALENDAR - UPDATED THEME COLORS
    ======================================================================== */
 
 .date-selection-container {
@@ -1017,7 +1199,7 @@ select {
     padding: 1.5rem;
     margin-bottom: 1rem;
     box-shadow: var(--shadow-soft);
-    max-width: 100%;
+    max-width: 400px; /* Reduced for desktop */
     margin-left: auto;
     margin-right: auto;
     touch-action: manipulation;
@@ -1036,21 +1218,21 @@ select {
     background: var(--cream);
     border: none;
     border-radius: 50%;
-    width: 44px;
-    height: 44px;
+    width: 36px; /* Reduced from 44px */
+    height: 36px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     transition: var(--transition);
-    color: var(--curry);
-    font-size: 1rem;
+    color: var(--brown); /* LEVEL 1: Brown */
+    font-size: 0.85rem; /* Reduced */
     touch-action: manipulation;
     flex-shrink: 0;
 }
 
 .calendar-nav:hover {
-    background: var(--curry);
+    background: var(--brown); /* LEVEL 1: Brown */
     color: var(--white);
     transform: scale(1.05);
 }
@@ -1060,18 +1242,19 @@ select {
 }
 
 .calendar-title {
-    font-size: 1.3rem;
+    font-size: 1.1rem; /* Reduced */
     font-weight: 700;
-    color: var(--text-dark);
+    color: var(--brown); /* LEVEL 1: Brown */
     text-align: center;
     flex: 1;
-    margin: 0 1rem;
+    margin: 0 0.8rem; /* Reduced */
+    font-family: 'BaticaSans', sans-serif;
 }
 
 .calendar-weekdays {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 0.5rem;
+    gap: 0.3rem; /* Reduced */
     margin-bottom: 0.5rem;
 }
 
@@ -1079,19 +1262,20 @@ select {
     text-align: center;
     font-weight: 600;
     color: var(--text-gray);
-    padding: 0.5rem;
-    font-size: 0.9rem;
+    padding: 0.3rem; /* Reduced */
+    font-size: 0.8rem; /* Reduced */
+    font-family: 'BaticaSans', sans-serif;
 }
 
 .weekday.highlight {
-    color: var(--curry);
+    color: var(--brown); /* LEVEL 1: Brown */
     font-weight: 700;
 }
 
 .calendar-days {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 0.5rem;
+    gap: 0.3rem; /* Reduced */
 }
 
 .calendar-day {
@@ -1106,9 +1290,11 @@ select {
     position: relative;
     background: var(--white);
     border: 1px solid transparent;
-    min-height: 44px;
+    min-height: 32px; /* Reduced */
     user-select: none;
     touch-action: manipulation;
+    font-size: 0.8rem; /* Reduced */
+    font-family: 'BaticaSans', sans-serif;
 }
 
 .calendar-day.other-month {
@@ -1127,17 +1313,17 @@ select {
 }
 
 .calendar-day.available {
-    color: var(--curry);
+    color: var(--brown); /* LEVEL 1: Brown */
     background: var(--cream);
-    border-color: var(--curry);
+    border-color: var(--brown);
     font-weight: 700;
 }
 
 .calendar-day.available:hover {
-    background: var(--curry);
+    background: var(--brown); /* LEVEL 1: Brown */
     color: var(--white);
     transform: scale(1.05);
-    box-shadow: 0 4px 12px rgba(207, 114, 58, 0.3);
+    box-shadow: 0 4px 12px rgba(189, 147, 121, 0.3);
 }
 
 .calendar-day.available:active {
@@ -1145,11 +1331,11 @@ select {
 }
 
 .calendar-day.selected {
-    background: var(--curry);
+    background: var(--brown); /* LEVEL 1: Brown */
     color: var(--white);
     transform: scale(1.02);
-    box-shadow: 0 4px 16px rgba(207, 114, 58, 0.4);
-    border-color: var(--brown);
+    box-shadow: 0 4px 16px rgba(189, 147, 121, 0.4);
+    border-color: var(--sage);
 }
 
 .calendar-day.today {
@@ -1169,7 +1355,7 @@ select {
 }
 
 .calendar-day.available.today::after {
-    background: var(--curry);
+    background: var(--brown); /* LEVEL 1: Brown */
 }
 
 .calendar-day.selected.today::after {
@@ -1177,7 +1363,7 @@ select {
 }
 
 /* ========================================================================
-   MESSAGES & ALERTS - MOBILE OPTIMIZED
+   MESSAGES & ALERTS
    ======================================================================== */
 
 .error {
@@ -1188,6 +1374,7 @@ select {
     border-radius: var(--radius-lg);
     margin-bottom: 2rem;
     box-shadow: 0 2px 8px rgba(231, 76, 60, 0.1);
+    font-family: 'BaticaSans', sans-serif;
 }
 
 .error ul {
@@ -1221,6 +1408,7 @@ select {
     align-items: flex-start;
     gap: 1rem;
     line-height: 1.5;
+    font-family: 'BaticaSans', sans-serif;
 }
 
 .weekend-info i {
@@ -1235,7 +1423,7 @@ select {
 }
 
 .weekend-info strong {
-    color: var(--curry);
+    color: var(--brown); /* LEVEL 1: Brown */
 }
 
 .date-error-message, .date-success-message {
@@ -1249,6 +1437,7 @@ select {
     transition: var(--transition);
     animation: slideIn 0.3s ease-out;
     line-height: 1.4;
+    font-family: 'BaticaSans', sans-serif;
 }
 
 .date-error-message {
@@ -1271,6 +1460,7 @@ select {
     border-radius: var(--radius-lg);
     margin-bottom: 2rem;
     text-align: center;
+    font-family: 'BaticaSans', sans-serif;
 }
 
 .success-message h2 {
@@ -1330,7 +1520,7 @@ select {
 /* Large tablets and small desktops */
 @media (max-width: 1024px) {
     .container {
-        padding: 1.5rem 15px 3rem;
+        padding: 100px 15px 3rem;
     }
     
     .header-container {
@@ -1338,69 +1528,10 @@ select {
     }
 }
 
-
-/* ========================================================================
-   DESKTOP CALENDAR OPTIMIZATION - เพิ่มใหม่
-   ======================================================================== */
-
-/* Desktop และ Large Tablets - ปรับ Calendar ให้เล็กลง */
-@media (min-width: 769px) {
-    .custom-calendar {
-        max-width: 420px !important;
-        margin: 0 auto;
-        padding: 1.2rem;
-    }
-    
-    .calendar-nav {
-        width: 36px;
-        height: 36px;
-        font-size: 0.85rem;
-    }
-    
-    .calendar-title {
-        font-size: 1.1rem;
-        margin: 0 0.8rem;
-    }
-    
-    .calendar-days {
-        gap: 0.3rem;
-    }
-    
-    .calendar-day {
-        min-height: 36px;
-        font-size: 0.85rem;
-        aspect-ratio: 1;
-    }
-    
-    .weekday {
-        font-size: 0.8rem;
-        padding: 0.3rem;
-    }
-}
-
-/* Large Desktop - ขนาดใหญ่มาก */
-@media (min-width: 1200px) {
-    .custom-calendar {
-        max-width: 400px !important;
-        padding: 1rem;
-    }
-    
-    .calendar-day {
-        min-height: 32px;
-        font-size: 0.8rem;
-    }
-    
-    .calendar-nav {
-        width: 32px;
-        height: 32px;
-        font-size: 0.8rem;
-    }
-}
-
 /* Tablets */
 @media (max-width: 768px) {
     :root {
-        --transition: all 0.2s ease; /* Faster transitions for mobile */
+        --transition: all 0.2s ease;
     }
     
     body {
@@ -1408,7 +1539,7 @@ select {
     }
     
     .container {
-        padding: 1rem 15px 2rem;
+        padding: 80px 15px 2rem; /* Adjusted for mobile header */
     }
     
     .header-container {
@@ -1466,14 +1597,12 @@ select {
     .section {
         padding: 1.5rem 1rem;
         margin-bottom: 1.5rem;
-        border-radius: var(--radius-lg);
     }
     
     /* Form Inputs Mobile */
     .address-input, .input {
         padding: 1.2rem;
         font-size: 1rem;
-        border-radius: 12px;
     }
     
     /* Buttons Mobile */
@@ -1560,7 +1689,7 @@ select {
 /* Mobile Phones */
 @media (max-width: 480px) {
     .container {
-        padding: 0.8rem 10px 1.5rem;
+        padding: 70px 10px 1.5rem; /* Further adjusted */
     }
     
     .header-container {
@@ -1677,78 +1806,10 @@ select {
     }
 }
 
-/* Extra Small Mobile Phones */
-@media (max-width: 360px) {
-    .container {
-        padding: 0.6rem 8px 1.2rem;
-    }
-    
-    .header-container {
-        padding: 0.6rem;
-    }
-    
-    .logo-text {
-        font-size: 1.3rem;
-    }
-    
-    .title {
-        font-size: 1.4rem;
-    }
-    
-    .progress-container {
-        padding: 0.8rem 0.6rem;
-    }
-    
-    .progress-step {
-        font-size: 0.75rem;
-        padding: 0.7rem;
-    }
-    
-    .section {
-        padding: 1rem 0.6rem;
-    }
-    
-    .custom-calendar {
-        padding: 0.6rem;
-    }
-    
-    .calendar-nav {
-        width: 32px;
-        height: 32px;
-        font-size: 0.75rem;
-    }
-    
-    .calendar-day {
-        min-height: 32px;
-        font-size: 0.8rem;
-    }
-    
-    .weekday {
-        font-size: 0.75rem;
-        padding: 0.2rem;
-    }
-    
-    .payment-methods label {
-        padding: 0.8rem 0.6rem;
-        font-size: 0.85rem;
-    }
-    
-    .btn {
-        padding: 1.2rem 1.2rem;
-        font-size: 0.95rem;
-    }
-    
-    .total {
-        font-size: 1.2rem;
-        padding: 1rem;
-    }
-}
-
 /* ========================================================================
    TOUCH ENHANCEMENTS FOR MOBILE
    ======================================================================== */
 
-/* Touch-friendly targets */
 @media (max-width: 768px) {
     .calendar-day,
     .payment-methods label,
@@ -1758,9 +1819,8 @@ select {
         min-width: 44px;
     }
     
-    /* Touch feedback */
     .calendar-day.available:active {
-        background: var(--brown);
+        background: #a8855f; /* Darker brown */
         transform: scale(0.95);
     }
     
@@ -1778,20 +1838,44 @@ select {
 }
 
 /* ========================================================================
-   ACCESSIBILITY ENHANCEMENTS
+   ACCESSIBILITY & LOADING STATES
    ======================================================================== */
 
-/* Focus states for keyboard navigation */
 .calendar-day:focus,
 .btn:focus,
 .payment-methods label:focus,
 .input:focus,
 .address-input:focus {
-    outline: 3px solid var(--curry);
+    outline: 3px solid var(--brown); /* LEVEL 1: Brown focus outline */
     outline-offset: 2px;
 }
 
-/* High contrast mode support */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+    position: relative;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid var(--brown); /* LEVEL 1: Brown spinner */
+    border-top: 2px solid transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 @media (prefers-contrast: high) {
     :root {
         --shadow-soft: none;
@@ -1803,7 +1887,7 @@ select {
     }
     
     .calendar-day.available {
-        border: 2px solid var(--curry);
+        border: 2px solid var(--brown);
     }
     
     .btn {
@@ -1811,7 +1895,6 @@ select {
     }
 }
 
-/* Reduced motion for users who prefer it */
 @media (prefers-reduced-motion: reduce) {
     :root {
         --transition: none;
@@ -1833,133 +1916,44 @@ select {
         animation: none;
     }
 }
-
-/* ========================================================================
-   LOADING STATES & UTILITIES
-   ======================================================================== */
-
-.loading {
-    opacity: 0.6;
-    pointer-events: none;
-    position: relative;
-}
-
-.loading::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 20px;
-    height: 20px;
-    margin: -10px 0 0 -10px;
-    border: 2px solid var(--curry);
-    border-top: 2px solid transparent;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-/* Hide elements for mobile */
-.desktop-only {
-    display: none;
-}
-
-@media (min-width: 769px) {
-    .desktop-only {
-        display: block;
-    }
-    
-    .mobile-only {
-        display: none;
-    }
-}
-
-/* Text utilities */
-.text-center {
-    text-align: center;
-}
-
-.text-left {
-    text-align: left;
-}
-
-.text-right {
-    text-align: right;
-}
-
-/* Spacing utilities */
-.mt-1 { margin-top: 0.5rem; }
-.mt-2 { margin-top: 1rem; }
-.mt-3 { margin-top: 1.5rem; }
-.mb-1 { margin-bottom: 0.5rem; }
-.mb-2 { margin-bottom: 1rem; }
-.mb-3 { margin-bottom: 1.5rem; }
-
-/* Display utilities */
-.d-none { display: none; }
-.d-block { display: block; }
-.d-flex { display: flex; }
-.d-grid { display: grid; }
-
-/* Flexbox utilities */
-.justify-center { justify-content: center; }
-.justify-between { justify-content: space-between; }
-.align-center { align-items: center; }
-.flex-column { flex-direction: column; }
-.flex-wrap { flex-wrap: wrap; }
-
-/* ========================================================================
-   PRINT STYLES
-   ======================================================================== */
-
-@media print {
-    .header,
-    .progress-container,
-    .btn {
-        display: none;
-    }
-    
-    body {
-        background: white;
-        color: black;
-    }
-    
-    .section {
-        border: 1px solid black;
-        box-shadow: none;
-        page-break-inside: avoid;
-    }
-    
-    .custom-calendar {
-        border: 1px solid black;
-    }
-}
-
-/* ========================================================================
-   END OF MOBILE-OPTIMIZED CSS
-   ======================================================================== */
     </style>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
-    <!-- Header -->
+    <!-- Promotional Banner -->
+    <div class="promo-banner" id="promoBanner">
+        <div class="promo-banner-content">
+            <span class="promo-icon">🍪</span>
+            <span class="promo-text">50% OFF First Week + Free Cookies for Life</span>
+            <span class="promo-icon">🎉</span>
+        </div>
+        <button class="promo-close" onclick="closePromoBanner()" title="Close">×</button>
+    </div>
+
+    <!-- Header - EXACT MATCH to home2.php -->
     <header class="header">
         <div class="header-container">
-            <a href="index.php" class="logo">
-                <div class="logo-text">Somdul Table</div>
+            <a href="home2.php" class="logo">
+                <img src="./assets/image/LOGO_BG2.png" alt="Somdul Table" style="height: 80px; width: auto;">
             </a>
             <nav class="header-nav">
-                <a href="menu.php" class="nav-link">Menu</a>
-                <a href="about.php" class="nav-link">About Us</a>
-                <a href="contact.php" class="nav-link">Contact</a>
+                <a href="./menus.php" class="nav-link">Menu</a>
+                <a href="./meal-kits.php" class="nav-link">Meal-Kits</a>
+                <a href="home2.php#how-it-works" class="nav-link">How It Works</a>
+                <a href="./blogs.php" class="nav-link">About</a>
+                <a href="./contact.php" class="nav-link">Contact</a>
                 <?php if (isset($_SESSION['user_id'])): ?>
-                    <a href="dashboard.php" class="nav-link">Dashboard</a>
-                    <a href="logout.php" class="nav-link">Logout</a>
+                    <!-- User is logged in - show profile icon -->
+                    <a href="dashboard.php" class="profile-link" title="Go to Dashboard">
+                        <div class="profile-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                        </div>
+                    </a>
                 <?php else: ?>
+                    <!-- User is not logged in - show sign in button -->
                     <a href="login.php" class="nav-link">Login</a>
                 <?php endif; ?>
             </nav>
@@ -2158,61 +2152,68 @@ select {
     </div>
 
     <script>
+        function closePromoBanner() {
+            const promoBanner = document.getElementById('promoBanner');
+            const header = document.querySelector('.header');
+            const container = document.querySelector('.container');
+            
+            promoBanner.style.transform = 'translateY(-100%)';
+            promoBanner.style.opacity = '0';
+            
+            setTimeout(() => {
+                promoBanner.style.display = 'none';
+                header.style.top = '0';
+                container.style.paddingTop = '80px';
+            }, 300);
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             console.log('✅ Updated checkout page loaded');
             
-   // 📱 เพิ่มส่วนนี้ใหม่ - Mobile Detection & Touch Enhancements
-    function detectMobile() {
-        return window.innerWidth <= 768;
-    }
+            // Mobile detection & touch enhancements
+            function detectMobile() {
+                return window.innerWidth <= 768;
+            }
 
-    // ปรับ calendar behavior สำหรับมือถือ
-    if (detectMobile()) {
-        // ลด animation
-        document.documentElement.style.setProperty('--transition', 'all 0.2s ease');
-        
-        // เพิ่ม touch feedback สำหรับ calendar days
-        function addTouchFeedback() {
-            document.querySelectorAll('.calendar-day.available').forEach(day => {
-                day.addEventListener('touchstart', function() {
-                    this.style.transform = 'scale(0.95)';
+            if (detectMobile()) {
+                document.documentElement.style.setProperty('--transition', 'all 0.2s ease');
+                
+                function addTouchFeedback() {
+                    document.querySelectorAll('.calendar-day.available').forEach(day => {
+                        day.addEventListener('touchstart', function() {
+                            this.style.transform = 'scale(0.95)';
+                        });
+                        
+                        day.addEventListener('touchend', function() {
+                            this.style.transform = 'scale(1)';
+                        });
+                    });
+                }
+                
+                setTimeout(addTouchFeedback, 500);
+                
+                document.querySelectorAll('.payment-methods label').forEach(label => {
+                    label.addEventListener('touchstart', function() {
+                        this.style.transform = 'scale(0.98)';
+                    });
+                    
+                    label.addEventListener('touchend', function() {
+                        this.style.transform = 'scale(1)';
+                    });
                 });
                 
-                day.addEventListener('touchend', function() {
-                    this.style.transform = 'scale(1)';
+                document.querySelectorAll('.btn').forEach(btn => {
+                    btn.addEventListener('touchstart', function() {
+                        this.style.transform = 'translateY(1px) scale(0.98)';
+                    });
+                    
+                    btn.addEventListener('touchend', function() {
+                        this.style.transform = 'translateY(0) scale(1)';
+                    });
                 });
-            });
-        }
-        
-        // เรียกใช้ touch feedback ทันที
-        setTimeout(addTouchFeedback, 500);
-        
-        // เพิ่ม touch feedback ให้ payment methods
-        document.querySelectorAll('.payment-methods label').forEach(label => {
-            label.addEventListener('touchstart', function() {
-                this.style.transform = 'scale(0.98)';
-            });
-            
-            label.addEventListener('touchend', function() {
-                this.style.transform = 'scale(1)';
-            });
-        });
-        
-        // เพิ่ม touch feedback ให้ buttons
-        document.querySelectorAll('.btn').forEach(btn => {
-            btn.addEventListener('touchstart', function() {
-                this.style.transform = 'translateY(1px) scale(0.98)';
-            });
-            
-            btn.addEventListener('touchend', function() {
-                this.style.transform = 'translateY(0) scale(1)';
-            });
-        });
-        
-        console.log('📱 Mobile optimizations applied');
-    }
-    // จบส่วนที่เพิ่มใหม่
-
+                
+                console.log('📱 Mobile optimizations applied');
+            }
 
             // Calendar functionality
             class DeliveryCalendar {
@@ -2499,23 +2500,6 @@ select {
                         console.log('💳 Payment method selected:', radio.value);
                     });
                 });
-                
-                // Auto-fill demo data for testing (remove in production)
-                if (window.location.search.includes('demo=1')) {
-                    setTimeout(() => {
-                        // Auto-select first payment method
-                        const firstPayment = document.querySelector('input[name="payment_method"]');
-                        if (firstPayment) firstPayment.checked = true;
-                        
-                        // Auto-select the first available delivery date
-                        const firstAvailableDay = document.querySelector('.calendar-day.available');
-                        if (firstAvailableDay) {
-                            firstAvailableDay.click();
-                        }
-                        
-                        console.log('🧪 Demo data auto-filled');
-                    }, 1000);
-                }
                 
                 // Real-time validation feedback
                 const inputs = form.querySelectorAll('input[required], select[required]');
