@@ -631,6 +631,7 @@ function getDayName($day) {
             font-family: 'BaticaSans', sans-serif;
             text-align: center;
             margin-bottom: 2rem;
+            margin-top:4rem;
             color: var(--brown); /* LEVEL 1: Brown title */
         }
 
@@ -896,17 +897,6 @@ function getDayName($day) {
             background: var(--brown);
             color: var(--white);
             border-color: var(--brown);
-        }
-
-        .btn-renew {
-            border-color: var(--sage); /* LEVEL 3: Sage */
-            color: var(--sage);
-        }
-
-        .btn-renew:hover {
-            background: var(--sage);
-            color: var(--white);
-            border-color: var(--sage);
         }
 
         .btn-review {
@@ -1661,6 +1651,34 @@ function getDayName($day) {
                 min-height: 40px;
             }
         }
+
+/* Quantity Badge for Menu Cards */
+.menu-quantity {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background: var(--curry);
+    color: var(--white);
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    z-index: 10;
+    font-family: 'BaticaSans', sans-serif;
+}
+
+/* Quantity text in menu name */
+.menu-name .quantity-text {
+    color: var(--curry);
+    font-weight: 700;
+    margin-left: 0.5rem;
+    font-size: 0.95rem;
+}
     </style>
 </head>
 <body>
@@ -1860,11 +1878,7 @@ function getDayName($day) {
                                                         <?= $blockingReason ?>
                                                     </small>
                                                 <?php endif; ?>
-                                                
-                                                <button name="action" value="renew" class="btn-action btn-renew" 
-                                                        onclick="return confirm('Do you want to renew this order plan?')">
-                                                    <i class="fas fa-redo"></i> Renew
-                                                </button>
+                                            
                                                 
                                             <?php else: ?>
                                                 <button disabled class="btn-action btn-disabled">
@@ -2126,8 +2140,13 @@ function getDayName($day) {
 
             // Group menus by day
             const menusByDay = {};
+            let totalMeals = 0; // Track total meals with quantities
+            
             menus.forEach(menu => {
                 const deliveryDate = menu.delivery_date;
+                const quantity = parseInt(menu.quantity) || 1; // Get quantity from database
+                totalMeals += quantity; // Add to total count
+                
                 if (!menusByDay[deliveryDate]) {
                     menusByDay[deliveryDate] = [];
                 }
@@ -2191,8 +2210,8 @@ function getDayName($day) {
                             <div class="detail-label">Preferred Delivery Time</div>
                             <div class="detail-value">
                                 ${subscription.preferred_delivery_time === 'morning' ? 'Morning (8:00-12:00)' :
-                                  subscription.preferred_delivery_time === 'afternoon' ? 'Afternoon (12:00-16:00)' :
-                                  subscription.preferred_delivery_time === 'evening' ? 'Evening (16:00-20:00)' : 'Flexible'}
+                                subscription.preferred_delivery_time === 'afternoon' ? 'Afternoon (12:00-16:00)' :
+                                subscription.preferred_delivery_time === 'evening' ? 'Evening (16:00-20:00)' : 'Flexible'}
                             </div>
                         </div>
                     </div>
@@ -2240,41 +2259,66 @@ function getDayName($day) {
                 <div class="detail-section">
                     <div class="detail-title">
                         <i class="fas fa-utensils"></i>
-                        Selected Meals (${menus.length} items)
+                        Selected Meals (${totalMeals} meals total)
                     </div>
                     ${Object.keys(menusByDay).length > 0 ? 
-                        Object.keys(menusByDay).sort().map(date => `
-                            <div style="margin-bottom: 1.5rem;">
-                                <h4 style="color: var(--curry); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
-                                    <i class="fas fa-calendar-day"></i>
-                                    Delivery Date: ${date}
-                                </h4>
-                                <div class="menus-grid" style="grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));">
-                                    ${menusByDay[date].map(menu => `
-                                        <div class="menu-card">
-                                            ${menu.main_image_url ? 
-                                                `<img src="${menu.main_image_url}" alt="${menu.menu_name}" class="menu-image" onerror="this.style.display='none'">` :
-                                                `<div class="menu-image" style="display: flex; align-items: center; justify-content: center; color: var(--text-gray);">
-                                                    <i class="fas fa-utensils" style="font-size: 2rem;"></i>
-                                                </div>`
-                                            }
-                                            <div class="menu-content">
-                                                <div class="menu-name">${menu.menu_name}</div>
-                                                ${menu.name_thai ? `<div class="menu-name-thai">${menu.name_thai}</div>` : ''}
-                                                ${menu.category_name ? `<div class="menu-category">${menu.category_name}</div>` : ''}
-                                                
-                                                <div class="menu-nutrition">
-                                                    ${menu.calories_per_serving ? `<span><i class="fas fa-fire"></i> ${menu.calories_per_serving} cal</span>` : ''}
-                                                    ${menu.protein_g ? `<span><i class="fas fa-drumstick-bite"></i> ${menu.protein_g}g</span>` : ''}
+                        Object.keys(menusByDay).sort().map(date => {
+                            // Calculate total meals for this date
+                            const dailyTotal = menusByDay[date].reduce((sum, menu) => sum + (parseInt(menu.quantity) || 1), 0);
+                            
+                            return `
+                                <div style="margin-bottom: 1.5rem;">
+                                    <h4 style="color: var(--curry); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                                        <i class="fas fa-calendar-day"></i>
+                                        Delivery Date: ${date} (${dailyTotal} meals)
+                                    </h4>
+                                    <div class="menus-grid" style="grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));">
+                                        ${menusByDay[date].map(menu => {
+                                            const quantity = parseInt(menu.quantity) || 1;
+                                            return `
+                                                <div class="menu-card">
+                                                    ${menu.main_image_url ? 
+                                                        `<img src="${menu.main_image_url}" alt="${menu.menu_name}" class="menu-image" onerror="this.style.display='none'">` :
+                                                        `<div class="menu-image" style="display: flex; align-items: center; justify-content: center; color: var(--text-gray);">
+                                                            <i class="fas fa-utensils" style="font-size: 2rem;"></i>
+                                                        </div>`
+                                                    }
+                                                    ${quantity > 1 ? `<div class="menu-quantity" style="
+                                                        position: absolute; 
+                                                        top: 0.5rem; 
+                                                        right: 0.5rem; 
+                                                        background: var(--curry); 
+                                                        color: var(--white); 
+                                                        border-radius: 50%; 
+                                                        width: 30px; 
+                                                        height: 30px; 
+                                                        display: flex; 
+                                                        align-items: center; 
+                                                        justify-content: center; 
+                                                        font-weight: 700; 
+                                                        font-size: 0.9rem;
+                                                        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                                                    ">×${quantity}</div>` : ''}
+                                                    <div class="menu-content">
+                                                        <div class="menu-name">
+                                                            ${menu.menu_name}
+                                                            ${quantity > 1 ? `<span style="color: var(--curry); font-weight: 700; margin-left: 0.5rem;">(×${quantity})</span>` : ''}
+                                                        </div>
+                                                        ${menu.name_thai ? `<div class="menu-name-thai">${menu.name_thai}</div>` : ''}
+                                                        ${menu.category_name ? `<div class="menu-category">${menu.category_name}</div>` : ''}
+                                                        
+                                                        <div class="menu-nutrition">
+                                                            ${menu.calories_per_serving ? `<span><i class="fas fa-fire"></i> ${menu.calories_per_serving} cal</span>` : ''}
+                                                            ${menu.protein_g ? `<span><i class="fas fa-drumstick-bite"></i> ${menu.protein_g}g</span>` : ''}
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                
-                                                <div class="menu-price">$${Number(menu.base_price).toLocaleString()}</div>
-                                            </div>
-                                        </div>
-                                    `).join('')}
+                                            `;
+                                        }).join('')}
+                                    </div>
                                 </div>
-                            </div>
-                        `).join('') :
+                            `;
+                        }).join('') :
                         `<div style="text-align: center; padding: 2rem; color: var(--text-gray);">
                             <i class="fas fa-utensils" style="font-size: 3rem; opacity: 0.3; margin-bottom: 1rem;"></i>
                             <p>No meals selected yet</p>

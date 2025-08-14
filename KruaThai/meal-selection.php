@@ -1,9 +1,9 @@
 <?php
 /**
- * Somdul Table - Meal Selection Page
+ * Somdul Table - Meal Selection Page with Quantity Support
  * File: meal-selection.php
- * Description: Select meals according to package amount (Step 2)
- * Updated to properly store meal details in session for checkout
+ * Description: Select meals with quantities according to package amount (Step 2)
+ * Updated to support multiple quantities of the same meal
  */
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
@@ -88,15 +88,15 @@ try {
     if (!$plan) {
         // Fallback plans matching database structure
         $plans = [
-            '74c0ed20-5afc-11f0-8b7f-3f129bd34f14' => ['id' => '74c0ed20-5afc-11f0-8b7f-3f129bd34f14', 'name_thai' => 'แพ็กเกจ 4 มื้อ', 'name_english' => '4 Meal Package', 'meals_per_week' => 4, 'final_price' => 2500],
-            'd6e98c56-5afb-11f0-8b7f-3f129bd34f14' => ['id' => 'd6e98c56-5afb-11f0-8b7f-3f129bd34f14', 'name_thai' => 'แพ็กเกจ 8 มื้อ', 'name_english' => '8 Meal Package', 'meals_per_week' => 8, 'final_price' => 4500],
-            'd6e98d96-5afb-11f0-8b7f-3f129bd34f14' => ['id' => 'd6e98d96-5afb-11f0-8b7f-3f129bd34f14', 'name_thai' => 'แพ็กเกจ 12 มื้อ', 'name_english' => '12 Meal Package', 'meals_per_week' => 12, 'final_price' => 6200],
-            'd6e98e7c-5afb-11f0-8b7f-3f129bd34f14' => ['id' => 'd6e98e7c-5afb-11f0-8b7f-3f129bd34f14', 'name_thai' => 'แพ็กเกจ 15 มื้อ', 'name_english' => '15 Meal Package', 'meals_per_week' => 15, 'final_price' => 7500],
+            '74c0ed20-5afc-11f0-8b7f-3f129bd34f14' => ['id' => '74c0ed20-5afc-11f0-8b7f-3f129bd34f14', 'name_thai' => 'แพ็คเกจ 4 มื้อ', 'name_english' => '4 Meal Package', 'meals_per_week' => 4, 'final_price' => 2500],
+            'd6e98c56-5afb-11f0-8b7f-3f129bd34f14' => ['id' => 'd6e98c56-5afb-11f0-8b7f-3f129bd34f14', 'name_thai' => 'แพ็คเกจ 8 มื้อ', 'name_english' => '8 Meal Package', 'meals_per_week' => 8, 'final_price' => 4500],
+            'd6e98d96-5afb-11f0-8b7f-3f129bd34f14' => ['id' => 'd6e98d96-5afb-11f0-8b7f-3f129bd34f14', 'name_thai' => 'แพ็คเกจ 12 มื้อ', 'name_english' => '12 Meal Package', 'meals_per_week' => 12, 'final_price' => 6200],
+            'd6e98e7c-5afb-11f0-8b7f-3f129bd34f14' => ['id' => 'd6e98e7c-5afb-11f0-8b7f-3f129bd34f14', 'name_thai' => 'แพ็คเกจ 15 มื้อ', 'name_english' => '15 Meal Package', 'meals_per_week' => 15, 'final_price' => 7500],
             // Support old IDs
-            '4' => ['id' => '4', 'name_thai' => 'แพ็กเกจ 4 มื้อ', 'name_english' => '4 Meal Package', 'meals_per_week' => 4, 'final_price' => 2500],
-            '8' => ['id' => '8', 'name_thai' => 'แพ็กเกจ 8 มื้อ', 'name_english' => '8 Meal Package', 'meals_per_week' => 8, 'final_price' => 4500],
-            '12' => ['id' => '12', 'name_thai' => 'แพ็กเกจ 12 มื้อ', 'name_english' => '12 Meal Package', 'meals_per_week' => 12, 'final_price' => 6200],
-            '15' => ['id' => '15', 'name_thai' => 'แพ็กเกจ 15 มื้อ', 'name_english' => '15 Meal Package', 'meals_per_week' => 15, 'final_price' => 7500]
+            '4' => ['id' => '4', 'name_thai' => 'แพ็คเกจ 4 มื้อ', 'name_english' => '4 Meal Package', 'meals_per_week' => 4, 'final_price' => 2500],
+            '8' => ['id' => '8', 'name_thai' => 'แพ็คเกจ 8 มื้อ', 'name_english' => '8 Meal Package', 'meals_per_week' => 8, 'final_price' => 4500],
+            '12' => ['id' => '12', 'name_thai' => 'แพ็คเกจ 12 มื้อ', 'name_english' => '12 Meal Package', 'meals_per_week' => 12, 'final_price' => 6200],
+            '15' => ['id' => '15', 'name_thai' => 'แพ็คเกจ 15 มื้อ', 'name_english' => '15 Meal Package', 'meals_per_week' => 15, 'final_price' => 7500]
         ];
         $plan = $plans[$plan_id] ?? $plans['8']; // Default to 8 meals
     }
@@ -144,28 +144,39 @@ try {
     ];
 }
 
-// Handle meal selection submission
+// Handle meal selection submission - UPDATED FOR QUANTITIES
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'proceed_to_checkout') {
     header('Content-Type: application/json');
     
-    $selected_meals = json_decode($_POST['selected_meals'] ?? '[]', true);
+    $selected_meals_quantities = json_decode($_POST['selected_meals_quantities'] ?? '{}', true);
     
-    if (!is_array($selected_meals)) {
+    if (!is_array($selected_meals_quantities)) {
         echo json_encode(['success' => false, 'message' => 'Invalid menu data. Please try again.']);
         exit;
     }
     
-    if (count($selected_meals) !== (int)$plan['meals_per_week']) {
-        echo json_encode(['success' => false, 'message' => 'Please select exactly ' . $plan['meals_per_week'] . ' meals (currently selected: ' . count($selected_meals) . ' meals)']);
+    // Calculate total meals from quantities
+    $total_selected = array_sum($selected_meals_quantities);
+    
+    if ($total_selected !== (int)$plan['meals_per_week']) {
+        echo json_encode(['success' => false, 'message' => 'Please select exactly ' . $plan['meals_per_week'] . ' meals (currently selected: ' . $total_selected . ' meals)']);
         exit;
     }
     
-    // **FIX: Fetch meal details from database to store in session**
+    // Convert quantities to traditional format for checkout compatibility
+    $selected_meals = [];
+    foreach ($selected_meals_quantities as $meal_id => $quantity) {
+        for ($i = 0; $i < $quantity; $i++) {
+            $selected_meals[] = $meal_id;
+        }
+    }
+    
+    // Fetch meal details from database to store in session
     $meal_details = [];
-    if (!empty($selected_meals)) {
+    if (!empty($selected_meals_quantities)) {
         try {
-            // Create placeholders for the IN clause
-            $placeholders = str_repeat('?,', count($selected_meals) - 1) . '?';
+            $meal_ids = array_keys($selected_meals_quantities);
+            $placeholders = str_repeat('?,', count($meal_ids) - 1) . '?';
             
             $stmt = $pdo->prepare("
                 SELECT m.id, m.name, m.name_thai, m.base_price, m.description, m.main_image_url,
@@ -175,7 +186,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 WHERE m.id IN ($placeholders) AND m.is_available = 1
             ");
             
-            $stmt->execute($selected_meals);
+            $stmt->execute($meal_ids);
             $meal_results = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
             // Create associative array with meal ID as key
@@ -183,7 +194,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 $meal_details[$meal['id']] = $meal;
             }
             
-            // Log for debugging
             error_log("Fetched meal details for checkout: " . json_encode(array_keys($meal_details)));
             
         } catch (Exception $e) {
@@ -194,24 +204,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
     
     // Verify all selected meals were found
-    if (count($meal_details) !== count($selected_meals)) {
+    if (count($meal_details) !== count($selected_meals_quantities)) {
         echo json_encode(['success' => false, 'message' => 'Some selected meals are no longer available. Please refresh and try again.']);
         exit;
     }
     
-    // Store data in session for checkout (UPDATED with meal_details)
+    // Store data in session for checkout (UPDATED with quantities and meal_details)
     $_SESSION['checkout_data'] = [
         'plan' => $plan,
-        'selected_meals' => $selected_meals,
-        'meal_details' => $meal_details, // **NEW: Include meal details**
-        'total_meals' => count($selected_meals),
+        'selected_meals' => $selected_meals, // Traditional format for checkout compatibility
+        'selected_meals_quantities' => $selected_meals_quantities, // NEW: Quantity data
+        'meal_details' => $meal_details,
+        'total_meals' => $total_selected,
         'user_id' => $_SESSION['user_id'],
         'created_at' => time(),
         'source' => 'meal-selection'
     ];
     
-    // Log for debugging
-    error_log("Stored checkout data with " . count($meal_details) . " meal details");
+    error_log("Stored checkout data with " . count($meal_details) . " meal details and quantities: " . json_encode($selected_meals_quantities));
     
     echo json_encode(['success' => true, 'redirect' => 'checkout.php', 'message' => 'Redirecting to checkout...']);
     exit;
@@ -869,25 +879,28 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
             font-family: 'BaticaSans', sans-serif;
         }
 
-        .selection-badge {
+        /* NEW: Quantity Badge */
+        .quantity-badge {
             position: absolute;
             top: 0.8rem;
             right: 0.8rem;
             background: var(--curry);
             color: var(--white);
-            width: 24px;
-            height: 24px;
+            width: 28px;
+            height: 28px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.8rem;
+            font-size: 0.9rem;
+            font-weight: 700;
             opacity: 0;
             transform: scale(0.5);
             transition: var(--transition);
+            font-family: 'BaticaSans', sans-serif;
         }
 
-        .meal-card.selected .selection-badge {
+        .meal-card.selected .quantity-badge {
             opacity: 1;
             transform: scale(1);
         }
@@ -926,6 +939,57 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
             border-top: 1px solid var(--border-light);
         }
 
+        /* NEW: Quantity Controls */
+        .quantity-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .quantity-btn {
+            background: var(--curry);
+            color: var(--white);
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'BaticaSans', sans-serif;
+        }
+
+        .quantity-btn:hover {
+            background: var(--brown);
+            transform: scale(1.1);
+        }
+
+        .quantity-btn:disabled {
+            background: var(--text-gray);
+            cursor: not-allowed;
+            transform: none;
+            opacity: 0.5;
+        }
+
+        .quantity-display {
+            background: var(--cream);
+            border: 2px solid var(--border-light);
+            border-radius: var(--radius-md);
+            padding: 0.4rem 0.8rem;
+            font-weight: 700;
+            color: var(--brown);
+            min-width: 40px;
+            text-align: center;
+            font-family: 'BaticaSans', sans-serif;
+            font-size: 0.9rem;
+        }
+
         .add-meal-btn {
             background: var(--curry);
             color: var(--white);
@@ -940,6 +1004,8 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
             align-items: center;
             gap: 0.3rem;
             font-family: 'BaticaSans', sans-serif;
+            width: 100%;
+            justify-content: center;
         }
 
         .add-meal-btn:hover {
@@ -951,10 +1017,6 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
             background: var(--text-gray);
             cursor: not-allowed;
             transform: none;
-        }
-
-        .add-meal-btn.selected {
-            background: var(--success);
         }
 
         /* Continue Button */
@@ -1159,6 +1221,18 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
             .nav-links {
                 display: none;
             }
+
+            /* Mobile quantity controls */
+            .quantity-btn {
+                width: 36px;
+                height: 36px;
+                font-size: 1rem;
+            }
+
+            .quantity-display {
+                min-width: 44px;
+                padding: 0.5rem 0.9rem;
+            }
         }
 
         @media (max-width: 480px) {
@@ -1181,6 +1255,10 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
 
             .meal-content {
                 padding: 1rem;
+            }
+
+            .quantity-controls {
+                gap: 0.8rem;
             }
 
             .add-meal-btn {
@@ -1322,8 +1400,7 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
                          data-menu-id="<?php echo $menu['id']; ?>"
                          data-category="<?php echo $menu['category_id'] ?? ''; ?>"
                          data-name="<?php echo strtolower(getMenuName($menu) . ' ' . ($menu['name_thai'] ?? '')); ?>"
-                         data-price="<?php echo $menu['base_price']; ?>"
-                         onclick="toggleMealSelection('<?php echo $menu['id']; ?>')">
+                         data-price="<?php echo $menu['base_price']; ?>">
                         
                         <div class="meal-image">
                             <?php if (!empty($menu['main_image_url'])): ?>
@@ -1343,8 +1420,9 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
                                 </div>
                             <?php endif; ?>
                             
-                            <div class="selection-badge">
-                                <i class="fas fa-check"></i>
+                            <!-- NEW: Quantity Badge -->
+                            <div class="quantity-badge" id="badge-<?php echo $menu['id']; ?>">
+                                1
                             </div>
                         </div>
                         
@@ -1360,7 +1438,19 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
                             <?php endif; ?>
                             
                             <div class="meal-footer">
-                                <button class="add-meal-btn" onclick="event.stopPropagation(); toggleMealSelection('<?php echo $menu['id']; ?>')" style="width: 100%;">
+                                <!-- NEW: Quantity Controls (hidden by default) -->
+                                <div class="quantity-controls" id="controls-<?php echo $menu['id']; ?>" style="display: none;">
+                                    <button class="quantity-btn" onclick="event.stopPropagation(); updateMealQuantity('<?php echo $menu['id']; ?>', -1)">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                    <div class="quantity-display" id="quantity-<?php echo $menu['id']; ?>">1</div>
+                                    <button class="quantity-btn" onclick="event.stopPropagation(); updateMealQuantity('<?php echo $menu['id']; ?>', 1)">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                                
+                                <!-- Add Button (shown by default) -->
+                                <button class="add-meal-btn" id="add-btn-<?php echo $menu['id']; ?>" onclick="event.stopPropagation(); addFirstMeal('<?php echo $menu['id']; ?>')">
                                     <i class="fas fa-plus"></i>
                                     <span>Add</span>
                                 </button>
@@ -1416,14 +1506,14 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
             }
         });
 
-        // Global variables
+        // Global variables - UPDATED FOR QUANTITIES
         const maxMeals = <?php echo $plan['meals_per_week']; ?>;
-        let selectedMeals = [];
+        let selectedMealsQuantities = {}; // NEW: Object to track {meal_id: quantity}
         let allMeals = [];
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('✅ Updated meal selection page loaded');
+            console.log('✅ Updated meal selection page loaded with QUANTITY SUPPORT');
             
             // Store all meal data
             document.querySelectorAll('.meal-card').forEach(card => {
@@ -1470,71 +1560,158 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
             });
         }
 
-        function toggleMealSelection(mealId) {
-            const mealCard = document.querySelector(`[data-menu-id="${mealId}"]`);
-            const button = mealCard.querySelector('.add-meal-btn');
+        // NEW: Add first meal function
+        function addFirstMeal(mealId) {
+            console.log('🍽️ Adding first meal:', mealId);
             
-            if (selectedMeals.includes(mealId)) {
-                // Remove meal
-                selectedMeals = selectedMeals.filter(id => id !== mealId);
-                mealCard.classList.remove('selected');
-                button.innerHTML = '<i class="fas fa-plus"></i><span>Add</span>';
-                button.classList.remove('selected');
-                
-                // Enable all disabled buttons if we're under the limit
-                if (selectedMeals.length < maxMeals) {
-                    document.querySelectorAll('.add-meal-btn:disabled').forEach(btn => {
-                        btn.disabled = false;
-                        btn.innerHTML = '<i class="fas fa-plus"></i><span>Add</span>';
-                    });
-                }
-            } else {
-                // Check if we can add more meals
-                if (selectedMeals.length >= maxMeals) {
+            // Check if we can add more meals
+            const totalSelected = getTotalSelectedMeals();
+            if (totalSelected >= maxMeals) {
+                showToast('warning', `You have already selected the maximum number of meals (${maxMeals} meals)`);
+                return;
+            }
+            
+            // Add meal with quantity 1
+            selectedMealsQuantities[mealId] = 1;
+            
+            // Update UI for this meal
+            const mealCard = document.querySelector(`[data-menu-id="${mealId}"]`);
+            const addBtn = document.getElementById(`add-btn-${mealId}`);
+            const controls = document.getElementById(`controls-${mealId}`);
+            const quantityDisplay = document.getElementById(`quantity-${mealId}`);
+            const badge = document.getElementById(`badge-${mealId}`);
+            
+            // Hide add button, show controls
+            addBtn.style.display = 'none';
+            controls.style.display = 'flex';
+            
+            // Update displays
+            quantityDisplay.textContent = '1';
+            badge.textContent = '1';
+            
+            // Update card styling
+            mealCard.classList.add('selected', 'just-selected');
+            
+            // Remove animation class after animation completes
+            setTimeout(() => {
+                mealCard.classList.remove('just-selected');
+            }, 400);
+            
+            updateUI();
+            saveSelectionState();
+            checkMealLimits();
+        }
+
+        // NEW: Update meal quantity function
+        function updateMealQuantity(mealId, change) {
+            console.log('🔄 Updating meal quantity:', mealId, 'change:', change);
+            
+            const currentQuantity = selectedMealsQuantities[mealId] || 0;
+            const newQuantity = currentQuantity + change;
+            
+            // Validate new quantity
+            if (newQuantity < 0) return;
+            
+            // Check total meal limit when increasing
+            if (change > 0) {
+                const totalSelected = getTotalSelectedMeals();
+                if (totalSelected >= maxMeals) {
                     showToast('warning', `You have already selected the maximum number of meals (${maxMeals} meals)`);
                     return;
                 }
+            }
+            
+            const mealCard = document.querySelector(`[data-menu-id="${mealId}"]`);
+            const addBtn = document.getElementById(`add-btn-${mealId}`);
+            const controls = document.getElementById(`controls-${mealId}`);
+            const quantityDisplay = document.getElementById(`quantity-${mealId}`);
+            const badge = document.getElementById(`badge-${mealId}`);
+            
+            if (newQuantity === 0) {
+                // Remove meal completely
+                delete selectedMealsQuantities[mealId];
                 
-                // Add meal
-                selectedMeals.push(mealId);
-                mealCard.classList.add('selected', 'just-selected');
-                button.innerHTML = '<i class="fas fa-check"></i><span>Selected</span>';
-                button.classList.add('selected');
+                // Show add button, hide controls
+                addBtn.style.display = 'flex';
+                controls.style.display = 'none';
                 
-                // Remove animation class after animation completes
-                setTimeout(() => {
-                    mealCard.classList.remove('just-selected');
-                }, 400);
+                // Update card styling
+                mealCard.classList.remove('selected');
                 
-                // Disable all other buttons if we've reached the limit
-                if (selectedMeals.length >= maxMeals) {
-                    document.querySelectorAll('.meal-card:not(.selected) .add-meal-btn').forEach(btn => {
-                        btn.disabled = true;
-                        btn.innerHTML = '<i class="fas fa-lock"></i><span>Limit Reached</span>';
-                    });
+            } else {
+                // Update quantity
+                selectedMealsQuantities[mealId] = newQuantity;
+                
+                // Update displays
+                quantityDisplay.textContent = newQuantity.toString();
+                badge.textContent = newQuantity.toString();
+                
+                // Ensure card is marked as selected
+                mealCard.classList.add('selected');
+                
+                // Show controls if not visible
+                if (controls.style.display === 'none') {
+                    addBtn.style.display = 'none';
+                    controls.style.display = 'flex';
                 }
             }
             
             updateUI();
             saveSelectionState();
+            checkMealLimits();
+        }
+
+        // NEW: Get total selected meals across all quantities
+        function getTotalSelectedMeals() {
+            return Object.values(selectedMealsQuantities).reduce((sum, quantity) => sum + quantity, 0);
+        }
+
+        // NEW: Check meal limits and disable/enable buttons
+        function checkMealLimits() {
+            const totalSelected = getTotalSelectedMeals();
+            const isAtLimit = totalSelected >= maxMeals;
+            
+            // Disable/enable add buttons for meals not yet selected
+            document.querySelectorAll('.add-meal-btn').forEach(btn => {
+                const mealId = btn.id.replace('add-btn-', '');
+                const isSelected = selectedMealsQuantities.hasOwnProperty(mealId);
+                
+                if (!isSelected && isAtLimit) {
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fas fa-lock"></i><span>Limit Reached</span>';
+                } else if (!isSelected) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-plus"></i><span>Add</span>';
+                }
+            });
+            
+            // Disable/enable plus buttons for selected meals
+            document.querySelectorAll('.quantity-controls').forEach(controls => {
+                const mealId = controls.id.replace('controls-', '');
+                const plusBtn = controls.querySelector('.quantity-btn:last-child');
+                
+                if (plusBtn) {
+                    plusBtn.disabled = isAtLimit;
+                }
+            });
         }
 
         function updateUI() {
-            const selectedCount = selectedMeals.length;
+            const totalSelected = getTotalSelectedMeals();
             const countElement = document.getElementById('selectedCount');
             const statusElement = document.getElementById('selectionStatus');
             const continueBtn = document.getElementById('continueBtn');
             
             // Update counter
-            countElement.textContent = selectedCount;
-            countElement.className = selectedCount === maxMeals ? 'counter-number counter-complete' : 'counter-number';
+            countElement.textContent = totalSelected;
+            countElement.className = totalSelected === maxMeals ? 'counter-number counter-complete' : 'counter-number';
             
             // Update status message
-            if (selectedCount === 0) {
+            if (totalSelected === 0) {
                 statusElement.textContent = 'Please select the required number of meals';
                 statusElement.style.color = 'var(--text-gray)';
-            } else if (selectedCount < maxMeals) {
-                const remaining = maxMeals - selectedCount;
+            } else if (totalSelected < maxMeals) {
+                const remaining = maxMeals - totalSelected;
                 statusElement.textContent = `Select ${remaining} more meal${remaining === 1 ? '' : 's'}`;
                 statusElement.style.color = 'var(--warning)';
             } else {
@@ -1543,10 +1720,10 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
             }
             
             // Update continue button
-            continueBtn.disabled = selectedCount !== maxMeals;
+            continueBtn.disabled = totalSelected !== maxMeals;
             
             // Update page title
-            document.title = `Select Meals (${selectedCount}/${maxMeals}) - ${<?php echo json_encode(getPlanName($plan)); ?>} | Somdul Table`;
+            document.title = `Select Meals (${totalSelected}/${maxMeals}) - ${<?php echo json_encode(getPlanName($plan)); ?>} | Somdul Table`;
         }
 
         function filterMeals() {
@@ -1591,12 +1768,13 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
         }
 
         function proceedToCheckout() {
-            if (selectedMeals.length !== maxMeals) {
+            const totalSelected = getTotalSelectedMeals();
+            if (totalSelected !== maxMeals) {
                 showToast('error', 'Please select the exact number of meals required');
                 return;
             }
             
-            console.log('🚀 Proceeding to checkout with meals:', selectedMeals);
+            console.log('🚀 Proceeding to checkout with meal quantities:', selectedMealsQuantities);
             
             // Show loading state
             const continueBtn = document.getElementById('continueBtn');
@@ -1604,10 +1782,10 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
             continueBtn.innerHTML = '<div class="loading"></div> Processing...';
             continueBtn.disabled = true;
             
-            // Send selected meals to server
+            // Send selected meals with quantities to server
             const formData = new FormData();
             formData.append('action', 'proceed_to_checkout');
-            formData.append('selected_meals', JSON.stringify(selectedMeals));
+            formData.append('selected_meals_quantities', JSON.stringify(selectedMealsQuantities));
             
             fetch('meal-selection.php?plan=<?php echo urlencode($plan_id); ?>', {
                 method: 'POST',
@@ -1671,11 +1849,11 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
             }, 4000);
         }
 
-        // Save/Load selection state
+        // Save/Load selection state - UPDATED FOR QUANTITIES
         function saveSelectionState() {
             localStorage.setItem('mealSelection', JSON.stringify({
                 planId: '<?php echo $plan_id; ?>',
-                selectedMeals: selectedMeals,
+                selectedMealsQuantities: selectedMealsQuantities,
                 timestamp: Date.now()
             }));
         }
@@ -1686,9 +1864,17 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
                 const data = JSON.parse(saved);
                 // Only restore if it's the same plan and less than 1 hour old
                 if (data.planId === '<?php echo $plan_id; ?>' && Date.now() - data.timestamp < 3600000) {
-                    data.selectedMeals.forEach(mealId => {
+                    // Restore each meal with its quantity
+                    Object.entries(data.selectedMealsQuantities || {}).forEach(([mealId, quantity]) => {
                         if (document.querySelector(`[data-menu-id="${mealId}"]`)) {
-                            toggleMealSelection(mealId);
+                            // First add the meal
+                            addFirstMeal(mealId);
+                            // Then set the correct quantity if > 1
+                            if (quantity > 1) {
+                                for (let i = 1; i < quantity; i++) {
+                                    updateMealQuantity(mealId, 1);
+                                }
+                            }
                         }
                     });
                 }
@@ -1697,7 +1883,7 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
 
         // Keyboard shortcuts
         document.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' && selectedMeals.length === maxMeals) {
+            if (e.key === 'Enter' && getTotalSelectedMeals() === maxMeals) {
                 proceedToCheckout();
             }
             

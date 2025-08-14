@@ -1,7 +1,8 @@
 <?php
 /**
- * Somdul Table - Updated Checkout System
- * Updated for Wednesday/Saturday date selection and meal details fix
+ * Somdul Table - Updated Checkout System with Quantity Support
+ * UPDATED: Now supports meal quantities from meal-selection.php
+ * COMPLETE: All original functionality preserved including calendar
  */
 
 session_start();
@@ -50,6 +51,30 @@ class CheckoutUtils {
     
     public static function sanitizeInput($input) {
         return trim(htmlspecialchars($input, ENT_QUOTES, 'UTF-8'));
+    }
+    
+    /**
+     * Smart price formatting - handles both cent and dollar formats
+     */
+    public static function formatPrice($price) {
+        // If price is greater than 1000, it's likely in cents, so divide by 100
+        if ($price > 1000) {
+            return number_format($price / 100, 2);
+        }
+        // Otherwise, it's already in dollars
+        return number_format($price, 2);
+    }
+    
+    /**
+     * Get numeric price value for calculations
+     */
+    public static function getPriceValue($price) {
+        // If price is greater than 1000, it's likely in cents, so divide by 100
+        if ($price > 1000) {
+            return $price / 100;
+        }
+        // Otherwise, it's already in dollars
+        return $price;
     }
 }
 
@@ -135,7 +160,7 @@ class CheckoutDataManager {
     }
     
     /**
-     * NEW FUNCTION: Populate meal details from database based on selected meal IDs
+     * Populate meal details from database based on selected meal IDs
      */
     public static function populateMealDetails($db, $selected_meals) {
         if (empty($selected_meals) || !is_array($selected_meals)) {
@@ -172,7 +197,7 @@ class CheckoutDataManager {
     }
 }
 
-// Order Processing Engine (Updated for single delivery date)
+// Order Processing Engine (Updated for quantity support)
 class OrderProcessor {
     
     private $db;
@@ -304,17 +329,32 @@ class OrderProcessor {
         return ['payment_id' => $payment_id, 'transaction_id' => $transaction_id];
     }
     
-    public function createSubscriptionMenus($subscription_id, $selected_meals, $delivery_date) {
+    // UPDATED: Now supports quantity-based meal creation
+    public function createSubscriptionMenus($subscription_id, $selected_meals, $delivery_date, $selected_meals_quantities = []) {
         $stmt = $this->db->prepare("INSERT INTO subscription_menus
             (id, subscription_id, menu_id, delivery_date, quantity, status, created_at, updated_at)
-            VALUES (?, ?, ?, ?, 1, 'scheduled', NOW(), NOW())");
+            VALUES (?, ?, ?, ?, ?, 'scheduled', NOW(), NOW())");
         
-        foreach ($selected_meals as $meal_id) {
-            $menu_uuid = CheckoutUtils::generateUUID();
-            $result = $stmt->execute([$menu_uuid, $subscription_id, $meal_id, $delivery_date]);
-            
-            if (!$result) {
-                throw new Exception("Failed to create subscription menu");
+        // NEW: Handle quantities if available
+        if (!empty($selected_meals_quantities)) {
+            // Use the new quantity-based system
+            foreach ($selected_meals_quantities as $meal_id => $quantity) {
+                $menu_uuid = CheckoutUtils::generateUUID();
+                $result = $stmt->execute([$menu_uuid, $subscription_id, $meal_id, $delivery_date, $quantity]);
+                
+                if (!$result) {
+                    throw new Exception("Failed to create subscription menu");
+                }
+            }
+        } else {
+            // Legacy support: use the old array-based system (quantity = 1 each)
+            foreach ($selected_meals as $meal_id) {
+                $menu_uuid = CheckoutUtils::generateUUID();
+                $result = $stmt->execute([$menu_uuid, $subscription_id, $meal_id, $delivery_date, 1]);
+                
+                if (!$result) {
+                    throw new Exception("Failed to create subscription menu");
+                }
             }
         }
     }
@@ -333,13 +373,18 @@ class OrderProcessor {
         ]);
     }
     
+    // UPDATED: Process orders with quantity support
     public function processFullOrder($user_id, $order, $postData) {
         $this->db->beginTransaction();
         
         try {
             $plan = $order['plan'];
             $selected_meals = $order['selected_meals'];
+            $selected_meals_quantities = $order['selected_meals_quantities'] ?? [];
             $delivery_date = $postData['delivery_day']; // Direct date from form (Y-m-d format)
+            
+            // Log quantities for debugging
+            error_log("Processing order with quantities: " . json_encode($selected_meals_quantities));
             
             // Calculate dates
             $start_date = $delivery_date; // Already in Y-m-d format
@@ -349,6 +394,9 @@ class OrderProcessor {
                 ? date('Y-m-d', strtotime('+1 month', strtotime($start_date)))
                 : date('Y-m-d', strtotime('+1 week', strtotime($start_date)));
             
+            // Get the correct price value for database storage
+            $plan_price_value = CheckoutUtils::getPriceValue($plan['final_price']);
+            
             // Create subscription
             $subscription_data = [
                 'user_id' => $user_id,
@@ -356,7 +404,7 @@ class OrderProcessor {
                 'start_date' => $start_date,
                 'next_billing_date' => $next_billing_date,
                 'billing_cycle' => $billing_cycle,
-                'total_amount' => $plan['final_price'],
+                'total_amount' => $plan_price_value,
                 'delivery_days' => json_encode([$delivery_date]), // Array with the selected date
                 'preferred_time' => $postData['preferred_time'] ?? 'afternoon',
                 'delivery_instructions' => CheckoutUtils::sanitizeInput($postData['delivery_instructions'] ?? '')
@@ -369,7 +417,7 @@ class OrderProcessor {
                 'subscription_id' => $subscription_id,
                 'user_id' => $user_id,
                 'payment_method' => $postData['payment_method'],
-                'amount' => $plan['final_price'],
+                'amount' => $plan_price_value,
                 'start_date' => $start_date,
                 'next_billing_date' => $next_billing_date,
                 'description' => "Subscription " . CheckoutUtils::getPlanName($plan)
@@ -377,8 +425,8 @@ class OrderProcessor {
             
             $payment_result = $this->createPayment($payment_data);
             
-            // Create subscription menus for delivery date
-            $this->createSubscriptionMenus($subscription_id, $selected_meals, $start_date);
+            // Create subscription menus for delivery date - UPDATED FOR QUANTITIES
+            $this->createSubscriptionMenus($subscription_id, $selected_meals, $start_date, $selected_meals_quantities);
             
             // Update user profile
             $user_data = [
@@ -430,7 +478,7 @@ try {
         }
     }
     
-    // **FIX: Populate meal details if missing (coming from meal-selection.php)**
+    // Populate meal details if missing (coming from meal-selection.php)
     if (isset($order['selected_meals']) && !empty($order['selected_meals']) && 
         (!isset($order['meal_details']) || empty($order['meal_details']))) {
         
@@ -445,7 +493,9 @@ try {
     $plan = $order['plan'];
     $selected_meals = $order['selected_meals'] ?? [];
     $meal_details = $order['meal_details'] ?? [];
-    $total_price = $plan['final_price'];
+    
+    // Calculate total price correctly
+    $total_price = CheckoutUtils::getPriceValue($plan['final_price']);
     
     // Process form submission
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['submit_order']) || !empty($_POST['payment_method']))) {
@@ -494,8 +544,9 @@ if ($success) {
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
 /* ========================================================================
-   SOMDUL TABLE - CHECKOUT PAGE CSS WITH THEME CONSISTENCY
-   Updated to match home2.php and meal-selection.php design
+   SOMDUL TABLE - CHECKOUT PAGE CSS WITH QUANTITY SUPPORT
+   Updated to show correct prices and meal quantities
+   COMPLETE: All original functionality preserved including calendar
    ======================================================================== */
 
 /* BaticaSans Font Import - Local Files (EXACT MATCH to home2.php) */
@@ -519,7 +570,7 @@ if ($success) {
     font-display: swap;
 }
 
-/* Fallback for bold/medium weights - browser will simulate them */
+/* Fallback for bold/medium weights */
 @font-face {
     font-family: 'BaticaSans';
     src: url('./Font/BaticaSans-Regular.woff2') format('woff2'),
@@ -934,6 +985,7 @@ h1, h2, h3, h4, h5, h6 {
     font-family: 'BaticaSans', sans-serif;
 }
 
+/* Show correct price */
 .plan-price {
     color: var(--curry);
     font-size: 1.4rem;
@@ -942,7 +994,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ========================================================================
-   MEAL LIST
+   MEAL LIST - UPDATED FOR QUANTITIES
    ======================================================================== */
 
 .meal-list {
@@ -978,6 +1030,14 @@ h1, h2, h3, h4, h5, h6 {
     color: var(--brown); /* LEVEL 1: Brown */
     line-height: 1.4;
     font-family: 'BaticaSans', sans-serif;
+}
+
+/* NEW: Quantity indicator styling */
+.meal-name .quantity-indicator {
+    color: var(--curry);
+    font-weight: 700;
+    margin-left: 0.5rem;
+    font-size: 0.95rem;
 }
 
 .meal-price {
@@ -2001,20 +2061,43 @@ select {
         <!-- Plan Summary -->
         <div class="section plan-summary">
             <div class="label"><i class="fas fa-box"></i> Selected Package</div>
-            <div class="plan-title"><?php echo htmlspecialchars(CheckoutUtils::getPlanName($plan)); ?> (<?php echo $plan['meals_per_week']; ?> meals per week)</div>
-            <div class="plan-price">$<?php echo number_format($plan['final_price']/100, 2); ?> /week</div>
+            <div class="plan-title"><?php echo htmlspecialchars(CheckoutUtils::getPlanName($plan)); ?> (<?php echo $plan['meals_per_week']; ?> meals)</div>
+            <div class="plan-price">$<?php echo CheckoutUtils::formatPrice($plan['final_price']); ?></div>
         </div>
 
-        <!-- Meals Summary -->
+        <!-- Meals Summary - UPDATED TO SHOW QUANTITIES -->
         <div class="section meals-summary">
             <div class="label"><i class="fas fa-utensils"></i> Selected Meals</div>
             <?php if (!empty($selected_meals) && !empty($meal_details)): ?>
                 <ul class="meal-list">
-                    <?php foreach ($selected_meals as $meal_id): ?>
+                    <?php 
+                    // Get quantities if available (from new quantity system)
+                    $selected_quantities = $order['selected_meals_quantities'] ?? [];
+                    
+                    // If we have quantities, use them; otherwise, count duplicates in selected_meals array
+                    $meal_counts = [];
+                    if (!empty($selected_quantities)) {
+                        $meal_counts = $selected_quantities;
+                    } else {
+                        // Legacy support: count occurrences in selected_meals array
+                        foreach ($selected_meals as $meal_id) {
+                            $meal_counts[$meal_id] = ($meal_counts[$meal_id] ?? 0) + 1;
+                        }
+                    }
+                    
+                    // Display each unique meal with its quantity
+                    foreach ($meal_counts as $meal_id => $quantity): ?>
                         <?php $meal = $meal_details[$meal_id] ?? null; if (!$meal) continue; ?>
                         <li>
-                            <div class="meal-name"><?php echo htmlspecialchars(CheckoutUtils::getMenuName($meal)); ?></div>
-                            <div class="meal-price">$<?php echo number_format($meal['base_price']/100, 2); ?></div>
+                            <div class="meal-name">
+                                <?php echo htmlspecialchars(CheckoutUtils::getMenuName($meal)); ?>
+                                <?php if ($quantity > 1): ?>
+                                    <span class="quantity-indicator">
+                                        × <?php echo $quantity; ?>
+                                    </span>
+                                <?php endif; ?>
+                            </div>
+                            <div class="meal-price">Included</div>
                         </li>
                     <?php endforeach; ?>
                 </ul>
@@ -2138,7 +2221,8 @@ select {
                     </label>
                 </div>
                 
-                <div class="total">Total: $<?php echo number_format($plan['final_price']/100, 2); ?></div>
+                <!-- Total price display -->
+                <div class="total">Total: $<?php echo CheckoutUtils::formatPrice($plan['final_price']); ?></div>
                 
                 <button class="btn" type="submit" name="submit_order" value="1" id="main-submit-btn">
                     <i class="fas fa-lock"></i> Confirm and Pay
@@ -2168,7 +2252,7 @@ select {
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('✅ Updated checkout page loaded');
+            console.log('✅ Updated checkout page loaded - WITH QUANTITY SUPPORT AND COMPLETE CALENDAR');
             
             // Mobile detection & touch enhancements
             function detectMobile() {
@@ -2519,7 +2603,7 @@ select {
                     });
                 });
                 
-                console.log('✅ Enhanced form handlers attached');
+                console.log('✅ Enhanced form handlers attached with quantity support');
                 
             } else {
                 console.error('❌ Form or submit button not found');
