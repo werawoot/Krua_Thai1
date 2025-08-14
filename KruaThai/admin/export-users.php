@@ -163,12 +163,8 @@ if ($search) $filter_suffix .= '_search';
 
 $filename = 'krua_thai_users_' . $timestamp . $filter_suffix;
 
-// Export based on format
-if ($export_format === 'excel') {
-    exportToExcel($export_data, $filename);
-} else {
-    exportToCSV($export_data, $filename);
-}
+// Export as CSV only
+exportToCSV($export_data, $filename);
 
 // Log export activity
 logExportActivity('user_export', $_SESSION['user_id'], [

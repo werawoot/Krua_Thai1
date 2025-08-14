@@ -1,8 +1,8 @@
 <?php
 /**
- * Krua Thai - User Management (Complete Fixed Version)
+ * Krua Thai - User Management (Hard Delete Version)
  * File: admin/users.php
- * Description: Complete user management with working edit functionality
+ * Description: Complete user management with Hard Delete functionality
  */
 session_start();
 require_once '../config/database.php';
@@ -14,31 +14,31 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
     exit();
 }
 
-// Database connection - Fix connection variable
+// Database connection - Simplified and more reliable
 $connection = null;
 try {
-    $database = new Database();
-    $pdo = $database->getConnection();
+    // ใช้ config จาก database.php
+    $connection = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
     
-    // Convert PDO to mysqli for compatibility
-    if ($pdo instanceof PDO) {
-        $host = 'localhost';
-        $username = 'root';
-        $password = 'root';  // Adjust according to your setup
-        $database_name = 'krua_thai';
-        $port = 8889; // MAMP port, change if different
-        
-        $connection = new mysqli($host, $username, $password, $database_name, $port);
-        
-        if ($connection->connect_error) {
-            die("Connection failed: " . $connection->connect_error);
-        }
-        
-        $connection->set_charset("utf8");
+    // เช็ค connection error
+    if ($connection->connect_error) {
+        die("Connection failed: " . $connection->connect_error);
     }
+    
+    // Set charset
+    $connection->set_charset("utf8mb4");
+    
+    // Test connection
+    if (!mysqli_ping($connection)) {
+        die("Database connection lost");
+    }
+    
 } catch (Exception $e) {
     die("Database connection failed: " . $e->getMessage());
 }
+
+// Set error reporting for mysqli
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
 // Handle AJAX requests
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
@@ -233,24 +233,192 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 break;
                 
             case 'delete_user':
+                // 🗑️ HARD DELETE - ลบจริงๆ จากฐานข้อมูล
+                
+                if (empty($_POST['user_id'])) {
+                    echo json_encode(['success' => false, 'message' => 'User ID is required']);
+                    break;
+                }
+                
                 $user_id = mysqli_real_escape_string($connection, $_POST['user_id']);
                 
-                // Check if user has active subscriptions
-                $check_query = "SELECT COUNT(*) as count FROM subscriptions WHERE user_id = '$user_id' AND status = 'active'";
-                $check_result = mysqli_query($connection, $check_query);
-                $check = mysqli_fetch_assoc($check_result);
-                
-                if ($check['count'] > 0) {
-                    echo json_encode(['success' => false, 'message' => 'Cannot delete user with active subscriptions']);
-                } else {
-                    // Set status to inactive instead of deleting
-                    $query = "UPDATE users SET status = 'inactive', updated_at = NOW() WHERE id = '$user_id'";
-                    
-                    if (mysqli_query($connection, $query)) {
-                        echo json_encode(['success' => true, 'message' => 'User deactivated successfully']);
-                    } else {
-                        echo json_encode(['success' => false, 'message' => 'Failed to deactivate user']);
+                try {
+                    // ป้องกัน admin ลบตัวเอง
+                    if ($user_id === $_SESSION['user_id']) {
+                        echo json_encode([
+                            'success' => false, 
+                            'message' => 'You cannot delete your own account'
+                        ]);
+                        break;
                     }
+                    
+                    // Get user information ก่อนลบ
+                    $user_query = "SELECT id, role, first_name, last_name, status, email FROM users WHERE id = '$user_id'";
+                    $user_result = mysqli_query($connection, $user_query);
+                    
+                    if (!$user_result || mysqli_num_rows($user_result) === 0) {
+                        echo json_encode(['success' => false, 'message' => 'User not found']);
+                        break;
+                    }
+                    
+                    $user = mysqli_fetch_assoc($user_result);
+                    $full_name = trim($user['first_name'] . ' ' . $user['last_name']);
+                    
+                    // ป้องกันการลบ admin คนสุดท้าย
+                    if ($user['role'] === 'admin') {
+                        $admin_count_query = "SELECT COUNT(*) as count FROM users WHERE role = 'admin'";
+                        $admin_count_result = mysqli_query($connection, $admin_count_query);
+                        
+                        if ($admin_count_result) {
+                            $admin_count = mysqli_fetch_assoc($admin_count_result)['count'];
+                            if ($admin_count <= 1) {
+                                echo json_encode([
+                                    'success' => false, 
+                                    'message' => 'Cannot delete the last admin user'
+                                ]);
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // เช็คว่ามี related data หรือไม่ (เพื่อแจ้งเตือน)
+                    $related_data = [];
+                    
+                    // Check subscriptions
+                    $subs_result = mysqli_query($connection, "SELECT COUNT(*) as count FROM subscriptions WHERE user_id = '$user_id'");
+                    if ($subs_result) {
+                        $subs_count = mysqli_fetch_assoc($subs_result)['count'];
+                        if ($subs_count > 0) {
+                            $related_data[] = "$subs_count subscription(s)";
+                        }
+                    }
+                    
+                    // Check orders
+                    $orders_result = mysqli_query($connection, "SELECT COUNT(*) as count FROM orders WHERE user_id = '$user_id'");
+                    if ($orders_result) {
+                        $orders_count = mysqli_fetch_assoc($orders_result)['count'];
+                        if ($orders_count > 0) {
+                            $related_data[] = "$orders_count order(s)";
+                        }
+                    }
+                    
+                    // Check payments
+                    $payments_result = mysqli_query($connection, "SELECT COUNT(*) as count FROM payments WHERE user_id = '$user_id'");
+                    if ($payments_result) {
+                        $payments_count = mysqli_fetch_assoc($payments_result)['count'];
+                        if ($payments_count > 0) {
+                            $related_data[] = "$payments_count payment(s)";
+                        }
+                    }
+                    
+                    // สร้าง warning message ถ้ามี related data
+                    $warning_message = '';
+                    if (!empty($related_data)) {
+                        $warning_message = "\n\n⚠️ Warning: This user has " . implode(", ", $related_data) . " that will become orphaned records.";
+                    }
+                    
+                    // ลบ user จริงๆ จากฐานข้อมูล
+                    $delete_query = "DELETE FROM users WHERE id = '$user_id'";
+                    $delete_result = mysqli_query($connection, $delete_query);
+                    
+                    if ($delete_result) {
+                        $affected_rows = mysqli_affected_rows($connection);
+                        
+                        if ($affected_rows > 0) {
+                            echo json_encode([
+                                'success' => true, 
+                                'message' => "✅ User \"$full_name\" has been permanently deleted from the database" . $warning_message,
+                                'user_name' => $full_name
+                            ]);
+                        } else {
+                            echo json_encode([
+                                'success' => false, 
+                                'message' => 'No user was deleted. User may not exist.'
+                            ]);
+                        }
+                    } else {
+                        // จัดการ error (เช่น Foreign Key Constraint)
+                        $mysql_error = mysqli_error($connection);
+                        
+                        if (strpos(strtolower($mysql_error), 'foreign key') !== false) {
+                            echo json_encode([
+                                'success' => false, 
+                                'message' => "❌ Cannot delete user \"$full_name\" because they have related data.\n\nTo fix this:\n1. Delete their subscriptions/orders first, or\n2. Ask system administrator to disable foreign key checks",
+                                'technical_error' => $mysql_error,
+                                'has_constraints' => true
+                            ]);
+                        } else {
+                            echo json_encode([
+                                'success' => false, 
+                                'message' => 'Failed to delete user: ' . $mysql_error
+                            ]);
+                        }
+                    }
+                    
+                } catch (Exception $e) {
+                    echo json_encode([
+                        'success' => false, 
+                        'message' => 'Server error: ' . $e->getMessage()
+                    ]);
+                }
+                break;
+
+            case 'force_delete_user':
+                // Force delete - ลบพร้อมจัดการ foreign keys
+                if (empty($_POST['user_id'])) {
+                    echo json_encode(['success' => false, 'message' => 'User ID is required']);
+                    break;
+                }
+                
+                $user_id = mysqli_real_escape_string($connection, $_POST['user_id']);
+                
+                try {
+                    // Get user info
+                    $user_query = "SELECT first_name, last_name FROM users WHERE id = '$user_id'";
+                    $user_result = mysqli_query($connection, $user_query);
+                    
+                    if (!$user_result || mysqli_num_rows($user_result) === 0) {
+                        echo json_encode(['success' => false, 'message' => 'User not found']);
+                        break;
+                    }
+                    
+                    $user = mysqli_fetch_assoc($user_result);
+                    $full_name = trim($user['first_name'] . ' ' . $user['last_name']);
+                    
+                    // Start transaction
+                    mysqli_autocommit($connection, false);
+                    
+                    // ปิด foreign key checks ชั่วคราว
+                    mysqli_query($connection, "SET foreign_key_checks = 0");
+                    
+                    // ลบ user
+                    $delete_query = "DELETE FROM users WHERE id = '$user_id'";
+                    $result = mysqli_query($connection, $delete_query);
+                    
+                    // เปิด foreign key checks กลับ
+                    mysqli_query($connection, "SET foreign_key_checks = 1");
+                    
+                    if ($result && mysqli_affected_rows($connection) > 0) {
+                        mysqli_commit($connection);
+                        mysqli_autocommit($connection, true);
+                        
+                        echo json_encode([
+                            'success' => true, 
+                            'message' => "✅ User \"$full_name\" has been force deleted from database"
+                        ]);
+                    } else {
+                        throw new Exception('Failed to delete user');
+                    }
+                    
+                } catch (Exception $e) {
+                    mysqli_query($connection, "SET foreign_key_checks = 1");
+                    mysqli_rollback($connection);
+                    mysqli_autocommit($connection, true);
+                    
+                    echo json_encode([
+                        'success' => false, 
+                        'message' => 'Error force deleting user: ' . $e->getMessage()
+                    ]);
                 }
                 break;
                 
@@ -332,7 +500,6 @@ $stats = $stats_result ? mysqli_fetch_assoc($stats_result) : [
     'new_users_30_days' => 0
 ];
 ?>
-
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -1842,13 +2009,12 @@ $stats = $stats_result ? mysqli_fetch_assoc($stats_result) : [
                         </div>
                         <div class="form-group">
                             <label class="form-label">File Format</label>
-                            <select name="format" class="form-control form-select">
-                                <option value="csv">CSV (Comma Separated Values)</option>
-                                <option value="excel">Excel (XLS Format)</option>
-                            </select>
-                            <small style="color: var(--text-gray); font-size: 0.8rem;">
-                                CSV is recommended for data processing, Excel for viewing
-                            </small>
+                          <select name="format" class="form-control form-select">
+    <option value="csv">CSV (Opens in Excel)</option>
+</select>
+<small style="color: var(--text-gray); font-size: 0.8rem;">
+    CSV files can be opened in Excel, Google Sheets, or other spreadsheet applications
+</small>
                         </div>
                     </div>
                     <!-- Export Options -->
@@ -2247,35 +2413,99 @@ $stats = $stats_result ? mysqli_fetch_assoc($stats_result) : [
             }
         }
 
-        // Delete/Deactivate user
-        async function deleteUser(userId) {
-            if (!confirm('Are you sure you want to deactivate this user? This action will set their status to inactive.')) {
-                return;
-            }
+// Delete/Deactivate user
+async function deleteUser(userId) {
+    if (!confirm('Are you sure you want to deactivate this user? This will set their status to inactive and they cannot login.')) {
+        return;
+    }
 
-            try {
-                const response = await fetch('users.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: `action=delete_user&user_id=${userId}`
-                });
+    try {
+        const response = await fetch('users.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `action=delete_user&user_id=${userId}`
+        });
 
-                const data = await response.json();
+        const data = await response.json();
 
-                if (data.success) {
-                    showToast('User deactivated successfully!', 'success');
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1000);
-                } else {
-                    throw new Error(data.message);
+        if (data.success) {
+            showToast('User deactivated successfully!', 'success');
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            // แก้ตรงนี้ - เพิ่มการจัดการ already_inactive
+            if (data.already_inactive) {
+                if (confirm(`${data.message}\n\nDo you want to reactivate this user instead?`)) {
+                    reactivateUser(userId);
                 }
-            } catch (error) {
-                showToast('Error deactivating user: ' + error.message, 'error');
+            } else if (data.has_subscriptions) {
+                if (confirm(`${data.message}\n\nClick OK to force deactivate anyway.`)) {
+                    forceDeleteUser(userId);
+                }
+            } else {
+                throw new Error(data.message);
             }
         }
+    } catch (error) {
+        console.error('Delete error:', error);
+        showToast('Error deactivating user: ' + error.message, 'error');
+    }
+}
+
+// เพิ่ม function ใหม่สำหรับ force delete
+async function forceDeleteUser(userId) {
+    try {
+        const response = await fetch('users.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `action=force_delete_user&user_id=${userId}`
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showToast('User deactivated successfully!', 'success');
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            throw new Error(data.message);
+        }
+    } catch (error) {
+        showToast('Error force deactivating user: ' + error.message, 'error');
+    }
+}
+// เพิ่ม function ใหม่สำหรับ reactivate
+async function reactivateUser(userId) {
+    try {
+        const response = await fetch('users.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `action=reactivate_user&user_id=${userId}`
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showToast('User reactivated successfully!', 'success');
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            throw new Error(data.message);
+        }
+    } catch (error) {
+        showToast('Error reactivating user: ' + error.message, 'error');
+    }
+}
+
 
         // Modal functions
         function showModal() {
