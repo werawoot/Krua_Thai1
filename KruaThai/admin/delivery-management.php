@@ -1,1610 +1,1734 @@
 <?php
 /**
- * Somdul Table - Simplified Delivery Management System
- * File: admin/delivery-management.php
+ * Somdul Table - Subscription Route Optimizer with Route Assignment
+ * Integrates database subscriptions with Google Route Optimization API
+ * Colors: #bd9379, #ece8e1, #adb89d, #cf723a and white
+ * UPDATED: Combines multiple subscriptions from the same user into one delivery
+ * ENHANCED: Added route assignment functionality
  */
 
-session_start();
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
+session_start();
 require_once '../config/database.php';
 require_once '../includes/functions.php';
 
-// Check admin authentication
-if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
-    header("Location: ../login.php"); 
-    exit();
+// Google API Configuration
+$PROJECT_ID = 'somdultable';
+$SERVICE_ACCOUNT_KEY_FILE = '../secrets/somdultable-4feccc0213da.json';
+
+// Restaurant location
+$RESTAURANT = [
+    'lat' => 33.888121,
+    'lng' => -117.868256,
+    'address' => '3250 Yorba Linda Blvd, Fullerton, CA 92831'
+];
+
+// Get form inputs
+$selected_date = isset($_POST['delivery_date']) ? $_POST['delivery_date'] : date('Y-m-d');
+$selected_time = isset($_POST['delivery_time']) ? $_POST['delivery_time'] : '';
+
+// Route optimization settings
+$NUM_DRIVERS = isset($_POST['num_drivers']) ? (int)$_POST['num_drivers'] : 2;
+$NUM_DRIVERS = max(1, min(10, $NUM_DRIVERS));
+
+$CAPACITY_BUFFER = isset($_POST['capacity_buffer']) ? (int)$_POST['capacity_buffer'] : 2;
+$CAPACITY_BUFFER = max(0, min(10, $CAPACITY_BUFFER));
+
+$COST_PER_KM = isset($_POST['cost_per_km']) ? (float)$_POST['cost_per_km'] : 1.0;
+$COST_PER_KM = max(0.1, min(10.0, $COST_PER_KM));
+
+$COST_PER_HOUR = isset($_POST['cost_per_hour']) ? (float)$_POST['cost_per_hour'] : 30.0;
+$COST_PER_HOUR = max(10.0, min(100.0, $COST_PER_HOUR));
+
+$FIXED_COST_FIRST = isset($_POST['fixed_cost_first']) ? (float)$_POST['fixed_cost_first'] : 100.0;
+$FIXED_COST_FIRST = max(0.0, min(500.0, $FIXED_COST_FIRST));
+
+$FIXED_COST_OTHERS = isset($_POST['fixed_cost_others']) ? (float)$_POST['fixed_cost_others'] : 50.0;
+$FIXED_COST_OTHERS = max(0.0, min(500.0, $FIXED_COST_OTHERS));
+
+$FORCE_DISTRIBUTION = isset($_POST['force_distribution']) ? true : false;
+
+// Initialize variables
+$DELIVERIES = [];
+$ROUTES = [];
+$UNASSIGNED = [];
+$API_SUCCESS = false;
+$API_ERROR = null;
+$API_DATA = null;
+$AVAILABLE_RIDERS = [];
+
+// Database functions
+function getDatabaseConnection() {
+    global $connection; // Use your existing database connection
+    return $connection;
 }
 
-// Database connection
-try {
-    $database = new Database();
-    $pdo = $database->getConnection();
-} catch (Exception $e) {
-    die("❌ Database connection failed: " . $e->getMessage());
+function getDeliveryTimeSlots() {
+    return [
+        '09:00-12:00' => '9:00 AM - 12:00 PM',
+        '12:00-15:00' => '12:00 PM - 3:00 PM', 
+        '15:00-18:00' => '3:00 PM - 6:00 PM',
+        '18:00-21:00' => '6:00 PM - 9:00 PM'
+    ];
 }
 
-// Handle AJAX requests
+// NEW: Get available riders/drivers
+function getAvailableRiders() {
+    $connection = getDatabaseConnection();
+    
+    $sql = "
+        SELECT 
+            u.id,
+            u.first_name,
+            u.last_name,
+            u.phone,
+            u.status,
+            COUNT(s.id) as current_assignments
+        FROM users u
+        LEFT JOIN subscriptions s ON u.id = s.assigned_rider_id AND s.status = 'active'
+        WHERE u.role = 'rider' 
+        AND u.status = 'active'
+        GROUP BY u.id, u.first_name, u.last_name, u.phone, u.status
+        ORDER BY current_assignments ASC, u.first_name ASC
+    ";
+    
+    try {
+        $result = mysqli_query($connection, $sql);
+        $riders = [];
+        
+        while ($row = mysqli_fetch_assoc($result)) {
+            $riders[] = $row;
+        }
+        
+        return $riders;
+    } catch (Exception $e) {
+        error_log("Error fetching riders: " . $e->getMessage());
+        return [];
+    }
+}
+
+// NEW: Assign entire route to a rider
+function assignRouteToRider($route_customers, $rider_id) {
+    $connection = getDatabaseConnection();
+    
+    try {
+        // Begin transaction
+        mysqli_begin_transaction($connection);
+        
+        $success_count = 0;
+        $error_messages = [];
+        
+        foreach ($route_customers as $customer) {
+            // Check if customer has subscription_ids array or single ID
+            $subscription_ids = isset($customer['subscription_ids']) ? $customer['subscription_ids'] : [$customer['subscription_id']];
+            
+            foreach ($subscription_ids as $subscription_id) {
+                $sql = "UPDATE subscriptions SET assigned_rider_id = ?, updated_at = NOW() WHERE id = ?";
+                $stmt = mysqli_prepare($connection, $sql);
+                
+                if ($stmt) {
+                    mysqli_stmt_bind_param($stmt, "ii", $rider_id, $subscription_id);
+                    
+                    if (mysqli_stmt_execute($stmt)) {
+                        $success_count++;
+                    } else {
+                        $error_messages[] = "Failed to assign subscription ID: $subscription_id";
+                    }
+                    
+                    mysqli_stmt_close($stmt);
+                } else {
+                    $error_messages[] = "Failed to prepare statement for subscription ID: $subscription_id";
+                }
+            }
+        }
+        
+        if (empty($error_messages)) {
+            // Commit transaction
+            mysqli_commit($connection);
+            
+            // Get rider name for response
+            $rider_sql = "SELECT CONCAT(first_name, ' ', last_name) as name FROM users WHERE id = ?";
+            $rider_stmt = mysqli_prepare($connection, $rider_sql);
+            mysqli_stmt_bind_param($rider_stmt, "i", $rider_id);
+            mysqli_stmt_execute($rider_stmt);
+            $rider_result = mysqli_stmt_get_result($rider_stmt);
+            $rider_data = mysqli_fetch_assoc($rider_result);
+            $rider_name = $rider_data['name'] ?? 'Unknown';
+            mysqli_stmt_close($rider_stmt);
+            
+            return [
+                'success' => true,
+                'message' => "Route successfully assigned to {$rider_name}. {$success_count} subscriptions updated.",
+                'assignments_made' => $success_count
+            ];
+        } else {
+            // Rollback transaction
+            mysqli_rollback($connection);
+            
+            return [
+                'success' => false,
+                'message' => 'Some assignments failed: ' . implode(', ', $error_messages)
+            ];
+        }
+        
+    } catch (Exception $e) {
+        // Rollback transaction on error
+        mysqli_rollback($connection);
+        
+        return [
+            'success' => false,
+            'message' => 'Error assigning route: ' . $e->getMessage()
+        ];
+    }
+}
+
+// Handle AJAX requests for route assignment
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     header('Content-Type: application/json');
     
     try {
         switch ($_POST['action']) {
-            case 'optimize_delivery_order':
-                $result = optimizeDeliveryOrder($pdo, $_POST['date']);
+            case 'assign_route_to_rider':
+                // Decode route customers data
+                $route_customers = json_decode($_POST['route_customers'], true);
+                $rider_id = (int)$_POST['rider_id'];
+                
+                if (empty($route_customers) || $rider_id <= 0) {
+                    echo json_encode([
+                        'success' => false,
+                        'message' => 'Invalid route data or rider ID'
+                    ]);
+                    exit;
+                }
+                
+                $result = assignRouteToRider($route_customers, $rider_id);
                 echo json_encode($result);
                 exit;
                 
-            case 'assign_rider_to_customer':
-                $result = assignRiderToCustomer($pdo, $_POST['subscription_id'], $_POST['rider_id']);
-                echo json_encode($result);
-                exit;
-                
-            case 'remove_rider_from_customer':
-                $result = removeRiderFromCustomer($pdo, $_POST['subscription_id']);
-                echo json_encode($result);
-                exit;
-                
-            case 'save_delivery_sequence':
-                $result = saveDeliverySequence($pdo, $_POST['rider_id'], $_POST['sequence_data'], $_POST['date']);
-                echo json_encode($result);
+            default:
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Unknown action: ' . $_POST['action']
+                ]);
                 exit;
         }
     } catch (Exception $e) {
-        echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
+        echo json_encode([
+            'success' => false,
+            'message' => 'Error processing request: ' . $e->getMessage()
+        ]);
         exit;
     }
 }
 
-// Get current date from query parameter or use today
-$deliveryDate = isset($_GET['date']) ? $_GET['date'] : date('Y-m-d');
-
-// Check if valid delivery date (Wednesday or Saturday)
-if (!isValidDeliveryDate($deliveryDate)) {
-    $upcomingDays = getUpcomingDeliveryDays();
-    $deliveryDate = !empty($upcomingDays) ? $upcomingDays[0]['date'] : date('Y-m-d');
-}
-
-// Restaurant Location (Somdul Table)
-$shopLocation = [
-    'lat' => 33.888121,
-    'lng' => -117.868256,
-    'address' => '3250 Yorba Linda Blvd, Fullerton, CA 92831',
-    'name' => 'Somdul Table'
-];
-
-// Zip Code Coordinates (from old system)
-$zipCoordinates = [
-    // ----- Zone A: 0–8 miles (Fullerton & surrounding) -----
-    // Fullerton
-    '92831' => ['lat'=>33.8703, 'lng'=>-117.9253],
-    '92832' => ['lat'=>33.8847, 'lng'=>-117.9390],
-    '92833' => ['lat'=>33.8889, 'lng'=>-117.9256],
-    '92834' => ['lat'=>33.9172, 'lng'=>-117.9467],
-    '92835' => ['lat'=>33.8892, 'lng'=>-117.8817],
-    // Yorba Linda
-    '92885' => ['lat'=>33.8881, 'lng'=>-117.8132],
-    '92886' => ['lat'=>33.8950, 'lng'=>-117.7890],
-    '92887' => ['lat'=>33.9020, 'lng'=>-117.8200],
-    // Placentia
-    '92870' => ['lat'=>33.8722, 'lng'=>-117.8554],
-    // Brea
-    '92821' => ['lat'=>33.9097, 'lng'=>-117.9006],
-    '92823' => ['lat'=>33.9267, 'lng'=>-117.8653],
-    // La Habra
-    '90631' => ['lat'=>33.9312, 'lng'=>-117.9462],
-    '90632' => ['lat'=>33.9148, 'lng'=>-117.9370],
+function fetchDeliveriesForDate($date, $time_slot = '') {
+    $connection = getDatabaseConnection();
     
-    // ----- Zone B: 8–15 miles -----
-    '90620' => ['lat'=>33.8408, 'lng'=>-118.0011], // Buena Park
-    '90621' => ['lat'=>33.8803, 'lng'=>-117.9322], // Buena Park
-    '92801' => ['lat'=>33.8353, 'lng'=>-117.9145], // Anaheim
-    '92802' => ['lat'=>33.8025, 'lng'=>-117.9228], // Anaheim
-    '92804' => ['lat'=>33.8172, 'lng'=>-117.8978], // Anaheim
-    '92805' => ['lat'=>33.8614, 'lng'=>-117.9078], // Anaheim
-    '92806' => ['lat'=>33.8260, 'lng'=>-117.9243], // Anaheim
-    '92807' => ['lat'=>33.8455, 'lng'=>-117.7583], // Anaheim Hills
-    '92808' => ['lat'=>33.8115, 'lng'=>-117.8311], // Anaheim Hills
-
-    // ----- Zone C: 15–25 miles -----
-    '92840' => ['lat'=>33.7742, 'lng'=>-117.9378], // Garden Grove
-    '92841' => ['lat'=>33.7894, 'lng'=>-117.9578], // Garden Grove
-    '92843' => ['lat'=>33.7739, 'lng'=>-117.9028], // Garden Grove
-    '92683' => ['lat'=>33.7175, 'lng'=>-117.9581], // Westminster
-
-    // ----- Zone D: 25+ miles -----
-    '92703' => ['lat'=>33.7492, 'lng'=>-117.8731], // Santa Ana
-    '92647' => ['lat'=>33.7247, 'lng'=>-118.0056], // Huntington Beach
-    '92648' => ['lat'=>33.6597, 'lng'=>-117.9992], // Huntington Beach
-];
-
-// Calculate distances and assign zones
-foreach ($zipCoordinates as $zip => &$data) {
-    $d = calculateDistance(
-        $shopLocation['lat'], $shopLocation['lng'],
-        $data['lat'], $data['lng']
-    );
-    $data['distance'] = round($d, 1);
-    if      ($d <= 8)  $data['zone'] = 'A';
-    elseif  ($d <= 15) $data['zone'] = 'B';
-    elseif  ($d <= 25) $data['zone'] = 'C';
-    else               $data['zone'] = 'D';
-}
-unset($data);
-
-// ======================================================================
-// UTILITY FUNCTIONS
-// ======================================================================
-
-function safeHtmlSpecialChars($string, $flags = ENT_QUOTES, $encoding = 'UTF-8') {
-    return htmlspecialchars($string ?? '', $flags, $encoding);
-}
-
-function calculateDistance($lat1, $lon1, $lat2, $lon2) {
-    $earthRadius = 3959; // Miles
-    $lat1 = deg2rad($lat1);
-    $lon1 = deg2rad($lon1);
-    $lat2 = deg2rad($lat2);
-    $lon2 = deg2rad($lon2);
+    // Convert date to day of week for delivery_days check
+    $dayOfWeek = strtolower(date('l', strtotime($date))); // monday, tuesday, etc.
     
-    $dlat = $lat2 - $lat1;
-    $dlon = $lon2 - $lon1;
+    $sql = "
+        SELECT 
+            s.id as subscription_id,
+            s.user_id,
+            s.assigned_rider_id,
+            s.total_amount,
+            s.delivery_days,
+            s.preferred_delivery_time,
+            s.status as subscription_status,
+            u.first_name,
+            u.last_name,
+            u.delivery_address,
+            u.city,
+            u.state,
+            u.zip_code,
+            u.phone,
+            SUM(CASE WHEN s.total_amount IS NOT NULL AND s.total_amount > 0 
+                THEN GREATEST(1, ROUND(s.total_amount / 15)) 
+                ELSE 1 END) as total_items,
+            COUNT(s.id) as subscription_count
+        FROM subscriptions s
+        JOIN users u ON s.user_id = u.id
+        WHERE s.status = 'active'
+        AND (
+            s.delivery_days LIKE ? 
+            OR s.delivery_days LIKE ?
+            OR s.delivery_days IS NULL 
+            OR s.delivery_days = ''
+        )
+    ";
     
-    $a = sin($dlat/2) * sin($dlat/2) + cos($lat1) * cos($lat2) * sin($dlon/2) * sin($dlon/2);
-    $c = 2 * atan2(sqrt($a), sqrt(1-$a));
-    
-    return $earthRadius * $c;
-}
-
-function calculateRiderRouteDistance($riderOrders, $shopLocation) {
-    if (empty($riderOrders)) {
-        return ['totalDistance' => 0, 'route' => []];
+    // Add time slot condition if provided
+    if (!empty($time_slot)) {
+        $sql .= " AND s.preferred_delivery_time = ?";
     }
     
-    // Start from shop
-    $currentLat = $shopLocation['lat'];
-    $currentLng = $shopLocation['lng'];
-    $totalDistance = 0;
-    $route = [];
+    $sql .= " GROUP BY s.user_id, u.first_name, u.last_name, u.delivery_address, u.city, u.state, u.zip_code, u.phone";
+    $sql .= " ORDER BY u.zip_code, u.last_name, u.first_name";
     
-    // Add shop as starting point
-    $route[] = [
-        'name' => 'Somdul Table (Start)',
-        'address' => $shopLocation['address'],
-        'lat' => $currentLat,
-        'lng' => $currentLng,
-        'distance_from_previous' => 0
-    ];
-    
-    foreach ($riderOrders as $order) {
-        if ($order['latitude'] && $order['longitude']) {
-            $distance = calculateDistance(
-                $currentLat, $currentLng,
-                $order['latitude'], $order['longitude']
-            );
-            
-            $totalDistance += $distance;
-            
-            $route[] = [
-                'name' => $order['first_name'] . ' ' . $order['last_name'],
-                'address' => $order['delivery_address'],
-                'lat' => $order['latitude'],
-                'lng' => $order['longitude'],
-                'distance_from_previous' => round($distance, 2),
-                'total_items' => $order['total_items'],
-                'subscription_id' => $order['subscription_id']
-            ];
-            
-            // Update current position for next calculation
-            $currentLat = $order['latitude'];
-            $currentLng = $order['longitude'];
-        }
-    }
-    
-    return [
-        'totalDistance' => round($totalDistance, 2),
-        'route' => $route,
-        'stops' => count($riderOrders),
-        'estimatedTime' => calculateEstimatedTime($totalDistance, count($riderOrders))
-    ];
-}
-
-function calculateEstimatedTime($distance, $stops) {
-    // Rough calculation: 
-    // - Average 25 mph driving speed in city
-    // - 10 minutes per stop for delivery
-    $drivingTime = ($distance / 25) * 60; // Convert to minutes
-    $deliveryTime = $stops * 10; // 10 minutes per stop
-    
-    return round($drivingTime + $deliveryTime);
-}
-
-function getUpcomingDeliveryDays($weeks = 4) {
-    $deliveryDays = [];
-    $today = new DateTime();
-    
-    for ($week = 0; $week < $weeks; $week++) {
-        $wednesday = clone $today;
-        $wednesday->modify("+" . $week . " weeks");
-        $wednesday->modify("wednesday this week");
-        
-        $saturday = clone $today;
-        $saturday->modify("+" . $week . " weeks");
-        $saturday->modify("saturday this week");
-        
-        if ($wednesday >= $today) {
-            $deliveryDays[] = [
-                'date' => $wednesday->format('Y-m-d'),
-                'display' => 'Wednesday ' . $wednesday->format('M d, Y')
-            ];
-        }
-        
-        if ($saturday >= $today) {
-            $deliveryDays[] = [
-                'date' => $saturday->format('Y-m-d'),
-                'display' => 'Saturday ' . $saturday->format('M d, Y')
-            ];
-        }
-    }
-    
-    return $deliveryDays;
-}
-
-function sanitizeTimeSlot($timeSlot) {
-    if (empty($timeSlot)) return '12:00-15:00';
-    
-    $timeSlot = strtolower(trim($timeSlot));
-    
-    if (strpos($timeSlot, 'morning') !== false || strpos($timeSlot, '9:') !== false) {
-        return '09:00-12:00';
-    } elseif (strpos($timeSlot, 'evening') !== false || strpos($timeSlot, '18:') !== false) {
-        return '18:00-21:00';
-    } elseif (strpos($timeSlot, 'lunch') !== false || strpos($timeSlot, '12:') !== false) {
-        return '12:00-15:00';  
-    } elseif (strpos($timeSlot, 'afternoon') !== false || strpos($timeSlot, '15:') !== false) {
-        return '15:00-18:00';
-    } else {
-        $validSlots = ['09:00-12:00', '12:00-15:00', '15:00-18:00', '18:00-21:00'];
-        if (in_array($timeSlot, $validSlots)) {
-            return $timeSlot;
-        }
-        return '12:00-15:00';
-    }
-}
-
-function isValidDeliveryDate($date) {
-    $dayOfWeek = date('N', strtotime($date));
-    return in_array($dayOfWeek, [3, 6]); // Wednesday(3) and Saturday(6)
-}
-
-function autoGenerateOrdersFromSubscriptions($pdo, $date) {
     try {
-        $stmt = $pdo->prepare("
-            SELECT DISTINCT
-                s.id as subscription_id,
-                s.user_id,
-                s.preferred_delivery_time,
-                s.delivery_days,
-                COUNT(sm.id) as total_items,
-                SUM(sm.quantity) as total_quantity
-            FROM subscriptions s
-            JOIN subscription_menus sm ON s.id = sm.subscription_id
-            LEFT JOIN orders o ON s.id = o.subscription_id AND DATE(o.delivery_date) = ?
-            WHERE sm.delivery_date = ?
-            AND s.status = 'active'
-            AND sm.status = 'scheduled'
-            AND o.id IS NULL
-            GROUP BY s.id, s.user_id, s.preferred_delivery_time, s.delivery_days
-        ");
-        $stmt->execute([$date, $date]);
-        $missing_orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $stmt = mysqli_prepare($connection, $sql);
         
-        $generated_count = 0;
+        if (!empty($time_slot)) {
+            // Bind parameters for delivery_days (both day name and date), and time_slot
+            $dayOfWeekParam = "%$dayOfWeek%";
+            $dateParam = "%$date%";
+            mysqli_stmt_bind_param($stmt, "sss", $dayOfWeekParam, $dateParam, $time_slot);
+        } else {
+            // Bind parameters for delivery_days (both day name and date)
+            $dayOfWeekParam = "%$dayOfWeek%";
+            $dateParam = "%$date%";
+            mysqli_stmt_bind_param($stmt, "ss", $dayOfWeekParam, $dateParam);
+        }
         
-        foreach ($missing_orders as $subscription) {
-            // Check if this date is in the delivery_days array
-            $deliveryDays = json_decode($subscription['delivery_days'], true) ?? [];
-            $isValidDeliveryDay = empty($deliveryDays) || in_array($date, $deliveryDays);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        
+        $deliveries = [];
+        while ($row = mysqli_fetch_assoc($result)) {
+            // Get all subscription IDs for this user
+            $subscription_ids = [];
+            $delivery_times = [];
+            $assigned_riders = [];
             
-            if (!$isValidDeliveryDay) {
-                continue; // Skip if this date is not in delivery_days
+            // Get detailed subscription info for this user
+            $detail_sql = "
+                SELECT 
+                    s.id,
+                    s.preferred_delivery_time,
+                    s.assigned_rider_id,
+                    s.total_amount,
+                    s.delivery_days
+                FROM subscriptions s
+                WHERE s.user_id = ? AND s.status = 'active'
+                AND (
+                    s.delivery_days LIKE ? 
+                    OR s.delivery_days LIKE ?
+                    OR s.delivery_days IS NULL 
+                    OR s.delivery_days = ''
+                )
+            ";
+            
+            if (!empty($time_slot)) {
+                $detail_sql .= " AND s.preferred_delivery_time = ?";
             }
             
-            $order_id = generateUUID();
-            $order_number = 'ORD-' . date('Ymd', strtotime($date)) . '-' . substr($order_id, 0, 6);
+            $detail_stmt = mysqli_prepare($connection, $detail_sql);
             
-            $stmt = $pdo->prepare("SELECT delivery_address FROM users WHERE id = ?");
-            $stmt->execute([$subscription['user_id']]);
-            $user_data = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!empty($time_slot)) {
+                $dayOfWeekParam = "%$dayOfWeek%";
+                $dateParam = "%$date%";
+                mysqli_stmt_bind_param($detail_stmt, "isss", $row['user_id'], $dayOfWeekParam, $dateParam, $time_slot);
+            } else {
+                $dayOfWeekParam = "%$dayOfWeek%";
+                $dateParam = "%$date%";
+                mysqli_stmt_bind_param($detail_stmt, "iss", $row['user_id'], $dayOfWeekParam, $dateParam);
+            }
             
-            $stmt = $pdo->prepare("
-                INSERT INTO orders (
-                    id, subscription_id, user_id, order_number,
-                    delivery_date, delivery_time_slot, delivery_address,
-                    total_items, status, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'confirmed', NOW(), NOW())
-            ");
+            mysqli_stmt_execute($detail_stmt);
+            $detail_result = mysqli_stmt_get_result($detail_stmt);
             
-            $stmt->execute([
-                $order_id,
-                $subscription['subscription_id'],
-                $subscription['user_id'],
-                $order_number,
-                $date,
-                sanitizeTimeSlot($subscription['preferred_delivery_time']),
-                $user_data['delivery_address'] ?? '',
-                $subscription['total_quantity']
-            ]);
+            $total_calculated_items = 0;
+            while ($detail_row = mysqli_fetch_assoc($detail_result)) {
+                $subscription_ids[] = $detail_row['id'];
+                if (!empty($detail_row['preferred_delivery_time'])) {
+                    $delivery_times[] = $detail_row['preferred_delivery_time'];
+                }
+                if (!empty($detail_row['assigned_rider_id'])) {
+                    $assigned_riders[] = $detail_row['assigned_rider_id'];
+                }
+                
+                // Calculate items for this subscription
+                $items_for_subscription = 1; // Default
+                if ($detail_row['total_amount'] && $detail_row['total_amount'] > 0) {
+                    $items_for_subscription = max(1, round($detail_row['total_amount'] / 15));
+                }
+                $total_calculated_items += $items_for_subscription;
+            }
             
-            $generated_count++;
+            mysqli_stmt_close($detail_stmt);
+            
+            // Determine the primary delivery time (most common or first non-empty)
+            $primary_delivery_time = '';
+            if (!empty($delivery_times)) {
+                $time_counts = array_count_values($delivery_times);
+                arsort($time_counts);
+                $primary_delivery_time = array_key_first($time_counts);
+            }
+            
+            // Determine assigned rider (if any - use most common or first)
+            $primary_rider_id = null;
+            if (!empty($assigned_riders)) {
+                $rider_counts = array_count_values($assigned_riders);
+                arsort($rider_counts);
+                $primary_rider_id = array_key_first($rider_counts);
+            }
+            
+            $deliveries[] = [
+                'subscription_ids' => $subscription_ids, // Array of all subscription IDs for this user
+                'user_id' => $row['user_id'],
+                'customer_name' => trim($row['first_name'] . ' ' . $row['last_name']),
+                'delivery_address' => $row['delivery_address'] . ', ' . $row['city'] . ', ' . $row['state'] . ' ' . $row['zip_code'],
+                'phone' => $row['phone'] ?? '',
+                'zip_code' => $row['zip_code'],
+                'total_items' => $total_calculated_items, // Combined total from all subscriptions
+                'subscription_count' => count($subscription_ids), // Number of subscriptions combined
+                'delivery_time' => $primary_delivery_time,
+                'assigned_rider_id' => $primary_rider_id,
+                'latitude' => null, // Will be populated by geocoding if needed
+                'longitude' => null,
+                'delivery_days' => $row['delivery_days'] ?? '' // For debugging (from first subscription)
+            ];
         }
         
-        return [
-            'success' => true,
-            'generated' => $generated_count,
-            'message' => "Auto-generated {$generated_count} orders from subscriptions for {$date}"
-        ];
+        mysqli_stmt_close($stmt);
+        return $deliveries;
         
     } catch (Exception $e) {
-        return [
-            'success' => false,
-            'message' => 'Error auto-generating orders: ' . $e->getMessage()
-        ];
+        error_log("Database error: " . $e->getMessage());
+        return [];
     }
 }
 
-function optimizeDeliveryOrder($pdo, $date) {
+// Simple geocoding function (you might want to use Google Geocoding API for better results)
+function addCoordinatesToDeliveries($deliveries) {
+    global $RESTAURANT; // Access global restaurant location
+    
+    // For now, we'll use approximate coordinates based on zip codes in Fullerton area
+    $zipCoordinates = [
+        '92831' => ['lat' => 33.8703, 'lng' => -117.9253],
+        '92832' => ['lat' => 33.8536, 'lng' => -117.9270],
+        '92833' => ['lat' => 33.8478, 'lng' => -117.9348],
+        '92834' => ['lat' => 33.8792, 'lng' => -117.9681],
+        '92835' => ['lat' => 33.8823, 'lng' => -117.9109],
+        '92821' => ['lat' => 33.9263, 'lng' => -117.8998], // Brea
+        '92870' => ['lat' => 33.8722, 'lng' => -117.8511], // Placentia
+        '92806' => ['lat' => 33.8359, 'lng' => -117.9132]  // Anaheim
+    ];
+    
+    foreach ($deliveries as &$delivery) {
+        $zip = substr($delivery['zip_code'], 0, 5);
+        if (isset($zipCoordinates[$zip])) {
+            $delivery['latitude'] = $zipCoordinates[$zip]['lat'] + (rand(-50, 50) / 10000); // Add small random offset
+            $delivery['longitude'] = $zipCoordinates[$zip]['lng'] + (rand(-50, 50) / 10000);
+        } else {
+            // Default to restaurant location if zip not found
+            $delivery['latitude'] = $RESTAURANT['lat'] + (rand(-20, 20) / 10000);
+            $delivery['longitude'] = $RESTAURANT['lng'] + (rand(-20, 20) / 10000);
+        }
+    }
+    
+    return $deliveries;
+}
+
+// Fetch deliveries when date is selected
+if (!empty($selected_date)) {
+    $DELIVERIES = fetchDeliveriesForDate($selected_date, $selected_time);
+    $DELIVERIES = addCoordinatesToDeliveries($DELIVERIES);
+    $AVAILABLE_RIDERS = getAvailableRiders(); // Fetch available riders
+}
+
+// Helper functions from original code
+function calculateDistance($lat1, $lng1, $lat2, $lng2) {
+    $earthRadius = 3959; // miles
+    $lat1 = deg2rad($lat1);
+    $lng1 = deg2rad($lng1);
+    $lat2 = deg2rad($lat2);
+    $lng2 = deg2rad($lng2);
+    
+    $dlat = $lat2 - $lat1;
+    $dlng = $lng2 - $lng1;
+    
+    $a = sin($dlat/2) * sin($dlat/2) + cos($lat1) * cos($lat2) * sin($dlng/2) * sin($dlng/2);
+    $c = 2 * atan2(sqrt($a), sqrt(1-$a));
+    
+    return round($earthRadius * $c, 1);
+}
+
+function formatTime($seconds) {
+    $hours = floor($seconds / 3600);
+    $minutes = floor(($seconds % 3600) / 60);
+    
+    if ($hours > 0) {
+        return $hours . 'h ' . $minutes . 'm';
+    }
+    return $minutes . 'm';
+}
+
+function getAccessToken($serviceAccountFile) {
+    if (!file_exists($serviceAccountFile)) {
+        return null;
+    }
+    
     try {
-        global $shopLocation, $zipCoordinates;
-        
-        // Get all subscriptions for the date (instead of orders)
-        $stmt = $pdo->prepare("
-            SELECT s.id, s.user_id, s.delivery_days, s.preferred_delivery_time,
-                   u.first_name, u.last_name, u.delivery_address, u.zip_code,
-                   SUM(sm.quantity) as total_items
-            FROM subscriptions s
-            JOIN users u ON s.user_id = u.id
-            JOIN subscription_menus sm ON s.id = sm.subscription_id
-            WHERE sm.delivery_date = ? 
-            AND s.status = 'active'
-            AND sm.status = 'scheduled'
-            AND s.start_date <= ?
-            AND (s.end_date IS NULL OR s.end_date >= ?)
-            GROUP BY s.id, s.user_id, s.delivery_days, s.preferred_delivery_time,
-                     u.first_name, u.last_name, u.delivery_address, u.zip_code
-            ORDER BY s.created_at
-        ");
-        $stmt->execute([$date, $date, $date]);
-        $subscriptions = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        if (empty($subscriptions)) {
-            return ['success' => false, 'message' => 'No subscriptions to optimize'];
+        $serviceAccount = json_decode(file_get_contents($serviceAccountFile), true);
+        if (!$serviceAccount) {
+            return null;
         }
         
-        // Filter by delivery_days and add coordinates
-        $validSubscriptions = [];
-        foreach ($subscriptions as $subscription) {
-            $deliveryDays = json_decode($subscription['delivery_days'], true) ?? [];
-            $isValidDeliveryDay = empty($deliveryDays) || in_array($date, $deliveryDays);
-            
-            if ($isValidDeliveryDay) {
-                $zipCode = substr($subscription['zip_code'], 0, 5);
-                if (isset($zipCoordinates[$zipCode])) {
-                    $subscription['latitude'] = $zipCoordinates[$zipCode]['lat'];
-                    $subscription['longitude'] = $zipCoordinates[$zipCode]['lng'];
-                    $subscription['distance'] = $zipCoordinates[$zipCode]['distance'];
-                } else {
-                    $subscription['latitude'] = null;
-                    $subscription['longitude'] = null;
-                    $subscription['distance'] = 0;
-                }
-                $validSubscriptions[] = $subscription;
-            }
+        $header = ['alg' => 'RS256', 'typ' => 'JWT'];
+        $now = time();
+        $payload = [
+            'iss' => $serviceAccount['client_email'],
+            'scope' => 'https://www.googleapis.com/auth/cloud-platform',
+            'aud' => 'https://oauth2.googleapis.com/token',
+            'exp' => $now + 3600,
+            'iat' => $now
+        ];
+        
+        $jwt = base64url_encode(json_encode($header)) . '.' . base64url_encode(json_encode($payload));
+        
+        $privateKey = openssl_pkey_get_private($serviceAccount['private_key']);
+        if (!$privateKey) {
+            return null;
         }
         
-        if (empty($validSubscriptions)) {
-            return ['success' => false, 'message' => 'No valid subscriptions for this date'];
+        openssl_sign($jwt, $signature, $privateKey, 'SHA256');
+        $jwt .= '.' . base64url_encode($signature);
+        
+        $ch = curl_init();
+        curl_setopt_array($ch, [
+            CURLOPT_URL => 'https://oauth2.googleapis.com/token',
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => http_build_query([
+                'grant_type' => 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+                'assertion' => $jwt
+            ]),
+            CURLOPT_HTTPHEADER => ['Content-Type: application/x-www-form-urlencoded'],
+            CURLOPT_TIMEOUT => 30
+        ]);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        if ($httpCode === 200) {
+            $tokenData = json_decode($response, true);
+            return $tokenData['access_token'] ?? null;
         }
         
-        // Simple optimization algorithm: Nearest neighbor from shop
-        $optimized_subscriptions = [];
-        $remaining_subscriptions = $validSubscriptions;
-        $current_location = $shopLocation;
+        return null;
+    } catch (Exception $e) {
+        return null;
+    }
+}
+
+function base64url_encode($data) {
+    return rtrim(strtr(base64_encode($data), '+/', '-_'), '=');
+}
+
+// Route optimization logic
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['optimize']) && !empty($DELIVERIES)) {
+    $accessToken = getAccessToken($SERVICE_ACCOUNT_KEY_FILE);
+    
+    if (!$accessToken) {
+        $API_ERROR = 'Failed to authenticate with Google API';
+    } else {
+        // Calculate capacity constraints
+        $totalItems = array_sum(array_column($DELIVERIES, 'total_items'));
+        $baseCapacityPerDriver = ceil($totalItems / $NUM_DRIVERS);
+        $maxItemsPerDriver = $baseCapacityPerDriver + $CAPACITY_BUFFER;
         
-        while (!empty($remaining_subscriptions)) {
-            $nearest_index = 0;
-            $shortest_distance = PHP_FLOAT_MAX;
+        // Create shipments with load demands
+        $currentDate = date('Y-m-d');
+        $shipments = [];
+        
+        foreach ($DELIVERIES as $delivery) {
+            $shipments[] = [
+                'pickups' => [[
+                    'arrivalLocation' => [
+                        'latitude' => $RESTAURANT['lat'],
+                        'longitude' => $RESTAURANT['lng']
+                    ],
+                    'duration' => '300s'
+                ]],
+                'deliveries' => [[
+                    'arrivalLocation' => [
+                        'latitude' => (float)$delivery['latitude'],
+                        'longitude' => (float)$delivery['longitude']
+                    ],
+                    'duration' => '480s'
+                ]],
+                'label' => $delivery['customer_name'],
+                'loadDemands' => [
+                    'weight' => [
+                        'amount' => (int)$delivery['total_items']
+                    ]
+                ]
+            ];
+        }
+        
+        // Create vehicles with constraints
+        $vehicles = [];
+        for ($i = 0; $i < $NUM_DRIVERS; $i++) {
+            $vehicleConfig = [
+                'startLocation' => [
+                    'latitude' => $RESTAURANT['lat'],
+                    'longitude' => $RESTAURANT['lng']
+                ],
+                'endLocation' => [
+                    'latitude' => $RESTAURANT['lat'],
+                    'longitude' => $RESTAURANT['lng']
+                ],
+                'label' => 'Driver ' . ($i + 1)
+            ];
             
-            foreach ($remaining_subscriptions as $index => $subscription) {
-                $lat = $subscription['latitude'];
-                $lng = $subscription['longitude'];
-                
-                if ($lat === null || $lng === null) {
-                    continue;
-                }
-                
-                $distance = calculateDistance(
-                    $current_location['lat'], 
-                    $current_location['lng'],
-                    $lat, 
-                    $lng
-                );
-                
-                if ($distance < $shortest_distance) {
-                    $shortest_distance = $distance;
-                    $nearest_index = $index;
-                }
-            }
-            
-            // Add the nearest subscription to optimized list
-            $nearest_subscription = $remaining_subscriptions[$nearest_index];
-            $nearest_subscription['distance'] = round($shortest_distance, 2);
-            $nearest_subscription['order_sequence'] = count($optimized_subscriptions) + 1;
-            
-            $optimized_subscriptions[] = $nearest_subscription;
-            
-            // Update current location
-            if ($nearest_subscription['latitude'] && $nearest_subscription['longitude']) {
-                $current_location = [
-                    'lat' => $nearest_subscription['latitude'],
-                    'lng' => $nearest_subscription['longitude']
+            if ($FORCE_DISTRIBUTION && $NUM_DRIVERS > 1) {
+                $vehicleConfig['loadLimits'] = [
+                    'weight' => [
+                        'maxLoad' => $maxItemsPerDriver
+                    ]
                 ];
             }
             
-            // Remove from remaining subscriptions
-            array_splice($remaining_subscriptions, $nearest_index, 1);
-        }
-        
-        // Note: No database update for sequence since we're working with subscriptions
-        // The sequence is returned for display purposes only
-        
-        return [
-            'success' => true,
-            'message' => 'Delivery order optimized successfully',
-            'optimized_orders' => $optimized_subscriptions,
-            'total_distance' => array_sum(array_column($optimized_subscriptions, 'distance'))
-        ];
-        
-    } catch (Exception $e) {
-        return [
-            'success' => false,
-            'message' => 'Error optimizing delivery order: ' . $e->getMessage()
-        ];
-    }
-}
-
-function assignRiderToCustomer($pdo, $subscriptionId, $riderId) {
-    try {
-        $stmt = $pdo->prepare("
-            UPDATE subscriptions 
-            SET assigned_rider_id = ?, updated_at = NOW() 
-            WHERE id = ?
-        ");
-        $stmt->execute([$riderId, $subscriptionId]);
-        
-        // Get rider name for response
-        $stmt = $pdo->prepare("SELECT CONCAT(first_name, ' ', last_name) as name FROM users WHERE id = ?");
-        $stmt->execute([$riderId]);
-        $riderName = $stmt->fetchColumn();
-        
-        return [
-            'success' => true,
-            'message' => "Rider {$riderName} assigned successfully"
-        ];
-        
-    } catch (Exception $e) {
-        return [
-            'success' => false,
-            'message' => 'Error assigning rider: ' . $e->getMessage()
-        ];
-    }
-}
-
-function removeRiderFromCustomer($pdo, $subscriptionId) {
-    try {
-        // Get rider name before removing (for response message)
-        $stmt = $pdo->prepare("
-            SELECT CONCAT(u.first_name, ' ', u.last_name) as rider_name 
-            FROM subscriptions s 
-            JOIN users u ON s.assigned_rider_id = u.id 
-            WHERE s.id = ?
-        ");
-        $stmt->execute([$subscriptionId]);
-        $riderName = $stmt->fetchColumn();
-        
-        // Remove rider assignment
-        $stmt = $pdo->prepare("
-            UPDATE subscriptions 
-            SET assigned_rider_id = NULL, updated_at = NOW() 
-            WHERE id = ?
-        ");
-        $stmt->execute([$subscriptionId]);
-        
-        return [
-            'success' => true,
-            'message' => $riderName ? "Rider {$riderName} removed successfully" : "Rider assignment removed successfully"
-        ];
-        
-    } catch (Exception $e) {
-        return [
-            'success' => false,
-            'message' => 'Error removing rider: ' . $e->getMessage()
-        ];
-    }
-}
-
-// NEW FUNCTION: Save Delivery Sequence
-function saveDeliverySequence($pdo, $riderId, $sequenceData, $date) {
-    try {
-        // Parse the sequence data
-        $sequences = json_decode($sequenceData, true);
-        
-        if (!$sequences || !is_array($sequences)) {
-            return ['success' => false, 'message' => 'Invalid sequence data'];
-        }
-        
-        // Begin transaction
-        $pdo->beginTransaction();
-        
-        // Update each subscription with its new delivery sequence
-        foreach ($sequences as $sequence) {
-            if (!isset($sequence['subscription_id']) || !isset($sequence['position'])) {
-                continue;
-            }
+            $vehicleConfig['costPerKilometer'] = $COST_PER_KM;
+            $vehicleConfig['costPerTraveledHour'] = $COST_PER_HOUR;
+            $vehicleConfig['fixedCost'] = $i === 0 ? $FIXED_COST_FIRST : $FIXED_COST_OTHERS;
             
-            // Update the subscription with delivery sequence and date
-            $stmt = $pdo->prepare("
-                UPDATE subscriptions 
-                SET delivery_sequence = ?, delivery_sequence_date = ?, updated_at = NOW()
-                WHERE id = ? AND assigned_rider_id = ?
-            ");
-            $stmt->execute([
-                $sequence['position'], 
-                $date, 
-                $sequence['subscription_id'], 
-                $riderId
-            ]);
+            $vehicles[] = $vehicleConfig;
         }
         
-        // Commit transaction
-        $pdo->commit();
-        
-        return [
-            'success' => true,
-            'message' => 'Delivery sequence saved successfully',
-            'updated_count' => count($sequences)
+        $requestData = [
+            'model' => [
+                'shipments' => $shipments,
+                'vehicles' => $vehicles,
+                'globalStartTime' => $currentDate . 'T16:00:00Z',
+                'globalEndTime' => $currentDate . 'T22:00:00Z'
+            ],
+            'searchMode' => 'CONSUME_ALL_AVAILABLE_TIME',
+            'timeout' => '30s'
         ];
         
-    } catch (Exception $e) {
-        // Rollback transaction on error
-        $pdo->rollback();
+        // Call Google API
+        $endpoint = "https://routeoptimization.googleapis.com/v1/projects/{$PROJECT_ID}:optimizeTours";
         
-        return [
-            'success' => false,
-            'message' => 'Error saving delivery sequence: ' . $e->getMessage()
-        ];
-    }
-}
-
-// ======================================================================
-// FETCH DATA
-// ======================================================================
-
-try {
-    // Get subscriptions for the delivery date (not orders)
-    $stmt = $pdo->prepare("
-        SELECT s.id, s.user_id, s.status, s.assigned_rider_id, s.delivery_days,
-               s.preferred_delivery_time, s.start_date, s.end_date, s.delivery_sequence,
-               u.id as user_id, u.first_name, u.last_name, u.phone, 
-               u.delivery_address, u.city, u.state, u.zip_code,
-               r.first_name as rider_first_name, r.last_name as rider_last_name,
-               COUNT(sm.id) as total_items,
-               SUM(sm.quantity) as total_quantity
-        FROM subscriptions s
-        JOIN users u ON s.user_id = u.id
-        JOIN subscription_menus sm ON s.id = sm.subscription_id
-        LEFT JOIN users r ON s.assigned_rider_id = r.id
-        WHERE sm.delivery_date = ? 
-        AND s.status = 'active'
-        AND sm.status = 'scheduled'
-        AND s.start_date <= ?
-        AND (s.end_date IS NULL OR s.end_date >= ?)
-        GROUP BY s.id, s.user_id, s.status, s.assigned_rider_id, s.delivery_days,
-                 s.preferred_delivery_time, s.start_date, s.end_date, s.delivery_sequence,
-                 u.id, u.first_name, u.last_name, u.phone, 
-                 u.delivery_address, u.city, u.state, u.zip_code,
-                 r.first_name, r.last_name
-        ORDER BY s.delivery_sequence ASC, s.created_at ASC
-    ");
-    $stmt->execute([$deliveryDate, $deliveryDate, $deliveryDate]);
-    $subscriptions = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    // Filter subscriptions by delivery_days (specific dates)
-    $orders = []; // We'll call them orders for consistency with the UI
-    foreach ($subscriptions as $subscription) {
-        $deliveryDays = json_decode($subscription['delivery_days'], true) ?? [];
-        $isValidDeliveryDay = empty($deliveryDays) || in_array($deliveryDate, $deliveryDays);
+        $ch = curl_init();
+        curl_setopt_array($ch, [
+            CURLOPT_URL => $endpoint,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json',
+                'Authorization: Bearer ' . $accessToken
+            ],
+            CURLOPT_POSTFIELDS => json_encode($requestData),
+            CURLOPT_TIMEOUT => 60
+        ]);
         
-        if ($isValidDeliveryDay) {
-            // Convert subscription to order format for UI consistency
-            $order = [
-                'id' => $subscription['id'],
-                'subscription_id' => $subscription['id'],
-                'order_number' => 'SUB-' . $subscription['id'],
-                'user_id' => $subscription['user_id'],
-                'first_name' => $subscription['first_name'],
-                'last_name' => $subscription['last_name'],
-                'phone' => $subscription['phone'],
-                'delivery_address' => $subscription['delivery_address'],
-                'city' => $subscription['city'],
-                'state' => $subscription['state'],
-                'zip_code' => $subscription['zip_code'],
-                'total_items' => $subscription['total_quantity'],
-                'status' => 'confirmed', // Subscription status
-                'assigned_rider_id' => $subscription['assigned_rider_id'],
-                'rider_first_name' => $subscription['rider_first_name'],
-                'rider_last_name' => $subscription['rider_last_name'],
-                'delivery_date' => $deliveryDate,
-                'delivery_time_slot' => $subscription['preferred_delivery_time'],
-                'delivery_sequence' => $subscription['delivery_sequence'],
-                'created_at' => $subscription['start_date']
-            ];
-            $orders[] = $order;
-        }
-    }
-    
-    // DEBUG: Test basic database connection first
-    $testStmt = $pdo->query("SELECT 1 as test");
-    $testResult = $testStmt->fetch();
-    $connectionWorking = ($testResult && $testResult['test'] == 1);
-    
-    // DEBUG: Test simple count queries
-    $subscriptionCountStmt = $pdo->query("SELECT COUNT(*) as count FROM subscriptions");
-    $totalSubscriptionCount = $subscriptionCountStmt->fetch()['count'] ?? 0;
-    
-    $userCountStmt = $pdo->query("SELECT COUNT(*) as count FROM users");
-    $totalUserCount = $userCountStmt->fetch()['count'] ?? 0;
-    
-    // DEBUG: Test the exact date query manually
-    $dateTestStmt = $pdo->prepare("
-        SELECT COUNT(*) as count 
-        FROM subscriptions s
-        JOIN subscription_menus sm ON s.id = sm.subscription_id
-        WHERE sm.delivery_date = ? 
-        AND s.status = 'active'
-        AND sm.status = 'scheduled'
-    ");
-    $dateTestStmt->execute([$deliveryDate]);
-    $dateTestCount = $dateTestStmt->fetch()['count'] ?? 0;
-    
-    // Get available riders
-    $riderStmt = $pdo->prepare("
-        SELECT u.id, u.first_name, u.last_name, u.phone, u.status,
-               COUNT(s.id) as current_orders
-        FROM users u
-        LEFT JOIN subscriptions s ON u.id = s.assigned_rider_id AND s.status = 'active'
-        WHERE u.role = 'rider' AND u.status = 'active'
-        GROUP BY u.id, u.first_name, u.last_name, u.phone, u.status
-        ORDER BY current_orders ASC
-    ");
-    $riderStmt->execute();
-    $riders = $riderStmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    // Store debug info for display
-    $debugInfo = [
-        'connectionWorking' => $connectionWorking,
-        'totalSubscriptionCount' => $totalSubscriptionCount,
-        'totalUserCount' => $totalUserCount,
-        'dateTestCount' => $dateTestCount,
-        'subscriptionsFound' => count($subscriptions),
-        'ordersFound' => count($orders),
-        'ridersFound' => count($riders),
-        'deliveryDate' => $deliveryDate
-    ];
-    
-} catch (Exception $e) {
-    $orders = [];
-    $riders = [];
-    $debugInfo = [
-        'error' => $e->getMessage(),
-        'connectionWorking' => false,
-        'totalSubscriptionCount' => 0,
-        'totalUserCount' => 0,
-        'dateTestCount' => 0,
-        'subscriptionsFound' => 0,
-        'ordersFound' => 0,
-        'ridersFound' => 0,
-        'deliveryDate' => $deliveryDate
-    ];
-    error_log("Delivery management error: " . $e->getMessage());
-}
-
-// Calculate statistics and add coordinates from zip codes
-$totalStats = [
-    'totalOrders' => count($orders),
-    'totalBoxes' => array_sum(array_column($orders, 'total_items')),
-    'assignedOrders' => count(array_filter($orders, function($o) { return !empty($o['assigned_rider_id']); })),
-    'unassignedOrders' => count(array_filter($orders, function($o) { return empty($o['assigned_rider_id']); })),
-    'totalDistance' => 0
-];
-
-// Add coordinates and calculate distances for each order
-foreach ($orders as &$order) {
-    $zipCode = substr($order['zip_code'], 0, 5);
-    
-    if (isset($zipCoordinates[$zipCode])) {
-        $order['latitude'] = $zipCoordinates[$zipCode]['lat'];
-        $order['longitude'] = $zipCoordinates[$zipCode]['lng'];
-        $order['distance'] = $zipCoordinates[$zipCode]['distance'];
-        $order['zone'] = $zipCoordinates[$zipCode]['zone'];
-        $totalStats['totalDistance'] += $order['distance'];
-    } else {
-        $order['latitude'] = null;
-        $order['longitude'] = null;
-        $order['distance'] = 0;
-        $order['zone'] = 'Unknown';
-    }
-}
-
-// Calculate rider routes and distances - sort by delivery_sequence
-$riderRoutes = [];
-foreach ($riders as $rider) {
-    $riderOrders = array_filter($orders, function($order) use ($rider) {
-        return $order['assigned_rider_id'] == $rider['id'];
-    });
-    
-    if (!empty($riderOrders)) {
-        // Sort by delivery_sequence, then by created_at as fallback
-        usort($riderOrders, function($a, $b) {
-            if ($a['delivery_sequence'] == $b['delivery_sequence']) {
-                return strtotime($a['created_at']) - strtotime($b['created_at']);
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        if ($httpCode === 200) {
+            $API_SUCCESS = true;
+            $API_DATA = json_decode($response, true);
+            
+            // Process routes
+            if (isset($API_DATA['routes'])) {
+                $assignedCustomers = [];
+                
+                foreach ($API_DATA['routes'] as $routeIndex => $route) {
+                    if (!isset($route['visits']) || empty($route['visits'])) {
+                        continue;
+                    }
+                    
+                    $routeSequence = [];
+                    $prevLat = $RESTAURANT['lat'];
+                    $prevLng = $RESTAURANT['lng'];
+                    
+                    $shipmentLabelMap = [];
+                    foreach ($DELIVERIES as $index => $delivery) {
+                        $shipmentLabelMap[$delivery['customer_name']] = $index;
+                    }
+                    
+                    foreach ($route['visits'] as $visit) {
+                        if (isset($visit['isPickup']) && $visit['isPickup']) {
+                            continue;
+                        }
+                        
+                        $customerIndex = null;
+                        $customerName = $visit['shipmentLabel'] ?? '';
+                        
+                        if (isset($visit['shipmentIndex'])) {
+                            $customerIndex = $visit['shipmentIndex'];
+                        } elseif ($customerName && isset($shipmentLabelMap[$customerName])) {
+                            $customerIndex = $shipmentLabelMap[$customerName];
+                        }
+                        
+                        if ($customerIndex !== null && isset($DELIVERIES[$customerIndex])) {
+                            $customer = $DELIVERIES[$customerIndex];
+                            
+                            $distance = calculateDistance(
+                                $prevLat, $prevLng, 
+                                $customer['latitude'], $customer['longitude']
+                            );
+                            
+                            $routeSequence[] = [
+                                'customer' => $customer,
+                                'distance_from_prev' => $distance,
+                                'start_time' => $visit['startTime'] ?? '',
+                                'customer_index' => $customerIndex
+                            ];
+                            
+                            $assignedCustomers[] = $customerIndex;
+                            $prevLat = $customer['latitude'];
+                            $prevLng = $customer['longitude'];
+                        }
+                    }
+                    
+                    if (!empty($routeSequence)) {
+                        $ROUTES[] = [
+                            'driver' => $route['vehicleLabel'] ?? 'Driver ' . ($routeIndex + 1),
+                            'sequence' => $routeSequence,
+                            'total_distance' => isset($route['metrics']['travelDistanceMeters']) ? 
+                                round($route['metrics']['travelDistanceMeters'] * 0.000621371, 1) : 0,
+                            'total_duration' => isset($route['metrics']['totalDuration']) ? 
+                                $route['metrics']['totalDuration'] : '0s',
+                            'travel_duration' => isset($route['metrics']['travelDuration']) ? 
+                                $route['metrics']['travelDuration'] : '0s',
+                            'visit_duration' => isset($route['metrics']['visitDuration']) ? 
+                                $route['metrics']['visitDuration'] : '0s',
+                            'start_time' => $route['vehicleStartTime'] ?? '',
+                            'end_time' => $route['vehicleEndTime'] ?? '',
+                            'delivery_count' => count($routeSequence),
+                            'route_index' => $routeIndex // Add route index for assignment purposes
+                        ];
+                    }
+                }
+                
+                // Find unassigned customers
+                for ($i = 0; $i < count($DELIVERIES); $i++) {
+                    if (!in_array($i, $assignedCustomers)) {
+                        $UNASSIGNED[] = $DELIVERIES[$i];
+                    }
+                }
             }
-            return ($a['delivery_sequence'] ?? 999) - ($b['delivery_sequence'] ?? 999);
-        });
-        
-        $routeInfo = calculateRiderRouteDistance($riderOrders, $shopLocation);
-        $riderRoutes[$rider['id']] = [
-            'rider' => $rider,
-            'orders' => array_values($riderOrders),
-            'route_info' => $routeInfo
-        ];
+        } else {
+            $errorData = json_decode($response, true);
+            $API_ERROR = $errorData['error']['message'] ?? 'API request failed with HTTP ' . $httpCode;
+        }
     }
 }
-?>
 
-<!DOCTYPE html>
+?><!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Delivery Management - Somdul Table Admin</title>
+    <title>Somdul Table - Delivery Route Optimizer</title>
     <link href="https://ydpschool.com/fonts/" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
-    <link rel="stylesheet" href="css/delivery-management.css">
     <style>
-        .rider-routes-section {
-            background: white;
+        @font-face {
+            font-family: 'BaticaSans';
+            src: url('https://ydpschool.com/fonts/BaticaSans-Regular.woff2') format('woff2');
+            font-weight: normal;
+            font-style: normal;
+        }
+        
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+        }
+        
+        body { 
+            font-family: 'BaticaSans', Arial, sans-serif; 
+            background: #ece8e1; 
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .container { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #bd9379, #cf723a);
+            color: white;
+            padding: 2rem;
             border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             margin-bottom: 2rem;
-        }
-        
-        .rider-route-card {
-            border: 1px solid #e9ecef;
-            border-radius: 8px;
-            padding: 1.5rem;
-            margin-bottom: 1rem;
-            background: #f8f9fa;
-        }
-        
-        .rider-route-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-            padding-bottom: 0.5rem;
-            border-bottom: 2px solid #cf723a;
-        }
-        
-        .rider-info h4 {
-            margin: 0;
-            color: #cf723a;
-            font-size: 1.2rem;
-        }
-        
-        .route-stats {
-            display: flex;
-            gap: 2rem;
-            flex-wrap: wrap;
-        }
-        
-        .route-stat {
             text-align: center;
         }
         
-        .route-stat .stat-value {
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .section { 
+            background: white; 
+            margin-bottom: 20px; 
+            padding: 20px; 
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h2 { 
+            color: #bd9379; 
+            margin-bottom: 15px;
             font-size: 1.5rem;
+            border-bottom: 2px solid #cf723a;
+            padding-bottom: 0.5rem;
+        }
+        
+        .date-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .control-group label {
+            font-weight: bold;
+            color: #bd9379;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+        
+        .control-group small {
+            color: #666;
+            font-size: 0.8rem;
+            margin-top: 2px;
+        }
+        
+        select, input, button { 
+            padding: 10px 12px; 
+            border: 2px solid #adb89d; 
+            border-radius: 6px;
+            font-family: 'BaticaSans', Arial, sans-serif;
+            font-size: 0.9rem;
+        }
+        
+        button { 
+            background: linear-gradient(135deg, #cf723a, #bd9379);
+            color: white; 
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        button:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(207, 114, 58, 0.3);
+        }
+        
+        .btn-load {
+            background: linear-gradient(135deg, #adb89d, #9aa888);
+            grid-column: 1 / -1;
+            justify-self: center;
+            min-width: 200px;
+        }
+        
+        .deliveries-list { 
+            max-height: 400px; 
+            overflow-y: auto; 
+            border: 1px solid #adb89d; 
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .delivery-item { 
+            padding: 15px; 
+            border-bottom: 1px solid #ece8e1; 
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .delivery-item:last-child { 
+            border-bottom: none; 
+        }
+        
+        .delivery-item:nth-child(even) {
+            background: #f8f8f8;
+        }
+        
+        .customer-info {
+            flex: 1;
+        }
+        
+        .customer-name {
+            font-weight: bold;
+            color: #cf723a;
+            font-size: 1.1rem;
+        }
+        
+        .subscription-count {
+            background: #adb89d;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            margin-left: 8px;
+            font-weight: normal;
+        }
+        
+        .delivery-details {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .item-count {
+            background: #bd9379;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+        
+        .delivery-time {
+            background: #adb89d;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+        }
+        
+        .info-box {
+            background: #f0f8ff;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 10px 0;
+            border-left: 4px solid #bd9379;
+        }
+        
+        .warning-box {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #856404;
+        }
+        
+        .success-box {
+            background: #e8f5e8;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #28a745;
+        }
+        
+        .status-success { 
+            background: linear-gradient(135deg, #d4edda, #c3e6cb);
+            color: #155724; 
+            padding: 15px; 
+            border-radius: 8px;
+            border-left: 4px solid #28a745;
+        }
+        
+        .status-error { 
+            background: linear-gradient(135deg, #f8d7da, #f1b0b7);
+            color: #721c24; 
+            padding: 15px; 
+            border-radius: 8px;
+            border-left: 4px solid #dc3545;
+        }
+        
+        .optimize-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        input[type="checkbox"] {
+            width: auto;
+            margin-right: 8px;
+            transform: scale(1.2);
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            margin-top: 5px;
+        }
+        
+        .admin-section {
+            background: #f8f9fa;
+            border: 2px dashed #adb89d;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+        
+        .admin-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            cursor: pointer;
+        }
+        
+        .admin-controls {
+            display: none;
+        }
+        
+        .admin-controls.show {
+            display: block;
+        }
+        
+        /* Route display styles */
+        .route { 
+            margin-bottom: 25px; 
+            padding: 20px; 
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 12px;
+            border-left: 6px solid #bd9379;
+        }
+        
+        .route h3 { 
+            color: #cf723a; 
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+        
+        .route-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .route-stat {
+            background: white;
+            padding: 10px 15px;
+            border-radius: 6px;
+            text-align: center;
+            border: 1px solid #adb89d;
+        }
+        
+        .route-stat .stat-value {
+            font-size: 1.2rem;
             font-weight: bold;
             color: #bd9379;
         }
         
         .route-stat .stat-label {
-            font-size: 0.9rem;
+            font-size: 0.8rem;
             color: #6c757d;
+            text-transform: uppercase;
         }
         
-        .route-details {
-            margin-top: 1rem;
-        }
-        
-        .route-stop {
-            display: flex;
-            align-items: center;
-            padding: 0.75rem;
-            margin: 0.5rem 0;
-            border: 1px solid #dee2e6;
-            border-radius: 6px;
+        .sequence-item { 
+            padding: 12px 0; 
+            border-left: 4px solid #bd9379; 
+            padding-left: 15px; 
+            margin-bottom: 10px;
             background: white;
-            cursor: move;
-            transition: all 0.3s ease;
+            border-radius: 0 8px 8px 0;
+            margin-left: 10px;
         }
         
-        .route-stop:hover {
-            border-color: #bd9379;
-            box-shadow: 0 2px 8px rgba(189, 147, 121, 0.2);
-        }
-        
-        .route-stop.dragging {
-            opacity: 0.5;
-            transform: rotate(2deg);
-        }
-        
-        .route-stop.drag-over {
-            border-color: #cf723a;
-            border-style: dashed;
-            background: #fff8f0;
-        }
-        
-        .route-stop:last-child {
-            border-bottom: 1px solid #dee2e6;
-        }
-        
-        .stop-number {
+        .sequence-number {
+            display: inline-block;
+            width: 25px;
+            height: 25px;
             background: #cf723a;
             color: white;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            margin-right: 1rem;
-            font-size: 0.9rem;
-            min-width: 30px;
-        }
-        
-        .stop-info {
-            flex: 1;
-        }
-        
-        .stop-distance {
-            color: #6c757d;
-            font-size: 0.9rem;
-            margin-left: auto;
-        }
-        
-        .drag-handle {
-            color: #6c757d;
-            margin-right: 1rem;
-            cursor: grab;
-            font-size: 1.2rem;
-        }
-        
-        .drag-handle:active {
-            cursor: grabbing;
-        }
-        
-        .no-riders-assigned {
             text-align: center;
-            padding: 2rem;
+            border-radius: 50%;
+            font-weight: bold;
+            line-height: 25px;
+            margin-right: 10px;
+        }
+        
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .summary-stat {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-top: 4px solid #bd9379;
+        }
+        
+        .summary-stat .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #cf723a;
+        }
+        
+        .summary-stat .stat-label {
             color: #6c757d;
+            text-transform: uppercase;
+            font-size: 0.9rem;
         }
         
-        .remove-rider-btn {
-            background: #dc3545;
-            color: white;
-            border: none;
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-            font-size: 0.8rem;
-            cursor: pointer;
-            margin-left: 0.5rem;
+        /* NEW: Route Assignment Styles */
+        .route-assignment {
+            background: #f0f8ff;
+            border: 2px solid #bd9379;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
         }
         
-        .remove-rider-btn:hover {
-            background: #c82333;
-        }
-        
-        .assigned-rider {
+        .assignment-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
+            margin-bottom: 15px;
         }
         
-        .rider-name {
+        .assignment-controls {
             display: flex;
+            gap: 15px;
             align-items: center;
         }
         
-        .save-sequence-btn {
-            background: #28a745;
-            color: white;
+        .rider-select {
+            min-width: 200px;
+            background: white;
+            border: 2px solid #adb89d;
+        }
+        
+        .assign-btn {
+            background: linear-gradient(135deg, #28a745, #20c997);
             border: none;
-            padding: 0.5rem 1rem;
+            padding: 10px 20px;
             border-radius: 6px;
-            font-size: 0.9rem;
+            color: white;
+            font-weight: bold;
             cursor: pointer;
-            margin-top: 1rem;
-            display: none;
             transition: all 0.3s ease;
         }
         
-        .save-sequence-btn:hover {
-            background: #218838;
+        .assign-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
         }
         
-        .save-sequence-btn.show {
-            display: inline-block;
-            animation: fadeIn 0.3s ease;
+        .assign-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
         }
         
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
+        .assignment-info {
+            font-size: 0.9rem;
+            color: #666;
         }
         
-        .route-header-actions {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-        
-        .sequence-changed-indicator {
-            background: #ffc107;
-            color: #212529;
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-            font-size: 0.8rem;
+        /* Loading overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
             display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
         }
         
-        .sequence-changed-indicator.show {
-            display: inline-block;
-            animation: pulse 1s infinite;
+        .loading-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
         }
         
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.7; }
-            100% { opacity: 1; }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #cf723a;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
         }
         
-        .sortable-list {
-            min-height: 50px;
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @media (max-width: 768px) {
+            .date-controls, .optimize-controls {
+                grid-template-columns: 1fr;
+            }
+            
+            .delivery-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            .delivery-details {
+                align-self: flex-end;
+            }
+            
+            .assignment-controls {
+                flex-direction: column;
+                gap: 10px;
+                width: 100%;
+            }
+            
+            .rider-select {
+                min-width: 100%;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="admin-layout">
-        <?php include 'includes/sidebar.php'; ?>
-
-        <!-- Main Content -->
-        <div class="main-content">
-            <!-- Header -->
-            <div class="page-header">
-                <div class="header-content">
-                    <div>
-                        <h1>Delivery Management</h1>
-                        <p>Manage and optimize daily deliveries</p>
+    <div class="container">
+        <div class="header">
+            <h1>🚚 Somdul Table</h1>
+            <p>Subscription Delivery Route Optimizer</p>
+        </div>
+        
+        <!-- Date Selection -->
+        <div class="section">
+            <h2>📅 Select Delivery Date & Time</h2>
+            <form method="POST">
+                <div class="date-controls">
+                    <div class="control-group">
+                        <label for="delivery_date">Delivery Date</label>
+                        <input type="date" name="delivery_date" id="delivery_date" 
+                               value="<?= htmlspecialchars($selected_date) ?>" required>
+                        <small>Select the date for delivery optimization</small>
                     </div>
-                    <div class="header-actions">
-                        <div class="date-selector">
-                            <i class="fas fa-calendar-alt"></i>
-                            <form method="GET">
-                                <select name="date" onchange="this.form.submit()">
-                                    <?php 
-                                    $deliveryDays = getUpcomingDeliveryDays();
-                                    foreach ($deliveryDays as $day): 
+                    
+                    <div class="control-group">
+                        <label for="delivery_time">Time Slot (Optional)</label>
+                        <select name="delivery_time" id="delivery_time">
+                            <option value="">All Time Slots</option>
+                            <?php foreach (getDeliveryTimeSlots() as $value => $label): ?>
+                                <option value="<?= $value ?>" <?= $selected_time === $value ? 'selected' : '' ?>>
+                                    <?= $label ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <small>Filter by preferred delivery time</small>
+                    </div>
+                </div>
+                
+                <button type="submit" name="load_deliveries" class="btn-load">
+                    📋 Load Deliveries for Selected Date
+                </button>
+            </form>
+        </div>
+        
+        <!-- Deliveries List -->
+        <?php if (!empty($selected_date)): ?>
+            <div class="section">
+                <h2>📦 Combined Deliveries for <?= date('l, F j, Y', strtotime($selected_date)) ?> (<?= count($DELIVERIES) ?> customers)</h2>
+                
+                <?php if (empty($DELIVERIES)): ?>
+                    <div class="warning-box">
+                        <strong>🔭 No deliveries found</strong><br>
+                        No active subscriptions scheduled for delivery on the selected date and time.
+                    </div>
+                <?php else: ?>
+                    <div class="deliveries-list">
+                        <?php foreach ($DELIVERIES as $delivery): ?>
+                            <div class="delivery-item">
+                                <div class="customer-info">
+                                    <div class="customer-name">
+                                        <?= htmlspecialchars($delivery['customer_name']) ?>
+                                        <?php if ($delivery['subscription_count'] > 1): ?>
+                                            <span class="subscription-count"><?= $delivery['subscription_count'] ?> subscriptions</span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div style="color: #666; font-size: 0.9rem; margin-top: 4px;">
+                                        📍 <?= htmlspecialchars($delivery['delivery_address']) ?>
+                                    </div>
+                                    <?php if (!empty($delivery['phone'])): ?>
+                                        <div style="color: #666; font-size: 0.9rem;">
+                                            📞 <?= htmlspecialchars($delivery['phone']) ?>
+                                        </div>
+                                    <?php endif; ?>
+                                    <!-- Debug: Show subscription IDs -->
+                                    <div style="color: #999; font-size: 0.8rem; font-style: italic;">
+                                        Subscription IDs: <?= implode(', ', $delivery['subscription_ids']) ?>
+                                    </div>
+                                </div>
+                                <div class="delivery-details">
+                                    <?php if (!empty($delivery['delivery_time'])): ?>
+                                        <span class="delivery-time"><?= htmlspecialchars($delivery['delivery_time']) ?></span>
+                                    <?php endif; ?>
+                                    <span class="item-count"><?= $delivery['total_items'] ?> items</span>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                    
+                    <div class="info-box">
+                        <strong>📊 Delivery Summary:</strong>
+                        Total Customers: <?= count($DELIVERIES) ?> • 
+                        Total Items: <?= array_sum(array_column($DELIVERIES, 'total_items')) ?> • 
+                        Total Subscriptions: <?= array_sum(array_column($DELIVERIES, 'subscription_count')) ?> •
+                        Avg Items/Customer: <?= round(array_sum(array_column($DELIVERIES, 'total_items')) / count($DELIVERIES), 1) ?> •
+                        Unique Zip Codes: <?= count(array_unique(array_column($DELIVERIES, 'zip_code'))) ?>
+                    </div>
+                    
+                    <?php 
+                    $multipleSubscriptions = array_filter($DELIVERIES, function($d) { return $d['subscription_count'] > 1; });
+                    if (!empty($multipleSubscriptions)): 
+                    ?>
+                        <div class="success-box">
+                            <strong>✅ Order Consolidation Active:</strong> 
+                            <?= count($multipleSubscriptions) ?> customers have multiple subscriptions combined into single deliveries, 
+                            reducing total stops from <?= array_sum(array_column($DELIVERIES, 'subscription_count')) ?> to <?= count($DELIVERIES) ?>.
+                        </div>
+                    <?php endif; ?>
+                <?php endif; ?>
+            </div>
+        <?php endif; ?>
+        
+        <!-- Route Optimization -->
+        <?php if (!empty($DELIVERIES)): ?>
+            <div class="section">
+                <h2>🎯 Route Optimization Settings</h2>
+                <form method="POST">
+                    <!-- Hidden fields to preserve date selection -->
+                    <input type="hidden" name="delivery_date" value="<?= htmlspecialchars($selected_date) ?>">
+                    <input type="hidden" name="delivery_time" value="<?= htmlspecialchars($selected_time) ?>">
+                    
+                    <div class="optimize-controls">
+                        <div class="control-group">
+                            <label for="num_drivers">Number of Drivers</label>
+                            <select name="num_drivers" id="num_drivers">
+                                <?php for ($i = 1; $i <= 10; $i++): ?>
+                                    <option value="<?= $i ?>" <?= $i == $NUM_DRIVERS ? 'selected' : '' ?>><?= $i ?></option>
+                                <?php endfor; ?>
+                            </select>
+                            <small>Available drivers for delivery</small>
+                        </div>
+                        
+                        <div class="control-group">
+                            <label>Share Work Equally</label>
+                            <div class="checkbox-group">
+                                <input type="checkbox" name="force_distribution" id="force_distribution" <?= $FORCE_DISTRIBUTION ? 'checked' : '' ?>>
+                                <label for="force_distribution">Force equal distribution</label>
+                            </div>
+                            <small>Ensures all drivers get deliveries</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Advanced Settings -->
+                    <div class="admin-section">
+                        <div class="admin-header" onclick="toggleAdmin()">
+                            <span style="font-size: 1.2rem; margin-right: 10px;">⚙️</span>
+                            <strong>Advanced Settings</strong>
+                            <span style="margin-left: auto; font-size: 1.2rem;" id="adminToggle">▼</span>
+                        </div>
+                        
+                        <div class="admin-controls" id="adminControls">
+                            <div class="optimize-controls">
+                                <div class="control-group">
+                                    <label for="capacity_buffer">Extra Items Per Driver</label>
+                                    <input type="number" name="capacity_buffer" id="capacity_buffer" 
+                                           value="<?= $CAPACITY_BUFFER ?>" min="0" max="10" step="1">
+                                    <small>Extra capacity beyond equal split</small>
+                                </div>
+                                
+                                <div class="control-group">
+                                    <label for="cost_per_km">Distance Priority</label>
+                                    <input type="number" name="cost_per_km" id="cost_per_km" 
+                                           value="<?= $COST_PER_KM ?>" min="0.1" max="10" step="0.1">
+                                    <small>Higher = prioritize shorter routes</small>
+                                </div>
+                                
+                                <div class="control-group">
+                                    <label for="cost_per_hour">Speed Priority</label>
+                                    <input type="number" name="cost_per_hour" id="cost_per_hour" 
+                                           value="<?= $COST_PER_HOUR ?>" min="10" max="100" step="5">
+                                    <small>Higher = prioritize faster completion</small>
+                                </div>
+                                
+                                <div class="control-group">
+                                    <label for="fixed_cost_first">Driver 1 Penalty</label>
+                                    <input type="number" name="fixed_cost_first" id="fixed_cost_first" 
+                                           value="<?= $FIXED_COST_FIRST ?>" min="0" max="500" step="10">
+                                    <small>Penalty for using only driver 1</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" name="optimize" style="grid-column: 1 / -1; justify-self: center; min-width: 250px;">
+                        🚀 Optimize Routes for <?= count($DELIVERIES) ?> Combined Deliveries
+                    </button>
+                </form>
+            </div>
+        <?php endif; ?>
+        
+        <!-- API Status -->
+        <?php if ($API_SUCCESS || $API_ERROR): ?>
+            <div class="section">
+                <?php if ($API_SUCCESS): ?>
+                    <div class="status-success">✅ Google Route Optimization API connected successfully!</div>
+                <?php else: ?>
+                    <div class="status-error">❌ Error: <?= htmlspecialchars($API_ERROR) ?></div>
+                <?php endif; ?>
+            </div>
+        <?php endif; ?>
+        
+        <!-- Optimization Results -->
+        <?php if (!empty($ROUTES) && isset($API_DATA['metrics'])): ?>
+            <div class="section">
+                <h2>📊 Optimization Results</h2>
+                <div class="summary-stats">
+                    <div class="summary-stat">
+                        <div class="stat-value"><?= count($ROUTES) ?></div>
+                        <div class="stat-label">Active Drivers</div>
+                    </div>
+                    <div class="summary-stat">
+                        <div class="stat-value"><?= round($API_DATA['metrics']['aggregatedRouteMetrics']['travelDistanceMeters'] * 0.000621371, 1) ?></div>
+                        <div class="stat-label">Total Miles</div>
+                    </div>
+                    <div class="summary-stat">
+                        <div class="stat-value"><?= formatTime(intval(str_replace('s', '', $API_DATA['metrics']['aggregatedRouteMetrics']['totalDuration']))) ?></div>
+                        <div class="stat-label">Total Time</div>
+                    </div>
+                    <div class="summary-stat">
+                        <div class="stat-value"><?= $API_DATA['metrics']['aggregatedRouteMetrics']['performedShipmentCount'] ?></div>
+                        <div class="stat-label">Customers</div>
+                    </div>
+                </div>
+                
+                <?php if (count($ROUTES) > 1): ?>
+                    <div class="success-box">
+                        <strong>✅ Multiple Drivers Working:</strong> 
+                        <?php 
+                        $itemCounts = [];
+                        foreach ($ROUTES as $route) {
+                            $totalItems = 0;
+                            foreach ($route['sequence'] as $stop) {
+                                $totalItems += $stop['customer']['total_items'];
+                            }
+                            $itemCounts[] = $totalItems;
+                        }
+                        echo "Workload: " . implode(', ', array_map(function($count, $index) {
+                            return "Driver " . ($index + 1) . " (" . $count . " items)";
+                        }, $itemCounts, array_keys($itemCounts)));
+                        ?>
+                    </div>
+                <?php elseif (count($ROUTES) === 1 && $NUM_DRIVERS > 1): ?>
+                    <div class="warning-box">
+                        <strong>⚠️ Single Driver Used:</strong> 
+                        Only one driver was assigned. Enable "Share Work Equally" to force distribution.
+                    </div>
+                <?php endif; ?>
+            </div>
+            
+            <!-- Route Details with Assignment -->
+            <div class="section">
+                <h2>🗺️ Optimized Routes</h2>
+                <?php foreach ($ROUTES as $routeIndex => $route): ?>
+                    <div class="route" id="route-<?= $routeIndex ?>">
+                        <h3><?= htmlspecialchars($route['driver']) ?></h3>
+                        
+                        <div class="route-stats">
+                            <div class="route-stat">
+                                <div class="stat-value"><?= $route['total_distance'] ?></div>
+                                <div class="stat-label">Miles</div>
+                            </div>
+                            <div class="route-stat">
+                                <div class="stat-value"><?= $route['delivery_count'] ?></div>
+                                <div class="stat-label">Stops</div>
+                            </div>
+                            <div class="route-stat">
+                                <div class="stat-value">
+                                    <?php
+                                    $totalItems = 0;
+                                    foreach ($route['sequence'] as $stop) {
+                                        $totalItems += $stop['customer']['total_items'];
+                                    }
+                                    echo $totalItems;
                                     ?>
-                                        <option value="<?= $day['date'] ?>" <?= $day['date'] == $deliveryDate ? 'selected' : '' ?>>
-                                            <?= $day['display'] ?>
+                                </div>
+                                <div class="stat-label">Items</div>
+                            </div>
+                            <div class="route-stat">
+                                <div class="stat-value"><?= formatTime(intval(str_replace('s', '', $route['total_duration']))) ?></div>
+                                <div class="stat-label">Total Time</div>
+                            </div>
+                            <?php if ($route['start_time']): ?>
+                            <div class="route-stat">
+                                <div class="stat-value"><?= date('g:i A', strtotime($route['start_time'])) ?></div>
+                                <div class="stat-label">Start</div>
+                            </div>
+                            <?php endif; ?>
+                        </div>
+                        
+                        <!-- NEW: Route Assignment Section -->
+                        <div class="route-assignment">
+                            <div class="assignment-header">
+                                <h4><i class="fas fa-user-plus"></i> Assign This Route to Rider</h4>
+                                <div class="assignment-info">
+                                    Assign all <?= $route['delivery_count'] ?> customers in this route to a single rider
+                                </div>
+                            </div>
+                            
+                            <div class="assignment-controls">
+                                <select class="rider-select" id="rider-select-<?= $routeIndex ?>">
+                                    <option value="">Select Rider/Driver</option>
+                                    <?php foreach ($AVAILABLE_RIDERS as $rider): ?>
+                                        <option value="<?= $rider['id'] ?>">
+                                            <?= htmlspecialchars($rider['first_name'] . ' ' . $rider['last_name']) ?> 
+                                            (<?= $rider['current_assignments'] ?> current assignments)
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
-                            </form>
-                        </div>
-                        <button class="btn btn-primary" onclick="generateOrders()">
-                            <i class="fas fa-plus"></i>
-                            Generate Orders
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Debug Information (remove in production) -->
-            <?php if (isset($_GET['debug']) && $_GET['debug'] == '1'): ?>
-                <div style="background: #f8f9fa; padding: 1rem; margin-bottom: 1rem; border-radius: 8px; border-left: 4px solid #007bff;">
-                    <h4>🔍 Advanced Debug Information (Using Subscriptions Table)</h4>
-                    
-                    <div style="background: white; padding: 1rem; margin: 1rem 0; border-radius: 4px;">
-                        <h5>Database Connection Test:</h5>
-                        <p><strong>Connection Working:</strong> <?= ($debugInfo['connectionWorking'] ?? false) ? '✅ YES' : '❌ NO' ?></p>
-                        <p><strong>Total Subscriptions in DB:</strong> <?= $debugInfo['totalSubscriptionCount'] ?? 'Unknown' ?></p>
-                        <p><strong>Total Users in DB:</strong> <?= $debugInfo['totalUserCount'] ?? 'Unknown' ?></p>
-                    </div>
-                    
-                    <div style="background: white; padding: 1rem; margin: 1rem 0; border-radius: 4px;">
-                        <h5>Date Query Test:</h5>
-                        <p><strong>Date:</strong> <?= $debugInfo['deliveryDate'] ?? $deliveryDate ?> (<?= date('l', strtotime($deliveryDate)) ?>)</p>
-                        <p><strong>Subscriptions for this date (count only):</strong> <?= $debugInfo['dateTestCount'] ?? 'Unknown' ?></p>
-                        <p><strong>Raw subscriptions found:</strong> <?= $debugInfo['subscriptionsFound'] ?? 'Unknown' ?></p>
-                        <p><strong>Filtered orders (after delivery_days check):</strong> <?= $debugInfo['ordersFound'] ?? 'Unknown' ?></p>
-                        <p><strong>Riders found:</strong> <?= $debugInfo['ridersFound'] ?? 'Unknown' ?></p>
-                    </div>
-                    
-                    <?php if (isset($debugInfo['error'])): ?>
-                        <div style="background: #f8d7da; color: #721c24; padding: 1rem; margin: 1rem 0; border-radius: 4px;">
-                            <h5>❌ Error Detected:</h5>
-                            <p><?= htmlspecialchars($debugInfo['error']) ?></p>
-                        </div>
-                    <?php endif; ?>
-                </div>
-            <?php endif; ?>
-
-            <!-- Statistics -->
-            <div class="stats-container">
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="fas fa-shopping-cart"></i>
-                    </div>
-                    <div class="stat-info">
-                        <h3><?= $totalStats['totalOrders'] ?></h3>
-                        <p>Total Orders</p>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="fas fa-box"></i>
-                    </div>
-                    <div class="stat-info">
-                        <h3><?= $totalStats['totalBoxes'] ?></h3>
-                        <p>Total Meals</p>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="fas fa-route"></i>
-                    </div>
-                    <div class="stat-info">
-                        <h3><?= $totalStats['totalDistance'] > 0 ? number_format($totalStats['totalDistance'], 1) : '0.0' ?></h3>
-                        <p>Miles to Cover</p>
-                        <?php if ($totalStats['totalDistance'] == 0 && $totalStats['totalOrders'] > 0): ?>
-                            <small style="color: #e74c3c;">⚠️ Location data missing</small>
-                        <?php endif; ?>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="fas fa-user-check"></i>
-                    </div>
-                    <div class="stat-info">
-                        <h3><?= $totalStats['assignedOrders'] ?>/<?= $totalStats['totalOrders'] ?></h3>
-                        <p>Assigned Orders</p>
-                    </div>
-                </div>
-            </div>
-            <!-- Main Content Grid -->
-            <div class="content-grid">
-                <!-- Map -->
-                <div class="map-container">
-                    <h3>Delivery Map</h3>
-                    <div id="map"></div>
-                </div>
-
-                <!-- Customer List -->
-                <div class="customer-list-container">
-                    <div class="list-header">
-                        <h3>Delivery List</h3>
-                        <button class="btn btn-success" onclick="optimizeDeliveryOrder()">
-                            <i class="fas fa-magic"></i>
-                            Optimize Order
-                        </button>
-                    </div>
-                    
-                    <div class="customer-list" id="customerList">
-                        <?php if (empty($orders)): ?>
-                            <div class="customer-item" style="text-align: center; background: #f8f9fa; border: 2px dashed #dee2e6;">
-                                <div style="padding: 2rem;">
-                                    <i class="fas fa-calendar-times" style="font-size: 3rem; color: #6c757d; margin-bottom: 1rem;"></i>
-                                    <h4 style="color: #6c757d;">No Orders Found</h4>
-                                    <p style="color: #6c757d; margin: 0;">
-                                        No orders scheduled for <?= date('l, F j, Y', strtotime($deliveryDate)) ?>.<br>
-                                        Try generating orders from subscriptions or check a different date.
-                                    </p>
-                                </div>
+                                
+                                <button class="assign-btn" onclick="assignRouteToRider(<?= $routeIndex ?>)" id="assign-btn-<?= $routeIndex ?>" disabled>
+                                    <i class="fas fa-check"></i> Assign Route
+                                </button>
                             </div>
-                        <?php else: ?>
-                            <?php foreach ($orders as $index => $order): ?>
-                                <div class="customer-item" data-subscription-id="<?= $order['id'] ?>">
-                                    <div class="customer-number">
-                                        <?= $index + 1 ?>
-                                    </div>
-                                    <div class="customer-info">
-                                        <h4><?= safeHtmlSpecialChars($order['first_name'] . ' ' . $order['last_name']) ?></h4>
-                                        <p><i class="fas fa-map-marker-alt"></i> <?= safeHtmlSpecialChars($order['delivery_address']) ?></p>
-                                        <p><i class="fas fa-phone"></i> <?= safeHtmlSpecialChars($order['phone']) ?></p>
-                                        <p><i class="fas fa-box"></i> <?= $order['total_items'] ?> meals</p>
-                                        <?php if ($order['distance'] > 0): ?>
-                                            <p><i class="fas fa-route"></i> <?= $order['distance'] ?> miles
-                                            <?php if (isset($order['zone'])): ?>
-                                                - <span style="color: #cf723a; font-weight: 600;">Zone <?= $order['zone'] ?></span>
-                                            <?php endif; ?>
-                                            </p>
-                                        <?php else: ?>
-                                            <p><i class="fas fa-question-circle"></i> <span style="color: #6c757d;">Location data unavailable</span></p>
-                                        <?php endif; ?>
-                                        <?php if (!empty($order['delivery_time_slot'])): ?>
-                                            <p><i class="fas fa-clock"></i> <?= safeHtmlSpecialChars($order['delivery_time_slot']) ?></p>
-                                        <?php endif; ?>
-                                    </div>
-                                    <div class="customer-actions">
-                                        <?php if ($order['rider_first_name']): ?>
-                                            <div class="assigned-rider">
-                                                <div class="rider-name">
-                                                    <i class="fas fa-user-check"></i>
-                                                    <?= safeHtmlSpecialChars($order['rider_first_name'] . ' ' . $order['rider_last_name']) ?>
-                                                </div>
-                                                <button class="remove-rider-btn" onclick="removeRider('<?= $order['id'] ?>')" title="Remove rider assignment">
-                                                    <i class="fas fa-times"></i>
-                                                </button>
-                                            </div>
-                                        <?php else: ?>
-                                            <select class="rider-select" onchange="assignRider(this, '<?= $order['id'] ?>')">
-                                                <option value="">Assign Rider</option>
-                                                <?php foreach ($riders as $rider): ?>
-                                                    <option value="<?= $rider['id'] ?>">
-                                                        <?= safeHtmlSpecialChars($rider['first_name'] . ' ' . $rider['last_name']) ?> 
-                                                        (<?= $rider['current_orders'] ?> orders)
-                                                    </option>
-                                                <?php endforeach; ?>
-                                            </select>
-                                        <?php endif; ?>
-                                    </div>
+                        </div>
+                        
+                        <?php if (!empty($route['sequence'])): ?>
+                            <h5 style="margin-top: 1rem; margin-bottom: 0.5rem;">Route Sequence:</h5>
+                            <?php foreach ($route['sequence'] as $index => $stop): ?>
+                                <div class="sequence-item" data-customer-data='<?= json_encode($stop['customer']) ?>'>
+                                    <span class="sequence-number"><?= ($index + 1) ?></span>
+                                    <strong><?= htmlspecialchars($stop['customer']['customer_name']) ?></strong>
+                                    <?php if ($stop['customer']['subscription_count'] > 1): ?>
+                                        <span style="background: #adb89d; color: white; padding: 2px 6px; border-radius: 8px; font-size: 0.7rem; margin-left: 8px;">
+                                            <?= $stop['customer']['subscription_count'] ?> subs
+                                        </span>
+                                    <?php endif; ?>
+                                    <small style="color: #bd9379; font-weight: bold;">(<?= $stop['distance_from_prev'] ?> mi from previous)</small>
+                                    <?php if ($stop['start_time']): ?>
+                                        <small style="color: #6c757d;"> - ETA: <?= date('g:i A', strtotime($stop['start_time'])) ?></small>
+                                    <?php endif; ?>
+                                    <br>
+                                    <small style="color: #666;">📍 <?= htmlspecialchars($stop['customer']['delivery_address']) ?></small>
+                                    <small style="color: #cf723a; font-weight: bold;"> • <?= $stop['customer']['total_items'] ?> items</small>
+                                    <?php if (!empty($stop['customer']['phone'])): ?>
+                                        <small style="color: #999;"> • 📞 <?= htmlspecialchars($stop['customer']['phone']) ?></small>
+                                    <?php endif; ?>
+                                    <br>
+                                    <small style="color: #999; font-style: italic;">
+                                        Subscription IDs: <?= implode(', ', $stop['customer']['subscription_ids']) ?>
+                                    </small>
                                 </div>
                             <?php endforeach; ?>
                         <?php endif; ?>
                     </div>
-                </div>
-            
-            <!-- Enhanced Rider Routes Section with Drag & Drop -->
-            <?php if (!empty($riderRoutes)): ?>
-                <div class="rider-routes-section">
-                    <h3><i class="fas fa-route"></i> Rider Route Summary</h3>
-                    
-                    <?php foreach ($riderRoutes as $riderId => $routeData): ?>
-                        <div class="rider-route-card" data-rider-id="<?= $riderId ?>">
-                            <div class="rider-route-header">
-                                <div class="rider-info">
-                                    <h4><?= safeHtmlSpecialChars($routeData['rider']['first_name'] . ' ' . $routeData['rider']['last_name']) ?></h4>
-                                    <p><i class="fas fa-phone"></i> <?= safeHtmlSpecialChars($routeData['rider']['phone'] ?? 'No phone') ?></p>
-                                </div>
-                                <div class="route-header-actions">
-                                    <div class="sequence-changed-indicator" id="indicator-<?= $riderId ?>">
-                                        <i class="fas fa-exclamation-triangle"></i> Order Changed
-                                    </div>
-                                    <div class="route-stats">
-                                        <div class="route-stat">
-                                            <div class="stat-value"><?= $routeData['route_info']['stops'] ?></div>
-                                            <div class="stat-label">Stops</div>
-                                        </div>
-                                        <div class="route-stat">
-                                            <div class="stat-value"><?= $routeData['route_info']['totalDistance'] ?></div>
-                                            <div class="stat-label">Miles</div>
-                                        </div>
-                                        <div class="route-stat">
-                                            <div class="stat-value"><?= $routeData['route_info']['estimatedTime'] ?></div>
-                                            <div class="stat-label">Minutes</div>
-                                        </div>
-                                        <div class="route-stat">
-                                            <div class="stat-value"><?= array_sum(array_column($routeData['orders'], 'total_items')) ?></div>
-                                            <div class="stat-label">Meals</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="route-details">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                                    <h5><i class="fas fa-map-marked-alt"></i> Route Details (Drag to Reorder):</h5>
-                                    <button class="save-sequence-btn" id="save-btn-<?= $riderId ?>" onclick="saveDeliverySequence(<?= $riderId ?>)">
-                                        <i class="fas fa-save"></i> Save New Order
-                                    </button>
-                                </div>
-                                
-                                <div class="sortable-list" id="sortable-<?= $riderId ?>">
-                                    <?php 
-                                    // Start from shop (non-draggable)
-                                    $routeStops = $routeData['route_info']['route'];
-                                    foreach ($routeStops as $index => $stop): 
-                                        if ($index === 0): // Shop location - not draggable
-                                    ?>
-                                        <div class="route-stop" style="background: #f0f0f0; cursor: not-allowed;">
-                                            <div class="stop-number" style="background: #6c757d;">🏪</div>
-                                            <div class="stop-info">
-                                                <strong><?= safeHtmlSpecialChars($stop['name']) ?></strong>
-                                                <br>
-                                                <small><?= safeHtmlSpecialChars($stop['address']) ?></small>
-                                            </div>
-                                        </div>
-                                    <?php 
-                                        else: // Customer stops - draggable
-                                    ?>
-                                        <div class="route-stop" draggable="true" data-subscription-id="<?= $stop['subscription_id'] ?? '' ?>" data-original-position="<?= $index ?>">
-                                            <div class="drag-handle">
-                                                <i class="fas fa-grip-vertical"></i>
-                                            </div>
-                                            <div class="stop-number"><?= $index ?></div>
-                                            <div class="stop-info">
-                                                <strong><?= safeHtmlSpecialChars($stop['name']) ?></strong>
-                                                <br>
-                                                <small><?= safeHtmlSpecialChars($stop['address']) ?></small>
-                                                <?php if (isset($stop['total_items'])): ?>
-                                                    <br>
-                                                    <small><i class="fas fa-box"></i> <?= $stop['total_items'] ?> meals</small>
-                                                <?php endif; ?>
-                                            </div>
-                                            <?php if ($stop['distance_from_previous'] > 0): ?>
-                                                <div class="stop-distance">
-                                                    <i class="fas fa-arrow-right"></i> <?= $stop['distance_from_previous'] ?> mi
-                                                </div>
-                                            <?php endif; ?>
-                                        </div>
-                                    <?php 
-                                        endif;
-                                    endforeach; 
-                                    ?>
-                                </div>
-                            </div>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+        
+        <!-- Unassigned Deliveries -->
+        <?php if (!empty($UNASSIGNED)): ?>
+            <div class="section">
+                <div class="warning-box">
+                    <h2 style="color: #856404; border: none; margin-bottom: 1rem;">⚠️ Unassigned Deliveries</h2>
+                    <?php foreach ($UNASSIGNED as $customer): ?>
+                        <div style="margin-bottom: 0.5rem;">
+                            <strong><?= htmlspecialchars($customer['customer_name']) ?></strong> - 
+                            <?= htmlspecialchars($customer['delivery_address']) ?>
+                            <span style="color: #856404;"> (<?= $customer['total_items'] ?> items)</span>
+                            <?php if ($customer['subscription_count'] > 1): ?>
+                                <span style="color: #856404;"> [<?= $customer['subscription_count'] ?> subscriptions combined]</span>
+                            <?php endif; ?>
                         </div>
                     <?php endforeach; ?>
                 </div>
-            <?php else: ?>
-                <div class="rider-routes-section">
-                    <div class="no-riders-assigned">
-                        <i class="fas fa-user-times" style="font-size: 3rem; margin-bottom: 1rem; color: #6c757d;"></i>
-                        <h4>No Riders Assigned Yet</h4>
-                        <p>Assign riders to customers to see their route summaries here.</p>
-                    </div>
-                </div>
-            <?php endif; ?>
             </div>
-        </div>
+        <?php endif; ?>
     </div>
-
+    
     <!-- Loading Overlay -->
     <div class="loading-overlay" id="loadingOverlay">
         <div class="loading-content">
             <div class="spinner"></div>
-            <p>Processing...</p>
+            <p>Processing assignment...</p>
         </div>
     </div>
-
-    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-        // Pass PHP data to JavaScript
-        window.deliveryData = {
-            date: '<?= $deliveryDate ?>',
-            orders: <?= json_encode($orders) ?>,
-            riders: <?= json_encode($riders) ?>,
-            shopLocation: <?= json_encode($shopLocation) ?>,
-            riderRoutes: <?= json_encode($riderRoutes) ?>
-        };
+        function toggleAdmin() {
+            const controls = document.getElementById('adminControls');
+            const toggle = document.getElementById('adminToggle');
+            
+            if (controls.classList.contains('show')) {
+                controls.classList.remove('show');
+                toggle.textContent = '▼';
+            } else {
+                controls.classList.add('show');
+                toggle.textContent = '▲';
+            }
+        }
         
-        // Drag and Drop Functionality
-        let draggedElement = null;
-        let currentRiderId = null;
-        
-        document.addEventListener('DOMContentLoaded', function() {
-            initializeDragAndDrop();
+        // Auto-submit form when date changes
+        document.getElementById('delivery_date').addEventListener('change', function() {
+            this.form.submit();
         });
         
-        function initializeDragAndDrop() {
-            const sortableLists = document.querySelectorAll('.sortable-list');
-            
-            sortableLists.forEach(list => {
-                const riderId = list.id.replace('sortable-', '');
-                initializeListEvents(list, riderId);
-            });
-        }
+        document.getElementById('delivery_time').addEventListener('change', function() {
+            this.form.submit();
+        });
         
-        function initializeListEvents(list, riderId) {
-            const draggableItems = list.querySelectorAll('.route-stop[draggable="true"]');
-            
-            draggableItems.forEach(item => {
-                item.addEventListener('dragstart', function(e) {
-                    draggedElement = this;
-                    currentRiderId = riderId;
-                    this.classList.add('dragging');
-                    e.dataTransfer.effectAllowed = 'move';
-                    e.dataTransfer.setData('text/html', this.outerHTML);
-                });
-                
-                item.addEventListener('dragend', function(e) {
-                    this.classList.remove('dragging');
-                    draggedElement = null;
-                });
-                
-                item.addEventListener('dragover', function(e) {
-                    e.preventDefault();
-                    e.dataTransfer.dropEffect = 'move';
-                });
-                
-                item.addEventListener('dragenter', function(e) {
-                    e.preventDefault();
-                    this.classList.add('drag-over');
-                });
-                
-                item.addEventListener('dragleave', function(e) {
-                    this.classList.remove('drag-over');
-                });
-                
-                item.addEventListener('drop', function(e) {
-                    e.preventDefault();
-                    this.classList.remove('drag-over');
-                    
-                    if (draggedElement !== this) {
-                        // Get the container
-                        const container = this.parentNode;
-                        const allItems = Array.from(container.querySelectorAll('.route-stop[draggable="true"]'));
-                        
-                        // Find positions
-                        const draggedIndex = allItems.indexOf(draggedElement);
-                        const targetIndex = allItems.indexOf(this);
-                        
-                        // Move the element
-                        if (draggedIndex < targetIndex) {
-                            container.insertBefore(draggedElement, this.nextSibling);
-                        } else {
-                            container.insertBefore(draggedElement, this);
-                        }
-                        
-                        // Update the visual sequence numbers
-                        updateSequenceNumbers(riderId);
-                        
-                        // Show save button and indicator
-                        showSaveButton(riderId);
-                    }
-                });
-            });
-        }
+        // NEW: Route Assignment Functions
         
-        function updateSequenceNumbers(riderId) {
-            const container = document.getElementById(`sortable-${riderId}`);
-            const draggableItems = container.querySelectorAll('.route-stop[draggable="true"]');
-            
-            draggableItems.forEach((item, index) => {
-                const numberElement = item.querySelector('.stop-number');
-                numberElement.textContent = index + 1; // Start from 1 (shop is 0)
-            });
-        }
+        // Enable/disable assign button based on rider selection
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add event listeners to all rider selects
+            <?php foreach ($ROUTES as $routeIndex => $route): ?>
+                document.getElementById('rider-select-<?= $routeIndex ?>').addEventListener('change', function() {
+                    const assignBtn = document.getElementById('assign-btn-<?= $routeIndex ?>');
+                    assignBtn.disabled = this.value === '';
+                });
+            <?php endforeach; ?>
+        });
         
-        function showSaveButton(riderId) {
-            const saveBtn = document.getElementById(`save-btn-${riderId}`);
-            const indicator = document.getElementById(`indicator-${riderId}`);
+        function assignRouteToRider(routeIndex) {
+            const riderSelect = document.getElementById(`rider-select-${routeIndex}`);
+            const riderId = riderSelect.value;
             
-            if (saveBtn) {
-                saveBtn.classList.add('show');
-            }
-            
-            if (indicator) {
-                indicator.classList.add('show');
-            }
-        }
-        
-        function hideSaveButton(riderId) {
-            const saveBtn = document.getElementById(`save-btn-${riderId}`);
-            const indicator = document.getElementById(`indicator-${riderId}`);
-            
-            if (saveBtn) {
-                saveBtn.classList.remove('show');
-            }
-            
-            if (indicator) {
-                indicator.classList.remove('show');
-            }
-        }
-        
-        function saveDeliverySequence(riderId) {
-            const container = document.getElementById(`sortable-${riderId}`);
-            const draggableItems = container.querySelectorAll('.route-stop[draggable="true"]');
-            
-            // Build sequence data
-            const sequenceData = [];
-            draggableItems.forEach((item, index) => {
-                const subscriptionId = item.getAttribute('data-subscription-id');
-                if (subscriptionId) {
-                    sequenceData.push({
-                        subscription_id: subscriptionId,
-                        position: index + 1 // Position starts from 1
-                    });
-                }
-            });
-            
-            if (sequenceData.length === 0) {
+            if (!riderId) {
                 Swal.fire({
                     icon: 'warning',
-                    title: 'No Changes',
-                    text: 'No changes to save'
+                    title: 'No Rider Selected',
+                    text: 'Please select a rider before assigning the route.'
                 });
                 return;
             }
             
-            // Show confirmation
+            // Get rider name for confirmation
+            const riderName = riderSelect.options[riderSelect.selectedIndex].text;
+            
+            // Collect all customers in this route
+            const routeElement = document.getElementById(`route-${routeIndex}`);
+            const customerElements = routeElement.querySelectorAll('.sequence-item[data-customer-data]');
+            
+            const routeCustomers = [];
+            customerElements.forEach(element => {
+                try {
+                    const customerData = JSON.parse(element.getAttribute('data-customer-data'));
+                    routeCustomers.push(customerData);
+                } catch (e) {
+                    console.error('Error parsing customer data:', e);
+                }
+            });
+            
+            if (routeCustomers.length === 0) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'No Customers Found',
+                    text: 'No customers found in this route to assign.'
+                });
+                return;
+            }
+            
+            // Show confirmation dialog
             Swal.fire({
-                title: 'Save Delivery Sequence?',
-                text: `This will save the new delivery order for rider ${riderId}`,
+                title: 'Confirm Route Assignment',
+                html: `
+                    <p>Assign <strong>${routeCustomers.length} customers</strong> to <strong>${riderName}</strong>?</p>
+                    <div style="text-align: left; margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 6px;">
+                        <strong>Customers to assign:</strong><br>
+                        ${routeCustomers.map(customer => `• ${customer.customer_name} (${customer.total_items} items)`).join('<br>')}
+                    </div>
+                `,
                 icon: 'question',
                 showCancelButton: true,
-                confirmButtonText: 'Save Order',
-                cancelButtonText: 'Cancel'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    showLoading();
-                    
-                    fetch('delivery-management.php', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                        },
-                        body: new URLSearchParams({
-                            'action': 'save_delivery_sequence',
-                            'rider_id': riderId,
-                            'sequence_data': JSON.stringify(sequenceData),
-                            'date': window.deliveryData.date
-                        })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        hideLoading();
-                        
-                        if (data.success) {
-                            // Hide save button and indicator
-                            hideSaveButton(riderId);
-                            
-                            // Show success message
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Order Saved!',
-                                text: data.message,
-                                timer: 2000,
-                                showConfirmButton: false
-                            });
-                            
-                            // Optional: Refresh route calculations
-                            // location.reload();
-                            
-                        } else {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Save Failed',
-                                text: data.message
-                            });
-                        }
-                    })
-                    .catch(error => {
-                        hideLoading();
-                        console.error('Error:', error);
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: 'Failed to save delivery sequence'
-                        });
-                    });
-                }
-            });
-        }
-        
-        // Add function to remove rider
-        function removeRider(subscriptionId) {
-            Swal.fire({
-                title: 'Remove Rider Assignment?',
-                text: 'This will unassign the rider from this customer.',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#dc3545',
+                confirmButtonColor: '#28a745',
                 cancelButtonColor: '#6c757d',
-                confirmButtonText: 'Yes, Remove',
+                confirmButtonText: 'Yes, Assign Route',
                 cancelButtonText: 'Cancel'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    showLoading();
-                    
-                    fetch('delivery-management.php', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                        },
-                        body: new URLSearchParams({
-                            'action': 'remove_rider_from_customer',
-                            'subscription_id': subscriptionId
-                        })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        hideLoading();
-                        
-                        if (data.success) {
-                            // Update the UI to show assignment dropdown again
-                            const customerItem = document.querySelector(`[data-subscription-id="${subscriptionId}"]`);
-                            const actionsDiv = customerItem.querySelector('.customer-actions');
-                            
-                            const riderOptions = window.deliveryData.riders.map(rider => 
-                                `<option value="${rider.id}">${rider.first_name} ${rider.last_name} (${rider.current_orders} orders)</option>`
-                            ).join('');
-                            
-                            actionsDiv.innerHTML = `
-                                <select class="rider-select" onchange="assignRider(this, '${subscriptionId}')">
-                                    <option value="">Assign Rider</option>
-                                    ${riderOptions}
-                                </select>
-                            `;
-                            
-                            // Show success message
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Rider Removed',
-                                text: data.message,
-                                timer: 2000,
-                                showConfirmButton: false
-                            }).then(() => {
-                                // Refresh the page to update rider routes
-                                location.reload();
-                            });
-                            
-                        } else {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Removal Failed',
-                                text: data.message
-                            });
-                        }
-                    })
-                    .catch(error => {
-                        hideLoading();
-                        console.error('Error:', error);
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: 'Failed to remove rider assignment'
-                        });
-                    });
+                    performRouteAssignment(routeIndex, riderId, routeCustomers, riderName);
                 }
             });
         }
         
-        function showLoading() {
+        function performRouteAssignment(routeIndex, riderId, routeCustomers, riderName) {
+            // Show loading overlay
             document.getElementById('loadingOverlay').style.display = 'flex';
-        }
-
-        function hideLoading() {
-            document.getElementById('loadingOverlay').style.display = 'none';
+            
+            // Prepare the data for the API call
+            const formData = new FormData();
+            formData.append('action', 'assign_route_to_rider');
+            formData.append('rider_id', riderId);
+            formData.append('route_customers', JSON.stringify(routeCustomers));
+            
+            fetch(window.location.href, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Hide loading overlay
+                document.getElementById('loadingOverlay').style.display = 'none';
+                
+                if (data.success) {
+                    // Show success message
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Route Assigned Successfully!',
+                        text: data.message,
+                        timer: 3000,
+                        showConfirmButton: false
+                    }).then(() => {
+                        // Disable the assignment controls for this route
+                        const riderSelect = document.getElementById(`rider-select-${routeIndex}`);
+                        const assignBtn = document.getElementById(`assign-btn-${routeIndex}`);
+                        const assignmentDiv = riderSelect.closest('.route-assignment');
+                        
+                        // Update the assignment section to show completion
+                        assignmentDiv.innerHTML = `
+                            <div class="assignment-header">
+                                <h4 style="color: #28a745;"><i class="fas fa-check-circle"></i> Route Assigned Successfully</h4>
+                                <div class="assignment-info" style="color: #28a745;">
+                                    All ${routeCustomers.length} customers assigned to ${riderName}
+                                </div>
+                            </div>
+                            <div style="background: #d4edda; padding: 10px; border-radius: 6px; color: #155724;">
+                                <strong>✅ Assignment Complete:</strong> ${data.assignments_made} subscriptions updated
+                            </div>
+                        `;
+                    });
+                } else {
+                    // Show error message
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Assignment Failed',
+                        text: data.message
+                    });
+                }
+            })
+            .catch(error => {
+                // Hide loading overlay
+                document.getElementById('loadingOverlay').style.display = 'none';
+                
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Network Error',
+                    text: 'Failed to assign route. Please check your connection and try again.'
+                });
+            });
         }
     </script>
-    <script src="js/delivery-management.js"></script>
 </body>
 </html>

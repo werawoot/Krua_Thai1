@@ -623,7 +623,7 @@ function getPlanDescription($plan) {
             position: absolute;
             top: 1.5rem;
             right: 1.5rem;
-            background: var(--success);
+            background: #adb89d;
             color: var(--white); /* LEVEL 1: White */
             width: 2.5rem;
             height: 2.5rem;
@@ -953,13 +953,13 @@ function getPlanDescription($plan) {
                 ?>
                 <div class="plan-card<?php echo $isPopular ? ' selected' : ''; ?>">
                     <div class="plan-name"><?php echo htmlspecialchars(getPlanName($plan)); ?></div>
-                    <div class="plan-info"><?php echo $plan['meals_per_week']; ?> meals per week</div>
+                    <div class="plan-info"><?php echo $plan['meals_per_week']; ?> meals</div>
                     <div class="plan-price">
-                        <span class="currency">$</span><?php echo number_format($plan['final_price'], 2); ?>
+                        <span class="currency">$</span><?php echo number_format($pricePerMeal, 2); ?>
                     </div>
-                    <div class="plan-period">per week</div>
+                    <div class="plan-period">per meal</div>
                     <div class="price-per-meal">
-                        <span class="highlight">$<?php echo number_format($pricePerMeal, 2); ?> per meal</span>
+                        <span class="highlight">$<?php echo number_format($plan['final_price'], 2); ?> in total</span>
                     </div>
                     <div class="plan-desc"><?php echo htmlspecialchars(getPlanDescription($plan)); ?></div>
                     
