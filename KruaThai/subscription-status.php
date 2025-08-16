@@ -364,264 +364,18 @@ function getDayName($day) {
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     
     <style>
-        /* BaticaSans Font Import - Matching home2.php */
-        @font-face {
-            font-family: 'BaticaSans';
-            src: url('./Font/BaticaSans-Regular.woff2') format('woff2'),
-                url('./Font/BaticaSans-Regular.woff') format('woff'),
-                url('./Font/BaticaSans-Regular.ttf') format('truetype');
-            font-weight: 400;
-            font-style: normal;
-            font-display: swap;
-        }
-
-        @font-face {
-            font-family: 'BaticaSans';
-            src: url('./Font/BaticaSans-Italic.woff2') format('woff2'),
-                url('./Font/BaticaSans-Italic.woff') format('woff'),
-                url('./Font/BaticaSans-Italic.ttf') format('truetype');
-            font-weight: 400;
-            font-style: italic;
-            font-display: swap;
-        }
-
-        /* Fallback for bold/medium weights - browser will simulate them */
-        @font-face {
-            font-family: 'BaticaSans';
-            src: url('./Font/BaticaSans-Regular.woff2') format('woff2'),
-                url('./Font/BaticaSans-Regular.woff') format('woff'),
-                url('./Font/BaticaSans-Regular.ttf') format('truetype');
-            font-weight: 500;
-            font-style: normal;
-            font-display: swap;
-        }
-
-        @font-face {
-            font-family: 'BaticaSans';
-            src: url('./Font/BaticaSans-Regular.woff2') format('woff2'),
-                url('./Font/BaticaSans-Regular.woff') format('woff'),
-                url('./Font/BaticaSans-Regular.ttf') format('truetype');
-            font-weight: 700;
-            font-style: normal;
-            font-display: swap;
-        }
-
-        /* IMPROVED CSS Custom Properties for Somdul Table Design System - COLOR HIERARCHY ONLY */
-        :root {
-            /* LEVEL 1 (MOST IMPORTANT): BROWN #bd9379 + WHITE */
-            --brown: #bd9379;
-            --white: #ffffff;
-            
-            /* LEVEL 2 (SECONDARY): CREAM #ece8e1 */
-            --cream: #ece8e1;
-            
-            /* LEVEL 3 (SUPPORTING): SAGE #adb89d */
-            --sage: #adb89d;
-            
-            /* LEVEL 4 (ACCENT/CONTRAST - LEAST USED): CURRY #cf723a */
-            --curry: #cf723a;
-            
-            /* Text colors using brown hierarchy */
-            --text-dark: #2c3e50;
-            --text-gray: #7f8c8d;
-            --border-light: #d4c4b8; /* Brown-tinted border */
-            
-            /* Shadows using brown as base (Level 1) */
-            --shadow-soft: 0 4px 12px rgba(189, 147, 121, 0.15);
-            --shadow-medium: 0 8px 24px rgba(189, 147, 121, 0.25);
-            --shadow-large: 0 16px 48px rgba(189, 147, 121, 0.35);
-            --radius-sm: 8px;
-            --radius-md: 12px;
-            --radius-lg: 16px;
-            --radius-xl: 24px;
-            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            --transition-mobile: all 0.2s ease;
-            --success: #27ae60;
-            --danger: #e74c3c;
-            --warning: #f39c12;
-            --info: #3498db;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'BaticaSans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            line-height: 1.6;
-            color: var(--text-dark);
-            background: linear-gradient(135deg, var(--cream) 0%, #f8f9fa 100%);
-            font-weight: 400;
-            min-height: 100vh;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-        }
-
-        /* Typography using BaticaSans - LEVEL 1: Brown for headings */
-        h1, h2, h3, h4, h5, h6 {
-            font-family: 'BaticaSans', sans-serif;
-            font-weight: 700;
-            line-height: 1.2;
-            color: var(--brown); /* LEVEL 1: Brown instead of text-dark */
-        }
-
-        /* Navigation - Matching home2.php */
-        .navbar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            background: var(--cream); /* LEVEL 2: Cream background */
-            backdrop-filter: blur(10px);
-            z-index: 1000;
-            transition: var(--transition);
-            box-shadow: var(--shadow-soft);
-        }
-
-        .navbar, .navbar * {
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 100%;
-        }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 0.8rem;
-            text-decoration: none;
-            color: var(--brown); /* LEVEL 1: Brown */
-        }
-
-        .logo-icon {
-            width: 45px;
-            height: 45px;
-            background: var(--brown); /* LEVEL 1: Solid brown instead of gradient */
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--white); /* LEVEL 1: White text */
-            font-size: 1.5rem;
-            font-family: 'BaticaSans', sans-serif;
-            font-weight: 700;
-        }
-
-        .logo-text {
-            font-size: 1.8rem;
-            font-weight: 800;
-            color: var(--brown); /* LEVEL 1: Brown */
-            font-family: 'BaticaSans', sans-serif;
-        }
-
-        .nav-links {
-            display: flex;
-            list-style: none;
-            gap: 2rem;
-            align-items: center;
-        }
-
-        .nav-links a {
-            text-decoration: none;
-            color: var(--text-gray);
-            font-weight: 500;
-            font-family: 'BaticaSans', sans-serif;
-            transition: var(--transition);
-        }
-
-        .nav-links a:hover {
-            color: var(--brown); /* LEVEL 1: Brown hover */
-        }
-
-        .nav-actions {
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-        }
-
-        .btn {
-            padding: 0.8rem 1.5rem;
-            border: none;
-            border-radius: 50px;
-            font-weight: 600;
-            font-family: 'BaticaSans', sans-serif;
-            text-decoration: none;
-            cursor: pointer;
-            transition: var(--transition);
-            font-size: 0.95rem;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .btn-primary {
-            background: var(--brown); /* LEVEL 1: Brown primary */
-            color: var(--white); /* LEVEL 1: White text */
-            box-shadow: var(--shadow-soft);
-        }
-
-        .btn-primary:hover {
-            background: #a8855f; /* Darker brown on hover */
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-medium);
-        }
-
-        .btn-secondary {
-            background: transparent;
-            color: var(--brown); /* LEVEL 1: Brown */
-            border: 2px solid var(--brown); /* LEVEL 1: Brown border */
-        }
-
-        .btn-secondary:hover {
-            background: var(--brown); /* LEVEL 1: Brown */
-            color: var(--white); /* LEVEL 1: White */
-        }
-
-        /* Profile Icon Styles */
-        .profile-link {
-            text-decoration: none;
-            transition: var(--transition);
-        }
-
-        .profile-icon {
-            width: 45px;
-            height: 45px;
-            background: var(--brown); /* LEVEL 1: Brown */
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--white); /* LEVEL 1: White */
-            transition: var(--transition);
-            box-shadow: var(--shadow-soft);
-        }
-
-        .profile-icon:hover {
-            background: #a8855f; /* Darker brown on hover */
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-medium);
-        }
-
-        .profile-icon svg {
-            width: 24px;
-            height: 24px;
-        }
-
-        /* Main Content */
+        /* Page-Specific Styles (header.php handles fonts, variables, navbar) */
+        
+        /* Container */
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 6rem 2rem 4rem; /* Added top padding for fixed navbar */
+            padding: 0 20px;
+        }
+
+        .main-content {
+            padding-top: 2rem;
+            min-height: calc(100vh - 200px);
         }
 
         /* Page Title */
@@ -631,12 +385,12 @@ function getDayName($day) {
             font-family: 'BaticaSans', sans-serif;
             text-align: center;
             margin-bottom: 2rem;
-            margin-top:4rem;
-            color: var(--brown); /* LEVEL 1: Brown title */
+            margin-top: 4rem;
+            color: var(--brown);
         }
 
         .page-title i {
-            color: var(--curry); /* LEVEL 4: Curry accent */
+            color: var(--curry);
             margin-right: 0.5rem;
         }
 
@@ -675,7 +429,7 @@ function getDayName($day) {
 
         /* Main Content Card */
         .main-card {
-            background: var(--white); /* LEVEL 1: White background */
+            background: var(--white);
             border-radius: var(--radius-xl);
             box-shadow: var(--shadow-medium);
             overflow: hidden;
@@ -703,14 +457,14 @@ function getDayName($day) {
             font-size: 1.5rem;
             font-weight: 700;
             font-family: 'BaticaSans', sans-serif;
-            color: var(--brown); /* LEVEL 1: Brown title */
+            color: var(--brown);
             display: flex;
             align-items: center;
             gap: 0.5rem;
         }
 
         .card-title i {
-            color: var(--curry); /* LEVEL 4: Curry accent */
+            color: var(--curry);
         }
 
         /* Table Styles */
@@ -734,8 +488,8 @@ function getDayName($day) {
         }
 
         th {
-            background: var(--cream); /* LEVEL 2: Cream background */
-            color: var(--brown); /* LEVEL 1: Brown text */
+            background: var(--cream);
+            color: var(--brown);
             font-weight: 700;
             font-size: 0.9rem;
             font-family: 'BaticaSans', sans-serif;
@@ -758,7 +512,7 @@ function getDayName($day) {
         }
 
         tbody tr:hover {
-            background: rgba(189, 147, 121, 0.02); /* LEVEL 1: Light brown hover */
+            background: rgba(189, 147, 121, 0.02);
         }
 
         /* Status Badges */
@@ -833,7 +587,7 @@ function getDayName($day) {
         }
 
         .btn-action {
-            background: var(--white); /* LEVEL 1: White background */
+            background: var(--white);
             border: 1px solid var(--border-light);
             padding: 0.7rem 1.2rem;
             border-radius: var(--radius-md);
@@ -856,8 +610,8 @@ function getDayName($day) {
         }
 
         .btn-action:hover {
-            background: var(--cream); /* LEVEL 2: Cream hover */
-            border-color: var(--brown); /* LEVEL 1: Brown border */
+            background: var(--cream);
+            border-color: var(--brown);
             transform: translateY(-1px);
             box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
         }
@@ -867,7 +621,7 @@ function getDayName($day) {
         }
 
         .btn-view {
-            border-color: var(--sage); /* LEVEL 3: Sage */
+            border-color: var(--sage);
             color: var(--sage);
         }
 
@@ -889,7 +643,7 @@ function getDayName($day) {
         }
 
         .btn-cancel {
-            border-color: var(--brown); /* LEVEL 1: Brown */
+            border-color: var(--brown);
             color: var(--brown);
         }
 
@@ -912,7 +666,7 @@ function getDayName($day) {
         }
 
         .btn-disabled {
-            background: var(--cream); /* LEVEL 2: Cream */
+            background: var(--cream);
             border-color: var(--border-light);
             color: var(--text-gray);
             cursor: not-allowed;
@@ -947,7 +701,7 @@ function getDayName($day) {
         }
 
         .modal-content {
-            background: var(--white); /* LEVEL 1: White */
+            background: var(--white);
             border-radius: var(--radius-xl);
             padding: 0;
             width: 90%;
@@ -968,8 +722,8 @@ function getDayName($day) {
         }
 
         .modal-header {
-            background: linear-gradient(135deg, var(--curry), var(--brown)); /* LEVEL 4 & 1: Curry to brown */
-            color: var(--white); /* LEVEL 1: White */
+            background: linear-gradient(135deg, var(--curry), var(--brown));
+            color: var(--white);
             padding: 1.5rem 2rem;
             display: flex;
             justify-content: space-between;
@@ -987,7 +741,7 @@ function getDayName($day) {
         .modal-close {
             background: none;
             border: none;
-            color: var(--white); /* LEVEL 1: White */
+            color: var(--white);
             font-size: 1.5rem;
             cursor: pointer;
             padding: 0.5rem;
@@ -1034,7 +788,7 @@ function getDayName($day) {
             text-align: center;
             position: relative;
             z-index: 2;
-            background: var(--white); /* LEVEL 1: White */
+            background: var(--white);
             padding: 0.5rem;
             border-radius: var(--radius-md);
             min-width: 80px;
@@ -1050,7 +804,7 @@ function getDayName($day) {
             font-size: 1.5rem;
             margin-bottom: 0.5rem;
             border: 3px solid var(--border-light);
-            background: var(--cream); /* LEVEL 2: Cream */
+            background: var(--cream);
             color: var(--text-gray);
             transition: var(--transition);
         }
@@ -1066,7 +820,7 @@ function getDayName($day) {
         .progress-step-modal.completed .step-icon {
             background: var(--success);
             border-color: var(--success);
-            color: var(--white); /* LEVEL 1: White */
+            color: var(--white);
         }
 
         .progress-step-modal.completed .step-label {
@@ -1074,9 +828,9 @@ function getDayName($day) {
         }
 
         .progress-step-modal.active .step-icon {
-            background: var(--curry); /* LEVEL 4: Curry accent */
+            background: var(--curry);
             border-color: var(--curry);
-            color: var(--white); /* LEVEL 1: White */
+            color: var(--white);
             animation: pulse 2s infinite;
         }
 
@@ -1131,14 +885,14 @@ function getDayName($day) {
             font-family: 'BaticaSans', sans-serif;
             font-size: 0.9rem;
             transition: var(--transition);
-            background: var(--white); /* LEVEL 1: White */
+            background: var(--white);
             color: var(--text-dark);
             touch-action: manipulation;
         }
 
         .form-control:focus {
             outline: none;
-            border-color: var(--brown); /* LEVEL 1: Brown focus */
+            border-color: var(--brown);
             box-shadow: 0 0 0 2px rgba(189, 147, 121, 0.1);
         }
 
@@ -1155,8 +909,8 @@ function getDayName($day) {
         }
 
         .btn-submit {
-            background: var(--brown); /* LEVEL 1: Brown */
-            color: var(--white); /* LEVEL 1: White */
+            background: var(--brown);
+            color: var(--white);
             border: none;
             padding: 0.8rem 1.5rem;
             border-radius: var(--radius-md);
@@ -1169,12 +923,12 @@ function getDayName($day) {
         }
 
         .btn-submit:hover {
-            background: #a8855f; /* Darker brown */
+            background: #a8855f;
             transform: translateY(-1px);
         }
 
         .btn-cancel-form {
-            background: var(--cream); /* LEVEL 2: Cream */
+            background: var(--cream);
             color: var(--text-dark);
             border: 1px solid var(--border-light);
             padding: 0.8rem 1.5rem;
@@ -1195,7 +949,7 @@ function getDayName($day) {
         .rating-section {
             text-align: center;
             padding: 1.5rem;
-            background: linear-gradient(135deg, rgba(189, 147, 121, 0.05), rgba(173, 184, 157, 0.05)); /* LEVEL 1 & 3: Brown and sage */
+            background: linear-gradient(135deg, rgba(189, 147, 121, 0.05), rgba(173, 184, 157, 0.05));
             border-radius: var(--radius-md);
             border: 1px solid var(--border-light);
         }
@@ -1204,7 +958,7 @@ function getDayName($day) {
             font-size: 1.2rem;
             font-weight: 700;
             font-family: 'BaticaSans', sans-serif;
-            color: var(--brown); /* LEVEL 1: Brown */
+            color: var(--brown);
             margin-bottom: 1rem;
         }
 
@@ -1244,16 +998,16 @@ function getDayName($day) {
         .rating-text {
             font-size: 1rem;
             font-weight: 600;
-            color: var(--brown); /* LEVEL 1: Brown */
+            color: var(--brown);
             margin-top: 0.5rem;
             min-height: 1.5rem;
         }
 
         .review-tips {
-            background: var(--cream); /* LEVEL 2: Cream */
+            background: var(--cream);
             padding: 1rem;
             border-radius: var(--radius-sm);
-            border-left: 4px solid var(--brown); /* LEVEL 1: Brown */
+            border-left: 4px solid var(--brown);
             font-size: 0.85rem;
             color: var(--text-gray);
             line-height: 1.5;
@@ -1274,7 +1028,7 @@ function getDayName($day) {
             font-size: 1.1rem;
             font-weight: 700;
             font-family: 'BaticaSans', sans-serif;
-            color: var(--brown); /* LEVEL 1: Brown */
+            color: var(--brown);
             margin-bottom: 1rem;
             display: flex;
             align-items: center;
@@ -1288,7 +1042,7 @@ function getDayName($day) {
         }
 
         .detail-item {
-            background: var(--cream); /* LEVEL 2: Cream */
+            background: var(--cream);
             padding: 1rem;
             border-radius: var(--radius-md);
             border: 1px solid var(--border-light);
@@ -1319,8 +1073,8 @@ function getDayName($day) {
         }
 
         .delivery-day-tag {
-            background: var(--brown); /* LEVEL 1: Brown */
-            color: var(--white); /* LEVEL 1: White */
+            background: var(--brown);
+            color: var(--white);
             padding: 0.3rem 0.8rem;
             border-radius: var(--radius-lg);
             font-size: 0.8rem;
@@ -1337,7 +1091,7 @@ function getDayName($day) {
         }
 
         .menu-card {
-            background: var(--white); /* LEVEL 1: White */
+            background: var(--white);
             border-radius: var(--radius-lg);
             overflow: hidden;
             box-shadow: var(--shadow-soft);
@@ -1355,7 +1109,7 @@ function getDayName($day) {
             width: 100%;
             height: 150px;
             object-fit: cover;
-            background: linear-gradient(135deg, var(--cream), var(--sage)); /* LEVEL 2 & 3: Cream to sage */
+            background: linear-gradient(135deg, var(--cream), var(--sage));
         }
 
         .menu-content {
@@ -1378,8 +1132,8 @@ function getDayName($day) {
         }
 
         .menu-category {
-            background: var(--sage); /* LEVEL 3: Sage */
-            color: var(--white); /* LEVEL 1: White */
+            background: var(--sage);
+            color: var(--white);
             padding: 0.2rem 0.6rem;
             border-radius: var(--radius-sm);
             font-size: 0.75rem;
@@ -1403,13 +1157,13 @@ function getDayName($day) {
         .menu-price {
             font-weight: 700;
             font-family: 'BaticaSans', sans-serif;
-            color: var(--curry); /* LEVEL 4: Curry accent */
+            color: var(--curry);
             font-size: 1.1rem;
         }
 
         .menu-day {
-            background: var(--curry); /* LEVEL 4: Curry accent */
-            color: var(--white); /* LEVEL 1: White */
+            background: var(--curry);
+            color: var(--white);
             padding: 0.3rem 0.8rem;
             border-radius: var(--radius-lg);
             font-size: 0.8rem;
@@ -1431,13 +1185,13 @@ function getDayName($day) {
             font-size: 4rem;
             margin-bottom: 1.5rem;
             opacity: 0.3;
-            color: var(--sage); /* LEVEL 3: Sage */
+            color: var(--sage);
         }
 
         .empty-state h3 {
             font-size: 1.5rem;
             margin-bottom: 1rem;
-            color: var(--brown); /* LEVEL 1: Brown */
+            color: var(--brown);
             font-family: 'BaticaSans', sans-serif;
             font-weight: 700;
         }
@@ -1449,9 +1203,9 @@ function getDayName($day) {
         }
 
         .empty-state .btn {
-            background: var(--white); /* LEVEL 1: White */
-            color: var(--brown); /* LEVEL 1: Brown */
-            border: 2px solid var(--brown); /* LEVEL 1: Brown border */
+            background: var(--white);
+            color: var(--brown);
+            border: 2px solid var(--brown);
             padding: 1rem 2rem;
             border-radius: var(--radius-lg);
             text-decoration: none;
@@ -1467,8 +1221,8 @@ function getDayName($day) {
         }
 
         .empty-state .btn:hover {
-            background: var(--brown); /* LEVEL 1: Brown */
-            color: var(--white); /* LEVEL 1: White */
+            background: var(--brown);
+            color: var(--white);
             transform: translateY(-1px);
             box-shadow: 0 2px 6px rgba(189, 147, 121, 0.2);
         }
@@ -1477,11 +1231,11 @@ function getDayName($day) {
         .bottom-nav {
             padding: 2rem;
             border-top: 1px solid var(--border-light);
-            background: var(--cream); /* LEVEL 2: Cream */
+            background: var(--cream);
         }
 
         .back-link {
-            color: var(--brown); /* LEVEL 1: Brown */
+            color: var(--brown);
             text-decoration: none;
             font-weight: 600;
             font-family: 'BaticaSans', sans-serif;
@@ -1495,7 +1249,7 @@ function getDayName($day) {
         }
 
         .back-link:hover {
-            color: var(--curry); /* LEVEL 4: Curry accent on hover */
+            color: var(--curry);
             transform: translateX(-3px);
             background: rgba(189, 147, 121, 0.1);
         }
@@ -1504,14 +1258,14 @@ function getDayName($day) {
         .price {
             font-weight: 700;
             font-family: 'BaticaSans', sans-serif;
-            color: var(--curry); /* LEVEL 4: Curry accent */
+            color: var(--curry);
             font-size: 1.1rem;
         }
 
         .plan-name {
             font-weight: 700;
             font-family: 'BaticaSans', sans-serif;
-            color: var(--brown); /* LEVEL 1: Brown */
+            color: var(--brown);
         }
 
         /* Animations */
@@ -1529,11 +1283,7 @@ function getDayName($day) {
         /* Responsive Design */
         @media (max-width: 768px) {
             .container {
-                padding: 5rem 1rem 3rem; /* Adjusted for mobile */
-            }
-
-            .nav-links {
-                display: none;
+                padding: 0 15px;
             }
 
             .page-title {
@@ -1615,7 +1365,7 @@ function getDayName($day) {
 
         @media (max-width: 480px) {
             .container {
-                padding: 4.5rem 0.5rem 2rem;
+                padding: 0 10px;
             }
 
             .page-title {
@@ -1652,257 +1402,228 @@ function getDayName($day) {
             }
         }
 
-/* Quantity Badge for Menu Cards */
-.menu-quantity {
-    position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
-    background: var(--curry);
-    color: var(--white);
-    border-radius: 50%;
-    width: 30px;
-    height: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    font-size: 0.9rem;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    z-index: 10;
-    font-family: 'BaticaSans', sans-serif;
-}
+        /* Quantity Badge for Menu Cards */
+        .menu-quantity {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: var(--curry);
+            color: var(--white);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            z-index: 10;
+            font-family: 'BaticaSans', sans-serif;
+        }
 
-/* Quantity text in menu name */
-.menu-name .quantity-text {
-    color: var(--curry);
-    font-weight: 700;
-    margin-left: 0.5rem;
-    font-size: 0.95rem;
-}
+        /* Quantity text in menu name */
+        .menu-name .quantity-text {
+            color: var(--curry);
+            font-weight: 700;
+            margin-left: 0.5rem;
+            font-size: 0.95rem;
+        }
     </style>
 </head>
-<body>
-    <!-- Navigation - Matching home2.php -->
-    <nav class="navbar">
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem; max-width: 1200px; margin: 0 auto; width: 100%;">
-            <a href="home2.php" class="logo">
-                <img src="./assets/image/LOGO_BG2.png" alt="Somdul Table" style="height: 80px; width: auto;">
-            </a>
+<body class="has-header">
+    <!-- Include Header - This handles all navigation, fonts, and mobile menu -->
+    <?php include 'header.php'; ?>
 
-            <ul class="nav-links">
-                <li><a href="./menus.php">Menu</a></li>
-                <li><a href="./meal-kits.php">Meal-Kits</a></li>
-                <li><a href="./home2.php#how-it-works">How It Works</a></li>
-                <li><a href="./blogs.php">About</a></li>
-                <li><a href="./contact.php">Contact</a></li>
-            </ul>
-            
-            <div class="nav-actions">
-                <?php if (isset($_SESSION['user_id'])): ?>
-                    <!-- User is logged in - show profile icon -->
-                    <a href="dashboard.php" class="profile-link" title="Go to Dashboard">
-                        <div class="profile-icon">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="12" cy="7" r="4"></circle>
-                            </svg>
-                        </div>
-                    </a>
-                <?php else: ?>
-                    <!-- User is not logged in - show sign in button -->
-                    <a href="login.php" class="btn btn-secondary">Sign In</a>
-                <?php endif; ?>
-                <a href="subscribe.php" class="btn btn-primary">Get Started</a>
-            </div>
-        </div>
-    </nav>
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            <!-- Page Title -->
+            <h1 class="page-title">
+                <i class="fas fa-clipboard-list"></i>
+                Order Status
+            </h1>
 
-    <div class="container">
-        <!-- Page Title -->
-        <h1 class="page-title">
-            <i class="fas fa-clipboard-list"></i>
-            Order Status
-        </h1>
-
-        <!-- Flash Messages -->
-        <?php if (isset($_SESSION['flash_message'])): ?>
-            <div class="flash-message <?php echo $_SESSION['flash_type']; ?>">
-                <i class="fas fa-<?php echo $_SESSION['flash_type'] === 'success' ? 'check-circle' : 'exclamation-circle'; ?>"></i>
-                <?php echo htmlspecialchars($_SESSION['flash_message']); ?>
-            </div>
-            <?php unset($_SESSION['flash_message'], $_SESSION['flash_type']); ?>
-        <?php endif; ?>
-
-        <!-- Main Content -->
-        <div class="main-card">
-            <div class="card-header">
-                <h2 class="card-title">
-                    <i class="fas fa-list-alt"></i>
-                    Your Order Plans
-                </h2>
-            </div>
-
-            <?php if (empty($subs)): ?>
-                <div class="empty-state">
-                    <i class="fas fa-inbox"></i>
-                    <h3>No Order Plans Yet</h3>
-                    <p>Start your healthy eating journey with authentic Thai food</p>
-                    <a href="subscribe.php" class="btn">
-                        <i class="fas fa-plus"></i>
-                        Order Your First Plan
-                    </a>
+            <!-- Flash Messages -->
+            <?php if (isset($_SESSION['flash_message'])): ?>
+                <div class="flash-message <?php echo $_SESSION['flash_type']; ?>">
+                    <i class="fas fa-<?php echo $_SESSION['flash_type'] === 'success' ? 'check-circle' : 'exclamation-circle'; ?>"></i>
+                    <?php echo htmlspecialchars($_SESSION['flash_message']); ?>
                 </div>
-            <?php else: ?>
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th><i class="fas fa-box"></i> Plan</th>
-                                <th><i class="fas fa-utensils"></i> Meals</th>
-                                <th><i class="fas fa-money-bill"></i> Price</th>
-                                <th><i class="fas fa-truck"></i> Order Status</th>
-                                <th><i class="fas fa-info-circle"></i> Status</th>
-                                <th><i class="fas fa-calendar-alt"></i> Delivery Date</th>
-                                <th><i class="fas fa-cogs"></i> Manage</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($subs as $sub): ?>
-                            <tr>
-                                <td>
-                                    <span class="plan-name"><?= htmlspecialchars($sub['plan_name']) ?></span>
-                                </td>
-                                <td><?= $sub['meals_per_week'] ?> meals/week</td>
-                                <td>
-                                    <span class="price">$<?= number_format($sub['final_price'], 2) ?></span>
-                                    <span style="color: var(--text-gray); font-size: 0.9rem;">
-                                        /<?= $sub['plan_type'] === 'weekly' ? 'week' : 'month' ?>
-                                    </span>
-                                </td>
-                                <td>
-                                    <div class="order-status-badge" style="
-                                        display: inline-flex; 
-                                        align-items: center; 
-                                        gap: 0.5rem;
-                                        background: <?= $sub['status_display']['color'] ?>15;
-                                        color: <?= $sub['status_display']['color'] ?>;
-                                        padding: 0.5rem 1rem;
-                                        border-radius: 20px;
-                                        border: 1px solid <?= $sub['status_display']['color'] ?>;
-                                        font-size: 0.85rem;
-                                        font-weight: 600;
-                                    ">
-                                        <span><?= $sub['status_display']['icon'] ?></span>
-                                        <span><?= $sub['status_display']['label'] ?></span>
-                                    </div>
-                                    <small style="display: block; margin-top: 0.3rem; color: var(--text-gray);">
-                                        <?= $sub['status_display']['description'] ?>
-                                    </small>
-                                </td>
-                                <td>
-                                    <span class="status <?= $sub['status'] ?>"><?= getStatusText($sub['status']) ?></span>
-                                </td>
-                                <td><?= htmlspecialchars($sub['start_date']) ?></td>
-                                <td>
-                                    <div class="action-buttons">
-                                        <!-- View Details Button -->
-                                        <button onclick="viewDetails('<?= htmlspecialchars($sub['id']) ?>')" class="btn-action btn-view">
-                                            <i class="fas fa-eye"></i> View Details
-                                        </button>
-
-                                        <?php if (($sub['status'] === 'active' || $sub['status'] === 'completed') && !$sub['has_review']): ?>
-                                        <button onclick="openReviewModal('<?= htmlspecialchars($sub['id']) ?>', '<?= htmlspecialchars($sub['plan_name']) ?>')" class="btn-action btn-review">
-                                            <i class="fas fa-star"></i> Review
-                                        </button>
-                                        <?php elseif ($sub['has_review']): ?>
-                                        <button disabled class="btn-action btn-disabled">
-                                            <i class="fas fa-check"></i> Reviewed
-                                        </button>
-                                        <?php endif; ?>
-                                        
-                                        <!-- Complain Button -->
-                                        <button onclick="openComplaintModal('<?= htmlspecialchars($sub['id']) ?>', '<?= htmlspecialchars($sub['plan_name']) ?>')" class="btn-action btn-complain">
-                                            <i class="fas fa-exclamation-triangle"></i> Complain
-                                        </button>
-                                        
-                                        <!-- Management Buttons -->
-                                        <form method="post" style="display: contents;">
-                                            <input type="hidden" name="id" value="<?= htmlspecialchars($sub['id']) ?>">
-                                            <?php if ($sub['status'] === 'active'): ?>
-                                                <?php
-                                                // Check if subscription can be cancelled
-                                                $canCancelSubscription = true;
-                                                $blockingReason = '';
-                                                
-                                                // Check delivery_date from subscription_menus
-                                                $stmt = $pdo->prepare("
-                                                    SELECT delivery_date,
-                                                           CASE 
-                                                               WHEN DAYOFWEEK(delivery_date) = 4 THEN 
-                                                                   DATE_FORMAT(DATE_SUB(delivery_date, INTERVAL 2 DAY), '%Y-%m-%d 08:00:00')
-                                                               WHEN DAYOFWEEK(delivery_date) = 7 THEN 
-                                                                   DATE_FORMAT(DATE_SUB(delivery_date, INTERVAL 2 DAY), '%Y-%m-%d 08:00:00')
-                                                               ELSE NULL 
-                                                           END as cutoff_time
-                                                    FROM subscription_menus 
-                                                    WHERE subscription_id = ? 
-                                                    AND delivery_date >= CURDATE() 
-                                                    ORDER BY delivery_date ASC 
-                                                    LIMIT 1
-                                                ");
-                                                $stmt->execute([$sub['id']]);
-                                                $nextDelivery = $stmt->fetch(PDO::FETCH_ASSOC);
-                                                
-                                                if ($nextDelivery && $nextDelivery['cutoff_time']) {
-                                                    $now = new DateTime('now', new DateTimeZone('Asia/Bangkok'));
-                                                    $cutoff = new DateTime($nextDelivery['cutoff_time'], new DateTimeZone('Asia/Bangkok'));
-                                                    
-                                                    if ($now > $cutoff) {
-                                                        $canCancelSubscription = false;
-                                                        $blockingReason = 'Next delivery (' . date('M j', strtotime($nextDelivery['delivery_date'])) . ') past cutoff time';
-                                                    }
-                                                }
-                                                ?>
-                                                
-                                                <?php if ($canCancelSubscription): ?>
-                                                    <button name="action" value="cancel" class="btn-action btn-cancel" 
-                                                            onclick="return confirm('Are you sure you want to cancel this subscription?')">
-                                                        <i class="fas fa-times"></i> Cancel
-                                                    </button>
-                                                <?php else: ?>
-                                                    <button disabled class="btn-action btn-disabled" 
-                                                            title="<?= $blockingReason ?>">
-                                                        <i class="fas fa-ban"></i> Cannot Cancel
-                                                    </button>
-                                                    <small style="color: #999; font-size: 0.8em; display: block; margin-top: 0.3rem;">
-                                                        <?= $blockingReason ?>
-                                                    </small>
-                                                <?php endif; ?>
-                                            
-                                                
-                                            <?php else: ?>
-                                                <button disabled class="btn-action btn-disabled">
-                                                    <i class="fas fa-ban"></i> Cannot Manage
-                                                </button>
-                                            <?php endif; ?>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
+                <?php unset($_SESSION['flash_message'], $_SESSION['flash_type']); ?>
             <?php endif; ?>
-            
-            <div class="bottom-nav">
-                <a href="dashboard.php" class="back-link">
-                    <i class="fas fa-arrow-left"></i>
-                    Back to Dashboard
-                </a>
+
+            <!-- Main Content -->
+            <div class="main-card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <i class="fas fa-list-alt"></i>
+                        Your Order Plans
+                    </h2>
+                </div>
+
+                <?php if (empty($subs)): ?>
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <h3>No Order Plans Yet</h3>
+                        <p>Start your healthy eating journey with authentic Thai food</p>
+                        <a href="subscribe.php" class="btn">
+                            <i class="fas fa-plus"></i>
+                            Order Your First Plan
+                        </a>
+                    </div>
+                <?php else: ?>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th><i class="fas fa-box"></i> Plan</th>
+                                    <th><i class="fas fa-utensils"></i> Meals</th>
+                                    <th><i class="fas fa-money-bill"></i> Price</th>
+                                    <th><i class="fas fa-truck"></i> Order Status</th>
+                                    <th><i class="fas fa-info-circle"></i> Status</th>
+                                    <th><i class="fas fa-calendar-alt"></i> Delivery Date</th>
+                                    <th><i class="fas fa-cogs"></i> Manage</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($subs as $sub): ?>
+                                <tr>
+                                    <td>
+                                        <span class="plan-name"><?= htmlspecialchars($sub['plan_name']) ?></span>
+                                    </td>
+                                    <td><?= $sub['meals_per_week'] ?> meals/week</td>
+                                    <td>
+                                        <span class="price">$<?= number_format($sub['final_price'], 2) ?></span>
+                                        <span style="color: var(--text-gray); font-size: 0.9rem;">
+                                            /<?= $sub['plan_type'] === 'weekly' ? 'week' : 'month' ?>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="order-status-badge" style="
+                                            display: inline-flex; 
+                                            align-items: center; 
+                                            gap: 0.5rem;
+                                            background: <?= $sub['status_display']['color'] ?>15;
+                                            color: <?= $sub['status_display']['color'] ?>;
+                                            padding: 0.5rem 1rem;
+                                            border-radius: 20px;
+                                            border: 1px solid <?= $sub['status_display']['color'] ?>;
+                                            font-size: 0.85rem;
+                                            font-weight: 600;
+                                        ">
+                                            <span><?= $sub['status_display']['icon'] ?></span>
+                                            <span><?= $sub['status_display']['label'] ?></span>
+                                        </div>
+                                        <small style="display: block; margin-top: 0.3rem; color: var(--text-gray);">
+                                            <?= $sub['status_display']['description'] ?>
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <span class="status <?= $sub['status'] ?>"><?= getStatusText($sub['status']) ?></span>
+                                    </td>
+                                    <td><?= htmlspecialchars($sub['start_date']) ?></td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <!-- View Details Button -->
+                                            <button onclick="viewDetails('<?= htmlspecialchars($sub['id']) ?>')" class="btn-action btn-view">
+                                                <i class="fas fa-eye"></i> View Details
+                                            </button>
+
+                                            <?php if (($sub['status'] === 'active' || $sub['status'] === 'completed') && !$sub['has_review']): ?>
+                                            <button onclick="openReviewModal('<?= htmlspecialchars($sub['id']) ?>', '<?= htmlspecialchars($sub['plan_name']) ?>')" class="btn-action btn-review">
+                                                <i class="fas fa-star"></i> Review
+                                            </button>
+                                            <?php elseif ($sub['has_review']): ?>
+                                            <button disabled class="btn-action btn-disabled">
+                                                <i class="fas fa-check"></i> Reviewed
+                                            </button>
+                                            <?php endif; ?>
+                                            
+                                            <!-- Complain Button -->
+                                            <button onclick="openComplaintModal('<?= htmlspecialchars($sub['id']) ?>', '<?= htmlspecialchars($sub['plan_name']) ?>')" class="btn-action btn-complain">
+                                                <i class="fas fa-exclamation-triangle"></i> Complain
+                                            </button>
+                                            
+                                            <!-- Management Buttons -->
+                                            <form method="post" style="display: contents;">
+                                                <input type="hidden" name="id" value="<?= htmlspecialchars($sub['id']) ?>">
+                                                <?php if ($sub['status'] === 'active'): ?>
+                                                    <?php
+                                                    // Check if subscription can be cancelled
+                                                    $canCancelSubscription = true;
+                                                    $blockingReason = '';
+                                                    
+                                                    // Check delivery_date from subscription_menus
+                                                    $stmt = $pdo->prepare("
+                                                        SELECT delivery_date,
+                                                               CASE 
+                                                                   WHEN DAYOFWEEK(delivery_date) = 4 THEN 
+                                                                       DATE_FORMAT(DATE_SUB(delivery_date, INTERVAL 2 DAY), '%Y-%m-%d 08:00:00')
+                                                                   WHEN DAYOFWEEK(delivery_date) = 7 THEN 
+                                                                       DATE_FORMAT(DATE_SUB(delivery_date, INTERVAL 2 DAY), '%Y-%m-%d 08:00:00')
+                                                                   ELSE NULL 
+                                                               END as cutoff_time
+                                                        FROM subscription_menus 
+                                                        WHERE subscription_id = ? 
+                                                        AND delivery_date >= CURDATE() 
+                                                        ORDER BY delivery_date ASC 
+                                                        LIMIT 1
+                                                    ");
+                                                    $stmt->execute([$sub['id']]);
+                                                    $nextDelivery = $stmt->fetch(PDO::FETCH_ASSOC);
+                                                    
+                                                    if ($nextDelivery && $nextDelivery['cutoff_time']) {
+                                                        $now = new DateTime('now', new DateTimeZone('Asia/Bangkok'));
+                                                        $cutoff = new DateTime($nextDelivery['cutoff_time'], new DateTimeZone('Asia/Bangkok'));
+                                                        
+                                                        if ($now > $cutoff) {
+                                                            $canCancelSubscription = false;
+                                                            $blockingReason = 'Next delivery (' . date('M j', strtotime($nextDelivery['delivery_date'])) . ') past cutoff time';
+                                                        }
+                                                    }
+                                                    ?>
+                                                    
+                                                    <?php if ($canCancelSubscription): ?>
+                                                        <button name="action" value="cancel" class="btn-action btn-cancel" 
+                                                                onclick="return confirm('Are you sure you want to cancel this subscription?')">
+                                                            <i class="fas fa-times"></i> Cancel
+                                                        </button>
+                                                    <?php else: ?>
+                                                        <button disabled class="btn-action btn-disabled" 
+                                                                title="<?= $blockingReason ?>">
+                                                            <i class="fas fa-ban"></i> Cannot Cancel
+                                                        </button>
+                                                        <small style="color: #999; font-size: 0.8em; display: block; margin-top: 0.3rem;">
+                                                            <?= $blockingReason ?>
+                                                        </small>
+                                                    <?php endif; ?>
+                                                
+                                                    
+                                                <?php else: ?>
+                                                    <button disabled class="btn-action btn-disabled">
+                                                        <i class="fas fa-ban"></i> Cannot Manage
+                                                    </button>
+                                                <?php endif; ?>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                <?php endif; ?>
+                
+                <div class="bottom-nav">
+                    <a href="dashboard.php" class="back-link">
+                        <i class="fas fa-arrow-left"></i>
+                        Back to Dashboard
+                    </a>
+                </div>
             </div>
         </div>
-    </div>
+    </main>
 
     <!-- Modal for Subscription Details -->
     <div id="detailsModal" class="modal">
@@ -2369,7 +2090,71 @@ function getDayName($day) {
             document.getElementById('submitReviewBtn').disabled = true;
         }
 
+        // HAMBURGER MENU FIX - Working solution from menus.php
+        function fixHamburgerMenu() {
+            const hamburger = document.getElementById('mobileMenuToggle');
+            
+            if (!hamburger) {
+                console.log('Hamburger not found');
+                return;
+            }
+            
+            // Apply the same brute force styling that worked
+            hamburger.style.cssText = `
+                display: block !important;
+                position: relative !important;
+                z-index: 1105 !important;
+                pointer-events: auto !important;
+                cursor: pointer !important;
+                background: none !important;
+                border: none !important;
+                padding: 0.5rem !important;
+            `;
+            
+            // Remove any existing event listeners by cloning
+            const newHamburger = hamburger.cloneNode(true);
+            hamburger.parentNode.replaceChild(newHamburger, hamburger);
+            
+            // Add the working click handler
+            newHamburger.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const mobileMenu = document.getElementById('mobileNavMenu');
+                const hamburgerIcon = newHamburger.querySelector('.hamburger');
+                const body = document.body;
+                
+                if (mobileMenu && hamburgerIcon) {
+                    // Toggle menu
+                    mobileMenu.classList.toggle('active');
+                    hamburgerIcon.classList.toggle('open');
+                    
+                    // Handle body scroll
+                    if (mobileMenu.classList.contains('active')) {
+                        body.style.overflow = 'hidden';
+                    } else {
+                        body.style.overflow = 'auto';
+                    }
+                }
+            }, { capture: true });
+            
+            // Also add touch handler
+            newHamburger.addEventListener('touchstart', function(e) {
+                e.preventDefault();
+                newHamburger.click();
+            });
+            
+            console.log('Hamburger menu fixed');
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('📋 Subscription Status page loaded');
+            
+            // Apply the working hamburger fix after a delay
+            setTimeout(function() {
+                fixHamburgerMenu();
+            }, 1000);
+
             // Initialize star rating events
             const stars = document.querySelectorAll('.star');
             const ratingTexts = ['Terrible', 'Poor', 'Average', 'Good', 'Excellent'];
@@ -2404,16 +2189,19 @@ function getDayName($day) {
             });
 
             // Reset on mouse leave
-            document.querySelector('.star-rating').addEventListener('mouseleave', function() {
-                const selectedRating = document.getElementById('selectedRating').value;
-                stars.forEach((s, index) => {
-                    if (selectedRating && index < parseInt(selectedRating)) {
-                        s.style.color = '#ffd700';
-                    } else {
-                        s.style.color = '#ddd';
-                    }
+            const starRating = document.querySelector('.star-rating');
+            if (starRating) {
+                starRating.addEventListener('mouseleave', function() {
+                    const selectedRating = document.getElementById('selectedRating').value;
+                    stars.forEach((s, index) => {
+                        if (selectedRating && index < parseInt(selectedRating)) {
+                            s.style.color = '#ffd700';
+                        } else {
+                            s.style.color = '#ddd';
+                        }
+                    });
                 });
-            });
+            }
 
             // Modal close on backdrop click
             document.querySelectorAll('.modal').forEach(modal => {
@@ -2445,58 +2233,6 @@ function getDayName($day) {
                 }, index * 100);
             });
         });
-
-        // Smooth scrolling for navigation links (matching home2.php)
-        document.addEventListener('DOMContentLoaded', function() {
-            const navLinks = document.querySelectorAll('a[href^="#"]');
-            
-            navLinks.forEach(link => {
-                link.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const targetId = this.getAttribute('href');
-                    const targetSection = document.querySelector(targetId);
-                    
-                    if (targetSection) {
-                        targetSection.scrollIntoView({
-                            behavior: 'smooth',
-                            block: 'start'
-                        });
-                    }
-                });
-            });
-        });
-
-        // Navbar background on scroll (matching home2.php)
-        window.addEventListener('scroll', function() {
-            const navbar = document.querySelector('.navbar');
-            if (window.scrollY > 100) {
-                navbar.style.background = '#ece8e1';
-            } else {
-                navbar.style.background = '#ece8e1';
-            }
-        });
-
-        // Touch/mobile enhancements
-        function setViewportHeight() {
-            let vh = window.innerHeight * 0.01;
-            document.documentElement.style.setProperty('--vh', `${vh}px`);
-        }
-
-        if (window.innerWidth <= 768) {
-            setViewportHeight();
-            window.addEventListener('resize', setViewportHeight);
-            
-            // Enhanced touch feedback
-            document.querySelectorAll('.btn-action').forEach(btn => {
-                btn.addEventListener('touchstart', function() {
-                    this.style.transform = 'scale(0.95)';
-                });
-                
-                btn.addEventListener('touchend', function() {
-                    this.style.transform = 'scale(1)';
-                });
-            });
-        }
     </script>
 </body>
 </html>

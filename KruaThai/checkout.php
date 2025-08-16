@@ -549,302 +549,6 @@ if ($success) {
    COMPLETE: All original functionality preserved including calendar
    ======================================================================== */
 
-/* BaticaSans Font Import - Local Files (EXACT MATCH to home2.php) */
-@font-face {
-    font-family: 'BaticaSans';
-    src: url('./Font/BaticaSans-Regular.woff2') format('woff2'),
-        url('./Font/BaticaSans-Regular.woff') format('woff'),
-        url('./Font/BaticaSans-Regular.ttf') format('truetype');
-    font-weight: 400;
-    font-style: normal;
-    font-display: swap;
-}
-
-@font-face {
-    font-family: 'BaticaSans';
-    src: url('./Font/BaticaSans-Italic.woff2') format('woff2'),
-        url('./Font/BaticaSans-Italic.woff') format('woff'),
-        url('./Font/BaticaSans-Italic.ttf') format('truetype');
-    font-weight: 400;
-    font-style: italic;
-    font-display: swap;
-}
-
-/* Fallback for bold/medium weights */
-@font-face {
-    font-family: 'BaticaSans';
-    src: url('./Font/BaticaSans-Regular.woff2') format('woff2'),
-        url('./Font/BaticaSans-Regular.woff') format('woff'),
-        url('./Font/BaticaSans-Regular.ttf') format('truetype');
-    font-weight: 500;
-    font-style: normal;
-    font-display: swap;
-}
-
-@font-face {
-    font-family: 'BaticaSans';
-    src: url('./Font/BaticaSans-Regular.woff2') format('woff2'),
-        url('./Font/BaticaSans-Regular.woff') format('woff'),
-        url('./Font/BaticaSans-Regular.ttf') format('truetype');
-    font-weight: 700;
-    font-style: normal;
-    font-display: swap;
-}
-
-/* EXACT MATCH Color Hierarchy from home2.php and meal-selection.php */
-:root {
-    /* LEVEL 1 (MOST IMPORTANT): BROWN #bd9379 + WHITE */
-    --brown: #bd9379;
-    --white: #ffffff;
-    
-    /* LEVEL 2 (SECONDARY): CREAM #ece8e1 */
-    --cream: #ece8e1;
-    
-    /* LEVEL 3 (SUPPORTING): SAGE #adb89d */
-    --sage: #adb89d;
-    
-    /* LEVEL 4 (ACCENT/CONTRAST - LEAST USED): CURRY #cf723a */
-    --curry: #cf723a;
-    
-    /* Text colors using brown hierarchy */
-    --text-dark: #2c3e50;
-    --text-gray: #7f8c8d;
-    --border-light: #d4c4b8; /* Brown-tinted border */
-    
-    /* Shadows using brown as base (Level 1) */
-    --shadow-soft: 0 4px 12px rgba(189, 147, 121, 0.15);
-    --shadow-medium: 0 8px 24px rgba(189, 147, 121, 0.25);
-    
-    /* REDUCED border radius to match meal-selection.php */
-    --radius-sm: 4px;
-    --radius-md: 6px;
-    --radius-lg: 8px;
-    --radius-xl: 12px;
-    
-    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    --success: #27ae60;
-    --danger: #e74c3c;
-    --warning: #f39c12;
-    --info: #3498db;
-    --vh: 1vh; /* Mobile viewport height fix */
-}
-
-/* ========================================================================
-   GLOBAL STYLES & RESET
-   ======================================================================== */
-
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-body {
-    font-family: 'BaticaSans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: linear-gradient(135deg, var(--cream) 0%, #f8f6f3 100%);
-    color: var(--text-dark);
-    line-height: 1.6;
-    min-height: 100vh;
-    min-height: calc(var(--vh, 1vh) * 100);
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    overflow-x: hidden;
-    font-weight: 400;
-}
-
-/* Typography using BaticaSans - LEVEL 1: Brown for headings */
-h1, h2, h3, h4, h5, h6 {
-    font-family: 'BaticaSans', sans-serif;
-    font-weight: 700;
-    line-height: 1.2;
-    color: var(--brown); /* LEVEL 1: Brown instead of text-dark */
-}
-
-/* ========================================================================
-   HEADER - EXACT MATCH to home2.php
-   ======================================================================== */
-
-.header {
-    position: fixed;
-    top: 38px;
-    left: 0;
-    right: 0;
-    background: #ece8e1;
-    backdrop-filter: blur(10px);
-    z-index: 1000;
-    transition: var(--transition);
-    box-shadow: var(--shadow-soft);
-}
-
-.header, .header * {
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
-    -webkit-tap-highlight-color: transparent;
-}
-
-.header-container {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem 2rem;
-    max-width: 1200px;
-    margin: 0 auto;
-    width: 100%;
-}
-
-.logo {
-    display: flex;
-    align-items: center;
-    gap: 0.8rem;
-    text-decoration: none;
-    color: var(--brown); /* LEVEL 1: Brown */
-    transition: var(--transition);
-}
-
-.logo:hover {
-    transform: translateY(-1px);
-}
-
-.logo-text {
-    font-size: 1.8rem;
-    font-weight: 800;
-    color: var(--brown); /* LEVEL 1: Brown */
-    font-family: 'BaticaSans', sans-serif;
-    white-space: nowrap;
-}
-
-.header-nav {
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
-    flex-wrap: wrap;
-}
-
-.nav-link {
-    text-decoration: none;
-    color: var(--text-gray);
-    font-weight: 500;
-    font-family: 'BaticaSans', sans-serif;
-    transition: var(--transition);
-    padding: 0.5rem 1rem;
-    border-radius: var(--radius-sm);
-    white-space: nowrap;
-    touch-action: manipulation;
-}
-
-.nav-link:hover {
-    background: rgba(189, 147, 121, 0.1);
-    color: var(--brown); /* LEVEL 1: Brown hover */
-    transform: translateY(-1px);
-}
-
-/* Profile Icon Styles */
-.profile-link {
-    text-decoration: none;
-    transition: var(--transition);
-}
-
-.profile-icon {
-    width: 45px;
-    height: 45px;
-    background: var(--brown); /* LEVEL 1: Brown */
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--white); /* LEVEL 1: White */
-    transition: var(--transition);
-    box-shadow: var(--shadow-soft);
-}
-
-.profile-icon:hover {
-    background: #a8855f; /* Darker brown on hover */
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-medium);
-}
-
-.profile-icon svg {
-    width: 24px;
-    height: 24px;
-}
-
-/* Promotional Banner - LEVEL 4: Curry for special promos */
-.promo-banner {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    background: #cf723a; /* LEVEL 4: Curry for promotional banner */
-    color: var(--white); /* LEVEL 1: White */
-    text-align: center;
-    padding: 8px 20px;
-    font-family: 'BaticaSans', sans-serif;
-    font-weight: 700;
-    font-size: 14px;
-    z-index: 1001;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    animation: glow 2s ease-in-out infinite alternate;
-}
-
-.promo-banner-content {
-    max-width: 1200px;
-    margin: 0 auto;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-}
-
-.promo-icon {
-    font-size: 16px;
-    animation: bounce 1.5s ease-in-out infinite;
-}
-
-.promo-text {
-    letter-spacing: 0.5px;
-}
-
-.promo-close {
-    position: absolute;
-    right: 20px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    color: var(--white); /* LEVEL 1: White */
-    font-size: 18px;
-    cursor: pointer;
-    opacity: 0.8;
-    transition: opacity 0.3s ease;
-}
-
-.promo-close:hover {
-    opacity: 1;
-}
-
-@keyframes glow {
-    from {
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    }
-    to {
-        box-shadow: 0 2px 20px rgba(207, 114, 58, 0.3);
-    }
-}
-
-@keyframes bounce {
-    0%, 20%, 50%, 80%, 100% {
-        transform: translateY(0);
-    }
-    40% {
-        transform: translateY(-3px);
-    }
-    60% {
-        transform: translateY(-2px);
-    }
-}
-
 /* ========================================================================
    CONTAINER & LAYOUT
    ======================================================================== */
@@ -852,7 +556,7 @@ h1, h2, h3, h4, h5, h6 {
 .container {
     max-width: 900px;
     margin: 0 auto;
-    padding: 120px 20px 4rem; /* Adjusted padding-top for new header */
+    padding: 120px 20px 4rem; /* Adjusted padding-top for header */
     position: relative;
 }
 
@@ -1582,10 +1286,6 @@ select {
     .container {
         padding: 100px 15px 3rem;
     }
-    
-    .header-container {
-        padding: 1rem 1.5rem;
-    }
 }
 
 /* Tablets */
@@ -1600,28 +1300,6 @@ select {
     
     .container {
         padding: 80px 15px 2rem; /* Adjusted for mobile header */
-    }
-    
-    .header-container {
-        padding: 1rem;
-        flex-direction: column;
-        gap: 1rem;
-    }
-    
-    .header-nav {
-        width: 100%;
-        justify-content: center;
-        gap: 1rem;
-        flex-wrap: wrap;
-    }
-    
-    .nav-link {
-        font-size: 0.9rem;
-        padding: 0.5rem 0.8rem;
-    }
-    
-    .logo-text {
-        font-size: 1.6rem;
     }
     
     /* Progress Bar Mobile */
@@ -1752,19 +1430,6 @@ select {
         padding: 70px 10px 1.5rem; /* Further adjusted */
     }
     
-    .header-container {
-        padding: 0.8rem;
-    }
-    
-    .logo-text {
-        font-size: 1.4rem;
-    }
-    
-    .nav-link {
-        font-size: 0.85rem;
-        padding: 0.4rem 0.6rem;
-    }
-    
     /* Progress Bar Small Mobile */
     .progress-container {
         padding: 1rem 0.8rem;
@@ -1873,8 +1538,7 @@ select {
 @media (max-width: 768px) {
     .calendar-day,
     .payment-methods label,
-    .btn,
-    .nav-link {
+    .btn {
         min-height: 44px;
         min-width: 44px;
     }
@@ -1890,10 +1554,6 @@ select {
     
     .payment-methods label:active {
         transform: translateY(1px) scale(0.98);
-    }
-    
-    .nav-link:active {
-        transform: scale(0.95);
     }
 }
 
@@ -1979,46 +1639,9 @@ select {
     </style>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
-<body>
-    <!-- Promotional Banner -->
-    <div class="promo-banner" id="promoBanner">
-        <div class="promo-banner-content">
-            <span class="promo-icon">🍪</span>
-            <span class="promo-text">50% OFF First Week + Free Cookies for Life</span>
-            <span class="promo-icon">🎉</span>
-        </div>
-        <button class="promo-close" onclick="closePromoBanner()" title="Close">×</button>
-    </div>
-
-    <!-- Header - EXACT MATCH to home2.php -->
-    <header class="header">
-        <div class="header-container">
-            <a href="home2.php" class="logo">
-                <img src="./assets/image/LOGO_BG2.png" alt="Somdul Table" style="height: 80px; width: auto;">
-            </a>
-            <nav class="header-nav">
-                <a href="./menus.php" class="nav-link">Menu</a>
-                <a href="./meal-kits.php" class="nav-link">Meal-Kits</a>
-                <a href="home2.php#how-it-works" class="nav-link">How It Works</a>
-                <a href="./blogs.php" class="nav-link">About</a>
-                <a href="./contact.php" class="nav-link">Contact</a>
-                <?php if (isset($_SESSION['user_id'])): ?>
-                    <!-- User is logged in - show profile icon -->
-                    <a href="dashboard.php" class="profile-link" title="Go to Dashboard">
-                        <div class="profile-icon">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="12" cy="7" r="4"></circle>
-                            </svg>
-                        </div>
-                    </a>
-                <?php else: ?>
-                    <!-- User is not logged in - show sign in button -->
-                    <a href="login.php" class="nav-link">Login</a>
-                <?php endif; ?>
-            </nav>
-        </div>
-    </header>
+<body class="has-header">
+    <!-- Include Header - This handles all navigation and fonts -->
+    <?php include 'header.php'; ?>
 
     <div class="container">
         <!-- Progress Bar -->
@@ -2236,23 +1859,33 @@ select {
     </div>
 
     <script>
-        function closePromoBanner() {
-            const promoBanner = document.getElementById('promoBanner');
-            const header = document.querySelector('.header');
-            const container = document.querySelector('.container');
+        // HAMBURGER MENU FIX - Use this code block
+        function fixHamburgerMenu() {
+            const hamburger = document.getElementById('mobileMenuToggle');
+            if (!hamburger) return;
             
-            promoBanner.style.transform = 'translateY(-100%)';
-            promoBanner.style.opacity = '0';
+            hamburger.style.cssText = `display: block !important; position: relative !important; z-index: 1105 !important; pointer-events: auto !important; cursor: pointer !important;`;
             
-            setTimeout(() => {
-                promoBanner.style.display = 'none';
-                header.style.top = '0';
-                container.style.paddingTop = '80px';
-            }, 300);
+            const newHamburger = hamburger.cloneNode(true);
+            hamburger.parentNode.replaceChild(newHamburger, hamburger);
+            
+            newHamburger.addEventListener('click', function(e) {
+                e.preventDefault(); e.stopPropagation();
+                const mobileMenu = document.getElementById('mobileNavMenu');
+                const hamburgerIcon = newHamburger.querySelector('.hamburger');
+                if (mobileMenu && hamburgerIcon) {
+                    mobileMenu.classList.toggle('active');
+                    hamburgerIcon.classList.toggle('open');
+                    document.body.style.overflow = mobileMenu.classList.contains('active') ? 'hidden' : 'auto';
+                }
+            }, { capture: true });
         }
 
         document.addEventListener('DOMContentLoaded', function() {
             console.log('✅ Updated checkout page loaded - WITH QUANTITY SUPPORT AND COMPLETE CALENDAR');
+            
+            // Apply hamburger fix after 1 second (let header load)
+            setTimeout(fixHamburgerMenu, 1000);
             
             // Mobile detection & touch enhancements
             function detectMobile() {
