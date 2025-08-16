@@ -161,7 +161,7 @@ function logActivity($action, $user_id = null, $ip_address = null, $details = []
  */
 function sendVerificationEmail($email, $first_name, $token) {
     $subject = "Verify Your Krua Thai Account";
-    $verification_link = "http://localhost/kruathai/verify_email.php?token=" . urlencode($token);
+$verification_link = "http://localhost/Krua_Thai1/KruaThai/verify_email.php?token=" . urlencode($token);
     
     $message = "
     <html>
@@ -190,7 +190,7 @@ function sendVerificationEmail($email, $first_name, $token) {
         'Reply-To: support@kruathai.com'
     ];
     
-    return mail($email, $subject, $message, implode("\r\n", $headers));
+return sendRealEmail($email, $subject, $message);
 }
 
 /**
@@ -638,6 +638,11 @@ function sendEmail($to, $subject, $body) {
 function generatePasswordResetEmail($firstName, $resetLink) {
     return generatePasswordResetEmailTemplate($firstName, $resetLink);
 }
+
+
+
+
+
 
 
 ?>

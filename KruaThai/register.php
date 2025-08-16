@@ -413,25 +413,28 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['facebook_signup']) &&
         } else {
             $user->allergies = null;
         }
-
-        if ($user->create()) {
-            $email_sent = sendVerificationEmail(
-                $user->email, 
-                $user->first_name, 
-                $user->email_verification_token
-            );
-            
-            if ($email_sent) {
-                $success_message = "Registration successful! Please check your email (" . $user->email . ") for a verification link to activate your account.";
-            } else {
-                $success_message = "Registration successful! However, we couldn't send the verification email. Please contact our support team at support@somdultable.com";
-            }
-            
-            $form_data = [];
-            
-        } else {
-            $errors[] = "Registration failed due to a technical error. Please try again or contact support";
-        }
+if ($user->create()) {
+    // Send verification email
+    $email_sent = sendVerificationEmail(
+        $user->email, 
+        $user->first_name, 
+        $user->email_verification_token
+    );
+    
+    // Log registration
+    logActivity('user_registered', $user->id, getRealIPAddress(), [
+        'email' => $user->email,
+        'email_sent' => $email_sent,
+        'method' => 'email_registration'
+    ]);
+    
+    // Always redirect to check email page (don't show success message here)
+    header("Location: check_email.php?email=" . urlencode($user->email));
+    exit();
+    
+} else {
+    $errors[] = "Registration failed due to a technical error. Please try again or contact support";
+}
     }
 }
 ?>
