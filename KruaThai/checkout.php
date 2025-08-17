@@ -3,11 +3,15 @@
  * Somdul Table - Updated Checkout System with Quantity Support
  * UPDATED: Now supports meal quantities from meal-selection.php
  * COMPLETE: All original functionality preserved including calendar
+ * CONVERTED: Now uses consistent header.php for navigation and styling
  */
 
 session_start();
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
+
+// Include header early (provides promo banner, navbar, fonts, CSS variables)
+include 'header.php';
 
 // Initialize variables with defaults
 $order = null;
@@ -105,7 +109,7 @@ class DatabaseConnection {
                 }
                 
                 if (self::$connection === null) {
-                    throw new Exception("❌ Database connection failed: " . $e->getMessage());
+                    throw new Exception("⚠ Database connection failed: " . $e->getMessage());
                 }
             }
         }
@@ -528,7 +532,7 @@ try {
     }
     
 } catch (Exception $e) {
-    die("❌ Application Error: " . $e->getMessage());
+    die("⚠ Application Error: " . $e->getMessage());
 }
 
 // Check for successful completion - early return to prevent HTML output
@@ -547,6 +551,7 @@ if ($success) {
    SOMDUL TABLE - CHECKOUT PAGE CSS WITH QUANTITY SUPPORT
    Updated to show correct prices and meal quantities
    COMPLETE: All original functionality preserved including calendar
+   CONVERTED: Now uses header.php for consistent styling and navigation
    ======================================================================== */
 
 /* ========================================================================
@@ -556,7 +561,7 @@ if ($success) {
 .container {
     max-width: 900px;
     margin: 0 auto;
-    padding: 120px 20px 4rem; /* Adjusted padding-top for header */
+    padding: 2rem 20px 4rem;
     position: relative;
 }
 
@@ -588,7 +593,7 @@ if ($success) {
     align-items: center;
     gap: 0.5rem;
     padding: 0.8rem 1.5rem;
-    border-radius: 25px; /* Reduced from 50px */
+    border-radius: 25px;
     font-weight: 600;
     font-size: 0.95rem;
     font-family: 'BaticaSans', sans-serif;
@@ -604,7 +609,7 @@ if ($success) {
 }
 
 .progress-step.active {
-    background: var(--brown); /* LEVEL 1: Brown instead of curry */
+    background: var(--brown);
     color: var(--white);
     border-color: var(--brown);
     box-shadow: 0 4px 12px rgba(189, 147, 121, 0.3);
@@ -612,7 +617,7 @@ if ($success) {
 }
 
 .progress-step.completed {
-    background: var(--sage); /* LEVEL 3: Sage instead of success */
+    background: var(--sage);
     color: var(--white);
     border-color: var(--sage);
 }
@@ -634,7 +639,7 @@ if ($success) {
     font-weight: 700;
     margin-bottom: 2rem;
     text-align: center;
-    color: var(--brown); /* LEVEL 1: Brown title */
+    color: var(--brown);
     position: relative;
     font-family: 'BaticaSans', sans-serif;
 }
@@ -650,7 +655,7 @@ if ($success) {
 
 .section {
     background: var(--white);
-    border-radius: var(--radius-lg); /* Reduced border radius */
+    border-radius: var(--radius-lg);
     margin-bottom: 2rem;
     box-shadow: var(--shadow-soft);
     padding: 2rem;
@@ -672,7 +677,7 @@ if ($success) {
 
 .label {
     font-weight: 700;
-    color: var(--brown); /* LEVEL 1: Brown instead of curry */
+    color: var(--brown);
     margin-bottom: 1rem;
     font-size: 1.1rem;
     font-family: 'BaticaSans', sans-serif;
@@ -683,13 +688,12 @@ if ($success) {
 
 .plan-title {
     font-size: 1.2rem;
-    color: var(--brown); /* LEVEL 1: Brown */
+    color: var(--brown);
     font-weight: 600;
     margin-bottom: 0.5rem;
     font-family: 'BaticaSans', sans-serif;
 }
 
-/* Show correct price */
 .plan-price {
     color: var(--curry);
     font-size: 1.4rem;
@@ -731,12 +735,11 @@ if ($success) {
 .meal-name {
     flex: 1;
     font-weight: 600;
-    color: var(--brown); /* LEVEL 1: Brown */
+    color: var(--brown);
     line-height: 1.4;
     font-family: 'BaticaSans', sans-serif;
 }
 
-/* NEW: Quantity indicator styling */
 .meal-name .quantity-indicator {
     color: var(--curry);
     font-weight: 700;
@@ -773,7 +776,7 @@ if ($success) {
     padding: 1.5rem;
     background: linear-gradient(135deg, var(--cream), #f5f3f0);
     border-radius: var(--radius-lg);
-    border: 2px solid rgba(189, 147, 121, 0.1); /* Brown-tinted border */
+    border: 2px solid rgba(189, 147, 121, 0.1);
     font-family: 'BaticaSans', sans-serif;
 }
 
@@ -799,7 +802,7 @@ if ($success) {
 }
 
 .input:focus, .address-input:focus {
-    border-color: var(--brown); /* LEVEL 1: Brown focus */
+    border-color: var(--brown);
     outline: none;
     box-shadow: 0 0 15px rgba(189, 147, 121, 0.2);
     transform: translateY(-1px);
@@ -822,8 +825,8 @@ select {
 .btn {
     width: 100%;
     padding: 1.2rem 2rem;
-    border-radius: 25px; /* Reduced from 50px */
-    background: var(--brown); /* LEVEL 1: Brown instead of gradient */
+    border-radius: 25px;
+    background: var(--brown);
     color: var(--white);
     font-size: 1.1rem;
     font-weight: 700;
@@ -858,7 +861,7 @@ select {
 }
 
 .btn:hover {
-    background: #a8855f; /* Darker brown */
+    background: #a8855f;
     transform: translateY(-2px);
     box-shadow: var(--shadow-medium);
 }
@@ -921,17 +924,17 @@ select {
 }
 
 .payment-methods label:hover {
-    border-color: var(--brown); /* LEVEL 1: Brown */
+    border-color: var(--brown);
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(189, 147, 121, 0.2);
 }
 
 .payment-methods input:checked + i {
-    color: var(--brown); /* LEVEL 1: Brown */
+    color: var(--brown);
 }
 
 .payment-methods input {
-    accent-color: var(--brown); /* LEVEL 1: Brown */
+    accent-color: var(--brown);
     margin-right: 0.5rem;
     transform: scale(1.2);
 }
@@ -963,7 +966,7 @@ select {
     padding: 1.5rem;
     margin-bottom: 1rem;
     box-shadow: var(--shadow-soft);
-    max-width: 400px; /* Reduced for desktop */
+    max-width: 400px;
     margin-left: auto;
     margin-right: auto;
     touch-action: manipulation;
@@ -982,21 +985,21 @@ select {
     background: var(--cream);
     border: none;
     border-radius: 50%;
-    width: 36px; /* Reduced from 44px */
+    width: 36px;
     height: 36px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     transition: var(--transition);
-    color: var(--brown); /* LEVEL 1: Brown */
-    font-size: 0.85rem; /* Reduced */
+    color: var(--brown);
+    font-size: 0.85rem;
     touch-action: manipulation;
     flex-shrink: 0;
 }
 
 .calendar-nav:hover {
-    background: var(--brown); /* LEVEL 1: Brown */
+    background: var(--brown);
     color: var(--white);
     transform: scale(1.05);
 }
@@ -1006,19 +1009,19 @@ select {
 }
 
 .calendar-title {
-    font-size: 1.1rem; /* Reduced */
+    font-size: 1.1rem;
     font-weight: 700;
-    color: var(--brown); /* LEVEL 1: Brown */
+    color: var(--brown);
     text-align: center;
     flex: 1;
-    margin: 0 0.8rem; /* Reduced */
+    margin: 0 0.8rem;
     font-family: 'BaticaSans', sans-serif;
 }
 
 .calendar-weekdays {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 0.3rem; /* Reduced */
+    gap: 0.3rem;
     margin-bottom: 0.5rem;
 }
 
@@ -1026,20 +1029,20 @@ select {
     text-align: center;
     font-weight: 600;
     color: var(--text-gray);
-    padding: 0.3rem; /* Reduced */
-    font-size: 0.8rem; /* Reduced */
+    padding: 0.3rem;
+    font-size: 0.8rem;
     font-family: 'BaticaSans', sans-serif;
 }
 
 .weekday.highlight {
-    color: var(--brown); /* LEVEL 1: Brown */
+    color: var(--brown);
     font-weight: 700;
 }
 
 .calendar-days {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 0.3rem; /* Reduced */
+    gap: 0.3rem;
 }
 
 .calendar-day {
@@ -1054,10 +1057,10 @@ select {
     position: relative;
     background: var(--white);
     border: 1px solid transparent;
-    min-height: 32px; /* Reduced */
+    min-height: 32px;
     user-select: none;
     touch-action: manipulation;
-    font-size: 0.8rem; /* Reduced */
+    font-size: 0.8rem;
     font-family: 'BaticaSans', sans-serif;
 }
 
@@ -1077,14 +1080,14 @@ select {
 }
 
 .calendar-day.available {
-    color: var(--brown); /* LEVEL 1: Brown */
+    color: var(--brown);
     background: var(--cream);
     border-color: var(--brown);
     font-weight: 700;
 }
 
 .calendar-day.available:hover {
-    background: var(--brown); /* LEVEL 1: Brown */
+    background: var(--brown);
     color: var(--white);
     transform: scale(1.05);
     box-shadow: 0 4px 12px rgba(189, 147, 121, 0.3);
@@ -1095,7 +1098,7 @@ select {
 }
 
 .calendar-day.selected {
-    background: var(--brown); /* LEVEL 1: Brown */
+    background: var(--brown);
     color: var(--white);
     transform: scale(1.02);
     box-shadow: 0 4px 16px rgba(189, 147, 121, 0.4);
@@ -1119,7 +1122,7 @@ select {
 }
 
 .calendar-day.available.today::after {
-    background: var(--brown); /* LEVEL 1: Brown */
+    background: var(--brown);
 }
 
 .calendar-day.selected.today::after {
@@ -1187,7 +1190,7 @@ select {
 }
 
 .weekend-info strong {
-    color: var(--brown); /* LEVEL 1: Brown */
+    color: var(--brown);
 }
 
 .date-error-message, .date-success-message {
@@ -1281,14 +1284,12 @@ select {
    MOBILE RESPONSIVE STYLES
    ======================================================================== */
 
-/* Large tablets and small desktops */
 @media (max-width: 1024px) {
     .container {
-        padding: 100px 15px 3rem;
+        padding: 2rem 15px 3rem;
     }
 }
 
-/* Tablets */
 @media (max-width: 768px) {
     :root {
         --transition: all 0.2s ease;
@@ -1299,10 +1300,9 @@ select {
     }
     
     .container {
-        padding: 80px 15px 2rem; /* Adjusted for mobile header */
+        padding: 2rem 15px 2rem;
     }
     
-    /* Progress Bar Mobile */
     .progress-container {
         padding: 1.5rem 1rem;
         margin-bottom: 2rem;
@@ -1325,32 +1325,27 @@ select {
         font-size: 1rem;
     }
     
-    /* Title Mobile */
     .title {
         font-size: 1.8rem;
         margin-bottom: 1.5rem;
     }
     
-    /* Sections Mobile */
     .section {
         padding: 1.5rem 1rem;
         margin-bottom: 1.5rem;
     }
     
-    /* Form Inputs Mobile */
     .address-input, .input {
         padding: 1.2rem;
         font-size: 1rem;
     }
     
-    /* Buttons Mobile */
     .btn {
         padding: 1.5rem 2rem;
         font-size: 1.1rem;
         min-height: 60px;
     }
     
-    /* Payment Methods Mobile */
     .payment-methods {
         grid-template-columns: 1fr;
         gap: 0.8rem;
@@ -1362,7 +1357,6 @@ select {
         min-height: 64px;
     }
     
-    /* Calendar Mobile */
     .custom-calendar {
         padding: 1rem;
         max-width: 100%;
@@ -1398,7 +1392,6 @@ select {
         padding: 0.4rem;
     }
     
-    /* Meal List Mobile */
     .meal-list li {
         flex-direction: column;
         align-items: flex-start;
@@ -1411,7 +1404,6 @@ select {
         align-self: flex-end;
     }
     
-    /* Messages Mobile */
     .weekend-info {
         flex-direction: column;
         text-align: center;
@@ -1424,13 +1416,11 @@ select {
     }
 }
 
-/* Mobile Phones */
 @media (max-width: 480px) {
     .container {
-        padding: 70px 10px 1.5rem; /* Further adjusted */
+        padding: 1.5rem 10px 1.5rem;
     }
     
-    /* Progress Bar Small Mobile */
     .progress-container {
         padding: 1rem 0.8rem;
         margin-bottom: 1.5rem;
@@ -1441,13 +1431,11 @@ select {
         padding: 0.8rem;
     }
     
-    /* Title Small Mobile */
     .title {
         font-size: 1.6rem;
         margin-bottom: 1rem;
     }
     
-    /* Sections Small Mobile */
     .section {
         padding: 1.2rem 0.8rem;
         margin-bottom: 1.2rem;
@@ -1457,7 +1445,6 @@ select {
         font-size: 1rem;
     }
     
-    /* Calendar Small Mobile */
     .custom-calendar {
         padding: 0.8rem;
     }
@@ -1487,7 +1474,6 @@ select {
         padding: 0.3rem;
     }
     
-    /* Payment Methods Small Mobile */
     .payment-methods label {
         padding: 1rem 0.8rem;
         font-size: 0.9rem;
@@ -1498,28 +1484,24 @@ select {
         font-size: 1.2rem;
     }
     
-    /* Buttons Small Mobile */
     .btn {
         padding: 1.3rem 1.5rem;
         font-size: 1rem;
         gap: 0.6rem;
     }
     
-    /* Total Small Mobile */
     .total {
         font-size: 1.3rem;
         padding: 1.2rem;
         margin: 1.5rem 0;
     }
     
-    /* Form Inputs Small Mobile */
     .address-input, .input {
         padding: 1.1rem;
         font-size: 1rem;
         margin-bottom: 1rem;
     }
     
-    /* Messages Small Mobile */
     .weekend-info {
         padding: 1rem;
         font-size: 0.9rem;
@@ -1544,7 +1526,7 @@ select {
     }
     
     .calendar-day.available:active {
-        background: #a8855f; /* Darker brown */
+        background: #a8855f;
         transform: scale(0.95);
     }
     
@@ -1566,7 +1548,7 @@ select {
 .payment-methods label:focus,
 .input:focus,
 .address-input:focus {
-    outline: 3px solid var(--brown); /* LEVEL 1: Brown focus outline */
+    outline: 3px solid var(--brown);
     outline-offset: 2px;
 }
 
@@ -1584,7 +1566,7 @@ select {
     width: 20px;
     height: 20px;
     margin: -10px 0 0 -10px;
-    border: 2px solid var(--brown); /* LEVEL 1: Brown spinner */
+    border: 2px solid var(--brown);
     border-top: 2px solid transparent;
     border-radius: 50%;
     animation: spin 1s linear infinite;
@@ -1639,9 +1621,10 @@ select {
     </style>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
+
+<!-- CRITICAL: Add has-header class for proper spacing -->
 <body class="has-header">
-    <!-- Include Header - This handles all navigation and fonts -->
-    <?php include 'header.php'; ?>
+    <!-- Promo banner and navbar automatically included from header.php -->
 
     <div class="container">
         <!-- Progress Bar -->
@@ -1859,33 +1842,12 @@ select {
     </div>
 
     <script>
-        // HAMBURGER MENU FIX - Use this code block
-        function fixHamburgerMenu() {
-            const hamburger = document.getElementById('mobileMenuToggle');
-            if (!hamburger) return;
-            
-            hamburger.style.cssText = `display: block !important; position: relative !important; z-index: 1105 !important; pointer-events: auto !important; cursor: pointer !important;`;
-            
-            const newHamburger = hamburger.cloneNode(true);
-            hamburger.parentNode.replaceChild(newHamburger, hamburger);
-            
-            newHamburger.addEventListener('click', function(e) {
-                e.preventDefault(); e.stopPropagation();
-                const mobileMenu = document.getElementById('mobileNavMenu');
-                const hamburgerIcon = newHamburger.querySelector('.hamburger');
-                if (mobileMenu && hamburgerIcon) {
-                    mobileMenu.classList.toggle('active');
-                    hamburgerIcon.classList.toggle('open');
-                    document.body.style.overflow = mobileMenu.classList.contains('active') ? 'hidden' : 'auto';
-                }
-            }, { capture: true });
-        }
+        // Mobile menu functions are now available from header.php
+        // Available functions: toggleMobileMenu(), closeMobileMenu(), closePromoBanner()
 
         document.addEventListener('DOMContentLoaded', function() {
             console.log('✅ Updated checkout page loaded - WITH QUANTITY SUPPORT AND COMPLETE CALENDAR');
-            
-            // Apply hamburger fix after 1 second (let header load)
-            setTimeout(fixHamburgerMenu, 1000);
+            console.log('✅ Converted to use header.php for consistent navigation');
             
             // Mobile detection & touch enhancements
             function detectMobile() {
@@ -2180,7 +2142,7 @@ select {
                     const errors = validateForm();
                     
                     if (errors.length > 0) {
-                        console.log('❌ Validation failed:', errors);
+                        console.log('⚠ Validation failed:', errors);
                         alert('Please fix the following issues:\n\n' + errors.join('\n'));
                         e.preventDefault();
                         return false;
@@ -2239,13 +2201,13 @@ select {
                 console.log('✅ Enhanced form handlers attached with quantity support');
                 
             } else {
-                console.error('❌ Form or submit button not found');
+                console.error('⚠ Form or submit button not found');
             }
         });
         
         // Global error handler
         window.addEventListener('error', function(e) {
-            console.error('❌ JavaScript error:', e.error);
+            console.error('⚠ JavaScript error:', e.error);
             
             // Re-enable submit button if there's an error
             const submitBtn = document.getElementById('main-submit-btn');

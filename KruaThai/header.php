@@ -55,19 +55,60 @@ if (session_status() === PHP_SESSION_NONE) {
     font-display: swap;
 }
 
-/* CSS Variables (ensure they're available) */
+/* CSS Variables - Complete Somdul Table Design System */
 :root {
+    /* LEVEL 1 (MOST IMPORTANT): BROWN #bd9379 + WHITE */
     --brown: #bd9379;
     --white: #ffffff;
+    
+    /* LEVEL 2 (SECONDARY): CREAM #ece8e1 */
     --cream: #ece8e1;
+    
+    /* LEVEL 3 (SUPPORTING): SAGE #adb89d */
     --sage: #adb89d;
+    
+    /* LEVEL 4 (ACCENT/CONTRAST - LEAST USED): CURRY #cf723a */
     --curry: #cf723a;
+    
+    /* Text colors using brown hierarchy */
     --text-dark: #2c3e50;
     --text-gray: #7f8c8d;
-    --border-light: #d4c4b8;
+    --border-light: #d4c4b8; /* Brown-tinted border */
+    
+    /* Shadows using brown as base (Level 1) */
     --shadow-soft: 0 4px 12px rgba(189, 147, 121, 0.15);
     --shadow-medium: 0 8px 24px rgba(189, 147, 121, 0.25);
+    
+    /* Border radius */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    
+    /* Transitions */
     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Global reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'BaticaSans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.6;
+    color: var(--text-dark);
+    background-color: var(--white);
+    font-weight: 400;
+}
+
+/* Typography using BaticaSans - LEVEL 1: Brown for headings */
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'BaticaSans', sans-serif;
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--brown); /* LEVEL 1: Brown instead of text-dark */
 }
 
 /* Mobile Navigation Hamburger Menu */
@@ -561,7 +602,7 @@ body.has-header {
 <!-- Promotional Banner -->
 <div class="promo-banner" id="promoBanner">
     <div class="promo-banner-content">
-        <span class="promo-icon">🪵</span>
+        <span class="promo-icon">🍪</span>
         <span class="promo-text">
             <span class="desktop-text">50% OFF First Week + Free Cookies for Life</span>
             <span class="mobile-text">50% OFF + Free Cookies</span>
@@ -679,6 +720,70 @@ function closeMobileMenu() {
     }
 }
 
+// Robust Mobile Menu Initialization
+function initializeMobileMenu() {
+    const hamburger = document.getElementById('mobileMenuToggle');
+    
+    if (!hamburger) {
+        console.warn('Mobile menu toggle not found');
+        return;
+    }
+    
+    // Ensure hamburger is properly styled and accessible
+    hamburger.style.cssText = `
+        display: block !important;
+        position: relative !important;
+        z-index: 1105 !important;
+        pointer-events: auto !important;
+        cursor: pointer !important;
+        background: none !important;
+        border: none !important;
+        padding: 0.5rem !important;
+    `;
+    
+    // Remove any existing listeners by cloning the element
+    const newHamburger = hamburger.cloneNode(true);
+    hamburger.parentNode.replaceChild(newHamburger, hamburger);
+    
+    // Add robust click handler
+    newHamburger.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleMobileMenu();
+    }, { capture: true });
+    
+    // Add touch handler for mobile devices
+    newHamburger.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleMobileMenu();
+    }, { passive: false });
+    
+    console.log('✅ Mobile menu initialized successfully');
+}
+
+// Check if hamburger button is actually clickable (debugging)
+function debugHamburgerButton() {
+    const hamburger = document.getElementById('mobileMenuToggle');
+    if (hamburger) {
+        const rect = hamburger.getBoundingClientRect();
+        const elementAtPoint = document.elementFromPoint(
+            rect.left + rect.width/2, 
+            rect.top + rect.height/2
+        );
+        
+        if (elementAtPoint !== hamburger && !hamburger.contains(elementAtPoint)) {
+            console.warn('⚠️ Hamburger button may be blocked by:', elementAtPoint);
+            console.log('Hamburger position:', rect);
+            return false;
+        } else {
+            console.log('✅ Hamburger button is accessible');
+            return true;
+        }
+    }
+    return false;
+}
+
 // Close mobile menu when clicking outside
 document.addEventListener('click', function(event) {
     const mobileMenu = document.getElementById('mobileNavMenu');
@@ -726,24 +831,18 @@ window.addEventListener('scroll', function() {
     }
 });
 
-// DOM Content Loaded
+// DOM Content Loaded - Enhanced with mobile menu debugging
 document.addEventListener('DOMContentLoaded', function() {
     try {
-        // Add click event listener to mobile menu toggle
-        const mobileMenuToggle = document.getElementById('mobileMenuToggle');
-        if (mobileMenuToggle) {
-            mobileMenuToggle.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                toggleMobileMenu();
-            });
+        // Initialize mobile menu with robust handling
+        setTimeout(function() {
+            initializeMobileMenu();
             
-            // Also add touch event for mobile
-            mobileMenuToggle.addEventListener('touchstart', function(e) {
-                e.preventDefault();
-                toggleMobileMenu();
-            });
-        }
+            // Debug hamburger accessibility
+            if (window.innerWidth <= 768) {
+                debugHamburgerButton();
+            }
+        }, 100);
         
         // Add click handlers to mobile nav links
         const mobileNavLinks = document.querySelectorAll('.mobile-nav-links a');
@@ -770,8 +869,33 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
         
+        // Re-initialize mobile menu on window resize
+        let resizeTimeout;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(function() {
+                if (window.innerWidth <= 768) {
+                    initializeMobileMenu();
+                }
+            }, 250);
+        });
+        
     } catch (error) {
         console.error('Error during header initialization:', error);
     }
 });
+
+// Global Functions - Make available to all pages
+window.toggleMobileMenu = toggleMobileMenu;
+window.closeMobileMenu = closeMobileMenu;
+window.closePromoBanner = closePromoBanner;
+window.initializeMobileMenu = initializeMobileMenu;
+window.debugHamburgerButton = debugHamburgerButton;
+
+// Backup fix function for pages that might need it
+window.fixHamburgerMenu = function() {
+    console.log('🔧 Running emergency hamburger menu fix...');
+    initializeMobileMenu();
+    return debugHamburgerButton();
+};
 </script>

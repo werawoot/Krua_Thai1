@@ -2,6 +2,7 @@
 /**
  * Somdul Table - Home Page with Database Integration and Coming Soon Popup
  * File: index.php
+ * FIXED: Character encoding and JavaScript issues
  */
 
 error_reporting(E_ALL);
@@ -10,7 +11,7 @@ session_start();
 
 require_once 'config/database.php';
 
-// Include the header
+// Include the header (contains navbar, promo banner, fonts, and base styles)
 include 'header.php';
 
 // Database configuration for email signups
@@ -327,8 +328,6 @@ if ($email_conn) {
         0%, 100% { transform: scale(1); }
         50% { transform: scale(1.05); }
     }
-
-
 
     /* Hide all popup content when minimized */
     .popup-overlay.minimized .popup-logo,
@@ -963,301 +962,223 @@ if ($email_conn) {
         }
     }
 
-    /* BaticaSans Font Import - Local Files */
-    @font-face {
-        font-family: 'BaticaSans';
-        src: url('./Font/BaticaSans-Regular.woff2') format('woff2'),
-            url('./Font/BaticaSans-Regular.woff') format('woff'),
-            url('./Font/BaticaSans-Regular.ttf') format('truetype');
-        font-weight: 400;
-        font-style: normal;
-        font-display: swap;
+    /* Hero Section Styles (using CSS variables from header.php) */
+    .hero-section {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        padding: 2rem;
+        background: url('./assets/image/padthai2.png') center/cover no-repeat, linear-gradient(135deg, var(--cream) 0%, #f8f9fa 100%);
+        position: relative;
+        overflow: hidden;
+        margin-top: 110px; /* Account for header */
     }
 
-        @font-face {
-            font-family: 'BaticaSans';
-            src: url('./Font/BaticaSans-Italic.woff2') format('woff2'),
-                url('./Font/BaticaSans-Italic.woff') format('woff'),
-                url('./Font/BaticaSans-Italic.ttf') format('truetype');
-            font-weight: 400;
-            font-style: italic;
-            font-display: swap;
-        }
-
-        /* Fallback for bold/medium weights - browser will simulate them */
-        @font-face {
-            font-family: 'BaticaSans';
-            src: url('./Font/BaticaSans-Regular.woff2') format('woff2'),
-                url('./Font/BaticaSans-Regular.woff') format('woff'),
-                url('./Font/BaticaSans-Regular.ttf') format('truetype');
-            font-weight: 500;
-            font-style: normal;
-            font-display: swap;
-        }
-
-        @font-face {
-            font-family: 'BaticaSans';
-            src: url('./Font/BaticaSans-Regular.woff2') format('woff2'),
-                url('./Font/BaticaSans-Regular.woff') format('woff'),
-                url('./Font/BaticaSans-Regular.ttf') format('truetype');
-            font-weight: 700;
-            font-style: normal;
-            font-display: swap;
-        }
-        }
-    </style>
-    
-    <style>
-        /* IMPROVED CSS Custom Properties for Somdul Table Design System - COLOR HIERARCHY ONLY */
-        :root {
-            /* LEVEL 1 (MOST IMPORTANT): BROWN #bd9379 + WHITE */
-            --brown: #bd9379;
-            --white: #ffffff;
-            
-            /* LEVEL 2 (SECONDARY): CREAM #ece8e1 */
-            --cream: #ece8e1;
-            
-            /* LEVEL 3 (SUPPORTING): SAGE #adb89d */
-            --sage: #adb89d;
-            
-            /* LEVEL 4 (ACCENT/CONTRAST - LEAST USED): CURRY #cf723a */
-            --curry: #cf723a;
-            
-            /* Text colors using brown hierarchy */
-            --text-dark: #2c3e50;
-            --text-gray: #7f8c8d;
-            --border-light: #d4c4b8; /* Brown-tinted border */
-            
-            /* Shadows using brown as base (Level 1) */
-            --shadow-soft: 0 4px 12px rgba(189, 147, 121, 0.15);
-            --shadow-medium: 0 8px 24px rgba(189, 147, 121, 0.25);
-            --radius-sm: 8px;
-            --radius-md: 12px;
-            --radius-lg: 16px;
-            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'BaticaSans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            line-height: 1.6;
-            color: var(--text-dark);
-            background-color: var(--white);
-            font-weight: 400;
-        }
-
-        /* Typography using BaticaSans - LEVEL 1: Brown for headings */
-        h1, h2, h3, h4, h5, h6 {
-            font-family: 'BaticaSans', sans-serif;
-            font-weight: 700;
-            line-height: 1.2;
-            color: var(--brown); /* LEVEL 1: Brown instead of text-dark */
-        }
-
-        /* Hero Section */
+    @media (max-width: 768px) {
         .hero-section {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            padding: 2rem;
-            background: url('./assets/image/padthai2.png') center/cover no-repeat, linear-gradient(135deg, var(--cream) 0%, #f8f9fa 100%);
-            position: relative;
-            overflow: hidden;
-            margin-top: 110px; /* Account for header */
+            margin-top: 105px; /* Mobile spacing for header */
         }
+    }
 
-        @media (max-width: 768px) {
-            .hero-section {
-                margin-top: 105px; /* Mobile spacing for header */
-            }
+    @media (max-width: 480px) {
+        .hero-section {
+            margin-top: 100px; /* Small mobile spacing for header */
         }
+    }
 
-        @media (max-width: 480px) {
-            .hero-section {
-                margin-top: 100px; /* Small mobile spacing for header */
-            }
-        }
+    .hero-container {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 0 2rem;
+    }
 
-        .hero-container {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 0 2rem;
-        }
+    .hero-container .background {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, var(--white) 0%, var(--cream) 100%);
+        z-index: -1;
+    }
 
-        .hero-container .background {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, var(--white) 0%, var(--cream) 100%); /* LEVEL 1 & 2: White to cream */
-            z-index: -1;
-        }
+    .hero-content {
+        flex: 1;
+        max-width: 600px;
+        padding: 3rem 2rem;
+        z-index: 10;
+    }
 
-        .hero-content {
-            flex: 1;
-            max-width: 600px;
-            padding: 3rem 2rem;
-            z-index: 10;
-        }
+    .hero-content h1 {
+        font-size: 4rem;
+        margin-bottom: 1.5rem;
+        font-weight: 800;
+        color: var(--brown);
+        line-height: 1.1;
+        font-family: 'BaticaSans', sans-serif;
+    }
 
-        .hero-content h1 {
-            font-size: 4rem;
-            margin-bottom: 1.5rem;
-            font-weight: 800;
-            color: var(--brown); /* LEVEL 1: Brown title */
-            line-height: 1.1;
-            font-family: 'BaticaSans', sans-serif;
-        }
+    .hero-content p {
+        font-size: 1.3rem;
+        margin-bottom: 2rem;
+        color: var(--text-gray);
+        line-height: 1.6;
+        font-family: 'BaticaSans', sans-serif;
+    }
 
-        .hero-content p {
-            font-size: 1.3rem;
-            margin-bottom: 2rem;
-            color: var(--text-gray);
-            line-height: 1.6;
-            font-family: 'BaticaSans', sans-serif;
-        }
+    .hero-form {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
 
-        .hero-form {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
+    .zip-input-container {
+        position: relative;
+        width: 100%;
+        max-width: 400px;
+    }
 
-        .zip-input-container {
-            position: relative;
-            width: 100%;
-            max-width: 400px;
-        }
+    .zip-input {
+        width: 100%;
+        padding: 1rem 1.5rem;
+        border: 2px solid var(--border-light);
+        border-radius: 50px;
+        font-size: 1.1rem;
+        font-family: 'BaticaSans', sans-serif;
+        background: var(--white);
+        transition: all 0.3s;
+        outline: none;
+    }
 
-        .zip-input {
-            width: 100%;
-            padding: 1rem 1.5rem;
-            border: 2px solid var(--border-light); /* Brown-tinted border */
-            border-radius: 50px;
-            font-size: 1.1rem;
-            font-family: 'BaticaSans', sans-serif;
-            background: var(--white); /* LEVEL 1: White */
-            transition: all 0.3s;
-            outline: none;
-        }
+    .zip-input:focus {
+        border-color: var(--brown);
+        box-shadow: 0 0 0 3px rgba(189, 147, 121, 0.1);
+    }
 
-        .zip-input:focus {
-            border-color: var(--brown); /* LEVEL 1: Brown focus */
-            box-shadow: 0 0 0 3px rgba(189, 147, 121, 0.1);
-        }
+    .zip-input::placeholder {
+        color: #999;
+        font-family: 'BaticaSans', sans-serif;
+    }
 
-        .zip-input::placeholder {
-            color: #999;
-            font-family: 'BaticaSans', sans-serif;
-        }
+    .order-now-button {
+        background: var(--curry);
+        color: var(--white);
+        padding: 1rem 2.5rem;
+        border: none;
+        border-radius: 50px;
+        cursor: pointer;
+        font-weight: 700;
+        font-size: 1.2rem;
+        font-family: 'BaticaSans', sans-serif;
+        text-decoration: none;
+        transition: all 0.3s;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        max-width: 200px;
+    }
 
-        .order-now-button {
-            background: #cf723a ; /* LEVEL 1: Brown */
-            color: var(--white); /* LEVEL 1: White */
-            padding: 1rem 2.5rem;
-            border: none;
-            border-radius: 50px;
-            cursor: pointer;
-            font-weight: 700;
-            font-size: 1.2rem;
-            font-family: 'BaticaSans', sans-serif;
-            text-decoration: none;
-            transition: all 0.3s;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            max-width: 200px;
-        }
+    .order-now-button:hover {
+        background: #b8631e;
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-medium);
+    }
 
-        .order-now-button:hover {
-            background: #cf723a ; /* Darker brown */
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-medium);
-        }
+    /* Hero Videos - Vertical Sliding Animation */
+    .hero-videos {
+        flex: 1;
+        height: 80vh;
+        display: flex;
+        gap: 1.5rem;
+        align-items: center;
+        justify-content: center;
+    }
 
-        /* Hero Videos - Vertical Sliding Animation */
+    .image-column {
+        flex: 1;
+        height: 100%;
+        max-width: 300px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .image-slider, .image-slider-reverse {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        animation-duration: 40s;
+        animation-timing-function: linear;
+        animation-iteration-count: infinite;
+    }
+
+    .image-slider {
+        animation-name: slideDown;
+    }
+
+    .image-slider-reverse {
+        animation-name: slideUp;
+    }
+
+    @keyframes slideDown {
+        0% { transform: translateY(-50%); }
+        100% { transform: translateY(0%); }
+    }
+
+    @keyframes slideUp {
+        0% { transform: translateY(0%); }
+        100% { transform: translateY(-50%); }
+    }
+
+    .video-container {
+        position: relative;
+        width: 100%;
+        height: 200px;
+        max-width: 200px;
+        overflow: hidden;
+        border-radius: 0px;
+        background: linear-gradient(45deg, var(--brown), var(--sage));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--white);
+        font-weight: 600;
+        font-family: 'BaticaSans', sans-serif;
+        font-size: 1.2rem;
+        clip-path: inset(0);
+    }
+
+    .video-container img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center center;
+        border-radius: 12px;
+    }
+
+    .video-container video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center center;
+        border-radius: 12px;
+    }
+
+    /* Mobile video controls */
+    @media (max-width: 768px) {
         .hero-videos {
-            flex: 1;
-            height: 80vh;
-            display: flex;
-            gap: 1.5rem;
-            align-items: center;
-            justify-content: center;
+            height: 300px;
         }
-
-        .image-column {
-            flex: 1;
-            height: 100%;
-            max-width: 300px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .image-slider, .image-slider-reverse {
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
-            animation-duration: 40s;
-            animation-timing-function: linear;
-            animation-iteration-count: infinite;
-        }
-
-        .image-slider {
-            animation-name: slideDown;
-        }
-
-        .image-slider-reverse {
-            animation-name: slideUp;
-        }
-
-        @keyframes slideDown {
-            0% { transform: translateY(-50%); }
-            100% { transform: translateY(0%); }
-        }
-
-        @keyframes slideUp {
-            0% { transform: translateY(0%); }
-            100% { transform: translateY(-50%); }
-        }
-
+        
         .video-container {
-            position: relative;
-            width: 100%;
-            height: 200px; /* Fixed height instead of min-height */
-            max-width: 200px; /* Adjust based on your layout needs */
-            overflow: hidden;
-            border-radius: 0px;
-            background: linear-gradient(45deg, var(--brown), var(--sage)); /* LEVEL 1 & 3: Brown and sage */
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--white); /* LEVEL 1: White */
-            font-weight: 600;
-            font-family: 'BaticaSans', sans-serif;
-            font-size: 1.2rem;
-            clip-path: inset(0);
+            height: 120px;
         }
-
-        .video-container img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            object-position: center center;
-            border-radius: 12px;
-        }
-
+        
         .video-container video {
             width: 100%;
             height: 100%;
@@ -1265,51 +1186,30 @@ if ($email_conn) {
             object-position: center center;
             border-radius: 12px;
         }
+    }
 
-        /* Mobile video controls - FIXED: Show videos but prevent autoplay issues */
-        @media (max-width: 768px) {
-            .hero-videos {
-                height: 300px; /* Reduce height on mobile */
-            }
-            
-            .video-container {
-                height: 120px; /* Smaller containers on mobile */
-            }
-            
-            .video-container video {
-                /* Don't hide videos, just ensure they don't autoplay */
-                width: 100%;
-                height: 100%;
-                object-fit: cover;
-                object-position: center center;
-                border-radius: 12px;
-            }
+    .mobile-device .hero-video,
+    .mobile-device video {
+        pointer-events: auto;
+    }
+
+    @media (max-width: 480px) {
+        .hero-videos {
+            height: 250px;
         }
-
-        /* Additional targeting for mobile devices - REMOVED the display: none */
-        .mobile-device .hero-video,
-        .mobile-device video {
-            /* Allow videos to show, just prevent autoplay */
-            pointer-events: auto;
+        
+        .video-container {
+            height: 100px;
+            font-size: 0.8rem;
         }
+    }
 
-        /* Additional mobile optimizations */
-        @media (max-width: 480px) {
-            .hero-videos {
-                height: 250px;
-            }
-            
-            .video-container {
-                height: 100px;
-                font-size: 0.8rem;
-            }
-        }
-
-        .meal-cards-container {
-    position: relative;
-    overflow: hidden;
-    margin-bottom: 2rem;
-}
+    /* Meal Cards Container */
+    .meal-cards-container {
+        position: relative;
+        overflow: hidden;
+        margin-bottom: 2rem;
+    }
 
     .meal-cards-track {
         display: flex;
@@ -1346,7 +1246,7 @@ if ($email_conn) {
             180deg,
             transparent 0%,
             transparent 40%,
-            rgba(189, 147, 121, 0.3) 70%, /* LEVEL 1: Brown overlay instead of black */
+            rgba(189, 147, 121, 0.3) 70%,
             rgba(189, 147, 121, 0.8) 100%
         );
     }
@@ -1357,7 +1257,7 @@ if ($email_conn) {
         left: 0;
         right: 0;
         padding: 1.5rem;
-        color: var(--white); /* LEVEL 1: White */
+        color: var(--white);
         z-index: 2;
     }
 
@@ -1366,7 +1266,7 @@ if ($email_conn) {
         font-weight: 700;
         margin-bottom: 0.5rem;
         font-family: 'BaticaSans', sans-serif;
-        color: var(--white) !important; /* LEVEL 1: White */
+        color: var(--white) !important;
     }
 
     .meal-card-description {
@@ -1410,9 +1310,9 @@ if ($email_conn) {
         width: 50px;
         height: 50px;
         border-radius: 50%;
-        border: 2px solid var(--brown); /* LEVEL 1: Brown border */
-        background: var(--white); /* LEVEL 1: White */
-        color: var(--brown); /* LEVEL 1: Brown */
+        border: 2px solid var(--brown);
+        background: var(--white);
+        color: var(--brown);
         cursor: pointer;
         display: flex;
         align-items: center;
@@ -1422,8 +1322,8 @@ if ($email_conn) {
     }
 
     .scroll-btn:hover {
-        background: var(--brown); /* LEVEL 1: Brown */
-        color: var(--white); /* LEVEL 1: White */
+        background: var(--brown);
+        color: var(--white);
     }
 
     .scroll-btn:disabled {
@@ -1431,8 +1331,239 @@ if ($email_conn) {
         cursor: not-allowed;
     }
 
-    /* Responsive adjustments */
+    /* Steps Section */
+    .steps-section {
+        padding: 5rem 2rem;
+        background: var(--cream);
+    }
+
+    .steps-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        text-align: center;
+    }
+
+    .steps-title {
+        font-size: 2.5rem;
+        margin-bottom: 3rem;
+        color: var(--brown);
+        font-family: 'BaticaSans', sans-serif;
+        font-weight: 700;
+    }
+
+    .steps-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 2rem;
+    }
+
+    .step {
+        text-align: center;
+        padding: 2rem;
+    }
+
+    .step-number {
+        width: 80px;
+        height: 80px;
+        background: var(--brown);
+        color: var(--white);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        font-weight: 700;
+        font-family: 'BaticaSans', sans-serif;
+        margin: 0 auto 1rem;
+    }
+
+    .step h3 {
+        font-size: 1.3rem;
+        margin-bottom: 1rem;
+        color: var(--brown);
+        font-family: 'BaticaSans', sans-serif;
+        font-weight: 600;
+    }
+
+    .step p {
+        color: var(--text-gray);
+        font-family: 'BaticaSans', sans-serif;
+    }
+
+    /* Menu Navigation Container */
+    .menu-nav-container {
+        margin-bottom: 32px;
+        width: 100%;
+        padding: 20px 0;
+        background: var(--cream);
+        border-radius: 0;
+        box-shadow: none;
+        border-top: 1px solid rgba(189, 147, 121, 0.1);
+        border-bottom: 1px solid rgba(189, 147, 121, 0.1);
+    }
+
+    .menu-nav-wrapper {
+        overflow-x: auto;
+        overflow-y: hidden;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        padding: 0 1rem;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .menu-nav-wrapper::-webkit-scrollbar {
+        display: none;
+    }
+
+    .menu-nav-list {
+        display: flex;
+        gap: 0;
+        min-width: max-content;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .menu-nav-container,
+    .menu-nav-container * {
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .menu-nav-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        height: 54px;
+        padding: 0 16px;
+        border: none;
+        border-bottom: 2px solid transparent;
+        background: transparent;
+        cursor: pointer;
+        font-family: 'BaticaSans', Arial, sans-serif;
+        font-size: 14px;
+        font-weight: 600;
+        color: #707070;
+        transition: all 0.3s ease;
+        white-space: nowrap;
+        text-decoration: none;
+        border-radius: var(--radius-sm);
+        outline: none !important;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .menu-nav-item:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(189, 147, 121, 0.3);
+    }
+
+    .menu-nav-item:hover {
+        color: var(--brown);
+        background: rgba(189, 147, 121, 0.1);
+        border-bottom-color: var(--brown);
+    }
+
+    .menu-nav-item.active {
+        color: var(--brown);
+        background: var(--white);
+        border-bottom-color: var(--brown);
+        box-shadow: var(--shadow-soft);
+    }
+
+    .menu-nav-icon {
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .menu-nav-icon svg {
+        width: 100%;
+        height: 100%;
+        fill: #707070;
+        transition: fill 0.3s ease;
+    }
+
+    .menu-nav-item:hover .menu-nav-icon svg {
+        fill: var(--brown);
+    }
+
+    .menu-nav-item.active .menu-nav-icon svg {
+        fill: var(--brown);
+    }
+
+    .menu-nav-text {
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    /* Responsive design */
     @media (max-width: 768px) {
+        .hero-container {
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .hero-content {
+            order: 1;
+            max-width: 100%;
+            padding: 2rem 1rem;
+        }
+
+        .hero-content h1 {
+            font-size: 2.5rem;
+        }
+
+        .hero-content p {
+            font-size: 1rem;
+        }
+
+        .hero-videos {
+            order: 2;
+            height: 300px;
+            flex-direction: row;
+            gap: 1rem;
+        }
+
+        .image-column {
+            height: 100%;
+        }
+
+        .video-container {
+            min-height: 120px;
+            font-size: 0.9rem;
+        }
+
+        .zip-input-container {
+            max-width: 100%;
+        }
+
+        .order-now-button {
+            max-width: 100%;
+        }
+
+        .steps-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .menu-nav-container {
+            margin-bottom: 24px;
+        }
+        
+        .menu-nav-item {
+            padding: 0 12px;
+            font-size: 13px;
+        }
+        
+        .menu-nav-icon {
+            width: 20px;
+            height: 20px;
+        }
+
         .meal-card {
             flex: 0 0 280px;
             height: 360px;
@@ -1444,269 +1575,28 @@ if ($email_conn) {
     }
 
     @media (max-width: 480px) {
+        .steps-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .hero-content h1 {
+            font-size: 2rem;
+        }
+        
+        .hero-videos {
+            height: 250px;
+        }
+        
+        .video-container {
+            min-height: 100px;
+            font-size: 0.8rem;
+        }
+
         .meal-card {
             flex: 0 0 250px;
             height: 320px;
         }
     }
-
-        /* Steps Section */
-        .steps-section {
-            padding: 5rem 2rem;
-            background: var(--cream); /* LEVEL 2: Cream background */
-        }
-
-        .steps-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            text-align: center;
-        }
-
-        .steps-title {
-            font-size: 2.5rem;
-            margin-bottom: 3rem;
-            color: var(--brown); /* LEVEL 1: Brown */
-            font-family: 'BaticaSans', sans-serif;
-            font-weight: 700;
-        }
-
-        .steps-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 2rem;
-        }
-
-        .step {
-            text-align: center;
-            padding: 2rem;
-        }
-
-        .step-number {
-            width: 80px;
-            height: 80px;
-            background: var(--brown); /* LEVEL 1: Brown */
-            color: var(--white); /* LEVEL 1: White */
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2rem;
-            font-weight: 700;
-            font-family: 'BaticaSans', sans-serif;
-            margin: 0 auto 1rem;
-        }
-
-        .step h3 {
-            font-size: 1.3rem;
-            margin-bottom: 1rem;
-            color: var(--brown); /* LEVEL 1: Brown */
-            font-family: 'BaticaSans', sans-serif;
-            font-weight: 600;
-        }
-
-        .step p {
-            color: var(--text-gray);
-            font-family: 'BaticaSans', sans-serif;
-        }
-
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            .hero-container {
-                flex-direction: column;
-                text-align: center;
-            }
-
-            .hero-content {
-                order: 1;
-                max-width: 100%;
-                padding: 2rem 1rem;
-            }
-
-            .hero-content h1 {
-                font-size: 2.5rem;
-            }
-
-            .hero-content p {
-                font-size: 1rem;
-            }
-
-            .hero-videos {
-                order: 2;
-                height: 300px;
-                flex-direction: row;
-                gap: 1rem;
-            }
-
-            .image-column {
-                height: 100%;
-            }
-
-            .video-container {
-                min-height: 120px;
-                font-size: 0.9rem;
-            }
-
-            .zip-input-container {
-                max-width: 100%;
-            }
-
-            .order-now-button {
-                max-width: 100%;
-            }
-
-            .steps-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-        @media (max-width: 480px) {
-            .steps-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .hero-content h1 {
-                font-size: 2rem;
-            }
-            
-            .hero-videos {
-                height: 250px;
-            }
-            
-            .video-container {
-                min-height: 100px;
-                font-size: 0.8rem;
-            }
-        }
-.menu-nav-container {
-    margin-bottom: 32px;
-    /* Remove max-width and centering margin */
-    width: 100%; /* Full width */
-    padding: 20px 0;
-    background: var(--cream); /* LEVEL 2: Cream background */
-    border-radius: 0; /* Remove border radius for full width */
-    box-shadow: none; /* Remove shadow for cleaner full-width look */
-    /* Add a subtle border instead */
-    border-top: 1px solid rgba(189, 147, 121, 0.1);
-    border-bottom: 1px solid rgba(189, 147, 121, 0.1);
-}
-
-
-.menu-nav-wrapper {
-    overflow-x: auto;
-    overflow-y: hidden;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-    padding: 0 1rem;
-    /* Center the content */
-    max-width: 1200px;
-    margin: 0 auto;
-}
-
-.menu-nav-wrapper::-webkit-scrollbar {
-    display: none;
-}
-
-.menu-nav-list {
-    display: flex;
-    gap: 0;
-    min-width: max-content;
-    align-items: center;
-    justify-content: center; /* Center the navigation items */
-}
-/* Also prevent text selection on menu navigation */
-.menu-nav-container,
-.menu-nav-container * {
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
-    -webkit-tap-highlight-color: transparent;
-}
-.menu-nav-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    height: 54px;
-    padding: 0 16px;
-    border: none;
-    border-bottom: 2px solid transparent;
-    background: transparent;
-    cursor: pointer;
-    font-family: 'BaticaSans', Arial, sans-serif;
-    font-size: 14px;
-    font-weight: 600;
-    color: #707070;
-    transition: all 0.3s ease;
-    white-space: nowrap;
-    text-decoration: none;
-    border-radius: var(--radius-sm);
-    /* Remove any focus outline */
-    outline: none !important;
-    -webkit-tap-highlight-color: transparent;
-}
-
-.menu-nav-item:focus {
-    outline: none;
-    box-shadow: 0 0 0 2px rgba(189, 147, 121, 0.3);
-}
-
-.menu-nav-item:hover {
-    color: var(--brown); /* LEVEL 1: Brown hover */
-    background: rgba(189, 147, 121, 0.1); /* Light brown background */
-    border-bottom-color: var(--brown); /* LEVEL 1: Brown */
-}
-
-.menu-nav-item.active {
-    color: var(--brown); /* LEVEL 1: Brown active */
-    background: var(--white); /* LEVEL 1: White background */
-    border-bottom-color: var(--brown); /* LEVEL 1: Brown */
-    box-shadow: var(--shadow-soft);
-}
-
-.menu-nav-icon {
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.menu-nav-icon svg {
-    width: 100%;
-    height: 100%;
-    fill: #707070;
-    transition: fill 0.3s ease;
-}
-
-.menu-nav-item:hover .menu-nav-icon svg {
-    fill: var(--brown); /* LEVEL 1: Brown */
-}
-
-.menu-nav-item.active .menu-nav-icon svg {
-    fill: var(--brown); /* LEVEL 1: Brown */
-}
-
-.menu-nav-text {
-    font-size: 14px;
-    font-weight: 600;
-}
-
-/* Responsive design */
-@media (max-width: 768px) {
-    .menu-nav-container {
-        margin-bottom: 24px;
-    }
-    
-    .menu-nav-item {
-        padding: 0 12px;
-        font-size: 13px;
-    }
-    
-    .menu-nav-icon {
-        width: 20px;
-        height: 20px;
-    }
-}
     </style>
 </head>
 
@@ -2029,7 +1919,7 @@ if ($email_conn) {
         </div>
     </section>
 
-       <section class="steps-section" id="how-it-works">
+    <section class="steps-section" id="how-it-works">
         <div class="steps-container">
             <h2 class="steps-title">How It Works</h2>
             <div data-testid="hiw-items" class="hiw-items">
@@ -2037,14 +1927,14 @@ if ($email_conn) {
                     <img src="assets/image/weeklyplan.jpg" alt="Pick your weekly plan" class="hiw-step-image">
                     <div data-testid="hiw-step-text" class="hiw-step-text">
                         <p class="font-bold">Pick your weekly plan</p>
-                        <p data-testid="step-text" class="step-text">Choose from 4 to 16 meals per week — you can pause, skip, or cancel deliveries at any time.</p>
+                        <p data-testid="step-text" class="step-text">Choose from 4 to 16 meals per week – you can pause, skip, or cancel deliveries at any time.</p>
                     </div>
                 </div>
                 <div data-testid="hiw-step" class="hiw-step hiw-step--with-border">
                     <img src="assets/image/selectingmeal.jpeg" alt="Pick your weekly plan" class="hiw-step-image">
                     <div data-testid="hiw-step-text" class="hiw-step-text">
                         <p class="font-bold">Select your meals</p>
-                        <p data-testid="step-text" class="step-text">Browse our menu and select your meals — new offerings added weekly.</p>
+                        <p data-testid="step-text" class="step-text">Browse our menu and select your meals – new offerings added weekly.</p>
                     </div>
                 </div>
                 <div data-testid="hiw-step" class="hiw-step hiw-step--with-border">
@@ -2202,60 +2092,27 @@ if ($email_conn) {
     </section>
 
 <script>
-    // Page-specific JavaScript - mobile menu debugging
-
-    // Show debug button on mobile
+    // Page-specific JavaScript for index.php
     document.addEventListener('DOMContentLoaded', function() {
-        console.log('🏠 Index.php loaded');
+        console.log('🏠 Index.php page loaded');
         
-        // Show debug button on mobile
-        if (window.innerWidth <= 768) {
-            const debugButton = document.getElementById('debugButton');
-            if (debugButton) {
-                debugButton.style.display = 'block';
-                console.log('📱 Debug button shown for mobile');
-            }
-        }
-        
-        // Check if header functions are available
+        // Check if mobile menu functions are available from header.php
         setTimeout(function() {
             console.log('🔍 Checking header functions:', {
                 toggleMobileMenu: typeof window.toggleMobileMenu,
-                testMobileMenu: typeof window.testMobileMenu
+                fixHamburgerMenu: typeof window.fixHamburgerMenu,
+                debugHamburgerButton: typeof window.debugHamburgerButton
             });
             
-            // Make sure hamburger is clickable
-            const hamburger = document.getElementById('mobileMenuToggle');
-            if (hamburger) {
-                console.log('🍔 Hamburger found, adding backup click handler');
-                
-                // Add backup click handler
-                hamburger.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('🍔 Backup hamburger clicked!');
-                    
-                    if (window.toggleMobileMenu) {
-                        window.toggleMobileMenu();
-                    } else {
-                        alert('Mobile menu function not found!');
-                    }
-                });
-                
-                // Check if button is actually clickable
-                const rect = hamburger.getBoundingClientRect();
-                const elementAtPoint = document.elementFromPoint(rect.left + rect.width/2, rect.top + rect.height/2);
-                
-                if (elementAtPoint !== hamburger && !hamburger.contains(elementAtPoint)) {
-                    console.error('❌ Hamburger button is blocked by:', elementAtPoint);
-                    console.log('Hamburger position:', rect);
-                } else {
-                    console.log('✅ Hamburger button is clickable');
+            // If on mobile and hamburger menu has issues, run debug
+            if (window.innerWidth <= 768 && window.debugHamburgerButton) {
+                const isWorking = window.debugHamburgerButton();
+                if (!isWorking && window.fixHamburgerMenu) {
+                    console.log('🔧 Running hamburger menu fix...');
+                    window.fixHamburgerMenu();
                 }
-            } else {
-                console.error('❌ Hamburger button not found!');
             }
-        }, 1000);
+        }, 500);
     });
 
     // Function to handle meal card clicks - redirects to menus.php with menu ID
@@ -2767,6 +2624,6 @@ if ($email_conn) {
             checkPopupDisplay();
         });
     <?php endif; ?>
-    </script>
+</script>
 </body>
-</html>)
+</html>
