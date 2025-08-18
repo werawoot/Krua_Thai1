@@ -148,15 +148,67 @@ try {
         background: var(--cream);
         border-top: 1px solid rgba(189, 147, 121, 0.1);
         border-bottom: 1px solid rgba(189, 147, 121, 0.1);
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+
+    .menu-nav-scroll-btn {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 40px;
+        height: 40px;
+        border: none;
+        background: rgba(255, 255, 255, 0.95);
+        color: var(--brown);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 10;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+        opacity: 0;
+        visibility: hidden;
+        backdrop-filter: blur(10px);
+    }
+
+    .menu-nav-scroll-btn:hover {
+        background: var(--brown);
+        color: var(--white);
+        transform: translateY(-50%) scale(1.1);
+    }
+
+    .menu-nav-scroll-btn:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+
+    .menu-nav-scroll-btn.visible {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .menu-nav-scroll-left {
+        left: 10px;
+    }
+
+    .menu-nav-scroll-right {
+        right: 10px;
     }
 
     .menu-nav-wrapper {
         overflow-x: auto;
         scrollbar-width: none;
         -ms-overflow-style: none;
-        padding: 0 1rem;
+        padding: 0 60px; /* Add padding to account for scroll buttons */
         max-width: 1200px;
         margin: 0 auto;
+        width: 100%;
+        scroll-behavior: smooth;
     }
 
     .menu-nav-wrapper::-webkit-scrollbar { display: none; }
@@ -186,6 +238,13 @@ try {
         white-space: nowrap;
         text-decoration: none;
         border-radius: 8px;
+        outline: none !important;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .menu-nav-item:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(189, 147, 121, 0.3);
     }
 
     .menu-nav-item:hover {
@@ -218,6 +277,11 @@ try {
 
     .menu-nav-item:hover .menu-nav-icon svg { fill: var(--brown); }
     .menu-nav-item.active .menu-nav-icon svg { fill: var(--brown); }
+
+    .menu-nav-text {
+        font-size: 14px;
+        font-weight: 600;
+    }
 
     /* Results */
     .results-header {
@@ -636,6 +700,24 @@ try {
         .container { padding: 0 15px; }
         .menus-grid { grid-template-columns: 1fr; }
         .results-header { flex-direction: column; gap: 1rem; align-items: flex-start; }
+        
+        .menu-nav-wrapper {
+            padding: 0 50px; /* Slightly less padding on mobile */
+        }
+        
+        .menu-nav-scroll-btn {
+            width: 36px;
+            height: 36px;
+        }
+        
+        .menu-nav-scroll-left {
+            left: 8px;
+        }
+
+        .menu-nav-scroll-right {
+            right: 8px;
+        }
+        
         .menu-nav-item { padding: 0 12px; font-size: 13px; }
         .menu-nav-icon { width: 20px; height: 20px; }
         .menu-actions { flex-direction: column; gap: 0.5rem; }
@@ -671,7 +753,13 @@ try {
 
             <!-- Menu Navigation Container -->
             <div class="menu-nav-container">
-                <div class="menu-nav-wrapper">
+                <button class="menu-nav-scroll-btn menu-nav-scroll-left" id="menuScrollLeft" aria-label="Scroll left">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+                
+                <div class="menu-nav-wrapper" id="menuNavWrapper">
                     <div class="menu-nav-list">
                         <?php if (empty($categories)): ?>
                             <a href="menus.php" class="menu-nav-item <?php echo empty($category_id) ? 'active' : ''; ?>">
@@ -727,6 +815,12 @@ try {
                         <?php endif; ?>
                     </div>
                 </div>
+                
+                <button class="menu-nav-scroll-btn menu-nav-scroll-right" id="menuScrollRight" aria-label="Scroll right">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
             </div>
 
             <!-- Results Header -->
@@ -945,6 +1039,50 @@ try {
     // Page-specific JavaScript for menus.php
     document.addEventListener('DOMContentLoaded', function() {
         console.log('🍽️ Menus page loaded');
+        
+        // Menu navigation scroll functionality
+        const menuNavWrapper = document.getElementById('menuNavWrapper');
+        const menuScrollLeftBtn = document.getElementById('menuScrollLeft');
+        const menuScrollRightBtn = document.getElementById('menuScrollRight');
+        
+        function updateMenuScrollButtons() {
+            if (!menuNavWrapper || !menuScrollLeftBtn || !menuScrollRightBtn) return;
+            
+            const canScrollLeft = menuNavWrapper.scrollLeft > 0;
+            const canScrollRight = menuNavWrapper.scrollLeft < (menuNavWrapper.scrollWidth - menuNavWrapper.clientWidth);
+            const hasOverflow = menuNavWrapper.scrollWidth > menuNavWrapper.clientWidth;
+            
+            if (hasOverflow) {
+                menuScrollLeftBtn.classList.add('visible');
+                menuScrollRightBtn.classList.add('visible');
+                
+                menuScrollLeftBtn.disabled = !canScrollLeft;
+                menuScrollRightBtn.disabled = !canScrollRight;
+            } else {
+                menuScrollLeftBtn.classList.remove('visible');
+                menuScrollRightBtn.classList.remove('visible');
+            }
+        }
+        
+        // Menu scroll button event listeners
+        if (menuScrollLeftBtn && menuScrollRightBtn && menuNavWrapper) {
+            menuScrollLeftBtn.addEventListener('click', () => {
+                menuNavWrapper.scrollBy({ left: -200, behavior: 'smooth' });
+            });
+            
+            menuScrollRightBtn.addEventListener('click', () => {
+                menuNavWrapper.scrollBy({ left: 200, behavior: 'smooth' });
+            });
+            
+            // Update scroll buttons when scrolling
+            menuNavWrapper.addEventListener('scroll', updateMenuScrollButtons);
+            
+            // Update scroll buttons on window resize
+            window.addEventListener('resize', updateMenuScrollButtons);
+            
+            // Initial update
+            setTimeout(updateMenuScrollButtons, 100);
+        }
         
         // Check for show_menu parameter and automatically open modal
         const urlParams = new URLSearchParams(window.location.search);

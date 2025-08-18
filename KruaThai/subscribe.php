@@ -3,24 +3,26 @@
  * Somdul Table - Subscribe Page
  * File: subscribe.php
  * Description: Choose meal package before selecting menu (Step 1)
- * FIXED: Now uses header.php consistently
+ * FIXED: Early login check to prevent errors when not logged in
  */
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 session_start();
 
-require_once 'config/database.php';
-
-// Include the header (contains navbar, promo banner, fonts, and base styles)
-include 'header.php';
-
-// Check if user is logged in
+// EARLY LOGIN CHECK - Move this BEFORE any other includes/requires
+// Check if user is logged in FIRST, before anything else that might cause errors
 if (!isset($_SESSION['user_id'])) {
     $redirect_url = 'subscribe.php';
     if (isset($_GET['menu'])) $redirect_url .= '?menu=' . urlencode($_GET['menu']);
     header('Location: login.php?redirect=' . urlencode($redirect_url));
     exit;
 }
+
+// Only proceed with includes and database operations if user is logged in
+require_once 'config/database.php';
+
+// Include the header (contains navbar, promo banner, fonts, and base styles)
+include 'header.php';
 
 $highlight_menu_id = $_GET['menu'] ?? '';
 
@@ -497,17 +499,17 @@ function getPlanDescription($plan) {
                     <i class="fas fa-check-circle"></i>
                     <span>Choose Package</span>
                 </div>
-                <span class="progress-arrow">→</span>
+                <span class="progress-arrow">â†'</span>
                 <div class="progress-step">
                     <i class="fas fa-utensils"></i>
                     <span>Select Menu</span>
                 </div>
-                <span class="progress-arrow">→</span>
+                <span class="progress-arrow">â†'</span>
                 <div class="progress-step">
                     <i class="fas fa-credit-card"></i>
                     <span>Payment</span>
                 </div>
-                <span class="progress-arrow">→</span>
+                <span class="progress-arrow">â†'</span>
                 <div class="progress-step">
                     <i class="fas fa-check-double"></i>
                     <span>Complete</span>

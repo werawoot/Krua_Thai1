@@ -3,15 +3,12 @@
  * Somdul Table - Updated Checkout System with Quantity Support
  * UPDATED: Now supports meal quantities from meal-selection.php
  * COMPLETE: All original functionality preserved including calendar
- * CONVERTED: Now uses consistent header.php for navigation and styling
+ * FIXED: Now uses header.php consistently like menus.php and meal-selection.php
  */
 
 session_start();
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
-
-// Include header early (provides promo banner, navbar, fonts, CSS variables)
-include 'header.php';
 
 // Initialize variables with defaults
 $order = null;
@@ -539,1312 +536,1087 @@ try {
 if ($success) {
     exit;
 }
+
+// Include the header (contains navbar, promo banner, fonts, and base styles)
+include 'header.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Confirm Order | Somdul Table</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Review and confirm your order - Somdul Table delivers fresh, healthy Thai meals to your door">
+    
     <style>
-/* ========================================================================
-   SOMDUL TABLE - CHECKOUT PAGE CSS WITH QUANTITY SUPPORT
-   Updated to show correct prices and meal quantities
-   COMPLETE: All original functionality preserved including calendar
-   CONVERTED: Now uses header.php for consistent styling and navigation
-   ======================================================================== */
-
-/* ========================================================================
-   CONTAINER & LAYOUT
-   ======================================================================== */
-
-.container {
-    max-width: 900px;
-    margin: 0 auto;
-    padding: 2rem 20px 4rem;
-    position: relative;
-}
-
-/* ========================================================================
-   PROGRESS BAR - UPDATED THEME COLORS
-   ======================================================================== */
-
-.progress-container {
-    background: var(--white);
-    border-radius: var(--radius-lg);
-    padding: 2rem;
-    margin-bottom: 3rem;
-    box-shadow: var(--shadow-soft);
-    border: 1px solid var(--border-light);
-}
-
-.progress-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    max-width: 800px;
-    margin: 0 auto;
-    flex-wrap: wrap;
-}
-
-.progress-step {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.8rem 1.5rem;
-    border-radius: 25px;
-    font-weight: 600;
-    font-size: 0.95rem;
-    font-family: 'BaticaSans', sans-serif;
-    background: var(--white);
-    color: var(--text-gray);
-    border: 2px solid var(--cream);
-    transition: var(--transition);
-    white-space: nowrap;
-    flex: 1;
-    justify-content: center;
-    min-width: 140px;
-    touch-action: manipulation;
-}
-
-.progress-step.active {
-    background: var(--brown);
-    color: var(--white);
-    border-color: var(--brown);
-    box-shadow: 0 4px 12px rgba(189, 147, 121, 0.3);
-    transform: scale(1.02);
-}
-
-.progress-step.completed {
-    background: var(--sage);
-    color: var(--white);
-    border-color: var(--sage);
-}
-
-.progress-arrow {
-    color: var(--sage);
-    font-size: 1.2rem;
-    font-weight: 600;
-    flex-shrink: 0;
-    transition: var(--transition);
-}
-
-/* ========================================================================
-   TITLE
-   ======================================================================== */
-
-.title {
-    font-size: 2.2rem;
-    font-weight: 700;
-    margin-bottom: 2rem;
-    text-align: center;
-    color: var(--brown);
-    position: relative;
-    font-family: 'BaticaSans', sans-serif;
-}
-
-.title i {
-    color: var(--curry);
-    margin-right: 0.5rem;
-}
-
-/* ========================================================================
-   SECTIONS
-   ======================================================================== */
-
-.section {
-    background: var(--white);
-    border-radius: var(--radius-lg);
-    margin-bottom: 2rem;
-    box-shadow: var(--shadow-soft);
-    padding: 2rem;
-    border: 1px solid var(--border-light);
-    position: relative;
-    overflow: hidden;
-    touch-action: manipulation;
-}
-
-.section::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, var(--curry), var(--brown), var(--sage));
-}
-
-.label {
-    font-weight: 700;
-    color: var(--brown);
-    margin-bottom: 1rem;
-    font-size: 1.1rem;
-    font-family: 'BaticaSans', sans-serif;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.plan-title {
-    font-size: 1.2rem;
-    color: var(--brown);
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-    font-family: 'BaticaSans', sans-serif;
-}
-
-.plan-price {
-    color: var(--curry);
-    font-size: 1.4rem;
-    font-weight: 700;
-    font-family: 'BaticaSans', sans-serif;
-}
-
-/* ========================================================================
-   MEAL LIST - UPDATED FOR QUANTITIES
-   ======================================================================== */
-
-.meal-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-}
-
-.meal-list li {
-    border-bottom: 1px solid var(--border-light);
-    padding: 1rem 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    transition: var(--transition);
-    touch-action: manipulation;
-}
-
-.meal-list li:hover {
-    background: var(--cream);
-    margin: 0 -1rem;
-    padding: 1rem;
-    border-radius: var(--radius-md);
-}
-
-.meal-list li:last-child {
-    border-bottom: none;
-}
-
-.meal-name {
-    flex: 1;
-    font-weight: 600;
-    color: var(--brown);
-    line-height: 1.4;
-    font-family: 'BaticaSans', sans-serif;
-}
-
-.meal-name .quantity-indicator {
-    color: var(--curry);
-    font-weight: 700;
-    margin-left: 0.5rem;
-    font-size: 0.95rem;
-}
-
-.meal-price {
-    color: var(--curry);
-    font-weight: 600;
-    margin-left: 1rem;
-    font-family: 'BaticaSans', sans-serif;
-}
-
-.no-meals-message {
-    text-align: center;
-    padding: 2rem;
-    color: var(--text-gray);
-    font-style: italic;
-    line-height: 1.6;
-    font-family: 'BaticaSans', sans-serif;
-}
-
-/* ========================================================================
-   TOTAL PRICE
-   ======================================================================== */
-
-.total {
-    font-size: 1.5rem;
-    color: var(--curry);
-    font-weight: 700;
-    margin: 2rem 0;
-    text-align: center;
-    padding: 1.5rem;
-    background: linear-gradient(135deg, var(--cream), #f5f3f0);
-    border-radius: var(--radius-lg);
-    border: 2px solid rgba(189, 147, 121, 0.1);
-    font-family: 'BaticaSans', sans-serif;
-}
-
-/* ========================================================================
-   FORM INPUTS
-   ======================================================================== */
-
-.address-input, .input {
-    width: 100%;
-    padding: 1rem 1.2rem;
-    border-radius: var(--radius-lg);
-    border: 2px solid var(--border-light);
-    margin-bottom: 1.2rem;
-    font-size: 1rem;
-    font-family: 'BaticaSans', sans-serif;
-    transition: var(--transition);
-    background: var(--white);
-    color: var(--text-dark);
-    touch-action: manipulation;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-}
-
-.input:focus, .address-input:focus {
-    border-color: var(--brown);
-    outline: none;
-    box-shadow: 0 0 15px rgba(189, 147, 121, 0.2);
-    transform: translateY(-1px);
-}
-
-/* Prevent iOS zoom on input focus */
-input[type="text"],
-input[type="email"],
-input[type="tel"],
-input[type="number"],
-textarea,
-select {
-    font-size: 16px !important;
-}
-
-/* ========================================================================
-   BUTTONS - UPDATED THEME COLORS
-   ======================================================================== */
-
-.btn {
-    width: 100%;
-    padding: 1.2rem 2rem;
-    border-radius: 25px;
-    background: var(--brown);
-    color: var(--white);
-    font-size: 1.1rem;
-    font-weight: 700;
-    border: none;
-    cursor: pointer;
-    transition: var(--transition);
-    font-family: 'BaticaSans', sans-serif;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.8rem;
-    box-shadow: var(--shadow-soft);
-    touch-action: manipulation;
-    min-height: 56px;
-    position: relative;
-    overflow: hidden;
-}
-
-.btn::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-    transition: left 0.5s;
-}
-
-.btn:hover::before {
-    left: 100%;
-}
-
-.btn:hover {
-    background: #a8855f;
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-medium);
-}
-
-.btn:active {
-    transform: translateY(0);
-    box-shadow: 0 2px 8px rgba(189, 147, 121, 0.3);
-}
-
-.btn:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-    transform: none;
-    background: var(--text-gray);
-}
-
-/* ========================================================================
-   PAYMENT METHODS
-   ======================================================================== */
-
-.payment-methods {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1rem;
-    margin-bottom: 2rem;
-}
-
-.payment-methods label {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    cursor: pointer;
-    padding: 1.2rem;
-    border: 2px solid var(--border-light);
-    border-radius: var(--radius-lg);
-    transition: var(--transition);
-    background: var(--white);
-    font-weight: 600;
-    font-family: 'BaticaSans', sans-serif;
-    position: relative;
-    overflow: hidden;
-    min-height: 60px;
-    touch-action: manipulation;
-}
-
-.payment-methods label::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(135deg, rgba(189, 147, 121, 0.05), rgba(173, 184, 157, 0.05));
-    opacity: 0;
-    transition: var(--transition);
-}
-
-.payment-methods label:hover::before {
-    opacity: 1;
-}
-
-.payment-methods label:hover {
-    border-color: var(--brown);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(189, 147, 121, 0.2);
-}
-
-.payment-methods input:checked + i {
-    color: var(--brown);
-}
-
-.payment-methods input {
-    accent-color: var(--brown);
-    margin-right: 0.5rem;
-    transform: scale(1.2);
-}
-
-.payment-methods i {
-    font-size: 1.3rem;
-    color: var(--curry);
-    z-index: 1;
-    flex-shrink: 0;
-}
-
-.payment-methods span {
-    z-index: 1;
-    flex: 1;
-}
-
-/* ========================================================================
-   CALENDAR - UPDATED THEME COLORS
-   ======================================================================== */
-
-.date-selection-container {
-    position: relative;
-}
-
-.custom-calendar {
-    background: var(--white);
-    border: 2px solid var(--border-light);
-    border-radius: var(--radius-lg);
-    padding: 1.5rem;
-    margin-bottom: 1rem;
-    box-shadow: var(--shadow-soft);
-    max-width: 400px;
-    margin-left: auto;
-    margin-right: auto;
-    touch-action: manipulation;
-}
-
-.calendar-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.5rem;
-    padding-bottom: 1rem;
-    border-bottom: 2px solid var(--cream);
-}
-
-.calendar-nav {
-    background: var(--cream);
-    border: none;
-    border-radius: 50%;
-    width: 36px;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: var(--transition);
-    color: var(--brown);
-    font-size: 0.85rem;
-    touch-action: manipulation;
-    flex-shrink: 0;
-}
-
-.calendar-nav:hover {
-    background: var(--brown);
-    color: var(--white);
-    transform: scale(1.05);
-}
-
-.calendar-nav:active {
-    transform: scale(0.95);
-}
-
-.calendar-title {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: var(--brown);
-    text-align: center;
-    flex: 1;
-    margin: 0 0.8rem;
-    font-family: 'BaticaSans', sans-serif;
-}
-
-.calendar-weekdays {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 0.3rem;
-    margin-bottom: 0.5rem;
-}
-
-.weekday {
-    text-align: center;
-    font-weight: 600;
-    color: var(--text-gray);
-    padding: 0.3rem;
-    font-size: 0.8rem;
-    font-family: 'BaticaSans', sans-serif;
-}
-
-.weekday.highlight {
-    color: var(--brown);
-    font-weight: 700;
-}
-
-.calendar-days {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 0.3rem;
-}
-
-.calendar-day {
-    aspect-ratio: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: var(--radius-md);
-    cursor: pointer;
-    transition: var(--transition);
-    font-weight: 600;
-    position: relative;
-    background: var(--white);
-    border: 1px solid transparent;
-    min-height: 32px;
-    user-select: none;
-    touch-action: manipulation;
-    font-size: 0.8rem;
-    font-family: 'BaticaSans', sans-serif;
-}
-
-.calendar-day.other-month {
-    color: var(--text-gray);
-    opacity: 0.3;
-    cursor: not-allowed;
-    pointer-events: none;
-}
-
-.calendar-day.disabled {
-    color: var(--text-gray);
-    opacity: 0.4;
-    cursor: not-allowed;
-    background: #f8f8f8;
-    pointer-events: none;
-}
-
-.calendar-day.available {
-    color: var(--brown);
-    background: var(--cream);
-    border-color: var(--brown);
-    font-weight: 700;
-}
-
-.calendar-day.available:hover {
-    background: var(--brown);
-    color: var(--white);
-    transform: scale(1.05);
-    box-shadow: 0 4px 12px rgba(189, 147, 121, 0.3);
-}
-
-.calendar-day.available:active {
-    transform: scale(0.95);
-}
-
-.calendar-day.selected {
-    background: var(--brown);
-    color: var(--white);
-    transform: scale(1.02);
-    box-shadow: 0 4px 16px rgba(189, 147, 121, 0.4);
-    border-color: var(--sage);
-}
-
-.calendar-day.today {
-    position: relative;
-}
-
-.calendar-day.today::after {
-    content: '';
-    position: absolute;
-    bottom: 3px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 4px;
-    height: 4px;
-    background: var(--sage);
-    border-radius: 50%;
-}
-
-.calendar-day.available.today::after {
-    background: var(--brown);
-}
-
-.calendar-day.selected.today::after {
-    background: var(--white);
-}
-
-/* ========================================================================
-   MESSAGES & ALERTS
-   ======================================================================== */
-
-.error {
-    background: linear-gradient(135deg, #ffebee, #fce4ec);
-    color: var(--danger);
-    border: 2px solid #ffcdd2;
-    padding: 1.5rem;
-    border-radius: var(--radius-lg);
-    margin-bottom: 2rem;
-    box-shadow: 0 2px 8px rgba(231, 76, 60, 0.1);
-    font-family: 'BaticaSans', sans-serif;
-}
-
-.error ul {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-}
-
-.error li {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 0.5rem;
-    line-height: 1.4;
-}
-
-.error li:before {
-    content: "⚠️";
-    flex-shrink: 0;
-}
-
-.weekend-info {
-    background: linear-gradient(135deg, #e8f5e8, #f0f8f0);
-    border: 2px solid var(--sage);
-    border-radius: var(--radius-lg);
-    padding: 1.5rem;
-    margin-bottom: 2rem;
-    color: var(--text-dark);
-    font-size: 0.95rem;
-    display: flex;
-    align-items: flex-start;
-    gap: 1rem;
-    line-height: 1.5;
-    font-family: 'BaticaSans', sans-serif;
-}
-
-.weekend-info i {
-    color: var(--sage);
-    font-size: 1.5rem;
-    flex-shrink: 0;
-    margin-top: 0.1rem;
-}
-
-.weekend-info-content {
-    flex: 1;
-}
-
-.weekend-info strong {
-    color: var(--brown);
-}
-
-.date-error-message, .date-success-message {
-    margin-top: 1rem;
-    padding: 1rem;
-    border-radius: var(--radius-md);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-weight: 600;
-    transition: var(--transition);
-    animation: slideIn 0.3s ease-out;
-    line-height: 1.4;
-    font-family: 'BaticaSans', sans-serif;
-}
-
-.date-error-message {
-    background: linear-gradient(135deg, #ffebee, #fce4ec);
-    color: var(--danger);
-    border: 2px solid #ffcdd2;
-}
-
-.date-success-message {
-    background: linear-gradient(135deg, #e8f5e8, #f0f8f0);
-    color: var(--success);
-    border: 2px solid var(--sage);
-}
-
-.success-message {
-    background: linear-gradient(135deg, #d4edda, #c3e6cb);
-    color: var(--success);
-    border: 2px solid #c3e6cb;
-    padding: 2rem;
-    border-radius: var(--radius-lg);
-    margin-bottom: 2rem;
-    text-align: center;
-    font-family: 'BaticaSans', sans-serif;
-}
-
-.success-message h2 {
-    margin-bottom: 1rem;
-    color: var(--success);
-}
-
-/* ========================================================================
-   ANIMATIONS
-   ======================================================================== */
-
-@keyframes slideIn {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-@keyframes calendarFadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-@keyframes dayFadeIn {
-    from {
-        opacity: 0;
-        transform: scale(0.8);
-    }
-    to {
-        opacity: 1;
-        transform: scale(1);
-    }
-}
-
-.custom-calendar {
-    animation: calendarFadeIn 0.3s ease-out;
-}
-
-.calendar-day {
-    animation: dayFadeIn 0.2s ease-out;
-}
-
-/* ========================================================================
-   MOBILE RESPONSIVE STYLES
-   ======================================================================== */
-
-@media (max-width: 1024px) {
+    /* PAGE-SPECIFIC STYLES ONLY - header styles come from header.php */
+    
+    /* Container */
     .container {
-        padding: 2rem 15px 3rem;
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 0 20px;
     }
-}
 
-@media (max-width: 768px) {
-    :root {
-        --transition: all 0.2s ease;
+    .main-content {
+        padding-top: 2rem;
+        min-height: calc(100vh - 200px);
     }
-    
-    body {
-        font-size: 15px;
-    }
-    
-    .container {
-        padding: 2rem 15px 2rem;
-    }
-    
+
+    /* Progress Bar */
     .progress-container {
-        padding: 1.5rem 1rem;
+        background: var(--white);
+        border-radius: var(--radius-lg);
+        padding: 2rem;
+        margin-bottom: 3rem;
+        box-shadow: var(--shadow-soft);
+        border: 1px solid var(--border-light);
+    }
+
+    .progress-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        max-width: 800px;
+        margin: 0 auto;
+        flex-wrap: wrap;
+    }
+
+    .progress-step {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.8rem 1.5rem;
+        border-radius: 25px;
+        font-weight: 600;
+        font-size: 0.95rem;
+        font-family: 'BaticaSans', sans-serif;
+        background: var(--white);
+        color: var(--text-gray);
+        border: 2px solid var(--cream);
+        transition: var(--transition);
+        white-space: nowrap;
+        flex: 1;
+        justify-content: center;
+        min-width: 140px;
+        touch-action: manipulation;
+    }
+
+    .progress-step.active {
+        background: var(--brown);
+        color: var(--white);
+        border-color: var(--brown);
+        box-shadow: 0 4px 12px rgba(189, 147, 121, 0.3);
+        transform: scale(1.02);
+    }
+
+    .progress-step.completed {
+        background: var(--sage);
+        color: var(--white);
+        border-color: var(--sage);
+    }
+
+    .progress-arrow {
+        color: var(--sage);
+        font-size: 1.2rem;
+        font-weight: 600;
+        flex-shrink: 0;
+        transition: var(--transition);
+    }
+
+    /* Title */
+    .title {
+        font-size: 2.2rem;
+        font-weight: 700;
+        margin-bottom: 2rem;
+        text-align: center;
+        color: var(--brown);
+        position: relative;
+        font-family: 'BaticaSans', sans-serif;
+    }
+
+    .title i {
+        color: var(--curry);
+        margin-right: 0.5rem;
+    }
+
+    /* Sections */
+    .section {
+        background: var(--white);
+        border-radius: var(--radius-lg);
+        margin-bottom: 2rem;
+        box-shadow: var(--shadow-soft);
+        padding: 2rem;
+        border: 1px solid var(--border-light);
+        position: relative;
+        overflow: hidden;
+        touch-action: manipulation;
+    }
+
+    .section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--curry), var(--brown), var(--sage));
+    }
+
+    .label {
+        font-weight: 700;
+        color: var(--brown);
+        margin-bottom: 1rem;
+        font-size: 1.1rem;
+        font-family: 'BaticaSans', sans-serif;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .plan-title {
+        font-size: 1.2rem;
+        color: var(--brown);
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        font-family: 'BaticaSans', sans-serif;
+    }
+
+    .plan-price {
+        color: var(--curry);
+        font-size: 1.4rem;
+        font-weight: 700;
+        font-family: 'BaticaSans', sans-serif;
+    }
+
+    /* Meal List - UPDATED FOR QUANTITIES */
+    .meal-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    .meal-list li {
+        border-bottom: 1px solid var(--border-light);
+        padding: 1rem 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: var(--transition);
+        touch-action: manipulation;
+    }
+
+    .meal-list li:hover {
+        background: var(--cream);
+        margin: 0 -1rem;
+        padding: 1rem;
+        border-radius: var(--radius-md);
+    }
+
+    .meal-list li:last-child {
+        border-bottom: none;
+    }
+
+    .meal-name {
+        flex: 1;
+        font-weight: 600;
+        color: var(--brown);
+        line-height: 1.4;
+        font-family: 'BaticaSans', sans-serif;
+    }
+
+    .meal-name .quantity-indicator {
+        color: var(--curry);
+        font-weight: 700;
+        margin-left: 0.5rem;
+        font-size: 0.95rem;
+    }
+
+    .meal-price {
+        color: var(--curry);
+        font-weight: 600;
+        margin-left: 1rem;
+        font-family: 'BaticaSans', sans-serif;
+    }
+
+    .no-meals-message {
+        text-align: center;
+        padding: 2rem;
+        color: var(--text-gray);
+        font-style: italic;
+        line-height: 1.6;
+        font-family: 'BaticaSans', sans-serif;
+    }
+
+    /* Total Price */
+    .total {
+        font-size: 1.5rem;
+        color: var(--curry);
+        font-weight: 700;
+        margin: 2rem 0;
+        text-align: center;
+        padding: 1.5rem;
+        background: linear-gradient(135deg, var(--cream), #f5f3f0);
+        border-radius: var(--radius-lg);
+        border: 2px solid rgba(189, 147, 121, 0.1);
+        font-family: 'BaticaSans', sans-serif;
+    }
+
+    /* Form Inputs */
+    .address-input, .input {
+        width: 100%;
+        padding: 1rem 1.2rem;
+        border-radius: var(--radius-lg);
+        border: 2px solid var(--border-light);
+        margin-bottom: 1.2rem;
+        font-size: 1rem;
+        font-family: 'BaticaSans', sans-serif;
+        transition: var(--transition);
+        background: var(--white);
+        color: var(--text-dark);
+        touch-action: manipulation;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+    }
+
+    .input:focus, .address-input:focus {
+        border-color: var(--brown);
+        outline: none;
+        box-shadow: 0 0 15px rgba(189, 147, 121, 0.2);
+        transform: translateY(-1px);
+    }
+
+    /* Prevent iOS zoom on input focus */
+    input[type="text"],
+    input[type="email"],
+    input[type="tel"],
+    input[type="number"],
+    textarea,
+    select {
+        font-size: 16px !important;
+    }
+
+    /* Buttons */
+    .btn {
+        width: 100%;
+        padding: 1.2rem 2rem;
+        border-radius: 25px;
+        background: var(--brown);
+        color: var(--white);
+        font-size: 1.1rem;
+        font-weight: 700;
+        border: none;
+        cursor: pointer;
+        transition: var(--transition);
+        font-family: 'BaticaSans', sans-serif;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.8rem;
+        box-shadow: var(--shadow-soft);
+        touch-action: manipulation;
+        min-height: 56px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .btn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+        transition: left 0.5s;
+    }
+
+    .btn:hover::before {
+        left: 100%;
+    }
+
+    .btn:hover {
+        background: #a8855f;
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-medium);
+    }
+
+    .btn:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 8px rgba(189, 147, 121, 0.3);
+    }
+
+    .btn:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+        transform: none;
+        background: var(--text-gray);
+    }
+
+    /* Payment Methods */
+    .payment-methods {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
         margin-bottom: 2rem;
     }
-    
-    .progress-bar {
-        flex-direction: column;
-        gap: 0.8rem;
-    }
-    
-    .progress-step {
-        width: 100%;
-        padding: 1rem;
-        font-size: 0.9rem;
-        min-width: unset;
-    }
-    
-    .progress-arrow {
-        transform: rotate(90deg);
-        font-size: 1rem;
-    }
-    
-    .title {
-        font-size: 1.8rem;
-        margin-bottom: 1.5rem;
-    }
-    
-    .section {
-        padding: 1.5rem 1rem;
-        margin-bottom: 1.5rem;
-    }
-    
-    .address-input, .input {
-        padding: 1.2rem;
-        font-size: 1rem;
-    }
-    
-    .btn {
-        padding: 1.5rem 2rem;
-        font-size: 1.1rem;
-        min-height: 60px;
-    }
-    
-    .payment-methods {
-        grid-template-columns: 1fr;
-        gap: 0.8rem;
-    }
-    
-    .payment-methods label {
-        padding: 1.2rem 1rem;
-        font-size: 0.95rem;
-        min-height: 64px;
-    }
-    
-    .custom-calendar {
-        padding: 1rem;
-        max-width: 100%;
-    }
-    
-    .calendar-header {
-        margin-bottom: 1rem;
-        padding-bottom: 0.8rem;
-    }
-    
-    .calendar-title {
-        font-size: 1.2rem;
-        margin: 0 0.5rem;
-    }
-    
-    .calendar-nav {
-        width: 40px;
-        height: 40px;
-        font-size: 0.9rem;
-    }
-    
-    .calendar-days {
-        gap: 0.3rem;
-    }
-    
-    .calendar-day {
-        min-height: 40px;
-        font-size: 0.9rem;
-    }
-    
-    .weekday {
-        font-size: 0.85rem;
-        padding: 0.4rem;
-    }
-    
-    .meal-list li {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.5rem;
-        padding: 1.2rem 0;
-    }
-    
-    .meal-price {
-        margin-left: 0;
-        align-self: flex-end;
-    }
-    
-    .weekend-info {
-        flex-direction: column;
-        text-align: center;
-        gap: 0.8rem;
-    }
-    
-    .weekend-info i {
-        align-self: center;
-        margin-top: 0;
-    }
-}
 
-@media (max-width: 480px) {
-    .container {
-        padding: 1.5rem 10px 1.5rem;
+    .payment-methods label {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        cursor: pointer;
+        padding: 1.2rem;
+        border: 2px solid var(--border-light);
+        border-radius: var(--radius-lg);
+        transition: var(--transition);
+        background: var(--white);
+        font-weight: 600;
+        font-family: 'BaticaSans', sans-serif;
+        position: relative;
+        overflow: hidden;
+        min-height: 60px;
+        touch-action: manipulation;
     }
-    
-    .progress-container {
-        padding: 1rem 0.8rem;
-        margin-bottom: 1.5rem;
+
+    .payment-methods label::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, rgba(189, 147, 121, 0.05), rgba(173, 184, 157, 0.05));
+        opacity: 0;
+        transition: var(--transition);
     }
-    
-    .progress-step {
-        font-size: 0.8rem;
-        padding: 0.8rem;
+
+    .payment-methods label:hover::before {
+        opacity: 1;
     }
-    
-    .title {
-        font-size: 1.6rem;
-        margin-bottom: 1rem;
+
+    .payment-methods label:hover {
+        border-color: var(--brown);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(189, 147, 121, 0.2);
     }
-    
-    .section {
-        padding: 1.2rem 0.8rem;
-        margin-bottom: 1.2rem;
+
+    .payment-methods input:checked + i {
+        color: var(--brown);
     }
-    
-    .label {
-        font-size: 1rem;
+
+    .payment-methods input {
+        accent-color: var(--brown);
+        margin-right: 0.5rem;
+        transform: scale(1.2);
     }
-    
+
+    .payment-methods i {
+        font-size: 1.3rem;
+        color: var(--curry);
+        z-index: 1;
+        flex-shrink: 0;
+    }
+
+    .payment-methods span {
+        z-index: 1;
+        flex: 1;
+    }
+
+    /* Calendar */
+    .date-selection-container {
+        position: relative;
+    }
+
     .custom-calendar {
-        padding: 0.8rem;
+        background: var(--white);
+        border: 2px solid var(--border-light);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        box-shadow: var(--shadow-soft);
+        max-width: 400px;
+        margin-left: auto;
+        margin-right: auto;
+        touch-action: manipulation;
     }
-    
-    .calendar-title {
-        font-size: 1.1rem;
-        margin: 0 0.3rem;
+
+    .calendar-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid var(--cream);
     }
-    
+
     .calendar-nav {
+        background: var(--cream);
+        border: none;
+        border-radius: 50%;
         width: 36px;
         height: 36px;
-        font-size: 0.8rem;
-    }
-    
-    .calendar-days {
-        gap: 0.2rem;
-    }
-    
-    .calendar-day {
-        min-height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: var(--transition);
+        color: var(--brown);
         font-size: 0.85rem;
+        touch-action: manipulation;
+        flex-shrink: 0;
     }
-    
-    .weekday {
-        font-size: 0.8rem;
-        padding: 0.3rem;
-    }
-    
-    .payment-methods label {
-        padding: 1rem 0.8rem;
-        font-size: 0.9rem;
-        gap: 0.8rem;
-    }
-    
-    .payment-methods i {
-        font-size: 1.2rem;
-    }
-    
-    .btn {
-        padding: 1.3rem 1.5rem;
-        font-size: 1rem;
-        gap: 0.6rem;
-    }
-    
-    .total {
-        font-size: 1.3rem;
-        padding: 1.2rem;
-        margin: 1.5rem 0;
-    }
-    
-    .address-input, .input {
-        padding: 1.1rem;
-        font-size: 1rem;
-        margin-bottom: 1rem;
-    }
-    
-    .weekend-info {
-        padding: 1rem;
-        font-size: 0.9rem;
-    }
-    
-    .date-error-message, .date-success-message {
-        padding: 0.8rem;
-        font-size: 0.9rem;
-    }
-}
 
-/* ========================================================================
-   TOUCH ENHANCEMENTS FOR MOBILE
-   ======================================================================== */
-
-@media (max-width: 768px) {
-    .calendar-day,
-    .payment-methods label,
-    .btn {
-        min-height: 44px;
-        min-width: 44px;
+    .calendar-nav:hover {
+        background: var(--brown);
+        color: var(--white);
+        transform: scale(1.05);
     }
-    
-    .calendar-day.available:active {
-        background: #a8855f;
+
+    .calendar-nav:active {
         transform: scale(0.95);
     }
-    
-    .btn:active {
-        transform: translateY(1px) scale(0.98);
-    }
-    
-    .payment-methods label:active {
-        transform: translateY(1px) scale(0.98);
-    }
-}
 
-/* ========================================================================
-   ACCESSIBILITY & LOADING STATES
-   ======================================================================== */
+    .calendar-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--brown);
+        text-align: center;
+        flex: 1;
+        margin: 0 0.8rem;
+        font-family: 'BaticaSans', sans-serif;
+    }
 
-.calendar-day:focus,
-.btn:focus,
-.payment-methods label:focus,
-.input:focus,
-.address-input:focus {
-    outline: 3px solid var(--brown);
-    outline-offset: 2px;
-}
+    .calendar-weekdays {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 0.3rem;
+        margin-bottom: 0.5rem;
+    }
 
-.loading {
-    opacity: 0.6;
-    pointer-events: none;
-    position: relative;
-}
+    .weekday {
+        text-align: center;
+        font-weight: 600;
+        color: var(--text-gray);
+        padding: 0.3rem;
+        font-size: 0.8rem;
+        font-family: 'BaticaSans', sans-serif;
+    }
 
-.loading::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 20px;
-    height: 20px;
-    margin: -10px 0 0 -10px;
-    border: 2px solid var(--brown);
-    border-top: 2px solid transparent;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
+    .weekday.highlight {
+        color: var(--brown);
+        font-weight: 700;
+    }
 
-@keyframes spin {
-    to {
-        transform: rotate(360deg);
+    .calendar-days {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 0.3rem;
     }
-}
 
-@media (prefers-contrast: high) {
-    :root {
-        --shadow-soft: none;
-        --shadow-medium: none;
-    }
-    
-    .section {
-        border: 2px solid var(--text-dark);
-    }
-    
-    .calendar-day.available {
-        border: 2px solid var(--brown);
-    }
-    
-    .btn {
-        border: 2px solid var(--white);
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    :root {
-        --transition: none;
-    }
-    
-    .calendar-day,
-    .btn,
-    .payment-methods label,
-    .section {
-        transition: none;
-    }
-    
-    .btn::before {
-        display: none;
-    }
-    
-    .custom-calendar,
     .calendar-day {
-        animation: none;
+        aspect-ratio: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--radius-md);
+        cursor: pointer;
+        transition: var(--transition);
+        font-weight: 600;
+        position: relative;
+        background: var(--white);
+        border: 1px solid transparent;
+        min-height: 32px;
+        user-select: none;
+        touch-action: manipulation;
+        font-size: 0.8rem;
+        font-family: 'BaticaSans', sans-serif;
     }
-}
+
+    .calendar-day.other-month {
+        color: var(--text-gray);
+        opacity: 0.3;
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+
+    .calendar-day.disabled {
+        color: var(--text-gray);
+        opacity: 0.4;
+        cursor: not-allowed;
+        background: #f8f8f8;
+        pointer-events: none;
+    }
+
+    .calendar-day.available {
+        color: var(--brown);
+        background: var(--cream);
+        border-color: var(--brown);
+        font-weight: 700;
+    }
+
+    .calendar-day.available:hover {
+        background: var(--brown);
+        color: var(--white);
+        transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(189, 147, 121, 0.3);
+    }
+
+    .calendar-day.available:active {
+        transform: scale(0.95);
+    }
+
+    .calendar-day.selected {
+        background: var(--brown);
+        color: var(--white);
+        transform: scale(1.02);
+        box-shadow: 0 4px 16px rgba(189, 147, 121, 0.4);
+        border-color: var(--sage);
+    }
+
+    .calendar-day.today {
+        position: relative;
+    }
+
+    .calendar-day.today::after {
+        content: '';
+        position: absolute;
+        bottom: 3px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 4px;
+        height: 4px;
+        background: var(--sage);
+        border-radius: 50%;
+    }
+
+    .calendar-day.available.today::after {
+        background: var(--brown);
+    }
+
+    .calendar-day.selected.today::after {
+        background: var(--white);
+    }
+
+    /* Messages & Alerts */
+    .error {
+        background: linear-gradient(135deg, #ffebee, #fce4ec);
+        color: #d32f2f;
+        border: 2px solid #ffcdd2;
+        padding: 1.5rem;
+        border-radius: var(--radius-lg);
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 8px rgba(231, 76, 60, 0.1);
+        font-family: 'BaticaSans', sans-serif;
+    }
+
+    .error ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    .error li {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+        line-height: 1.4;
+    }
+
+    .error li:before {
+        content: "⚠️";
+        flex-shrink: 0;
+    }
+
+    .weekend-info {
+        background: linear-gradient(135deg, #e8f5e8, #f0f8f0);
+        border: 2px solid var(--sage);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        color: var(--text-dark);
+        font-size: 0.95rem;
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        line-height: 1.5;
+        font-family: 'BaticaSans', sans-serif;
+    }
+
+    .weekend-info i {
+        color: var(--sage);
+        font-size: 1.5rem;
+        flex-shrink: 0;
+        margin-top: 0.1rem;
+    }
+
+    .weekend-info-content {
+        flex: 1;
+    }
+
+    .weekend-info strong {
+        color: var(--brown);
+    }
+
+    .date-error-message, .date-success-message {
+        margin-top: 1rem;
+        padding: 1rem;
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 600;
+        transition: var(--transition);
+        animation: slideIn 0.3s ease-out;
+        line-height: 1.4;
+        font-family: 'BaticaSans', sans-serif;
+    }
+
+    .date-error-message {
+        background: linear-gradient(135deg, #ffebee, #fce4ec);
+        color: #d32f2f;
+        border: 2px solid #ffcdd2;
+    }
+
+    .date-success-message {
+        background: linear-gradient(135deg, #e8f5e8, #f0f8f0);
+        color: #2e7d32;
+        border: 2px solid var(--sage);
+    }
+
+    /* Animations */
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes calendarFadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes dayFadeIn {
+        from {
+            opacity: 0;
+            transform: scale(0.8);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+
+    .custom-calendar {
+        animation: calendarFadeIn 0.3s ease-out;
+    }
+
+    .calendar-day {
+        animation: dayFadeIn 0.2s ease-out;
+    }
+
+    /* Loading States */
+    .loading {
+        opacity: 0.6;
+        pointer-events: none;
+        position: relative;
+    }
+
+    .loading::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 20px;
+        height: 20px;
+        margin: -10px 0 0 -10px;
+        border: 2px solid var(--brown);
+        border-top: 2px solid transparent;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+        .progress-container {
+            padding: 1.5rem 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .progress-bar {
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+        
+        .progress-step {
+            width: 100%;
+            padding: 1rem;
+            font-size: 0.9rem;
+            min-width: unset;
+        }
+        
+        .progress-arrow {
+            transform: rotate(90deg);
+            font-size: 1rem;
+        }
+        
+        .title {
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .section {
+            padding: 1.5rem 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .payment-methods {
+            grid-template-columns: 1fr;
+            gap: 0.8rem;
+        }
+        
+        .payment-methods label {
+            padding: 1.2rem 1rem;
+            font-size: 0.95rem;
+            min-height: 64px;
+        }
+        
+        .custom-calendar {
+            padding: 1rem;
+            max-width: 100%;
+        }
+        
+        .meal-list li {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+            padding: 1.2rem 0;
+        }
+        
+        .meal-price {
+            margin-left: 0;
+            align-self: flex-end;
+        }
+        
+        .weekend-info {
+            flex-direction: column;
+            text-align: center;
+            gap: 0.8rem;
+        }
+        
+        .weekend-info i {
+            align-self: center;
+            margin-top: 0;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .progress-container {
+            padding: 1rem 0.8rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .progress-step {
+            font-size: 0.8rem;
+            padding: 0.8rem;
+        }
+        
+        .title {
+            font-size: 1.6rem;
+            margin-bottom: 1rem;
+        }
+        
+        .section {
+            padding: 1.2rem 0.8rem;
+            margin-bottom: 1.2rem;
+        }
+        
+        .custom-calendar {
+            padding: 0.8rem;
+        }
+        
+        .calendar-day {
+            min-height: 36px;
+            font-size: 0.85rem;
+        }
+        
+        .total {
+            font-size: 1.3rem;
+            padding: 1.2rem;
+            margin: 1.5rem 0;
+        }
+    }
+
+    /* Touch enhancements for mobile */
+    @media (max-width: 768px) {
+        .calendar-day,
+        .payment-methods label,
+        .btn {
+            min-height: 44px;
+            min-width: 44px;
+        }
+        
+        .calendar-day.available:active {
+            background: #a8855f;
+            transform: scale(0.95);
+        }
+        
+        .btn:active {
+            transform: translateY(1px) scale(0.98);
+        }
+        
+        .payment-methods label:active {
+            transform: translateY(1px) scale(0.98);
+        }
+    }
     </style>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
 
-<!-- CRITICAL: Add has-header class for proper spacing -->
+<!-- IMPORTANT: Add has-header class for proper spacing -->
 <body class="has-header">
-    <!-- Promo banner and navbar automatically included from header.php -->
+    <!-- The header (promo banner + navbar) is already included from header.php -->
 
-    <div class="container">
-        <!-- Progress Bar -->
-        <div class="progress-container">
-            <div class="progress-bar">
-                <div class="progress-step completed">
-                    <i class="fas fa-check-circle"></i>
-                    <span>Choose Package</span>
-                </div>
-                <span class="progress-arrow">→</span>
-                <div class="progress-step completed">
-                    <i class="fas fa-check-circle"></i>
-                    <span>Select Menu</span>
-                </div>
-                <span class="progress-arrow">→</span>
-                <div class="progress-step active">
-                    <i class="fas fa-credit-card"></i>
-                    <span>Payment</span>
-                </div>
-                <span class="progress-arrow">→</span>
-                <div class="progress-step">
-                    <i class="fas fa-check-double"></i>
-                    <span>Complete</span>
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            <!-- Progress Bar -->
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div class="progress-step completed">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Choose Package</span>
+                    </div>
+                    <span class="progress-arrow">→</span>
+                    <div class="progress-step completed">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Select Menu</span>
+                    </div>
+                    <span class="progress-arrow">→</span>
+                    <div class="progress-step active">
+                        <i class="fas fa-credit-card"></i>
+                        <span>Payment</span>
+                    </div>
+                    <span class="progress-arrow">→</span>
+                    <div class="progress-step">
+                        <i class="fas fa-check-double"></i>
+                        <span>Complete</span>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <div class="title"><i class="fas fa-wallet"></i> Review and Pay</div>
+            <div class="title"><i class="fas fa-wallet"></i> Review and Pay</div>
 
-        <?php if (!empty($errors)): ?>
-            <div class="error">
-                <ul>
-                    <?php foreach ($errors as $err): ?>
-                        <li><?php echo htmlspecialchars($err); ?></li>
-                    <?php endforeach; ?>
-                </ul>
-            </div>
-        <?php endif; ?>
-
-        <!-- Plan Summary -->
-        <div class="section plan-summary">
-            <div class="label"><i class="fas fa-box"></i> Selected Package</div>
-            <div class="plan-title"><?php echo htmlspecialchars(CheckoutUtils::getPlanName($plan)); ?> (<?php echo $plan['meals_per_week']; ?> meals)</div>
-            <div class="plan-price">$<?php echo CheckoutUtils::formatPrice($plan['final_price']); ?></div>
-        </div>
-
-        <!-- Meals Summary - UPDATED TO SHOW QUANTITIES -->
-        <div class="section meals-summary">
-            <div class="label"><i class="fas fa-utensils"></i> Selected Meals</div>
-            <?php if (!empty($selected_meals) && !empty($meal_details)): ?>
-                <ul class="meal-list">
-                    <?php 
-                    // Get quantities if available (from new quantity system)
-                    $selected_quantities = $order['selected_meals_quantities'] ?? [];
-                    
-                    // If we have quantities, use them; otherwise, count duplicates in selected_meals array
-                    $meal_counts = [];
-                    if (!empty($selected_quantities)) {
-                        $meal_counts = $selected_quantities;
-                    } else {
-                        // Legacy support: count occurrences in selected_meals array
-                        foreach ($selected_meals as $meal_id) {
-                            $meal_counts[$meal_id] = ($meal_counts[$meal_id] ?? 0) + 1;
-                        }
-                    }
-                    
-                    // Display each unique meal with its quantity
-                    foreach ($meal_counts as $meal_id => $quantity): ?>
-                        <?php $meal = $meal_details[$meal_id] ?? null; if (!$meal) continue; ?>
-                        <li>
-                            <div class="meal-name">
-                                <?php echo htmlspecialchars(CheckoutUtils::getMenuName($meal)); ?>
-                                <?php if ($quantity > 1): ?>
-                                    <span class="quantity-indicator">
-                                        × <?php echo $quantity; ?>
-                                    </span>
-                                <?php endif; ?>
-                            </div>
-                            <div class="meal-price">Included</div>
-                        </li>
-                    <?php endforeach; ?>
-                </ul>
-            <?php else: ?>
-                <div class="no-meals-message">
-                    <i class="fas fa-exclamation-triangle" style="color: var(--warning); margin-right: 0.5rem;"></i>
-                    No meals selected or meal details unavailable. Please go back and select your meals.
-                    <br><br>
-                    <a href="meal-selection.php?plan=<?php echo urlencode($plan['id'] ?? ''); ?>" 
-                       style="color: var(--curry); text-decoration: none; font-weight: 600;">
-                        ← Back to Meal Selection
-                    </a>
+            <?php if (!empty($errors)): ?>
+                <div class="error">
+                    <ul>
+                        <?php foreach ($errors as $err): ?>
+                            <li><?php echo htmlspecialchars($err); ?></li>
+                        <?php endforeach; ?>
+                    </ul>
                 </div>
             <?php endif; ?>
-        </div>
 
-        <!-- Order Form -->
-        <form method="POST" action="" id="checkout-form">
-            <div class="section">
-                <div class="label"><i class="fas fa-map-marker-alt"></i> Delivery Address</div>
-                <input type="text" class="address-input" name="delivery_address" required
-                       value="<?php echo htmlspecialchars($user['delivery_address'] ?? ''); ?>" placeholder="Enter your address">
-                <input type="text" class="address-input" name="city" required
-                       value="<?php echo htmlspecialchars($user['city'] ?? ''); ?>" placeholder="City, State">
-                <input type="text" class="address-input" name="zip_code" required maxlength="5" pattern="[0-9]{5}"
-                       value="<?php echo htmlspecialchars($user['zip_code'] ?? ''); ?>" placeholder="ZIP Code">
-                <textarea name="delivery_instructions" class="address-input" rows="2" placeholder="Special delivery instructions (optional)"><?php echo htmlspecialchars($user['delivery_instructions'] ?? ''); ?></textarea>
+            <!-- Plan Summary -->
+            <div class="section plan-summary">
+                <div class="label"><i class="fas fa-box"></i> Selected Package</div>
+                <div class="plan-title"><?php echo htmlspecialchars(CheckoutUtils::getPlanName($plan)); ?> (<?php echo $plan['meals_per_week']; ?> meals)</div>
+                <div class="plan-price">$<?php echo CheckoutUtils::formatPrice($plan['final_price']); ?></div>
             </div>
 
-            <div class="section">
-                <div class="label"><i class="fas fa-calendar-weekend"></i> Select Your Delivery Day</div>
-                
-                <div class="weekend-info">
-                    <i class="fas fa-info-circle"></i>
-                    <div class="weekend-info-content">
-                        <strong>Delivery Schedule:</strong> We deliver fresh Thai meals on <strong>Wednesdays and Saturdays only</strong>. Please select your preferred delivery date below.
+            <!-- Meals Summary - UPDATED TO SHOW QUANTITIES -->
+            <div class="section meals-summary">
+                <div class="label"><i class="fas fa-utensils"></i> Selected Meals</div>
+                <?php if (!empty($selected_meals) && !empty($meal_details)): ?>
+                    <ul class="meal-list">
+                        <?php 
+                        // Get quantities if available (from new quantity system)
+                        $selected_quantities = $order['selected_meals_quantities'] ?? [];
+                        
+                        // If we have quantities, use them; otherwise, count duplicates in selected_meals array
+                        $meal_counts = [];
+                        if (!empty($selected_quantities)) {
+                            $meal_counts = $selected_quantities;
+                        } else {
+                            // Legacy support: count occurrences in selected_meals array
+                            foreach ($selected_meals as $meal_id) {
+                                $meal_counts[$meal_id] = ($meal_counts[$meal_id] ?? 0) + 1;
+                            }
+                        }
+                        
+                        // Display each unique meal with its quantity
+                        foreach ($meal_counts as $meal_id => $quantity): ?>
+                            <?php $meal = $meal_details[$meal_id] ?? null; if (!$meal) continue; ?>
+                            <li>
+                                <div class="meal-name">
+                                    <?php echo htmlspecialchars(CheckoutUtils::getMenuName($meal)); ?>
+                                    <?php if ($quantity > 1): ?>
+                                        <span class="quantity-indicator">
+                                            × <?php echo $quantity; ?>
+                                        </span>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="meal-price">Included</div>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                <?php else: ?>
+                    <div class="no-meals-message">
+                        <i class="fas fa-exclamation-triangle" style="color: var(--warning); margin-right: 0.5rem;"></i>
+                        No meals selected or meal details unavailable. Please go back and select your meals.
+                        <br><br>
+                        <a href="meal-selection.php?plan=<?php echo urlencode($plan['id'] ?? ''); ?>" 
+                           style="color: var(--curry); text-decoration: none; font-weight: 600;">
+                            ← Back to Meal Selection
+                        </a>
                     </div>
+                <?php endif; ?>
+            </div>
+
+            <!-- Order Form -->
+            <form method="POST" action="" id="checkout-form">
+                <div class="section">
+                    <div class="label"><i class="fas fa-map-marker-alt"></i> Delivery Address</div>
+                    <input type="text" class="address-input" name="delivery_address" required
+                           value="<?php echo htmlspecialchars($user['delivery_address'] ?? ''); ?>" placeholder="Enter your address">
+                    <input type="text" class="address-input" name="city" required
+                           value="<?php echo htmlspecialchars($user['city'] ?? ''); ?>" placeholder="City, State">
+                    <input type="text" class="address-input" name="zip_code" required maxlength="5" pattern="[0-9]{5}"
+                           value="<?php echo htmlspecialchars($user['zip_code'] ?? ''); ?>" placeholder="ZIP Code">
+                    <textarea name="delivery_instructions" class="address-input" rows="2" placeholder="Special delivery instructions (optional)"><?php echo htmlspecialchars($user['delivery_instructions'] ?? ''); ?></textarea>
                 </div>
-                
-                <div class="date-selection-container">
-                    <!-- Custom Calendar -->
-                    <div class="custom-calendar">
-                        <div class="calendar-header">
-                            <button type="button" class="calendar-nav" id="prev-month">
-                                <i class="fas fa-chevron-left"></i>
-                            </button>
-                            <div class="calendar-title" id="calendar-title">
-                                <!-- Month Year will be populated by JavaScript -->
+
+                <div class="section">
+                    <div class="label"><i class="fas fa-calendar-weekend"></i> Select Your Delivery Day</div>
+                    
+                    <div class="weekend-info">
+                        <i class="fas fa-info-circle"></i>
+                        <div class="weekend-info-content">
+                            <strong>Delivery Schedule:</strong> We deliver fresh Thai meals on <strong>Wednesdays and Saturdays only</strong>. Please select your preferred delivery date below.
+                        </div>
+                    </div>
+                    
+                    <div class="date-selection-container">
+                        <!-- Custom Calendar -->
+                        <div class="custom-calendar">
+                            <div class="calendar-header">
+                                <button type="button" class="calendar-nav" id="prev-month">
+                                    <i class="fas fa-chevron-left"></i>
+                                </button>
+                                <div class="calendar-title" id="calendar-title">
+                                    <!-- Month Year will be populated by JavaScript -->
+                                </div>
+                                <button type="button" class="calendar-nav" id="next-month">
+                                    <i class="fas fa-chevron-right"></i>
+                                </button>
                             </div>
-                            <button type="button" class="calendar-nav" id="next-month">
-                                <i class="fas fa-chevron-right"></i>
-                            </button>
+                            
+                            <div class="calendar-weekdays">
+                                <div class="weekday">Sun</div>
+                                <div class="weekday">Mon</div>
+                                <div class="weekday">Tue</div>
+                                <div class="weekday highlight">Wed</div>
+                                <div class="weekday">Thu</div>
+                                <div class="weekday">Fri</div>
+                                <div class="weekday highlight">Sat</div>
+                            </div>
+                            
+                            <div class="calendar-days" id="calendar-days">
+                                <!-- Days will be populated by JavaScript -->
+                            </div>
                         </div>
                         
-                        <div class="calendar-weekdays">
-                            <div class="weekday">Sun</div>
-                            <div class="weekday">Mon</div>
-                            <div class="weekday">Tue</div>
-                            <div class="weekday highlight">Wed</div>
-                            <div class="weekday">Thu</div>
-                            <div class="weekday">Fri</div>
-                            <div class="weekday highlight">Sat</div>
+                        <!-- Hidden input to store the selected date -->
+                        <input type="hidden" name="delivery_day" id="delivery_date" required>
+                        
+                        <div id="date-error" class="date-error-message" style="display: none;">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Please select a Wednesday or Saturday for delivery.
                         </div>
                         
-                        <div class="calendar-days" id="calendar-days">
-                            <!-- Days will be populated by JavaScript -->
+                        <div id="date-success" class="date-success-message" style="display: none;">
+                            <i class="fas fa-check-circle"></i>
+                            <span id="selected-day-name"></span> delivery selected!
                         </div>
                     </div>
                     
-                    <!-- Hidden input to store the selected date -->
-                    <input type="hidden" name="delivery_day" id="delivery_date" required>
-                    
-                    <div id="date-error" class="date-error-message" style="display: none;">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        Please select a Wednesday or Saturday for delivery.
-                    </div>
-                    
-                    <div id="date-success" class="date-success-message" style="display: none;">
-                        <i class="fas fa-check-circle"></i>
-                        <span id="selected-day-name"></span> delivery selected!
-                    </div>
+                    <div class="label" style="margin-top:2rem;"><i class="fas fa-clock"></i> Preferred Delivery Time</div>
+                    <select name="preferred_time" class="address-input" required>
+                        <option value="09:00-12:00">Morning (9:00 AM - 12:00 PM)</option>
+                        <option value="12:00-15:00">Lunch (12:00 PM - 3:00 PM)</option>
+                        <option value="15:00-18:00" selected>Afternoon (3:00 PM - 6:00 PM)</option>
+                        <option value="18:00-21:00">Evening (6:00 PM - 9:00 PM)</option>
+                    </select>
                 </div>
-                
-                <div class="label" style="margin-top:2rem;"><i class="fas fa-clock"></i> Preferred Delivery Time</div>
-                <select name="preferred_time" class="address-input" required>
-                    <option value="09:00-12:00">Morning (9:00 AM - 12:00 PM)</option>
-                    <option value="12:00-15:00">Lunch (12:00 PM - 3:00 PM)</option>
-                    <option value="15:00-18:00" selected>Afternoon (3:00 PM - 6:00 PM)</option>
-                    <option value="18:00-21:00">Evening (6:00 PM - 9:00 PM)</option>
-                </select>
-            </div>
 
-            <!-- Payment Method -->
-            <div class="section">
-                <div class="label"><i class="fas fa-credit-card"></i> Choose Payment Method</div>
-                <div class="payment-methods">
-                    <label>
-                        <input type="radio" name="payment_method" value="credit" required>
-                        <i class="fas fa-credit-card"></i>
-                        <span>Credit/Debit Card</span>
-                    </label>
-                    <label>
-                        <input type="radio" name="payment_method" value="paypal">
-                        <i class="fab fa-paypal"></i>
-                        <span>PayPal</span>
-                    </label>
-                    <label>
-                        <input type="radio" name="payment_method" value="apple_pay">
-                        <i class="fab fa-apple-pay"></i>
-                        <span>Apple Pay</span>
-                    </label>
-                    <label>
-                        <input type="radio" name="payment_method" value="google_pay">
-                        <i class="fab fa-google-pay"></i>
-                        <span>Google Pay</span>
-                    </label>
-                    <label>
-                        <input type="radio" name="payment_method" value="promptpay">
-                        <i class="fas fa-university"></i>
-                        <span>Bank Transfer</span>
-                    </label>
+                <!-- Payment Method -->
+                <div class="section">
+                    <div class="label"><i class="fas fa-credit-card"></i> Choose Payment Method</div>
+                    <div class="payment-methods">
+                        <label>
+                            <input type="radio" name="payment_method" value="credit" required>
+                            <i class="fas fa-credit-card"></i>
+                            <span>Credit/Debit Card</span>
+                        </label>
+                        <label>
+                            <input type="radio" name="payment_method" value="paypal">
+                            <i class="fab fa-paypal"></i>
+                            <span>PayPal</span>
+                        </label>
+                        <label>
+                            <input type="radio" name="payment_method" value="apple_pay">
+                            <i class="fab fa-apple-pay"></i>
+                            <span>Apple Pay</span>
+                        </label>
+                        <label>
+                            <input type="radio" name="payment_method" value="google_pay">
+                            <i class="fab fa-google-pay"></i>
+                            <span>Google Pay</span>
+                        </label>
+                        <label>
+                            <input type="radio" name="payment_method" value="promptpay">
+                            <i class="fas fa-university"></i>
+                            <span>Bank Transfer</span>
+                        </label>
+                    </div>
+                    
+                    <!-- Total price display -->
+                    <div class="total">Total: $<?php echo CheckoutUtils::formatPrice($plan['final_price']); ?></div>
+                    
+                    <button class="btn" type="submit" name="submit_order" value="1" id="main-submit-btn">
+                        <i class="fas fa-lock"></i> Confirm and Pay
+                    </button>
+                    
+                    <!-- Hidden fields for form security -->
+                    <input type="hidden" name="form_token" value="<?php echo hash('sha256', session_id() . time()); ?>">
+                    <input type="hidden" name="form_submitted" value="1">
                 </div>
-                
-                <!-- Total price display -->
-                <div class="total">Total: $<?php echo CheckoutUtils::formatPrice($plan['final_price']); ?></div>
-                
-                <button class="btn" type="submit" name="submit_order" value="1" id="main-submit-btn">
-                    <i class="fas fa-lock"></i> Confirm and Pay
-                </button>
-                
-                <!-- Hidden fields for form security -->
-                <input type="hidden" name="form_token" value="<?php echo hash('sha256', session_id() . time()); ?>">
-                <input type="hidden" name="form_submitted" value="1">
-            </div>
-        </form>
-    </div>
+            </form>
+        </div>
+    </main>
 
     <script>
-        // Mobile menu functions are now available from header.php
-        // Available functions: toggleMobileMenu(), closeMobileMenu(), closePromoBanner()
-
+        // Page-specific JavaScript for checkout.php
         document.addEventListener('DOMContentLoaded', function() {
             console.log('✅ Updated checkout page loaded - WITH QUANTITY SUPPORT AND COMPLETE CALENDAR');
             console.log('✅ Converted to use header.php for consistent navigation');
@@ -2185,14 +1957,14 @@ select {
                 inputs.forEach(input => {
                     input.addEventListener('blur', function() {
                         if (this.value.trim()) {
-                            this.style.borderColor = 'var(--success)';
+                            this.style.borderColor = '#2e7d32';
                         } else {
-                            this.style.borderColor = 'var(--danger)';
+                            this.style.borderColor = '#d32f2f';
                         }
                     });
                     
                     input.addEventListener('input', function() {
-                        if (this.style.borderColor === 'rgb(231, 76, 60)') {
+                        if (this.style.borderColor === 'rgb(211, 47, 47)') {
                             this.style.borderColor = 'var(--border-light)';
                         }
                     });
@@ -2203,6 +1975,9 @@ select {
             } else {
                 console.error('⚠ Form or submit button not found');
             }
+            
+            // The mobile menu and promo banner functions are already available from header.php
+            // You can use: toggleMobileMenu(), closeMobileMenu(), closePromoBanner()
         });
         
         // Global error handler

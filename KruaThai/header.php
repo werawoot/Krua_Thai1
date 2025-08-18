@@ -196,7 +196,6 @@ h1, h2, h3, h4, h5, h6 {
     height: 100vh;
     background: var(--white);
     z-index: 1100; /* Higher than navbar */
-    padding-top: 80px;
     transform: translateX(-100%);
     transition: transform 0.3s ease;
 }
@@ -204,6 +203,60 @@ h1, h2, h3, h4, h5, h6 {
 .mobile-nav-menu.active {
     transform: translateX(0);
     display: block; /* Ensure it's visible when active */
+}
+
+/* Mobile Menu Header with Close Button */
+.mobile-menu-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    border-bottom: 2px solid var(--cream);
+    background: var(--cream);
+}
+
+.mobile-menu-logo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.mobile-menu-logo img {
+    height: 50px;
+    width: auto;
+}
+
+.mobile-menu-title {
+    font-family: 'BaticaSans', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--brown);
+}
+
+.mobile-close-btn {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    color: var(--brown);
+    cursor: pointer;
+    padding: 0.5rem;
+    transition: var(--transition);
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mobile-close-btn:hover {
+    background: rgba(189, 147, 121, 0.1);
+    transform: scale(1.1);
+}
+
+.mobile-close-btn:active {
+    transform: scale(0.95);
+    background: rgba(189, 147, 121, 0.2);
 }
 
 .mobile-nav-links {
@@ -602,7 +655,7 @@ body.has-header {
 <!-- Promotional Banner -->
 <div class="promo-banner" id="promoBanner">
     <div class="promo-banner-content">
-        <span class="promo-icon">🍪</span>
+        <span class="promo-icon">🪴</span>
         <span class="promo-text">
             <span class="desktop-text">50% OFF First Week + Free Cookies for Life</span>
             <span class="mobile-text">50% OFF + Free Cookies</span>
@@ -630,6 +683,7 @@ body.has-header {
         </a>
 
         <ul class="nav-links">
+            <li><a href="./index.php">Home</a></li>
             <li><a href="./menus.php">Menu</a></li>
             <li><a href="./meal-kits.php">Meal-Kits</a></li>
             <li><a href="./index.php#how-it-works">How It Works</a></li>
@@ -659,12 +713,25 @@ body.has-header {
 
 <!-- Mobile Navigation Menu -->
 <div class="mobile-nav-menu" id="mobileNavMenu">
+    <!-- Mobile Menu Header with Close Button -->
+    <div class="mobile-menu-header">
+        <div class="mobile-menu-logo">
+            <img src="./assets/image/LOGO_BG2.png" alt="Somdul Table">
+            <span class="mobile-menu-title">Somdul Table</span>
+        </div>
+        <button class="mobile-close-btn" onclick="closeMobileMenu()" type="button" aria-label="Close menu">
+            ×
+        </button>
+    </div>
+    
+    <!-- Mobile Navigation Links -->
     <ul class="mobile-nav-links">
-        <li><a href="./menus.php" onclick="closeMobileMenu()">Menu</a></li>
-        <li><a href="./meal-kits.php" onclick="closeMobileMenu()">Meal-Kits</a></li>
-        <li><a href="./index.php#how-it-works" onclick="closeMobileMenu()">How It Works</a></li>
-        <li><a href="./blogs.php" onclick="closeMobileMenu()">About</a></li>
-        <li><a href="./contact.php" onclick="closeMobileMenu()">Contact</a></li>
+        <li><a href="./index.php" onclick="closeMobileMenu()">🏠 Home</a></li>
+        <li><a href="./menus.php" onclick="closeMobileMenu()">🍽️ Menu</a></li>
+        <li><a href="./meal-kits.php" onclick="closeMobileMenu()">📦 Meal-Kits</a></li>
+        <li><a href="./index.php#how-it-works" onclick="closeMobileMenu()">❓ How It Works</a></li>
+        <li><a href="./blogs.php" onclick="closeMobileMenu()">📚 About</a></li>
+        <li><a href="./contact.php" onclick="closeMobileMenu()">📞 Contact</a></li>
     </ul>
 </div>
 

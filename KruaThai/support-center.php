@@ -3,6 +3,7 @@
  * Somdul Table - Customer Support Center
  * File: support-center.php
  * Description: Customer support page for submitting complaints, viewing tickets, and getting help
+ * UPDATED: Now uses header.php for consistent navigation and styling
  */
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
@@ -18,7 +19,8 @@ if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
 require_once 'config/database.php';
 require_once 'includes/functions.php';
 
-$user_id = $_SESSION['user_id'];
+// Include the header (contains navbar, promo banner, fonts, and base styles)
+include 'header.php';
 
 $user_id = $_SESSION['user_id'];
 $success_message = '';
@@ -117,103 +119,10 @@ try {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Customer Support Center - Somdul Table</title>
-    <link href="https://ydpschool.com/fonts/BaticaSans.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        :root {
-            /* Somdul Table Brand Colors */
-            --brown: #bd9379;
-            --cream: #ece8e1;
-            --sage: #adb89d;
-            --curry: #cf723a;
-            --white: #ffffff;
-            --text-dark: #2c3e50;
-            --text-gray: #7f8c8d;
-            --border-light: #e8e8e8;
-            --shadow-soft: 0 4px 12px rgba(0,0,0,0.05);
-            --shadow-medium: 0 8px 24px rgba(0,0,0,0.1);
-            --radius-sm: 8px;
-            --radius-md: 12px;
-            --radius-lg: 16px;
-            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'BaticaSans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: linear-gradient(135deg, var(--cream) 0%, #f8f6f3 100%);
-            color: var(--text-dark);
-            line-height: 1.6;
-            min-height: 100vh;
-        }
-
-        /* Header */
-        .header {
-            background: var(--white);
-            box-shadow: var(--shadow-soft);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .header-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 1rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--curry);
-            text-decoration: none;
-        }
-
-        .logo-image {
-            height: 40px;
-            width: auto;
-        }
-
-        .user-menu {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            color: var(--text-gray);
-        }
-
-        .btn-logout {
-            background: var(--curry);
-            color: var(--white);
-            padding: 0.5rem 1rem;
-            border: none;
-            border-radius: var(--radius-sm);
-            text-decoration: none;
-            font-weight: 500;
-            transition: var(--transition);
-        }
-
-        .btn-logout:hover {
-            background: var(--brown);
-            transform: translateY(-1px);
-        }
-
+        /* SUPPORT CENTER SPECIFIC STYLES ONLY - header styles come from header.php */
+        
         /* Container */
         .container {
             max-width: 1200px;
@@ -234,13 +143,15 @@ try {
         .page-title {
             font-size: 2rem;
             font-weight: 700;
-            color: var(--text-dark);
+            color: var(--brown);
             margin-bottom: 0.5rem;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .page-subtitle {
             color: var(--text-gray);
             font-size: 1.1rem;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         /* Alert Messages */
@@ -252,6 +163,7 @@ try {
             display: flex;
             align-items: center;
             gap: 0.5rem;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .alert-success {
@@ -282,7 +194,7 @@ try {
             background: transparent;
             border: none;
             cursor: pointer;
-            font-family: inherit;
+            font-family: 'BaticaSans', sans-serif;
             font-size: 1rem;
             font-weight: 500;
             color: var(--text-gray);
@@ -325,8 +237,9 @@ try {
         .card-title {
             font-size: 1.25rem;
             font-weight: 600;
-            color: var(--text-dark);
+            color: var(--brown);
             margin-bottom: 0.5rem;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .card-body {
@@ -350,6 +263,7 @@ try {
             margin-bottom: 0.5rem;
             font-weight: 500;
             color: var(--text-dark);
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .form-control {
@@ -357,7 +271,7 @@ try {
             padding: 0.75rem;
             border: 1px solid var(--border-light);
             border-radius: var(--radius-sm);
-            font-family: inherit;
+            font-family: 'BaticaSans', sans-serif;
             font-size: 1rem;
             transition: var(--transition);
         }
@@ -378,43 +292,6 @@ try {
             resize: vertical;
         }
 
-        /* Buttons */
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.75rem 1.5rem;
-            border: none;
-            border-radius: var(--radius-sm);
-            font-family: inherit;
-            font-size: 1rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: var(--transition);
-            text-decoration: none;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--curry), #e67e22);
-            color: var(--white);
-            box-shadow: var(--shadow-soft);
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-medium);
-        }
-
-        .btn-secondary {
-            background: var(--white);
-            color: var(--text-dark);
-            border: 1px solid var(--border-light);
-        }
-
-        .btn-secondary:hover {
-            background: var(--cream);
-        }
-
         /* Status Badges */
         .status-badge {
             display: inline-flex;
@@ -426,6 +303,7 @@ try {
             font-weight: 500;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .status-open {
@@ -479,6 +357,7 @@ try {
             padding: 1rem;
             text-align: left;
             border-bottom: 1px solid var(--border-light);
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .table th {
@@ -504,6 +383,11 @@ try {
             color: var(--sage);
         }
 
+        .empty-state h3 {
+            color: var(--brown);
+            font-family: 'BaticaSans', sans-serif;
+        }
+
         /* FAQ Section */
         .faq-item {
             border-bottom: 1px solid var(--border-light);
@@ -516,7 +400,7 @@ try {
             border: none;
             width: 100%;
             text-align: left;
-            font-family: inherit;
+            font-family: 'BaticaSans', sans-serif;
             font-size: 1rem;
             font-weight: 500;
             color: var(--text-dark);
@@ -534,6 +418,7 @@ try {
             padding: 0 1rem 1rem;
             color: var(--text-gray);
             display: none;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .faq-answer.show {
@@ -573,10 +458,54 @@ try {
         .quick-action-title {
             font-weight: 600;
             margin-bottom: 0.5rem;
+            color: var(--brown);
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .quick-action-desc {
             font-size: 0.9rem;
+            color: var(--text-gray);
+            font-family: 'BaticaSans', sans-serif;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
             color: var(--text-gray);
         }
 
@@ -584,12 +513,6 @@ try {
         @media (max-width: 768px) {
             .container {
                 padding: 1rem;
-            }
-
-            .header-content {
-                padding: 1rem;
-                flex-direction: column;
-                gap: 1rem;
             }
 
             .tabs {
@@ -603,28 +526,17 @@ try {
             .quick-actions {
                 grid-template-columns: 1fr;
             }
+
+            .table-responsive {
+                overflow-x: auto;
+            }
         }
     </style>
 </head>
-<body>
-    <!-- Header -->
-    <div class="header">
-        <div class="header-content">
-            <a href="index.php" class="logo">
-                <span>Somdul Table</span>
-            </a>
-            <div class="user-menu">
-                <div class="user-info">
-                    <i class="fas fa-user"></i>
-                    <span><?= htmlspecialchars($user_info['first_name'] . ' ' . $user_info['last_name']) ?></span>
-                </div>
-                <a href="logout.php" class="btn-logout">
-                    <i class="fas fa-sign-out-alt"></i>
-                    Sign Out
-                </a>
-            </div>
-        </div>
-    </div>
+
+<!-- IMPORTANT: Add has-header class for proper spacing -->
+<body class="has-header">
+    <!-- The header (promo banner + navbar) is already included from header.php -->
 
     <div class="container">
         <!-- Page Header -->
@@ -791,7 +703,7 @@ try {
                         <p>You haven't submitted any complaints yet</p>
                     </div>
                     <?php else: ?>
-                    <div style="overflow-x: auto;">
+                    <div class="table-responsive">
                         <table class="table">
                             <thead>
                                 <tr>
@@ -1022,7 +934,7 @@ try {
                     </div>
 
                     <div style="margin-top: 2rem; padding: 1.5rem; background: var(--cream); border-radius: var(--radius-md);">
-                        <h4 style="margin-bottom: 1rem;">Business Hours</h4>
+                        <h4 style="margin-bottom: 1rem; color: var(--brown); font-family: 'BaticaSans', sans-serif;">Business Hours</h4>
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
                             <div>
                                 <strong>Customer Service</strong><br>
@@ -1047,11 +959,11 @@ try {
     </div>
 
     <!-- Complaint Detail Modal -->
-    <div id="complaintModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
-        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--white); border-radius: var(--radius-lg); padding: 2rem; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+    <div id="complaintModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
                 <h3>Complaint Details</h3>
-                <button onclick="closeComplaintModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">
+                <button class="modal-close" onclick="closeComplaintModal()">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
