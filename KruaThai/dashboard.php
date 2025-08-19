@@ -3,6 +3,7 @@
  * Dashboard with Error Handling - Updated with Somdul Table Theme
  * File: dashboard.php
  * UPDATED: Now uses header.php for consistent navigation and styling
+ * UPDATED: Added logout button to dashboard header
  */
 
 error_reporting(E_ALL);
@@ -206,6 +207,9 @@ $page_title = "Dashboard";
             position: relative;
             overflow: hidden;
             text-align: left;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
         }
 
         .dashboard-header::before {
@@ -225,6 +229,40 @@ $page_title = "Dashboard";
             position: relative;
             z-index: 2;
             max-width: 600px;
+            flex: 1;
+        }
+
+        .logout-button {
+            position: relative;
+            z-index: 2;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            color: var(--white);
+            padding: 0.75rem 1.5rem;
+            border-radius: 50px;
+            text-decoration: none;
+            font-family: 'BaticaSans', sans-serif;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            white-space: nowrap;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .logout-button:hover {
+            background: rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 255, 255, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+            color: var(--white);
+        }
+
+        .logout-button:active {
+            transform: translateY(0);
         }
 
         .welcome-badge {
@@ -586,8 +624,24 @@ $page_title = "Dashboard";
                 padding-top: 1rem;
             }
 
+            .dashboard-header {
+                flex-direction: column;
+                gap: 1.5rem;
+                align-items: stretch;
+                text-align: center;
+            }
+
+            .dashboard-welcome {
+                max-width: 100%;
+            }
+
             .dashboard-welcome h1 {
                 font-size: 2rem;
+            }
+
+            .logout-button {
+                align-self: center;
+                justify-content: center;
             }
             
             .stats-grid {
@@ -611,6 +665,20 @@ $page_title = "Dashboard";
         @media (max-width: 480px) {
             .stats-grid {
                 grid-template-columns: 1fr;
+            }
+
+            .logout-button {
+                padding: 0.6rem 1.2rem;
+                font-size: 0.85rem;
+            }
+
+            .logout-button span {
+                display: none;
+            }
+
+            .logout-button svg {
+                width: 20px;
+                height: 20px;
             }
         }
 
@@ -663,6 +731,14 @@ $page_title = "Dashboard";
                     <h1>Welcome back, <?php echo htmlspecialchars($user['first_name']); ?>!</h1>
                     <p>Ready to explore authentic Thai flavors? Your personalized dashboard shows your meal journey and helps you discover new favorites.</p>
                 </div>
+                <a href="logout.php" class="logout-button">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <polyline points="16,17 21,12 16,7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <line x1="21" y1="12" x2="9" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>Sign Out</span>
+                </a>
             </div>
 
             <!-- Quick Stats -->
@@ -878,7 +954,7 @@ $page_title = "Dashboard";
                 </div>
                 <div class="dropdown-content" style="max-height: 400px; overflow-y: auto;">
                     <div style="padding: 1rem; text-align: center; color: var(--text-gray);">
-                        <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">⳹</div>
+                        <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">⏳</div>
                         Loading notifications...
                     </div>
                 </div>
@@ -914,7 +990,7 @@ $page_title = "Dashboard";
                 } else {
                     document.querySelector('.dropdown-content').innerHTML = `
                         <div style="padding: 2rem; text-align: center; color: var(--text-gray);">
-                            <div style="font-size: 2rem; margin-bottom: 0.5rem;">⌕</div>
+                            <div style="font-size: 2rem; margin-bottom: 0.5rem;">⚠️</div>
                             <p>Unable to load notifications</p>
                         </div>
                     `;
