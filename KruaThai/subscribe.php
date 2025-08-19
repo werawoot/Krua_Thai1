@@ -3,20 +3,26 @@
  * Somdul Table - Subscribe Page
  * File: subscribe.php
  * Description: Choose meal package before selecting menu (Step 1)
+ * FIXED: Early login check to prevent errors when not logged in
  */
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 session_start();
 
-require_once 'config/database.php';
-
-// Check if user is logged in
+// EARLY LOGIN CHECK - Move this BEFORE any other includes/requires
+// Check if user is logged in FIRST, before anything else that might cause errors
 if (!isset($_SESSION['user_id'])) {
     $redirect_url = 'subscribe.php';
     if (isset($_GET['menu'])) $redirect_url .= '?menu=' . urlencode($_GET['menu']);
     header('Location: login.php?redirect=' . urlencode($redirect_url));
     exit;
 }
+
+// Only proceed with includes and database operations if user is logged in
+require_once 'config/database.php';
+
+// Include the header (contains navbar, promo banner, fonts, and base styles)
+include 'header.php';
 
 $highlight_menu_id = $_GET['menu'] ?? '';
 
@@ -95,792 +101,395 @@ function getPlanDescription($plan) {
     <meta name="description" content="Choose your perfect meal package from Somdul Table - Authentic Thai cuisine delivered fresh to your door">
     
     <style>
-        /* BaticaSans Font Import - Local Files */
-        @font-face {
-            font-family: 'BaticaSans';
-            src: url('./Font/BaticaSans-Regular.woff2') format('woff2'),
-                url('./Font/BaticaSans-Regular.woff') format('woff'),
-                url('./Font/BaticaSans-Regular.ttf') format('truetype');
-            font-weight: 400;
-            font-style: normal;
-            font-display: swap;
-        }
+    /* PAGE-SPECIFIC STYLES ONLY - header styles come from header.php */
+    
+    /* Main Container */
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
 
-        @font-face {
-            font-family: 'BaticaSans';
-            src: url('./Font/BaticaSans-Italic.woff2') format('woff2'),
-                url('./Font/BaticaSans-Italic.woff') format('woff'),
-                url('./Font/BaticaSans-Italic.ttf') format('truetype');
-            font-weight: 400;
-            font-style: italic;
-            font-display: swap;
-        }
+    /* Progress Bar */
+    .progress-container {
+        background: var(--white);
+        border-radius: var(--radius-lg);
+        padding: 2rem;
+        margin-bottom: 3rem;
+        box-shadow: var(--shadow-soft);
+    }
 
-        /* Fallback for bold/medium weights - browser will simulate them */
-        @font-face {
-            font-family: 'BaticaSans';
-            src: url('./Font/BaticaSans-Regular.woff2') format('woff2'),
-                url('./Font/BaticaSans-Regular.woff') format('woff'),
-                url('./Font/BaticaSans-Regular.ttf') format('truetype');
-            font-weight: 500;
-            font-style: normal;
-            font-display: swap;
-        }
+    .progress-bar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
 
-        @font-face {
-            font-family: 'BaticaSans';
-            src: url('./Font/BaticaSans-Regular.woff2') format('woff2'),
-                url('./Font/BaticaSans-Regular.woff') format('woff'),
-                url('./Font/BaticaSans-Regular.ttf') format('truetype');
-            font-weight: 700;
-            font-style: normal;
-            font-display: swap;
-        }
+    .progress-step {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.8rem 1.5rem;
+        border-radius: 50px;
+        font-weight: 600;
+        font-size: 0.95rem;
+        font-family: 'BaticaSans', sans-serif;
+        background: var(--cream);
+        color: var(--text-gray);
+        border: 2px solid var(--cream);
+        transition: var(--transition);
+        white-space: nowrap;
+    }
 
-        /* IMPROVED CSS Custom Properties for Somdul Table Design System - COLOR HIERARCHY ONLY */
-        :root {
-            /* LEVEL 1 (MOST IMPORTANT): BROWN #bd9379 + WHITE */
-            --brown: #bd9379;
-            --white: #ffffff;
-            
-            /* LEVEL 2 (SECONDARY): CREAM #ece8e1 */
-            --cream: #ece8e1;
-            
-            /* LEVEL 3 (SUPPORTING): SAGE #adb89d */
-            --sage: #adb89d;
-            
-            /* LEVEL 4 (ACCENT/CONTRAST - LEAST USED): CURRY #cf723a */
-            --curry: #cf723a;
-            
-            /* Text colors using brown hierarchy */
-            --text-dark: #2c3e50;
-            --text-gray: #7f8c8d;
-            --border-light: #d4c4b8; /* Brown-tinted border */
-            
-            /* Shadows using brown as base (Level 1) */
-            --shadow-soft: 0 4px 12px rgba(189, 147, 121, 0.15);
-            --shadow-medium: 0 8px 24px rgba(189, 147, 121, 0.25);
-            --shadow-large: 0 16px 48px rgba(189, 147, 121, 0.3);
-            --radius-sm: 8px;
-            --radius-md: 12px;
-            --radius-lg: 16px;
-            --radius-xl: 24px;
-            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            
-            /* Status colors */
-            --success: #27ae60;
-            --danger: #e74c3c;
-            --warning: #f39c12;
-            --info: #3498db;
-        }
+    .progress-step.active {
+        background: var(--brown);
+        color: var(--white);
+        border-color: var(--brown);
+        box-shadow: 0 4px 12px rgba(189, 147, 121, 0.3);
+    }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+    .progress-step.completed {
+        background: var(--sage);
+        color: var(--white);
+        border-color: var(--sage);
+    }
 
-        body {
-            font-family: 'BaticaSans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background-color: var(--white); /* LEVEL 1: White */
-            color: var(--text-dark);
-            line-height: 1.6;
-            min-height: 100vh;
-            font-weight: 400;
-        }
+    .progress-arrow {
+        color: var(--sage);
+        font-size: 1.2rem;
+        font-weight: 600;
+    }
 
-        /* Typography using BaticaSans - LEVEL 1: Brown for headings */
-        h1, h2, h3, h4, h5, h6 {
-            font-family: 'BaticaSans', sans-serif;
-            font-weight: 700;
-            line-height: 1.2;
-            color: var(--brown); /* LEVEL 1: Brown instead of text-dark */
-        }
+    /* Hero Section */
+    .hero-section {
+        background: var(--white);
+        border-radius: 24px;
+        padding: 3rem 2rem;
+        text-align: center;
+        margin-bottom: 3rem;
+        box-shadow: var(--shadow-medium);
+        position: relative;
+        overflow: hidden;
+    }
 
-        /* Promotional Banner Styles - LEVEL 4: Curry for special promos */
-        .promo-banner {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            background: #cf723a; /* LEVEL 4: Curry for promotional banner */
-            color: var(--white); /* LEVEL 1: White */
-            text-align: center;
-            padding: 8px 20px;
-            font-family: 'BaticaSans', sans-serif;
-            font-weight: 700;
-            font-size: 14px;
-            z-index: 1001;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            animation: glow 2s ease-in-out infinite alternate;
-        }
+    .hero-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--brown), var(--sage), var(--curry));
+    }
 
-        .promo-banner-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
+    .hero-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: var(--brown);
+        margin-bottom: 1rem;
+        font-family: 'BaticaSans', sans-serif;
+    }
 
-        .promo-icon {
-            font-size: 16px;
-            animation: bounce 1.5s ease-in-out infinite;
-        }
+    .hero-subtitle {
+        font-size: 1.2rem;
+        color: var(--text-gray);
+        max-width: 600px;
+        margin: 0 auto 2rem;
+        font-family: 'BaticaSans', sans-serif;
+    }
 
-        .promo-text {
-            letter-spacing: 0.5px;
-        }
+    .hero-features {
+        display: flex;
+        justify-content: center;
+        gap: 2rem;
+        flex-wrap: wrap;
+    }
 
-        .promo-close {
-            position: absolute;
-            right: 20px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            color: var(--white); /* LEVEL 1: White */
-            font-size: 18px;
-            cursor: pointer;
-            opacity: 0.8;
-            transition: opacity 0.3s ease;
-        }
+    .hero-feature {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.8rem 1.5rem;
+        background: var(--cream);
+        border-radius: 16px;
+        color: var(--brown);
+        font-weight: 600;
+        font-family: 'BaticaSans', sans-serif;
+    }
 
-        .promo-close:hover {
-            opacity: 1;
-        }
+    .hero-feature i {
+        font-size: 1.1rem;
+    }
 
-        @keyframes glow {
-            from {
-                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            }
-            to {
-                box-shadow: 0 2px 20px rgba(207, 114, 58, 0.3);
-            }
-        }
+    /* Plans Grid */
+    .plans-section {
+        margin-bottom: 3rem;
+    }
 
-        @keyframes bounce {
-            0%, 20%, 50%, 80%, 100% {
-                transform: translateY(0);
-            }
-            40% {
-                transform: translateY(-3px);
-            }
-            60% {
-                transform: translateY(-2px);
-            }
-        }
+    .section-title {
+        font-size: 2rem;
+        font-weight: 700;
+        text-align: center;
+        margin-bottom: 1rem;
+        color: var(--brown);
+        font-family: 'BaticaSans', sans-serif;
+    }
 
-        /* Navigation */
-        .navbar {
-            position: fixed;
-            top: 38px;
-            left: 0;
-            right: 0;
-            background: #ece8e1;
-            backdrop-filter: blur(10px);
-            z-index: 1000;
-            transition: var(--transition);
-            box-shadow: var(--shadow-soft);
-        }
+    .section-subtitle {
+        font-size: 1.1rem;
+        color: var(--text-gray);
+        text-align: center;
+        margin-bottom: 2.5rem;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+        font-family: 'BaticaSans', sans-serif;
+    }
 
-        .navbar, .navbar * {
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-        }
+    .plans-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 2rem;
+    }
 
-        nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 100%;
-        }
+    .plan-card {
+        background: var(--white);
+        border-radius: 24px;
+        box-shadow: var(--shadow-soft);
+        padding: 2.5rem 2rem;
+        text-align: center;
+        transition: var(--transition);
+        border: 2px solid transparent;
+        position: relative;
+        overflow: hidden;
+    }
 
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 0.8rem;
-            text-decoration: none;
-            color: var(--brown); /* LEVEL 1: Brown */
-        }
+    .plan-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: var(--sage);
+        transform: scaleX(0);
+        transition: var(--transition);
+    }
 
-        .logo-icon {
-            width: 45px;
-            height: 45px;
-            background: var(--brown); /* LEVEL 1: Solid brown instead of gradient */
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--white); /* LEVEL 1: White text */
-            font-size: 1.5rem;
-            font-family: 'BaticaSans', sans-serif;
-            font-weight: 700;
-        }
+    .plan-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-medium);
+        border-color: var(--brown);
+    }
 
-        .logo-text {
-            font-size: 1.8rem;
-            font-weight: 800;
-            color: var(--brown); /* LEVEL 1: Brown */
-            font-family: 'BaticaSans', sans-serif;
-        }
+    .plan-card:hover::before {
+        transform: scaleX(1);
+        background: var(--brown);
+    }
 
-        .nav-links {
-            display: flex;
-            list-style: none;
-            gap: 2rem;
-            align-items: center;
-        }
+    .plan-card.selected {
+        border-color: var(--brown);
+        box-shadow: 0 8px 32px rgba(189, 147, 121, 0.2);
+    }
 
-        .nav-links a {
-            text-decoration: none;
-            color: var(--text-gray);
-            font-weight: 500;
-            font-family: 'BaticaSans', sans-serif;
-            transition: var(--transition);
-        }
+    .plan-card.selected::before {
+        transform: scaleX(1);
+        background: var(--brown);
+    }
 
-        .nav-links a:hover {
-            color: var(--brown); /* LEVEL 1: Brown hover */
-        }
+    .plan-card.selected::after {
+        content: '✓';
+        position: absolute;
+        top: 1.5rem;
+        right: 1.5rem;
+        background: var(--sage);
+        color: var(--white);
+        width: 2.5rem;
+        height: 2.5rem;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 1.1rem;
+    }
 
-        .nav-actions {
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-        }
+    .plan-name {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--brown);
+        margin-bottom: 0.5rem;
+        font-family: 'BaticaSans', sans-serif;
+    }
 
-        .btn {
-            padding: 0.8rem 1.5rem;
-            border: none;
-            border-radius: 50px;
-            font-weight: 600;
-            font-family: 'BaticaSans', sans-serif;
-            text-decoration: none;
-            cursor: pointer;
-            transition: var(--transition);
-            font-size: 0.95rem;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
+    .plan-info {
+        color: var(--text-gray);
+        font-size: 1rem;
+        margin-bottom: 1rem;
+        font-weight: 500;
+        font-family: 'BaticaSans', sans-serif;
+    }
 
-        .btn-primary {
-            background: var(--brown); /* LEVEL 1: Brown primary */
-            color: var(--white); /* LEVEL 1: White text */
-            box-shadow: var(--shadow-soft);
-        }
+    .plan-price {
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: var(--brown);
+        margin-bottom: 0.5rem;
+        font-family: 'BaticaSans', sans-serif;
+    }
 
-        .btn-primary:hover {
-            background: #a8855f; /* Darker brown on hover */
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-medium);
-        }
+    .plan-price .currency {
+        font-size: 1.5rem;
+        color: var(--curry);
+    }
 
-        .btn-secondary {
-            background: transparent;
-            color: var(--brown); /* LEVEL 1: Brown */
-            border: 2px solid var(--brown); /* LEVEL 1: Brown border */
-        }
+    .plan-period {
+        color: var(--text-gray);
+        font-size: 0.9rem;
+        margin-bottom: 1.5rem;
+        font-family: 'BaticaSans', sans-serif;
+    }
 
-        .btn-secondary:hover {
-            background: var(--brown); /* LEVEL 1: Brown */
-            color: var(--white); /* LEVEL 1: White */
-        }
+    .plan-desc {
+        font-size: 1rem;
+        color: var(--text-gray);
+        margin-bottom: 2rem;
+        line-height: 1.5;
+        font-family: 'BaticaSans', sans-serif;
+    }
 
-        /* Profile Icon Styles */
-        .profile-link {
-            text-decoration: none;
-            transition: var(--transition);
-        }
+    .plan-features {
+        list-style: none;
+        margin-bottom: 2rem;
+        text-align: left;
+    }
 
-        .profile-icon {
-            width: 45px;
-            height: 45px;
-            background: var(--brown); /* LEVEL 1: Brown */
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--white); /* LEVEL 1: White */
-            transition: var(--transition);
-            box-shadow: var(--shadow-soft);
-        }
+    .plan-features li {
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+        padding: 0.5rem 0;
+        color: var(--text-dark);
+        font-size: 0.95rem;
+        font-family: 'BaticaSans', sans-serif;
+    }
 
-        .profile-icon:hover {
-            background: #a8855f; /* Darker brown on hover */
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-medium);
-        }
+    .plan-features i {
+        color: var(--sage);
+        font-size: 1rem;
+        width: 1rem;
+    }
 
-        .profile-icon svg {
-            width: 24px;
-            height: 24px;
-        }
+    .plan-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 1rem 2rem;
+        border-radius: 50px;
+        background: var(--brown);
+        color: var(--white);
+        font-weight: 700;
+        font-size: 1.1rem;
+        text-decoration: none;
+        border: none;
+        cursor: pointer;
+        transition: var(--transition);
+        box-shadow: var(--shadow-soft);
+        font-family: 'BaticaSans', sans-serif;
+    }
 
-        /* Main Container */
+    .plan-button:hover {
+        background: #a8855f;
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-medium);
+    }
+
+    .plan-button:active {
+        transform: translateY(0);
+    }
+
+    /* Price per meal display */
+    .price-per-meal {
+        font-size: 0.9rem;
+        color: var(--text-gray);
+        margin-top: 0.5rem;
+        font-weight: 500;
+    }
+
+    .price-per-meal .highlight {
+        color: var(--curry);
+        font-weight: 600;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
         .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 120px 2rem 4rem;
-        }
-
-        /* Progress Bar */
-        .progress-container {
-            background: var(--white); /* LEVEL 1: White */
-            border-radius: var(--radius-lg);
-            padding: 2rem;
-            margin-bottom: 3rem;
-            box-shadow: var(--shadow-soft);
-        }
-
-        .progress-bar {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 1rem;
-            flex-wrap: wrap;
-        }
-
-        .progress-step {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.8rem 1.5rem;
-            border-radius: var(--radius-xl);
-            font-weight: 600;
-            font-size: 0.95rem;
-            font-family: 'BaticaSans', sans-serif;
-            background: var(--cream); /* LEVEL 2: Cream */
-            color: var(--text-gray);
-            border: 2px solid var(--cream); /* LEVEL 2: Cream */
-            transition: var(--transition);
-            white-space: nowrap;
-        }
-
-        .progress-step.active {
-            background: var(--brown); /* LEVEL 1: Brown */
-            color: var(--white); /* LEVEL 1: White */
-            border-color: var(--brown); /* LEVEL 1: Brown */
-            box-shadow: 0 4px 12px rgba(189, 147, 121, 0.3);
-        }
-
-        .progress-step.completed {
-            background: var(--success);
-            color: var(--white); /* LEVEL 1: White */
-            border-color: var(--success);
-        }
-
-        .progress-arrow {
-            color: var(--sage); /* LEVEL 3: Sage */
-            font-size: 1.2rem;
-            font-weight: 600;
-        }
-
-        /* Hero Section */
-        .hero-section {
-            background: var(--white); /* LEVEL 1: White */
-            border-radius: var(--radius-xl);
-            padding: 3rem 2rem;
-            text-align: center;
-            margin-bottom: 3rem;
-            box-shadow: var(--shadow-medium);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .hero-section::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, var(--brown), var(--sage), var(--curry)); /* All theme colors */
+            padding: 1rem;
         }
 
         .hero-title {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: var(--brown); /* LEVEL 1: Brown */
-            margin-bottom: 1rem;
-            font-family: 'BaticaSans', sans-serif;
+            font-size: 2rem;
         }
 
         .hero-subtitle {
-            font-size: 1.2rem;
-            color: var(--text-gray);
-            max-width: 600px;
-            margin: 0 auto 2rem;
-            font-family: 'BaticaSans', sans-serif;
+            font-size: 1rem;
         }
 
         .hero-features {
-            display: flex;
-            justify-content: center;
-            gap: 2rem;
-            flex-wrap: wrap;
+            gap: 1rem;
         }
 
         .hero-feature {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.8rem 1.5rem;
-            background: var(--cream); /* LEVEL 2: Cream */
-            border-radius: var(--radius-lg);
-            color: var(--brown); /* LEVEL 1: Brown */
-            font-weight: 600;
-            font-family: 'BaticaSans', sans-serif;
-        }
-
-        .hero-feature i {
-            font-size: 1.1rem;
-        }
-
-        /* Plans Grid */
-        .plans-section {
-            margin-bottom: 3rem;
-        }
-
-        .section-title {
-            font-size: 2rem;
-            font-weight: 700;
-            text-align: center;
-            margin-bottom: 1rem;
-            color: var(--brown); /* LEVEL 1: Brown */
-            font-family: 'BaticaSans', sans-serif;
-        }
-
-        .section-subtitle {
-            font-size: 1.1rem;
-            color: var(--text-gray);
-            text-align: center;
-            margin-bottom: 2.5rem;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
-            font-family: 'BaticaSans', sans-serif;
+            font-size: 0.9rem;
+            padding: 0.6rem 1rem;
         }
 
         .plans-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 2rem;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
         }
 
         .plan-card {
-            background: var(--white); /* LEVEL 1: White */
-            border-radius: var(--radius-xl);
-            box-shadow: var(--shadow-soft);
-            padding: 2.5rem 2rem;
-            text-align: center;
-            transition: var(--transition);
-            border: 2px solid transparent;
-            position: relative;
-            overflow: hidden;
+            padding: 2rem 1.5rem;
         }
 
-        .plan-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: var(--sage); /* LEVEL 3: Sage */
-            transform: scaleX(0);
-            transition: var(--transition);
-        }
-
-        .plan-card:hover {
-            transform: translateY(-5px);
-            box-shadow: var(--shadow-large);
-            border-color: var(--brown); /* LEVEL 1: Brown */
-        }
-
-        .plan-card:hover::before {
-            transform: scaleX(1);
-            background: var(--brown); /* LEVEL 1: Brown */
-        }
-
-        .plan-card.selected {
-            border-color: var(--brown); /* LEVEL 1: Brown */
-            box-shadow: 0 8px 32px rgba(189, 147, 121, 0.2);
-        }
-
-        .plan-card.selected::before {
-            transform: scaleX(1);
-            background: var(--brown); /* LEVEL 1: Brown */
-        }
-
-        .plan-card.selected::after {
-            content: '✓';
-            position: absolute;
-            top: 1.5rem;
-            right: 1.5rem;
-            background: #adb89d;
-            color: var(--white); /* LEVEL 1: White */
-            width: 2.5rem;
-            height: 2.5rem;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 1.1rem;
-        }
-
-        .plan-name {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--brown); /* LEVEL 1: Brown */
-            margin-bottom: 0.5rem;
-            font-family: 'BaticaSans', sans-serif;
-        }
-
-        .plan-info {
-            color: var(--text-gray);
-            font-size: 1rem;
-            margin-bottom: 1rem;
-            font-weight: 500;
-            font-family: 'BaticaSans', sans-serif;
-        }
-
-        .plan-price {
-            font-size: 2.5rem;
-            font-weight: 800;
-            color: var(--brown); /* LEVEL 1: Brown */
-            margin-bottom: 0.5rem;
-            font-family: 'BaticaSans', sans-serif;
-        }
-
-        .plan-price .currency {
-            font-size: 1.5rem;
-            color: var(--curry); /* LEVEL 4: Curry accent */
-        }
-
-        .plan-period {
-            color: var(--text-gray);
-            font-size: 0.9rem;
-            margin-bottom: 1.5rem;
-            font-family: 'BaticaSans', sans-serif;
-        }
-
-        .plan-desc {
-            font-size: 1rem;
-            color: var(--text-gray);
-            margin-bottom: 2rem;
-            line-height: 1.5;
-            font-family: 'BaticaSans', sans-serif;
-        }
-
-        .plan-features {
-            list-style: none;
-            margin-bottom: 2rem;
-            text-align: left;
-        }
-
-        .plan-features li {
-            display: flex;
-            align-items: center;
-            gap: 0.8rem;
-            padding: 0.5rem 0;
-            color: var(--text-dark);
-            font-size: 0.95rem;
-            font-family: 'BaticaSans', sans-serif;
-        }
-
-        .plan-features i {
-            color: var(--success);
-            font-size: 1rem;
-            width: 1rem;
-        }
-
-        .plan-button {
-            display: inline-flex;
-            align-items: center;
+        .progress-bar {
             gap: 0.5rem;
-            padding: 1rem 2rem;
-            border-radius: var(--radius-xl);
-            background: var(--brown); /* LEVEL 1: Brown */
-            color: var(--white); /* LEVEL 1: White */
-            font-weight: 700;
-            font-size: 1.1rem;
-            text-decoration: none;
-            border: none;
-            cursor: pointer;
-            transition: var(--transition);
-            box-shadow: var(--shadow-soft);
-            font-family: 'BaticaSans', sans-serif;
         }
 
-        .plan-button:hover {
-            background: #a8855f; /* Darker brown */
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-medium);
+        .progress-step {
+            font-size: 0.8rem;
+            padding: 0.6rem 1rem;
         }
 
-        .plan-button:active {
-            transform: translateY(0);
+        .progress-arrow {
+            font-size: 1rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .progress-step {
+            font-size: 0.7rem;
+            padding: 0.5rem 0.8rem;
         }
 
-        /* Price per meal display */
-        .price-per-meal {
-            font-size: 0.9rem;
-            color: var(--text-gray);
-            margin-top: 0.5rem;
-            font-weight: 500;
+        .hero-section {
+            padding: 2rem 1.5rem;
         }
 
-        .price-per-meal .highlight {
-            color: var(--curry); /* LEVEL 4: Curry */
-            font-weight: 600;
+        .hero-features {
+            flex-direction: column;
+            align-items: center;
         }
-
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            .promo-banner {
-                font-size: 12px;
-                padding: 6px 15px;
-            }
-            
-            .promo-banner-content {
-                flex-direction: column;
-                gap: 5px;
-            }
-            
-            .promo-close {
-                right: 10px;
-            }
-            
-            .navbar {
-                top: 32px;
-            }
-            
-            .container {
-                padding: 100px 1rem 3rem;
-            }
-
-            .hero-title {
-                font-size: 2rem;
-            }
-
-            .hero-subtitle {
-                font-size: 1rem;
-            }
-
-            .hero-features {
-                gap: 1rem;
-            }
-
-            .hero-feature {
-                font-size: 0.9rem;
-                padding: 0.6rem 1rem;
-            }
-
-            .plans-grid {
-                grid-template-columns: 1fr;
-                gap: 1.5rem;
-            }
-
-            .plan-card {
-                padding: 2rem 1.5rem;
-            }
-
-            .progress-bar {
-                gap: 0.5rem;
-            }
-
-            .progress-step {
-                font-size: 0.8rem;
-                padding: 0.6rem 1rem;
-            }
-
-            .progress-arrow {
-                font-size: 1rem;
-            }
-
-            .nav-links {
-                display: none;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .nav-actions {
-                gap: 0.5rem;
-            }
-
-            .logo-text {
-                font-size: 1.5rem;
-            }
-
-            .progress-step {
-                font-size: 0.7rem;
-                padding: 0.5rem 0.8rem;
-            }
-
-            .hero-section {
-                padding: 2rem 1.5rem;
-            }
-
-            .hero-features {
-                flex-direction: column;
-                align-items: center;
-            }
-        }
+    }
     </style>
 </head>
-<body>
-    <!-- Promotional Banner -->
-    <div class="promo-banner" id="promoBanner">
-        <div class="promo-banner-content">
-            <span class="promo-icon">🪙</span>
-            <span class="promo-text">50% OFF First Week + Free Cookies for Life</span>
-            <span class="promo-icon">🎉</span>
-        </div>
-        <button class="promo-close" onclick="closePromoBanner()" title="Close">×</button>
-    </div>
 
-    <!-- Navigation -->
-    <nav class="navbar">
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem; max-width: 1200px; margin: 0 auto; width: 100%;">
-            <a href="home2.php" class="logo">
-                <img src="./assets/image/LOGO_BG2.png" alt="Somdul Table" style="height: 80px; width: auto;">
-            </a>
-            
-            <ul class="nav-links">
-                <li><a href="./menus.php">Menu</a></li>
-                <li><a href="./meal-kits.php">Meal-Kits</a></li>
-                <li><a href="home2.php#how-it-works">How It Works</a></li>
-                <li><a href="./blogs.php">About</a></li>
-                <li><a href="./contact.php">Contact</a></li>
-            </ul>
-            
-            <div class="nav-actions">
-                <?php if (isset($_SESSION['user_id'])): ?>
-                    <!-- User is logged in - show profile icon -->
-                    <a href="dashboard.php" class="profile-link" title="Go to Dashboard">
-                        <div class="profile-icon">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="12" cy="7" r="4"></circle>
-                            </svg>
-                        </div>
-                    </a>
-                    <a href="logout.php" class="btn btn-primary">Logout</a>
-                <?php else: ?>
-                    <!-- User is not logged in - show sign in button -->
-                    <a href="login.php" class="btn btn-secondary">Sign In</a>
-                    <a href="register.php" class="btn btn-primary">Get Started</a>
-                <?php endif; ?>
-            </div>
-        </div>
-    </nav>
+<!-- IMPORTANT: Add has-header class for proper spacing -->
+<body class="has-header">
+    <!-- The header (promo banner + navbar) is already included from header.php -->
 
     <div class="container">
         <!-- Progress Bar -->
@@ -890,17 +499,17 @@ function getPlanDescription($plan) {
                     <i class="fas fa-check-circle"></i>
                     <span>Choose Package</span>
                 </div>
-                <span class="progress-arrow">→</span>
+                <span class="progress-arrow">â†'</span>
                 <div class="progress-step">
                     <i class="fas fa-utensils"></i>
                     <span>Select Menu</span>
                 </div>
-                <span class="progress-arrow">→</span>
+                <span class="progress-arrow">â†'</span>
                 <div class="progress-step">
                     <i class="fas fa-credit-card"></i>
                     <span>Payment</span>
                 </div>
-                <span class="progress-arrow">→</span>
+                <span class="progress-arrow">â†'</span>
                 <div class="progress-step">
                     <i class="fas fa-check-double"></i>
                     <span>Complete</span>
@@ -1008,57 +617,37 @@ function getPlanDescription($plan) {
     <script src="https://kit.fontawesome.com/your-fontawesome-kit.js" crossorigin="anonymous"></script>
     
     <script>
-        function closePromoBanner() {
-            const promoBanner = document.getElementById('promoBanner');
-            const navbar = document.querySelector('.navbar');
-            const container = document.querySelector('.container');
-            
-            promoBanner.style.transform = 'translateY(-100%)';
-            promoBanner.style.opacity = '0';
-            
+    // Page-specific JavaScript for subscribe.php
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('🥘 Subscribe page loaded');
+        
+        // Add loading animation to plan cards
+        const planCards = document.querySelectorAll('.plan-card');
+        planCards.forEach((card, index) => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
             setTimeout(() => {
-                promoBanner.style.display = 'none';
-                navbar.style.top = '0';
-                container.style.paddingTop = '100px';
-            }, 300);
-        }
+                card.style.transition = 'all 0.6s ease';
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, index * 100);
+        });
 
-        // Add smooth scrolling and enhanced interactions
-        document.addEventListener('DOMContentLoaded', function() {
-            // Add loading animation to plan cards
-            const planCards = document.querySelectorAll('.plan-card');
-            planCards.forEach((card, index) => {
-                card.style.opacity = '0';
-                card.style.transform = 'translateY(20px)';
-                setTimeout(() => {
-                    card.style.transition = 'all 0.6s ease';
-                    card.style.opacity = '1';
-                    card.style.transform = 'translateY(0)';
-                }, index * 100);
-            });
-
-            // Add click tracking for analytics
-            planCards.forEach(card => {
-                card.addEventListener('click', function(e) {
-                    if (!e.target.matches('.plan-button, .plan-button *')) {
-                        const link = this.querySelector('.plan-button');
-                        if (link) {
-                            link.click();
-                        }
+        // Add click tracking for analytics
+        planCards.forEach(card => {
+            card.addEventListener('click', function(e) {
+                if (!e.target.matches('.plan-button, .plan-button *')) {
+                    const link = this.querySelector('.plan-button');
+                    if (link) {
+                        link.click();
                     }
-                });
+                }
             });
         });
-
-        // Navbar background on scroll
-        window.addEventListener('scroll', function() {
-            const navbar = document.querySelector('.navbar');
-            if (window.scrollY > 100) {
-                navbar.style.background = 'rgba(236, 232, 225, 0.98)';
-            } else {
-                navbar.style.background = '#ece8e1';
-            }
-        });
+        
+        // The mobile menu and promo banner functions are already available from header.php
+        // You can use: toggleMobileMenu(), closeMobileMenu(), closePromoBanner()
+    });
     </script>
 </body>
 </html>

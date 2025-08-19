@@ -1,7 +1,8 @@
 <?php
 /**
- * Somdul Table - Home Page with Database Integration
- * File: home2.php
+ * Somdul Table - Home Page with Database Integration and Coming Soon Popup
+ * File: index.php
+ * FIXED: Character encoding and JavaScript issues
  */
 
 error_reporting(E_ALL);
@@ -9,6 +10,93 @@ ini_set('display_errors', 1);
 session_start();
 
 require_once 'config/database.php';
+
+// Include the header (contains navbar, promo banner, fonts, and base styles)
+include 'header.php';
+
+// Database configuration for email signups
+$servername = "localhost";
+$username = "u548716370_ad";      // Change this to your MySQL username
+$password = "bjXZrBsAQXiaAk7&";   // Change this to your MySQL password
+$dbname = "u548716370_getemail";  // Change this to your database name
+
+// Create connection for email signups
+$email_conn = new mysqli($servername, $username, $password, $dbname);
+
+// Check connection
+if ($email_conn->connect_error) {
+    error_log("Email database connection failed: " . $email_conn->connect_error);
+    $email_conn = null;
+}
+
+// Create table if it doesn't exist
+if ($email_conn) {
+    $create_table_sql = "CREATE TABLE IF NOT EXISTS email_signups (
+        id INT(11) AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        email VARCHAR(150) NOT NULL UNIQUE,
+        signup_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        status ENUM('active', 'unsubscribed') DEFAULT 'active',
+        ip_address VARCHAR(45),
+        user_agent TEXT
+    )";
+
+    if (!$email_conn->query($create_table_sql)) {
+        error_log("Error creating table: " . $email_conn->error);
+    }
+}
+
+// Initialize variables for popup
+$popup_message = "";
+$popup_message_type = "";
+
+// Handle popup form submission
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['submit_popup_signup'])) {
+    $name = trim($_POST['popup_name']);
+    $email = trim($_POST['popup_email']);
+    $ip_address = $_SERVER['REMOTE_ADDR'];
+    $user_agent = $_SERVER['HTTP_USER_AGENT'];
+    
+    // Validate input
+    if (empty($name) || empty($email)) {
+        $popup_message = "Please fill in all fields.";
+        $popup_message_type = "error";
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $popup_message = "Please enter a valid email address.";
+        $popup_message_type = "error";
+    } elseif ($email_conn) {
+        // Check if email already exists
+        $check_email_sql = "SELECT id FROM email_signups WHERE email = ?";
+        $check_stmt = $email_conn->prepare($check_email_sql);
+        $check_stmt->bind_param("s", $email);
+        $check_stmt->execute();
+        $result = $check_stmt->get_result();
+        
+        if ($result->num_rows > 0) {
+            $popup_message = "This email is already registered! We'll notify you when we open.";
+            $popup_message_type = "info";
+        } else {
+            // Insert new signup
+            $insert_sql = "INSERT INTO email_signups (name, email, ip_address, user_agent) VALUES (?, ?, ?, ?)";
+            $insert_stmt = $email_conn->prepare($insert_sql);
+            $insert_stmt->bind_param("ssss", $name, $email, $ip_address, $user_agent);
+            
+            if ($insert_stmt->execute()) {
+                $popup_message = "Thank you, " . htmlspecialchars($name) . "! You're now on our exclusive preview list. We'll notify you at " . htmlspecialchars($email) . " when Somdul Table opens.";
+                $popup_message_type = "success";
+            } else {
+                $popup_message = "Sorry, there was an error processing your request. Please try again.";
+                $popup_message_type = "error";
+                error_log("Database insert error: " . $insert_stmt->error);
+            }
+            $insert_stmt->close();
+        }
+        $check_stmt->close();
+    } else {
+        $popup_message = "Sorry, there was an error processing your request. Please try again later.";
+        $popup_message_type = "error";
+    }
+}
 
 try {
     // Fetch categories for navigation
@@ -55,6 +143,11 @@ $category_icons = [
 
 // Default icon for categories not in mapping
 $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-2V4c0-1.1-.9-2-2-2zm0 2v2h-2V4h2zm-4 4h8v2h-8V8zm0 4h8v6H8v-6z"/>';
+
+// Close email connection
+if ($email_conn) {
+    $email_conn->close();
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -65,6 +158,404 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
     <meta name="description" content="Experience authentic Thai cuisine with Somdul Table - Your premier Thai restaurant management system in the US">
     
     <style>
+    /* Page-specific styles only - header styles come from header.php */
+    
+    /* Coming Soon Popup Styles */
+    .popup-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(5px);
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .popup-overlay.active {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    /* Minimized floating state */
+    .popup-overlay.minimized {
+        opacity: 1;
+        visibility: visible;
+        background: transparent;
+        backdrop-filter: none;
+        align-items: flex-end;
+        justify-content: flex-end;
+        padding: 2rem;
+        pointer-events: none; /* Allow clicks through overlay */
+    }
+
+    .popup-container {
+        background: var(--cream);
+        border-radius: 20px;
+        max-width: 600px;
+        width: 90%;
+        max-height: 90vh;
+        overflow-y: auto;
+        position: relative;
+        padding: 3rem 2rem;
+        text-align: center;
+        transform: translateY(50px);
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        pointer-events: auto;
+    }
+
+    .popup-overlay.active .popup-container {
+        transform: translateY(0);
+    }
+
+    /* Add a subtle glow effect to the minimized circle */
+    .popup-overlay.minimized .popup-container {
+        width: 70px;
+        height: 70px;
+        max-width: 70px;
+        max-height: 70px;
+        padding: 0;
+        border-radius: 50%;
+        background: var(--brown);
+        box-shadow: 0 8px 25px rgba(189, 147, 121, 0.4), 0 0 0 2px var(--curry);
+        transform: translateY(0);
+        overflow: visible;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+    }
+
+    .popup-overlay.minimized .popup-container:hover {
+        transform: scale(1.1);
+        box-shadow: 0 12px 35px rgba(189, 147, 121, 0.6), 0 0 0 3px var(--curry);
+    }
+
+    /* Tooltip for floating circle */
+    .popup-overlay.minimized .popup-container::after {
+        content: 'Click to join our preview list!';
+        position: absolute;
+        bottom: 85px;
+        right: 0;
+        background: var(--text-dark);
+        color: var(--white);
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-family: 'BaticaSans', sans-serif;
+        white-space: nowrap;
+        opacity: 0;
+        transform: translateY(10px);
+        transition: all 0.3s ease;
+        pointer-events: none;
+        z-index: 10001;
+    }
+
+    .popup-overlay.minimized .popup-container:hover::after {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    /* Arrow for tooltip */
+    .popup-overlay.minimized .popup-container:hover::before {
+        content: '';
+        position: absolute;
+        bottom: 75px;
+        right: 25px;
+        width: 0;
+        height: 0;
+        border-left: 6px solid transparent;
+        border-right: 6px solid transparent;
+        border-top: 6px solid var(--text-dark);
+        opacity: 1;
+        z-index: 10001;
+    }
+
+    /* Floating circle content */
+    .floating-circle-content {
+        display: none;
+        color: var(--white);
+        font-size: 1.8rem;
+        font-weight: bold;
+        font-family: 'BaticaSans', sans-serif;
+        animation: pulse 2s infinite;
+        position: relative;
+    }
+
+    .popup-overlay.minimized .floating-circle-content {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+    }
+
+    /* Add a small notification dot */
+    .floating-circle-content::after {
+        content: '';
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        width: 12px;
+        height: 12px;
+        background: var(--curry);
+        border: 2px solid var(--white);
+        border-radius: 50%;
+        animation: ping 1.5s infinite;
+    }
+
+    @keyframes ping {
+        0% {
+            transform: scale(1);
+            opacity: 1;
+        }
+        75%, 100% {
+            transform: scale(1.4);
+            opacity: 0;
+        }
+    }
+
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+    }
+
+    /* Hide all popup content when minimized */
+    .popup-overlay.minimized .popup-logo,
+    .popup-overlay.minimized .popup-main-heading,
+    .popup-overlay.minimized .popup-decorative-element,
+    .popup-overlay.minimized .popup-subtitle,
+    .popup-overlay.minimized .popup-description,
+    .popup-overlay.minimized .popup-value-text,
+    .popup-overlay.minimized .popup-message,
+    .popup-overlay.minimized .popup-form-container,
+    .popup-overlay.minimized .popup-browse-btn,
+    .popup-overlay.minimized .popup-close {
+        display: none;
+    }
+
+    .popup-close {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        background: none;
+        border: none;
+        font-size: 2rem;
+        color: var(--text-gray);
+        cursor: pointer;
+        transition: color 0.3s ease;
+        z-index: 10001;
+    }
+
+    .popup-close:hover {
+        color: var(--brown);
+    }
+
+    .popup-logo {
+        margin-bottom: 2rem;
+    }
+
+    .popup-logo h1 {
+        font-size: 3rem;
+        font-weight: bold;
+        color: var(--sage);
+        letter-spacing: 6px;
+        margin-bottom: 0.5rem;
+        text-transform: uppercase;
+        font-family: 'BaticaSans', sans-serif;
+    }
+
+    .popup-logo p {
+        font-size: 1rem;
+        color: var(--sage);
+        letter-spacing: 3px;
+        text-transform: uppercase;
+        font-family: 'BaticaSans', sans-serif;
+    }
+
+    .popup-main-heading {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: var(--brown);
+        margin-bottom: 2rem;
+        line-height: 1.2;
+        font-family: 'BaticaSans', sans-serif;
+    }
+
+    .popup-subtitle {
+        font-size: 1.4rem;
+        color: var(--text-gray);
+        font-style: italic;
+        margin-bottom: 1.5rem;
+        font-family: 'BaticaSans', sans-serif;
+    }
+
+    .popup-description {
+        font-size: 1.1rem;
+        color: var(--text-dark);
+        margin-bottom: 1rem;
+        line-height: 1.6;
+        font-family: 'BaticaSans', sans-serif;
+    }
+
+    .popup-highlight {
+        font-weight: bold;
+        color: var(--curry);
+    }
+
+    .popup-value-text {
+        font-size: 1.1rem;
+        color: var(--text-dark);
+        margin-bottom: 2rem;
+        line-height: 1.6;
+        font-family: 'BaticaSans', sans-serif;
+    }
+
+    .popup-decorative-element {
+        width: 80px;
+        height: 2px;
+        background-color: var(--sage);
+        margin: 1.5rem auto;
+    }
+
+    .popup-form-container {
+        max-width: 400px;
+        margin: 0 auto;
+    }
+
+    .popup-form-group {
+        margin-bottom: 1rem;
+    }
+
+    .popup-form-input {
+        width: 100%;
+        padding: 1rem 1.5rem;
+        font-size: 1rem;
+        border: 2px solid var(--brown);
+        border-radius: 50px;
+        background-color: var(--white);
+        color: var(--text-dark);
+        font-family: 'BaticaSans', sans-serif;
+        outline: none;
+        transition: all 0.3s ease;
+    }
+
+    .popup-form-input:focus {
+        border-color: var(--curry);
+        box-shadow: 0 0 10px rgba(207, 114, 58, 0.3);
+        transform: translateY(-2px);
+    }
+
+    .popup-form-input::placeholder {
+        color: var(--text-gray);
+    }
+
+    .popup-submit-btn {
+        width: 100%;
+        padding: 1rem 1.5rem;
+        font-size: 1.1rem;
+        font-weight: bold;
+        color: var(--white);
+        background: var(--brown);
+        border: none;
+        border-radius: 50px;
+        cursor: pointer;
+        font-family: 'BaticaSans', sans-serif;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        transition: all 0.3s ease;
+    }
+
+    .popup-submit-btn:hover {
+        background: var(--curry);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(207, 114, 58, 0.3);
+    }
+
+    /* Popup Message styling */
+    .popup-message {
+        margin-bottom: 1.5rem;
+        padding: 1rem;
+        border-radius: 10px;
+        font-size: 0.95rem;
+        font-weight: 500;
+        font-family: 'BaticaSans', sans-serif;
+    }
+
+    .popup-message.success {
+        background-color: #d4edda;
+        color: #155724;
+        border: 2px solid #c3e6cb;
+    }
+
+    .popup-message.error {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 2px solid #f5c6cb;
+    }
+
+    .popup-message.info {
+        background-color: #d1ecf1;
+        color: #0c5460;
+        border: 2px solid #bee5eb;
+    }
+
+    /* Browse Menu Button */
+    .popup-browse-btn {
+        margin-top: 1.5rem;
+        padding: 0.8rem 2rem;
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--brown);
+        background: transparent;
+        border: 2px solid var(--brown);
+        border-radius: 50px;
+        cursor: pointer;
+        font-family: 'BaticaSans', sans-serif;
+        text-decoration: none;
+        display: inline-block;
+        transition: all 0.3s ease;
+    }
+
+    .popup-browse-btn:hover {
+        background: var(--brown);
+        color: var(--white);
+        transform: translateY(-2px);
+    }
+
+    /* Responsive popup */
+    @media (max-width: 768px) {
+        .popup-container {
+            padding: 2rem 1.5rem;
+        }
+
+        .popup-logo h1 {
+            font-size: 2rem;
+            letter-spacing: 3px;
+        }
+
+        .popup-main-heading {
+            font-size: 1.8rem;
+        }
+
+        .popup-subtitle {
+            font-size: 1.1rem;
+        }
+
+        .popup-description, .popup-value-text {
+            font-size: 1rem;
+        }
+    }
+
     /* How It Works Section - Updated Styles */
     .hiw-items {
         display: grid;
@@ -471,439 +962,223 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
         }
     }
 
-    /* BaticaSans Font Import - Local Files */
-    @font-face {
-        font-family: 'BaticaSans';
-        src: url('./Font/BaticaSans-Regular.woff2') format('woff2'),
-            url('./Font/BaticaSans-Regular.woff') format('woff'),
-            url('./Font/BaticaSans-Regular.ttf') format('truetype');
-        font-weight: 400;
-        font-style: normal;
-        font-display: swap;
+    /* Hero Section Styles (using CSS variables from header.php) */
+    .hero-section {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        padding: 2rem;
+        background: url('./assets/image/padthai2.png') center/cover no-repeat, linear-gradient(135deg, var(--cream) 0%, #f8f9fa 100%);
+        position: relative;
+        overflow: hidden;
+        margin-top: 110px; /* Account for header */
     }
 
-        @font-face {
-            font-family: 'BaticaSans';
-            src: url('./Font/BaticaSans-Italic.woff2') format('woff2'),
-                url('./Font/BaticaSans-Italic.woff') format('woff'),
-                url('./Font/BaticaSans-Italic.ttf') format('truetype');
-            font-weight: 400;
-            font-style: italic;
-            font-display: swap;
-        }
-
-        /* Fallback for bold/medium weights - browser will simulate them */
-        @font-face {
-            font-family: 'BaticaSans';
-            src: url('./Font/BaticaSans-Regular.woff2') format('woff2'),
-                url('./Font/BaticaSans-Regular.woff') format('woff'),
-                url('./Font/BaticaSans-Regular.ttf') format('truetype');
-            font-weight: 500;
-            font-style: normal;
-            font-display: swap;
-        }
-
-        @font-face {
-            font-family: 'BaticaSans';
-            src: url('./Font/BaticaSans-Regular.woff2') format('woff2'),
-                url('./Font/BaticaSans-Regular.woff') format('woff'),
-                url('./Font/BaticaSans-Regular.ttf') format('truetype');
-            font-weight: 700;
-            font-style: normal;
-            font-display: swap;
-        }
-        }
-    </style>
-    
-    <style>
-        /* IMPROVED CSS Custom Properties for Somdul Table Design System - COLOR HIERARCHY ONLY */
-        :root {
-            /* LEVEL 1 (MOST IMPORTANT): BROWN #bd9379 + WHITE */
-            --brown: #bd9379;
-            --white: #ffffff;
-            
-            /* LEVEL 2 (SECONDARY): CREAM #ece8e1 */
-            --cream: #ece8e1;
-            
-            /* LEVEL 3 (SUPPORTING): SAGE #adb89d */
-            --sage: #adb89d;
-            
-            /* LEVEL 4 (ACCENT/CONTRAST - LEAST USED): CURRY #cf723a */
-            --curry: #cf723a;
-            
-            /* Text colors using brown hierarchy */
-            --text-dark: #2c3e50;
-            --text-gray: #7f8c8d;
-            --border-light: #d4c4b8; /* Brown-tinted border */
-            
-            /* Shadows using brown as base (Level 1) */
-            --shadow-soft: 0 4px 12px rgba(189, 147, 121, 0.15);
-            --shadow-medium: 0 8px 24px rgba(189, 147, 121, 0.25);
-            --radius-sm: 8px;
-            --radius-md: 12px;
-            --radius-lg: 16px;
-            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'BaticaSans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            line-height: 1.6;
-            color: var(--text-dark);
-            background-color: var(--white);
-            font-weight: 400;
-        }
-
-        /* Typography using BaticaSans - LEVEL 1: Brown for headings */
-        h1, h2, h3, h4, h5, h6 {
-            font-family: 'BaticaSans', sans-serif;
-            font-weight: 700;
-            line-height: 1.2;
-            color: var(--brown); /* LEVEL 1: Brown instead of text-dark */
-        }
-
-        .navbar {
-            position: fixed;
-            top: 38px;
-            left: 0;
-            right: 0;
-            background: #ece8e1;
-            backdrop-filter: blur(10px);
-            z-index: 1000;
-            transition: var(--transition);
-            box-shadow: var(--shadow-soft);
-        }
-
-        .navbar, .navbar * {
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 100%;
-        }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 0.8rem;
-            text-decoration: none;
-            color: var(--brown); /* LEVEL 1: Brown */
-        }
-
-        .logo-icon {
-            width: 45px;
-            height: 45px;
-            background: var(--brown); /* LEVEL 1: Solid brown instead of gradient */
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--white); /* LEVEL 1: White text */
-            font-size: 1.5rem;
-            font-family: 'BaticaSans', sans-serif;
-            font-weight: 700;
-        }
-
-        .logo-text {
-            font-size: 1.8rem;
-            font-weight: 800;
-            color: var(--brown); /* LEVEL 1: Brown */
-            font-family: 'BaticaSans', sans-serif;
-        }
-
-        .nav-links {
-            display: flex;
-            list-style: none;
-            gap: 2rem;
-            align-items: center;
-        }
-
-        .nav-links a {
-            text-decoration: none;
-            color: var(--text-gray);
-            font-weight: 500;
-            font-family: 'BaticaSans', sans-serif;
-            transition: var(--transition);
-        }
-
-        .nav-links a:hover {
-            color: var(--brown); /* LEVEL 1: Brown hover */
-        }
-
-        .nav-actions {
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-        }
-
-        .btn {
-            padding: 0.8rem 1.5rem;
-            border: none;
-            border-radius: 50px;
-            font-weight: 600;
-            font-family: 'BaticaSans', sans-serif;
-            text-decoration: none;
-            cursor: pointer;
-            transition: var(--transition);
-            font-size: 0.95rem;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .btn-primary {
-            background: var(--brown); /* LEVEL 1: Brown primary */
-            color: var(--white); /* LEVEL 1: White text */
-            box-shadow: var(--shadow-soft);
-        }
-
-        .btn-primary:hover {
-            background: #a8855f; /* Darker brown on hover */
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-medium);
-        }
-
-        .btn-secondary {
-            background: transparent;
-            color: var(--brown); /* LEVEL 1: Brown */
-            border: 2px solid var(--brown); /* LEVEL 1: Brown border */
-        }
-
-        .btn-secondary:hover {
-            background: var(--brown); /* LEVEL 1: Brown */
-            color: var(--white); /* LEVEL 1: White */
-        }
-
-        /* Profile Icon Styles */
-        .profile-link {
-            text-decoration: none;
-            transition: var(--transition);
-        }
-
-        .profile-icon {
-            width: 45px;
-            height: 45px;
-            background: var(--brown); /* LEVEL 1: Brown */
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--white); /* LEVEL 1: White */
-            transition: var(--transition);
-            box-shadow: var(--shadow-soft);
-        }
-
-        .profile-icon:hover {
-            background: #a8855f; /* Darker brown on hover */
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-medium);
-        }
-
-        .profile-icon svg {
-            width: 24px;
-            height: 24px;
-        }
-
-        /* Hero Section */
+    @media (max-width: 768px) {
         .hero-section {
-            padding-top: 120px;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            padding: 80px 2rem 2rem;
-            background: url('./assets/image/padthai2.png') center/cover no-repeat, linear-gradient(135deg, var(--cream) 0%, #f8f9fa 100%); /* LEVEL 2: Cream background */
-            position: relative;
-            overflow: hidden;
-            margin-top: 0;
+            margin-top: 105px; /* Mobile spacing for header */
         }
+    }
 
-        .hero-container {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 0 2rem;
+    @media (max-width: 480px) {
+        .hero-section {
+            margin-top: 100px; /* Small mobile spacing for header */
         }
+    }
 
-        .hero-container .background {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, var(--white) 0%, var(--cream) 100%); /* LEVEL 1 & 2: White to cream */
-            z-index: -1;
-        }
+    .hero-container {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 0 2rem;
+    }
 
-        .hero-content {
-            flex: 1;
-            max-width: 600px;
-            padding: 3rem 2rem;
-            z-index: 10;
-        }
+    .hero-container .background {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, var(--white) 0%, var(--cream) 100%);
+        z-index: -1;
+    }
 
-        .hero-content h1 {
-            font-size: 4rem;
-            margin-bottom: 1.5rem;
-            font-weight: 800;
-            color: var(--brown); /* LEVEL 1: Brown title */
-            line-height: 1.1;
-            font-family: 'BaticaSans', sans-serif;
-        }
+    .hero-content {
+        flex: 1;
+        max-width: 600px;
+        padding: 3rem 2rem;
+        z-index: 10;
+    }
 
-        .hero-content p {
-            font-size: 1.3rem;
-            margin-bottom: 2rem;
-            color: var(--text-gray);
-            line-height: 1.6;
-            font-family: 'BaticaSans', sans-serif;
-        }
+    .hero-content h1 {
+        font-size: 4rem;
+        margin-bottom: 1.5rem;
+        font-weight: 800;
+        color: var(--brown);
+        line-height: 1.1;
+        font-family: 'BaticaSans', sans-serif;
+    }
 
-        .hero-form {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
+    .hero-content p {
+        font-size: 1.3rem;
+        margin-bottom: 2rem;
+        color: var(--text-gray);
+        line-height: 1.6;
+        font-family: 'BaticaSans', sans-serif;
+    }
 
-        .zip-input-container {
-            position: relative;
-            width: 100%;
-            max-width: 400px;
-        }
+    .hero-form {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
 
-        .zip-input {
-            width: 100%;
-            padding: 1rem 1.5rem;
-            border: 2px solid var(--border-light); /* Brown-tinted border */
-            border-radius: 50px;
-            font-size: 1.1rem;
-            font-family: 'BaticaSans', sans-serif;
-            background: var(--white); /* LEVEL 1: White */
-            transition: all 0.3s;
-            outline: none;
-        }
+    .zip-input-container {
+        position: relative;
+        width: 100%;
+        max-width: 400px;
+    }
 
-        .zip-input:focus {
-            border-color: var(--brown); /* LEVEL 1: Brown focus */
-            box-shadow: 0 0 0 3px rgba(189, 147, 121, 0.1);
-        }
+    .zip-input {
+        width: 100%;
+        padding: 1rem 1.5rem;
+        border: 2px solid var(--border-light);
+        border-radius: 50px;
+        font-size: 1.1rem;
+        font-family: 'BaticaSans', sans-serif;
+        background: var(--white);
+        transition: all 0.3s;
+        outline: none;
+    }
 
-        .zip-input::placeholder {
-            color: #999;
-            font-family: 'BaticaSans', sans-serif;
-        }
+    .zip-input:focus {
+        border-color: var(--brown);
+        box-shadow: 0 0 0 3px rgba(189, 147, 121, 0.1);
+    }
 
-        .order-now-button {
-            background: #cf723a ; /* LEVEL 1: Brown */
-            color: var(--white); /* LEVEL 1: White */
-            padding: 1rem 2.5rem;
-            border: none;
-            border-radius: 50px;
-            cursor: pointer;
-            font-weight: 700;
-            font-size: 1.2rem;
-            font-family: 'BaticaSans', sans-serif;
-            text-decoration: none;
-            transition: all 0.3s;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            max-width: 200px;
-        }
+    .zip-input::placeholder {
+        color: #999;
+        font-family: 'BaticaSans', sans-serif;
+    }
 
-        .order-now-button:hover {
-            background: #cf723a ; /* Darker brown */
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-medium);
-        }
+    .order-now-button {
+        background: var(--curry);
+        color: var(--white);
+        padding: 1rem 2.5rem;
+        border: none;
+        border-radius: 50px;
+        cursor: pointer;
+        font-weight: 700;
+        font-size: 1.2rem;
+        font-family: 'BaticaSans', sans-serif;
+        text-decoration: none;
+        transition: all 0.3s;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        max-width: 200px;
+    }
 
-        /* Hero Videos - Vertical Sliding Animation */
+    .order-now-button:hover {
+        background: #b8631e;
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-medium);
+    }
+
+    /* Hero Videos - Vertical Sliding Animation */
+    .hero-videos {
+        flex: 1;
+        height: 80vh;
+        display: flex;
+        gap: 1.5rem;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .image-column {
+        flex: 1;
+        height: 100%;
+        max-width: 300px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .image-slider, .image-slider-reverse {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        animation-duration: 40s;
+        animation-timing-function: linear;
+        animation-iteration-count: infinite;
+    }
+
+    .image-slider {
+        animation-name: slideDown;
+    }
+
+    .image-slider-reverse {
+        animation-name: slideUp;
+    }
+
+    @keyframes slideDown {
+        0% { transform: translateY(-50%); }
+        100% { transform: translateY(0%); }
+    }
+
+    @keyframes slideUp {
+        0% { transform: translateY(0%); }
+        100% { transform: translateY(-50%); }
+    }
+
+    .video-container {
+        position: relative;
+        width: 100%;
+        height: 200px;
+        max-width: 200px;
+        overflow: hidden;
+        border-radius: 0px;
+        background: linear-gradient(45deg, var(--brown), var(--sage));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--white);
+        font-weight: 600;
+        font-family: 'BaticaSans', sans-serif;
+        font-size: 1.2rem;
+        clip-path: inset(0);
+    }
+
+    .video-container img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center center;
+        border-radius: 12px;
+    }
+
+    .video-container video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center center;
+        border-radius: 12px;
+    }
+
+    /* Mobile video controls */
+    @media (max-width: 768px) {
         .hero-videos {
-            flex: 1;
-            height: 80vh;
-            display: flex;
-            gap: 1.5rem;
-            align-items: center;
-            justify-content: center;
+            height: 300px;
         }
-
-        .image-column {
-            flex: 1;
-            height: 100%;
-            max-width: 300px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .image-slider, .image-slider-reverse {
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
-            animation-duration: 40s;
-            animation-timing-function: linear;
-            animation-iteration-count: infinite;
-        }
-
-        .image-slider {
-            animation-name: slideDown;
-        }
-
-        .image-slider-reverse {
-            animation-name: slideUp;
-        }
-
-        @keyframes slideDown {
-            0% { transform: translateY(-50%); }
-            100% { transform: translateY(0%); }
-        }
-
-        @keyframes slideUp {
-            0% { transform: translateY(0%); }
-            100% { transform: translateY(-50%); }
-        }
-
+        
         .video-container {
-            position: relative;
-            width: 100%;
-            height: 200px; /* Fixed height instead of min-height */
-            max-width: 200px; /* Adjust based on your layout needs */
-            overflow: hidden;
-            border-radius: 0px;
-            background: linear-gradient(45deg, var(--brown), var(--sage)); /* LEVEL 1 & 3: Brown and sage */
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--white); /* LEVEL 1: White */
-            font-weight: 600;
-            font-family: 'BaticaSans', sans-serif;
-            font-size: 1.2rem;
-            clip-path: inset(0);
+            height: 120px;
         }
-
-        .video-container img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            object-position: center center;
-            border-radius: 12px;
-        }
-
+        
         .video-container video {
             width: 100%;
             height: 100%;
@@ -911,12 +1186,30 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
             object-position: center center;
             border-radius: 12px;
         }
+    }
 
-        .meal-cards-container {
-    position: relative;
-    overflow: hidden;
-    margin-bottom: 2rem;
-}
+    .mobile-device .hero-video,
+    .mobile-device video {
+        pointer-events: auto;
+    }
+
+    @media (max-width: 480px) {
+        .hero-videos {
+            height: 250px;
+        }
+        
+        .video-container {
+            height: 100px;
+            font-size: 0.8rem;
+        }
+    }
+
+    /* Meal Cards Container */
+    .meal-cards-container {
+        position: relative;
+        overflow: hidden;
+        margin-bottom: 2rem;
+    }
 
     .meal-cards-track {
         display: flex;
@@ -953,7 +1246,7 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
             180deg,
             transparent 0%,
             transparent 40%,
-            rgba(189, 147, 121, 0.3) 70%, /* LEVEL 1: Brown overlay instead of black */
+            rgba(189, 147, 121, 0.3) 70%,
             rgba(189, 147, 121, 0.8) 100%
         );
     }
@@ -964,7 +1257,7 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
         left: 0;
         right: 0;
         padding: 1.5rem;
-        color: var(--white); /* LEVEL 1: White */
+        color: var(--white);
         z-index: 2;
     }
 
@@ -973,7 +1266,7 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
         font-weight: 700;
         margin-bottom: 0.5rem;
         font-family: 'BaticaSans', sans-serif;
-        color: var(--white) !important; /* LEVEL 1: White */
+        color: var(--white) !important;
     }
 
     .meal-card-description {
@@ -1017,9 +1310,9 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
         width: 50px;
         height: 50px;
         border-radius: 50%;
-        border: 2px solid var(--brown); /* LEVEL 1: Brown border */
-        background: var(--white); /* LEVEL 1: White */
-        color: var(--brown); /* LEVEL 1: Brown */
+        border: 2px solid var(--brown);
+        background: var(--white);
+        color: var(--brown);
         cursor: pointer;
         display: flex;
         align-items: center;
@@ -1029,8 +1322,8 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
     }
 
     .scroll-btn:hover {
-        background: var(--brown); /* LEVEL 1: Brown */
-        color: var(--white); /* LEVEL 1: White */
+        background: var(--brown);
+        color: var(--white);
     }
 
     .scroll-btn:disabled {
@@ -1038,8 +1331,308 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
         cursor: not-allowed;
     }
 
-    /* Responsive adjustments */
+    /* Steps Section */
+    .steps-section {
+        padding: 5rem 2rem;
+        background: var(--cream);
+    }
+
+    .steps-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        text-align: center;
+    }
+
+    .steps-title {
+        font-size: 2.5rem;
+        margin-bottom: 3rem;
+        color: var(--brown);
+        font-family: 'BaticaSans', sans-serif;
+        font-weight: 700;
+    }
+
+    .steps-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 2rem;
+    }
+
+    .step {
+        text-align: center;
+        padding: 2rem;
+    }
+
+    .step-number {
+        width: 80px;
+        height: 80px;
+        background: var(--brown);
+        color: var(--white);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        font-weight: 700;
+        font-family: 'BaticaSans', sans-serif;
+        margin: 0 auto 1rem;
+    }
+
+    .step h3 {
+        font-size: 1.3rem;
+        margin-bottom: 1rem;
+        color: var(--brown);
+        font-family: 'BaticaSans', sans-serif;
+        font-weight: 600;
+    }
+
+    .step p {
+        color: var(--text-gray);
+        font-family: 'BaticaSans', sans-serif;
+    }
+
+    /* Menu Navigation Container */
+    .menu-nav-container {
+        margin-bottom: 32px;
+        width: 100%;
+        padding: 20px 0;
+        background: var(--cream);
+        border-radius: 0;
+        box-shadow: none;
+        border-top: 1px solid rgba(189, 147, 121, 0.1);
+        border-bottom: 1px solid rgba(189, 147, 121, 0.1);
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+
+    .menu-nav-scroll-btn {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 40px;
+        height: 40px;
+        border: none;
+        background: rgba(255, 255, 255, 0.95);
+        color: var(--brown);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 10;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+        opacity: 0;
+        visibility: hidden;
+        backdrop-filter: blur(10px);
+    }
+
+    .menu-nav-scroll-btn:hover {
+        background: var(--brown);
+        color: var(--white);
+        transform: translateY(-50%) scale(1.1);
+    }
+
+    .menu-nav-scroll-btn:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+
+    .menu-nav-scroll-btn.visible {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .menu-nav-scroll-left {
+        left: 10px;
+    }
+
+    .menu-nav-scroll-right {
+        right: 10px;
+    }
+
+    .menu-nav-wrapper {
+        overflow-x: auto;
+        overflow-y: hidden;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        padding: 0 60px; /* Add padding to account for scroll buttons */
+        max-width: 1200px;
+        margin: 0 auto;
+        width: 100%;
+        scroll-behavior: smooth;
+    }
+
+    .menu-nav-wrapper::-webkit-scrollbar {
+        display: none;
+    }
+
+    .menu-nav-list {
+        display: flex;
+        gap: 0;
+        min-width: max-content;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .menu-nav-container,
+    .menu-nav-container * {
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .menu-nav-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        height: 54px;
+        padding: 0 16px;
+        border: none;
+        border-bottom: 2px solid transparent;
+        background: transparent;
+        cursor: pointer;
+        font-family: 'BaticaSans', Arial, sans-serif;
+        font-size: 14px;
+        font-weight: 600;
+        color: #707070;
+        transition: all 0.3s ease;
+        white-space: nowrap;
+        text-decoration: none;
+        border-radius: var(--radius-sm);
+        outline: none !important;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .menu-nav-item:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(189, 147, 121, 0.3);
+    }
+
+    .menu-nav-item:hover {
+        color: var(--brown);
+        background: rgba(189, 147, 121, 0.1);
+        border-bottom-color: var(--brown);
+    }
+
+    .menu-nav-item.active {
+        color: var(--brown);
+        background: var(--white);
+        border-bottom-color: var(--brown);
+        box-shadow: var(--shadow-soft);
+    }
+
+    .menu-nav-icon {
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .menu-nav-icon svg {
+        width: 100%;
+        height: 100%;
+        fill: #707070;
+        transition: fill 0.3s ease;
+    }
+
+    .menu-nav-item:hover .menu-nav-icon svg {
+        fill: var(--brown);
+    }
+
+    .menu-nav-item.active .menu-nav-icon svg {
+        fill: var(--brown);
+    }
+
+    .menu-nav-text {
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    /* Responsive design */
     @media (max-width: 768px) {
+        .hero-container {
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .hero-content {
+            order: 1;
+            max-width: 100%;
+            padding: 2rem 1rem;
+        }
+
+        .hero-content h1 {
+            font-size: 2.5rem;
+        }
+
+        .hero-content p {
+            font-size: 1rem;
+        }
+
+        .hero-videos {
+            order: 2;
+            height: 300px;
+            flex-direction: row;
+            gap: 1rem;
+        }
+
+        .image-column {
+            height: 100%;
+        }
+
+        .video-container {
+            min-height: 120px;
+            font-size: 0.9rem;
+        }
+
+        .zip-input-container {
+            max-width: 100%;
+        }
+
+        .order-now-button {
+            max-width: 100%;
+        }
+
+        .steps-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .menu-nav-container {
+            margin-bottom: 24px;
+        }
+        
+        .menu-nav-wrapper {
+            padding: 0 50px; /* Slightly less padding on mobile */
+        }
+        
+        .menu-nav-scroll-btn {
+            width: 36px;
+            height: 36px;
+        }
+        
+        .menu-nav-scroll-left {
+            left: 8px;
+        }
+
+        .menu-nav-scroll-right {
+            right: 8px;
+        }
+        
+        .menu-nav-item {
+            padding: 0 12px;
+            font-size: 13px;
+        }
+        
+        .menu-nav-icon {
+            width: 20px;
+            height: 20px;
+        }
+
         .meal-card {
             flex: 0 0 280px;
             height: 360px;
@@ -1051,412 +1644,94 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
     }
 
     @media (max-width: 480px) {
+        .steps-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .hero-content h1 {
+            font-size: 2rem;
+        }
+        
+        .hero-videos {
+            height: 250px;
+        }
+        
+        .video-container {
+            min-height: 100px;
+            font-size: 0.8rem;
+        }
+
         .meal-card {
             flex: 0 0 250px;
             height: 320px;
         }
     }
-
-        /* Steps Section */
-        .steps-section {
-            padding: 5rem 2rem;
-            background: var(--cream); /* LEVEL 2: Cream background */
-        }
-
-        .steps-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            text-align: center;
-        }
-
-        .steps-title {
-            font-size: 2.5rem;
-            margin-bottom: 3rem;
-            color: var(--brown); /* LEVEL 1: Brown */
-            font-family: 'BaticaSans', sans-serif;
-            font-weight: 700;
-        }
-
-        .steps-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 2rem;
-        }
-
-        .step {
-            text-align: center;
-            padding: 2rem;
-        }
-
-        .step-number {
-            width: 80px;
-            height: 80px;
-            background: var(--brown); /* LEVEL 1: Brown */
-            color: var(--white); /* LEVEL 1: White */
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2rem;
-            font-weight: 700;
-            font-family: 'BaticaSans', sans-serif;
-            margin: 0 auto 1rem;
-        }
-
-        .step h3 {
-            font-size: 1.3rem;
-            margin-bottom: 1rem;
-            color: var(--brown); /* LEVEL 1: Brown */
-            font-family: 'BaticaSans', sans-serif;
-            font-weight: 600;
-        }
-
-        .step p {
-            color: var(--text-gray);
-            font-family: 'BaticaSans', sans-serif;
-        }
-
-        /* Responsive Design */
-        @media (max-width: 768px) {
-        .promo-banner {
-            font-size: 12px;
-            padding: 6px 15px;
-        }
-        
-        .hero-section {
-            padding-top: 100px; /* UPDATE THIS */
-        }
-        
-        .promo-banner-content {
-            flex-direction: column;
-            gap: 5px;
-        }
-        
-        .promo-close {
-            right: 10px;
-        }
-            .hero-container {
-                flex-direction: column;
-                text-align: center;
-            }
-
-            .hero-content {
-                order: 1;
-                max-width: 100%;
-                padding: 2rem 1rem;
-            }
-
-            .hero-content h1 {
-                font-size: 2.5rem;
-            }
-
-            .hero-content p {
-                font-size: 1rem;
-            }
-
-            .hero-videos {
-                order: 2;
-                height: 300px;
-                flex-direction: row;
-                gap: 1rem;
-            }
-
-            .image-column {
-                height: 100%;
-            }
-
-            .video-container {
-                min-height: 120px;
-                font-size: 0.9rem;
-            }
-
-            .zip-input-container {
-                max-width: 100%;
-            }
-
-            .order-now-button {
-                max-width: 100%;
-            }
-
-            .nav-links {
-                display: none;
-            }
-
-            .steps-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-        @media (max-width: 480px) {
-            .steps-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .hero-content h1 {
-                font-size: 2rem;
-            }
-            
-            .hero-videos {
-                height: 250px;
-            }
-            
-            .video-container {
-                min-height: 100px;
-                font-size: 0.8rem;
-            }
-        }
-.menu-nav-container {
-    margin-bottom: 32px;
-    /* Remove max-width and centering margin */
-    width: 100%; /* Full width */
-    padding: 20px 0;
-    background: var(--cream); /* LEVEL 2: Cream background */
-    border-radius: 0; /* Remove border radius for full width */
-    box-shadow: none; /* Remove shadow for cleaner full-width look */
-    /* Add a subtle border instead */
-    border-top: 1px solid rgba(189, 147, 121, 0.1);
-    border-bottom: 1px solid rgba(189, 147, 121, 0.1);
-}
-
-
-.menu-nav-wrapper {
-    overflow-x: auto;
-    overflow-y: hidden;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-    padding: 0 1rem;
-    /* Center the content */
-    max-width: 1200px;
-    margin: 0 auto;
-}
-
-.menu-nav-wrapper::-webkit-scrollbar {
-    display: none;
-}
-
-.menu-nav-list {
-    display: flex;
-    gap: 0;
-    min-width: max-content;
-    align-items: center;
-    justify-content: center; /* Center the navigation items */
-}
-/* Also prevent text selection on menu navigation */
-.menu-nav-container,
-.menu-nav-container * {
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
-    -webkit-tap-highlight-color: transparent;
-}
-.menu-nav-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    height: 54px;
-    padding: 0 16px;
-    border: none;
-    border-bottom: 2px solid transparent;
-    background: transparent;
-    cursor: pointer;
-    font-family: 'BaticaSans', Arial, sans-serif;
-    font-size: 14px;
-    font-weight: 600;
-    color: #707070;
-    transition: all 0.3s ease;
-    white-space: nowrap;
-    text-decoration: none;
-    border-radius: var(--radius-sm);
-    /* Remove any focus outline */
-    outline: none !important;
-    -webkit-tap-highlight-color: transparent;
-}
-
-.menu-nav-item:focus {
-    outline: none;
-    box-shadow: 0 0 0 2px rgba(189, 147, 121, 0.3);
-}
-
-.menu-nav-item:hover {
-    color: var(--brown); /* LEVEL 1: Brown hover */
-    background: rgba(189, 147, 121, 0.1); /* Light brown background */
-    border-bottom-color: var(--brown); /* LEVEL 1: Brown */
-}
-
-.menu-nav-item.active {
-    color: var(--brown); /* LEVEL 1: Brown active */
-    background: var(--white); /* LEVEL 1: White background */
-    border-bottom-color: var(--brown); /* LEVEL 1: Brown */
-    box-shadow: var(--shadow-soft);
-}
-
-.menu-nav-icon {
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.menu-nav-icon svg {
-    width: 100%;
-    height: 100%;
-    fill: #707070;
-    transition: fill 0.3s ease;
-}
-
-.menu-nav-item:hover .menu-nav-icon svg {
-    fill: var(--brown); /* LEVEL 1: Brown */
-}
-
-.menu-nav-item.active .menu-nav-icon svg {
-    fill: var(--brown); /* LEVEL 1: Brown */
-}
-
-.menu-nav-text {
-    font-size: 14px;
-    font-weight: 600;
-}
-
-/* Responsive design */
-@media (max-width: 768px) {
-    .menu-nav-container {
-        margin-bottom: 24px;
-    }
-    
-    .menu-nav-item {
-        padding: 0 12px;
-        font-size: 13px;
-    }
-    
-    .menu-nav-icon {
-        width: 20px;
-        height: 20px;
-    }
-}
-/* Promotional Banner Styles - LEVEL 4: Curry for special promos */
-.promo-banner {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    background: #cf723a ; /* LEVEL 4: Curry for promotional banner */
-    color: var(--white); /* LEVEL 1: White */
-    text-align: center;
-    padding: 8px 20px;
-    font-family: 'BaticaSans', sans-serif;
-    font-weight: 700;
-    font-size: 14px;
-    z-index: 1001;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    animation: glow 2s ease-in-out infinite alternate;
-}
-
-.promo-banner-content {
-    max-width: 1200px;
-    margin: 0 auto;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-}
-
-.promo-icon {
-    font-size: 16px;
-    animation: bounce 1.5s ease-in-out infinite;
-}
-
-.promo-text {
-    letter-spacing: 0.5px;
-}
-
-.promo-close {
-    position: absolute;
-    right: 20px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    color: var(--white); /* LEVEL 1: White */
-    font-size: 18px;
-    cursor: pointer;
-    opacity: 0.8;
-    transition: opacity 0.3s ease;
-}
-
-.promo-close:hover {
-    opacity: 1;
-}
-
-@keyframes glow {
-    from {
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    }
-    to {
-        box-shadow: 0 2px 20px rgba(207, 114, 58, 0.3);
-    }
-}
-
-@keyframes bounce {
-    0%, 20%, 50%, 80%, 100% {
-        transform: translateY(0);
-    }
-    40% {
-        transform: translateY(-3px);
-    }
-    60% {
-        transform: translateY(-2px);
-    }
-}
     </style>
 </head>
 
-<body>
-    <div class="promo-banner" id="promoBanner">
-        <div class="promo-banner-content">
-            <span class="promo-icon">🍪</span>
-            <span class="promo-text">50% OFF First Week + Free Cookies for Life</span>
-            <span class="promo-icon">🎉</span>
-        </div>
-        <button class="promo-close" onclick="closePromoBanner()" title="Close">×</button>
-    </div>
-
-    <!-- Navigation -->
-    <nav class="navbar">
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem; max-width: 1200px; margin: 0 auto; width: 100%;">
-            <a href="index.php" class="logo">
-                <img src="./assets/image/LOGO_BG2.png" alt="Somdul Table" style="height: 80px; width: auto;">
-            </a>
-
+<body class="has-header">
+    <!-- Coming Soon Popup -->
+    <div class="popup-overlay active" id="comingSoonPopup">
+        <div class="popup-container" onclick="restorePopup(event)">
+            <button class="popup-close" onclick="minimizePopup()" title="Minimize">&times;</button>
             
-            <ul class="nav-links">
-                <li><a href="./menus.php">Menu</a></li>
-                <li><a href="./meal-kits.php">Meal-Kits</a></li>
-                <li><a href="#how-it-works">How It Works</a></li>
-                <li><a href="./blogs.php">About</a></li>
-                <li><a href="./contact.php">Contact</a></li>
-            </ul>
-            
-            <div class="nav-actions">
-                <?php if (isset($_SESSION['user_id'])): ?>
-                    <!-- User is logged in - show profile icon -->
-                    <a href="dashboard.php" class="profile-link" title="Go to Dashboard">
-                        <div class="profile-icon">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="12" cy="7" r="4"></circle>
-                            </svg>
-                        </div>
-                    </a>
-                <?php else: ?>
-                    <!-- User is not logged in - show sign in button -->
-                    <a href="login.php" class="btn btn-secondary">Sign In</a>
-                <?php endif; ?>
-                <a href="subscribe.php" class="btn btn-primary">Get Started</a>
+            <!-- Floating circle content (hidden by default) -->
+            <div class="floating-circle-content">
+                S
             </div>
+            
+            <div class="popup-logo">
+                <h1>Somdul</h1>
+                <p>Table</p>
+            </div>
+            
+            <h2 class="popup-main-heading">Somdul Table<br>is opening soon</h2>
+            
+            <div class="popup-decorative-element"></div>
+            
+            <p class="popup-subtitle">Until then...</p>
+            
+            <p class="popup-description">
+                Join our exclusive preview list to be the first to experience 
+                <span class="popup-highlight">authentic Thai flavors</span>, crafted with traditional recipes, 
+                fresh ingredients, and the warmth of Thai hospitality.
+            </p>
+            
+            <p class="popup-value-text">
+                Be among the first to reserve your table and receive special 
+                <span class="popup-highlight">opening week offers</span> exclusive to our 
+                founding <em>&lt;somdul&gt;</em> family.
+            </p>
+            
+            <?php if (!empty($popup_message)): ?>
+                <div class="popup-message <?php echo $popup_message_type; ?>">
+                    <?php echo $popup_message; ?>
+                </div>
+            <?php endif; ?>
+            
+            <form class="popup-form-container" method="POST" action="">
+                <div class="popup-form-group">
+                    <input type="text" 
+                           name="popup_name" 
+                           class="popup-form-input" 
+                           placeholder="Your name" 
+                           required>
+                </div>
+                
+                <div class="popup-form-group">
+                    <input type="email" 
+                           name="popup_email" 
+                           class="popup-form-input" 
+                           placeholder="Your best email" 
+                           required>
+                </div>
+                
+                <button type="submit" name="submit_popup_signup" class="popup-submit-btn">Reserve My Spot!</button>
+            </form>
+            
+            <a href="#" onclick="minimizePopup(); return false;" class="popup-browse-btn">Browse Our Preview Menu</a>
         </div>
-    </nav>
+    </div>
 
     <!-- Hero Vertical Slider -->
     <section class="hero-section" id="home" data-testid="hero-vertical-slider">
@@ -1481,7 +1756,7 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
                     <div class="image-slider-reverse">
                         <div class="video-container">
                             <div class="video-container">
-                                <video autoplay muted loop>
+                                <video class="hero-video" muted loop playsinline>
                                     <source src="assets/videos/video1.mp4" type="video/mp4">
                                     Your browser does not support the video tag.
                                 </video>
@@ -1492,7 +1767,7 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
                         </div>
                         <div class="video-container">
                             <div class="video-container">
-                                <video autoplay muted loop>
+                                <video class="hero-video" muted loop playsinline>
                                     <source src="assets/videos/video7.mp4" type="video/mp4">
                                     Your browser does not support the video tag.
                                 </video>
@@ -1503,7 +1778,7 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
                         </div>
                         <div class="video-container">
                             <div class="video-container">
-                                <video autoplay muted loop>
+                                <video class="hero-video" muted loop playsinline>
                                     <source src="assets/videos/video2.mp4" type="video/mp4">
                                     Your browser does not support the video tag.
                                 </video>
@@ -1520,7 +1795,7 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
                     <div class="image-slider">
                         <div class="video-container">
                             <div class="video-container">
-                                <video autoplay muted loop>
+                                <video class="hero-video" muted loop playsinline>
                                     <source src="assets/videos/video8.mp4" type="video/mp4">
                                     Your browser does not support the video tag.
                                 </video>
@@ -1531,7 +1806,7 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
                         </div>
                         <div class="video-container">
                             <div class="video-container">
-                                <video autoplay muted loop>
+                                <video class="hero-video" muted loop playsinline>
                                     <source src="assets/videos/video3.mp4" type="video/mp4">
                                     Your browser does not support the video tag.
                                 </video>
@@ -1542,7 +1817,7 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
                         </div>
                         <div class="video-container">
                             <div class="video-container">
-                                <video autoplay muted loop>
+                                <video class="hero-video" muted loop playsinline>
                                     <source src="assets/videos/video6.mp4" type="video/mp4">
                                     Your browser does not support the video tag.
                                 </video>
@@ -1559,7 +1834,7 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
                     <div class="image-slider-reverse">
                         <div class="video-container">
                             <div class="video-container">
-                                <video autoplay muted loop>
+                                <video class="hero-video" muted loop playsinline>
                                     <source src="assets/videos/video9.mp4" type="video/mp4">
                                     Your browser does not support the video tag.
                                 </video>
@@ -1570,8 +1845,8 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
                         </div>
                         <div class="video-container">
                             <div class="video-container">
-                                <video autoplay muted loop>
-                                    <source src="assets/videos/video5.mp4" type="video/mp4">
+                                <video class="hero-video" muted loop playsinline>
+                                    <source src="assets/videos/video9.mp4" type="video/mp4">
                                     Your browser does not support the video tag.
                                 </video>
                             </div>
@@ -1581,7 +1856,7 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
                         </div>
                         <div class="video-container">
                             <div class="video-container">
-                                <video autoplay muted loop>
+                                <video class="hero-video" muted loop playsinline>
                                     <source src="assets/videos/video4.mp4" type="video/mp4">
                                     Your browser does not support the video tag.
                                 </video>
@@ -1600,7 +1875,13 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
     <section class="menu-section" id="menu">
         <div class="menu-container">            
             <div class="menu-nav-container">
-                <div class="menu-nav-wrapper">
+                <button class="menu-nav-scroll-btn menu-nav-scroll-left" id="menuScrollLeft" aria-label="Scroll left">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+                
+                <div class="menu-nav-wrapper" id="menuNavWrapper">
                     <div class="menu-nav-list">
                         <?php if (empty($categories)): ?>
                             <!-- Fallback categories if database is empty -->
@@ -1643,6 +1924,12 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
                         <?php endif; ?>
                     </div>
                 </div>
+                
+                <button class="menu-nav-scroll-btn menu-nav-scroll-right" id="menuScrollRight" aria-label="Scroll right">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
             </div>
 
             <div class="meal-cards-container">
@@ -1653,19 +1940,6 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
                             <div class="meal-card-content">
                                 <h3 class="meal-card-title">Thai Green Curry</h3>
                                 <p class="meal-card-description">Aromatic green curry with Thai basil and coconut milk</p>
-                                <div class="meal-card-chef">
-                                    <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--white); display: flex; align-items: center; justify-content: center; color: var(--curry); font-weight: bold;">👨‍🍳</div>
-                                    <div class="chef-info">
-                                        <span>by</span> Chef Siriporn
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="meal-card" style="background: linear-gradient(45deg, var(--sage), var(--cream));" data-menu-id="fallback-2" onclick="openMenuDetails('fallback-2')">
-                            <div class="meal-card-content">
-                                <h3 class="meal-card-title">Pad Thai Classic</h3>
-                                <p class="meal-card-description">Traditional stir-fried rice noodles with tamarind sauce</p>
                                 <div class="meal-card-chef">
                                     <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--white); display: flex; align-items: center; justify-content: center; color: var(--curry); font-weight: bold;">👨‍🍳</div>
                                     <div class="chef-info">
@@ -1726,7 +2000,7 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
         </div>
     </section>
 
-       <section class="steps-section" id="how-it-works">
+    <section class="steps-section" id="how-it-works">
         <div class="steps-container">
             <h2 class="steps-title">How It Works</h2>
             <div data-testid="hiw-items" class="hiw-items">
@@ -1734,14 +2008,14 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
                     <img src="assets/image/weeklyplan.jpg" alt="Pick your weekly plan" class="hiw-step-image">
                     <div data-testid="hiw-step-text" class="hiw-step-text">
                         <p class="font-bold">Pick your weekly plan</p>
-                        <p data-testid="step-text" class="step-text">Choose from 4 to 16 meals per week – you can pause, skip, or cancel deliveries at any time.</p>
+                        <p data-testid="step-text" class="step-text">Choose from 4 to 16 meals per week — you can pause, skip, or cancel deliveries at any time.</p>
                     </div>
                 </div>
                 <div data-testid="hiw-step" class="hiw-step hiw-step--with-border">
                     <img src="assets/image/selectingmeal.jpeg" alt="Pick your weekly plan" class="hiw-step-image">
                     <div data-testid="hiw-step-text" class="hiw-step-text">
                         <p class="font-bold">Select your meals</p>
-                        <p data-testid="step-text" class="step-text">Browse our menu and select your meals – new offerings added weekly.</p>
+                        <p data-testid="step-text" class="step-text">Browse our menu and select your meals — new offerings added weekly.</p>
                     </div>
                 </div>
                 <div data-testid="hiw-step" class="hiw-step hiw-step--with-border">
@@ -1899,17 +2173,300 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
     </section>
 
 <script>
+    // Page-specific JavaScript for index.php
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('🏠 Index.php page loaded');
+        
+        // Check if mobile menu functions are available from header.php
+        setTimeout(function() {
+            console.log('🔍 Checking header functions:', {
+                toggleMobileMenu: typeof window.toggleMobileMenu,
+                fixHamburgerMenu: typeof window.fixHamburgerMenu,
+                debugHamburgerButton: typeof window.debugHamburgerButton
+            });
+            
+            // If on mobile and hamburger menu has issues, run debug
+            if (window.innerWidth <= 768 && window.debugHamburgerButton) {
+                const isWorking = window.debugHamburgerButton();
+                if (!isWorking && window.fixHamburgerMenu) {
+                    console.log('🔧 Running hamburger menu fix...');
+                    window.fixHamburgerMenu();
+                }
+            }
+        }, 500);
+    });
+
     // Function to handle meal card clicks - redirects to menus.php with menu ID
     function openMenuDetails(menuId) {
         // Redirect to menus.php with the menu ID as a parameter
         window.location.href = `menus.php?show_menu=${encodeURIComponent(menuId)}`;
     }
 
+    // Coming Soon Popup Functions
+    function minimizePopup() {
+        const popup = document.getElementById('comingSoonPopup');
+        popup.classList.remove('active');
+        popup.classList.add('minimized');
+        
+        // Allow scrolling when minimized
+        document.body.style.overflow = 'auto';
+        
+        // Store in sessionStorage that popup was minimized (not completely closed)
+        sessionStorage.setItem('comingSoonPopupState', 'minimized');
+    }
+
+    function restorePopup(event) {
+        // Only restore if the popup is minimized and we clicked on the minimized circle
+        const popup = document.getElementById('comingSoonPopup');
+        if (popup.classList.contains('minimized')) {
+            // Prevent event bubbling if clicked on form elements
+            if (event && (event.target.tagName === 'INPUT' || event.target.tagName === 'BUTTON' || event.target.tagName === 'FORM')) {
+                return;
+            }
+            
+            popup.classList.remove('minimized');
+            popup.classList.add('active');
+            
+            // Prevent scrolling when popup is active
+            document.body.style.overflow = 'hidden';
+            
+            // Update session storage
+            sessionStorage.setItem('comingSoonPopupState', 'active');
+        }
+    }
+
+    function closeComingSoonPopup() {
+        const popup = document.getElementById('comingSoonPopup');
+        popup.classList.remove('active', 'minimized');
+        
+        // Allow scrolling
+        document.body.style.overflow = 'auto';
+        
+        // Store in sessionStorage that popup was completely closed
+        sessionStorage.setItem('comingSoonPopupState', 'closed');
+    }
+
+    // Check if popup should be shown
+    function checkPopupDisplay() {
+        const popup = document.getElementById('comingSoonPopup');
+        const popupState = sessionStorage.getItem('comingSoonPopupState');
+        
+        // Handle different states
+        if (popupState === 'closed') {
+            // Completely hidden
+            popup.classList.remove('active', 'minimized');
+            document.body.style.overflow = 'auto';
+        } else if (popupState === 'minimized') {
+            // Show as minimized floating circle
+            popup.classList.remove('active');
+            popup.classList.add('minimized');
+            document.body.style.overflow = 'auto';
+        } else {
+            // Show full popup (default for new visitors)
+            popup.classList.add('active');
+            popup.classList.remove('minimized');
+            document.body.style.overflow = 'hidden';
+        }
+    }
+
+    // Auto-hide success messages after 5 seconds
+    function autoHideMessages() {
+        const successMessage = document.querySelector('.popup-message.success');
+        if (successMessage) {
+            setTimeout(function() {
+                successMessage.style.opacity = '0';
+                setTimeout(function() {
+                    successMessage.style.display = 'none';
+                }, 500);
+            }, 5000);
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
+        // Mobile video handling - FIXED: Prevent autoplay issues but keep videos visible
+        function handleHeroVideos() {
+            const videos = document.querySelectorAll('.hero-video');
+            const isMobile = window.innerWidth <= 768;
+            const isTouchDevice = 'ontouchstart' in window;
+            
+            videos.forEach(video => {
+                if (isMobile || isTouchDevice) {
+                    // On mobile/touch devices: disable autoplay but keep videos visible
+                    video.pause();
+                    video.currentTime = 0;
+                    video.removeAttribute('autoplay');
+                    video.muted = true;
+                    video.controls = false; // Remove controls to prevent accidental fullscreen
+                    video.playsInline = true; // Prevent fullscreen on iOS
+                    video.preload = 'metadata'; // Reduced preloading
+                    
+                    // Prevent fullscreen and picture-in-picture
+                    video.disablePictureInPicture = true;
+                    video.setAttribute('webkit-playsinline', 'true');
+                    
+                    // Add click handler to play/pause instead of going fullscreen
+                    video.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        if (this.paused) {
+                            this.play();
+                        } else {
+                            this.pause();
+                        }
+                    });
+                    
+                } else {
+                    // On desktop: enable videos with autoplay
+                    video.preload = 'metadata';
+                    video.muted = true;
+                    video.setAttribute('autoplay', '');
+                    video.setAttribute('playsinline', '');
+                    
+                    // Try to play the video
+                    const playPromise = video.play();
+                    if (playPromise !== undefined) {
+                        playPromise.catch(e => {
+                            console.log('Video autoplay prevented:', e);
+                            // Fallback: try to play on user interaction
+                            document.addEventListener('click', () => {
+                                video.play().catch(() => {});
+                            }, { once: true });
+                        });
+                    }
+                }
+            });
+        }
+
+        // Detect mobile more accurately
+        function isMobileDevice() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
+                || window.innerWidth <= 768 
+                || 'ontouchstart' in window;
+        }
+
+        // Enhanced mobile detection and video handling
+        if (isMobileDevice()) {
+            // Add mobile class to body for additional CSS targeting
+            document.body.classList.add('mobile-device');
+            
+            // Handle videos properly for mobile
+            document.addEventListener('DOMContentLoaded', function() {
+                document.querySelectorAll('video').forEach(video => {
+                    // Prevent autoplay but don't hide videos
+                    video.autoplay = false;
+                    video.muted = true;
+                    video.playsInline = true;
+                    video.controls = false;
+                    video.disablePictureInPicture = true;
+                    
+                    // Prevent fullscreen on tap
+                    video.addEventListener('webkitbeginfullscreen', function(e) {
+                        e.preventDefault();
+                    });
+                    
+                    video.addEventListener('fullscreenchange', function(e) {
+                        if (document.fullscreenElement === video) {
+                            document.exitFullscreen();
+                        }
+                    });
+                });
+            });
+        }
+
+        // Initial video setup
+        handleHeroVideos();
+
+        // Handle window resize
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(handleHeroVideos, 250);
+        });
+
+        // Check popup display on page load
+        checkPopupDisplay();
+        
+        // Auto-hide messages
+        autoHideMessages();
+        
+        // Add interactive hover effects to popup form inputs
+        document.querySelectorAll('.popup-form-input').forEach(input => {
+            input.addEventListener('focus', function() {
+                this.style.transform = 'translateY(-2px)';
+                this.style.boxShadow = '0 4px 15px rgba(173, 184, 157, 0.2)';
+            });
+            
+            input.addEventListener('blur', function() {
+                this.style.transform = 'translateY(0)';
+                this.style.boxShadow = 'none';
+            });
+        });
+
+        // Close popup when clicking outside (only when not minimized)
+        document.getElementById('comingSoonPopup').addEventListener('click', function(e) {
+            if (e.target === this && !this.classList.contains('minimized')) {
+                minimizePopup();
+            }
+        });
+
+        // Close popup on Escape key (minimize it instead)
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const popup = document.getElementById('comingSoonPopup');
+                if (popup.classList.contains('active')) {
+                    minimizePopup();
+                }
+            }
+        });
+
+        // Menu functionality
         const menuItems = document.querySelectorAll('.menu-nav-item');
         const mealCardsTrack = document.getElementById('mealCardsTrack');
         const scrollLeftBtn = document.getElementById('scrollLeft');
         const scrollRightBtn = document.getElementById('scrollRight');
+        
+        // Menu navigation scroll functionality
+        const menuNavWrapper = document.getElementById('menuNavWrapper');
+        const menuScrollLeftBtn = document.getElementById('menuScrollLeft');
+        const menuScrollRightBtn = document.getElementById('menuScrollRight');
+        
+        function updateMenuScrollButtons() {
+            if (!menuNavWrapper || !menuScrollLeftBtn || !menuScrollRightBtn) return;
+            
+            const canScrollLeft = menuNavWrapper.scrollLeft > 0;
+            const canScrollRight = menuNavWrapper.scrollLeft < (menuNavWrapper.scrollWidth - menuNavWrapper.clientWidth);
+            const hasOverflow = menuNavWrapper.scrollWidth > menuNavWrapper.clientWidth;
+            
+            if (hasOverflow) {
+                menuScrollLeftBtn.classList.add('visible');
+                menuScrollRightBtn.classList.add('visible');
+                
+                menuScrollLeftBtn.disabled = !canScrollLeft;
+                menuScrollRightBtn.disabled = !canScrollRight;
+            } else {
+                menuScrollLeftBtn.classList.remove('visible');
+                menuScrollRightBtn.classList.remove('visible');
+            }
+        }
+        
+        // Menu scroll button event listeners
+        if (menuScrollLeftBtn && menuScrollRightBtn && menuNavWrapper) {
+            menuScrollLeftBtn.addEventListener('click', () => {
+                menuNavWrapper.scrollBy({ left: -200, behavior: 'smooth' });
+            });
+            
+            menuScrollRightBtn.addEventListener('click', () => {
+                menuNavWrapper.scrollBy({ left: 200, behavior: 'smooth' });
+            });
+            
+            // Update scroll buttons when scrolling
+            menuNavWrapper.addEventListener('scroll', updateMenuScrollButtons);
+            
+            // Update scroll buttons on window resize
+            window.addEventListener('resize', updateMenuScrollButtons);
+            
+            // Initial update
+            setTimeout(updateMenuScrollButtons, 100);
+        }
         
         // Initialize scroll tracking
         let currentScroll = 0;
@@ -2034,6 +2591,9 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
             // Update scroll buttons
             updateScrollButtons();
             
+            // Update menu navigation scroll buttons
+            setTimeout(updateMenuScrollButtons, 100);
+            
             // Re-enable touch/swipe functionality for new cards
             setupTouchEvents();
         }
@@ -2056,6 +2616,7 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
                 </div>
             `;
             updateScrollButtons();
+            setTimeout(updateMenuScrollButtons, 100);
         }
         
         function showErrorState(message) {
@@ -2087,6 +2648,7 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
                 </div>
             `;
             updateScrollButtons();
+            setTimeout(updateMenuScrollButtons, 100);
         }
         
         function updateScrollButtons() {
@@ -2184,50 +2746,14 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
         });
     });
     
-    function closePromoBanner() {
-        const promoBanner = document.getElementById('promoBanner');
-        const navbar = document.querySelector('.navbar');
-        const heroSection = document.querySelector('.hero-section');
-        
-        promoBanner.style.transform = 'translateY(-100%)';
-        promoBanner.style.opacity = '0';
-        
-        setTimeout(() => {
-            promoBanner.style.display = 'none';
-            navbar.style.top = '0';
-            heroSection.style.paddingTop = '80px';
-        }, 300);
-    }
-
-    // Smooth scrolling for navigation links
-    document.addEventListener('DOMContentLoaded', function() {
-        const navLinks = document.querySelectorAll('a[href^="#"]');
-        
-        navLinks.forEach(link => {
-            link.addEventListener('click', function(e) {
-                e.preventDefault();
-                const targetId = this.getAttribute('href');
-                const targetSection = document.querySelector(targetId);
-                
-                if (targetSection) {
-                    targetSection.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
-                }
-            });
+    // Show popup if form was submitted successfully
+    <?php if (!empty($popup_message) && $popup_message_type === 'success'): ?>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Clear session storage to show popup with success message
+            sessionStorage.removeItem('comingSoonPopupState');
+            checkPopupDisplay();
         });
-    });
-
-    // Navbar background on scroll
-    window.addEventListener('scroll', function() {
-        const navbar = document.querySelector('.navbar');
-        if (window.scrollY > 100) {
-            navbar.style.background = '#ece8e1';
-        } else {
-            navbar.style.background = '#ece8e1';
-        }
-    });
-    </script>
+    <?php endif; ?>
+</script>
 </body>
 </html>

@@ -3,6 +3,7 @@
  * Somdul Table - Public Menus Page
  * File: menus.php
  * Description: Browse, filter, and search all available menus
+ * FIXED: Now uses header.php consistently
  */
 
 error_reporting(E_ALL);
@@ -11,6 +12,9 @@ session_start();
 
 require_once 'config/database.php';
 require_once 'includes/functions.php';
+
+// Include the header (contains navbar, promo banner, fonts, and base styles)
+include 'header.php';
 
 // Check if user is logged in
 $is_logged_in = isset($_SESSION['user_id']);
@@ -123,1134 +127,641 @@ try {
     <meta name="description" content="Browse our healthy Thai food menu from Somdul Table with complete nutritional information and pricing">
     
     <style>
-        /* BaticaSans Font Import - Local Files (MATCHING home2.php) */
-        @font-face {
-            font-family: 'BaticaSans';
-            src: url('./Font/BaticaSans-Regular.woff2') format('woff2'),
-                url('./Font/BaticaSans-Regular.woff') format('woff'),
-                url('./Font/BaticaSans-Regular.ttf') format('truetype');
-            font-weight: 400;
-            font-style: normal;
-            font-display: swap;
-        }
+    /* PAGE-SPECIFIC STYLES ONLY - header styles come from header.php */
+    
+    /* Container */
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 20px;
+    }
 
-        @font-face {
-            font-family: 'BaticaSans';
-            src: url('./Font/BaticaSans-Italic.woff2') format('woff2'),
-                url('./Font/BaticaSans-Italic.woff') format('woff'),
-                url('./Font/BaticaSans-Italic.ttf') format('truetype');
-            font-weight: 400;
-            font-style: italic;
-            font-display: swap;
-        }
+    .main-content {
+        padding-top: 2rem;
+        min-height: calc(100vh - 200px);
+    }
 
-        /* Fallback for bold/medium weights - browser will simulate them */
-        @font-face {
-            font-family: 'BaticaSans';
-            src: url('./Font/BaticaSans-Regular.woff2') format('woff2'),
-                url('./Font/BaticaSans-Regular.woff') format('woff'),
-                url('./Font/BaticaSans-Regular.ttf') format('truetype');
-            font-weight: 500;
-            font-style: normal;
-            font-display: swap;
-        }
+    /* Menu Navigation */
+    .menu-nav-container {
+        margin: 2rem 0;
+        padding: 20px 0;
+        background: var(--cream);
+        border-top: 1px solid rgba(189, 147, 121, 0.1);
+        border-bottom: 1px solid rgba(189, 147, 121, 0.1);
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
 
-        @font-face {
-            font-family: 'BaticaSans';
-            src: url('./Font/BaticaSans-Regular.woff2') format('woff2'),
-                url('./Font/BaticaSans-Regular.woff') format('woff'),
-                url('./Font/BaticaSans-Regular.ttf') format('truetype');
-            font-weight: 700;
-            font-style: normal;
-            font-display: swap;
-        }
+    .menu-nav-scroll-btn {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 40px;
+        height: 40px;
+        border: none;
+        background: rgba(255, 255, 255, 0.95);
+        color: var(--brown);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 10;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+        opacity: 0;
+        visibility: hidden;
+        backdrop-filter: blur(10px);
+    }
 
-        /* IMPROVED CSS Custom Properties for Somdul Table Design System - COLOR HIERARCHY ONLY (MATCHING home2.php) */
-        :root {
-            /* LEVEL 1 (MOST IMPORTANT): BROWN #bd9379 + WHITE */
-            --brown: #bd9379;
-            --white: #ffffff;
-            
-            /* LEVEL 2 (SECONDARY): CREAM #ece8e1 */
-            --cream: #ece8e1;
-            
-            /* LEVEL 3 (SUPPORTING): SAGE #adb89d */
-            --sage: #adb89d;
-            
-            /* LEVEL 4 (ACCENT/CONTRAST - LEAST USED): CURRY #cf723a */
-            --curry: #cf723a;
-            
-            /* Text colors using brown hierarchy */
-            --text-dark: #2c3e50;
-            --text-gray: #7f8c8d;
-            --border-light: #d4c4b8; /* Brown-tinted border */
-            
-            /* Shadows using brown as base (Level 1) */
-            --shadow-soft: 0 4px 12px rgba(189, 147, 121, 0.15);
-            --shadow-medium: 0 8px 24px rgba(189, 147, 121, 0.25);
-            --radius-sm: 8px;
-            --radius-md: 12px;
-            --radius-lg: 16px;
-            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
+    .menu-nav-scroll-btn:hover {
+        background: var(--brown);
+        color: var(--white);
+        transform: translateY(-50%) scale(1.1);
+    }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+    .menu-nav-scroll-btn:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+        pointer-events: none;
+    }
 
-        body {
-            font-family: 'BaticaSans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            line-height: 1.6;
-            color: var(--text-dark);
-            background-color: var(--white);
-            font-weight: 400;
-        }
+    .menu-nav-scroll-btn.visible {
+        opacity: 1;
+        visibility: visible;
+    }
 
-        /* Typography using BaticaSans - LEVEL 1: Brown for headings (MATCHING home2.php) */
-        h1, h2, h3, h4, h5, h6 {
-            font-family: 'BaticaSans', sans-serif;
-            font-weight: 700;
-            line-height: 1.2;
-            color: var(--brown); /* LEVEL 1: Brown instead of text-dark */
-        }
+    .menu-nav-scroll-left {
+        left: 10px;
+    }
 
-        /* Promotional Banner Styles - LEVEL 4: Curry for special promos (MATCHING home2.php) */
-        .promo-banner {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            background: var(--curry); /* LEVEL 4: Curry for promotional banner */
-            color: var(--white); /* LEVEL 1: White */
-            text-align: center;
-            padding: 8px 20px;
-            font-family: 'BaticaSans', sans-serif;
-            font-weight: 700;
-            font-size: 14px;
-            z-index: 1001;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            animation: glow 2s ease-in-out infinite alternate;
-        }
+    .menu-nav-scroll-right {
+        right: 10px;
+    }
 
-        .promo-banner-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
+    .menu-nav-wrapper {
+        overflow-x: auto;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        padding: 0 60px; /* Add padding to account for scroll buttons */
+        max-width: 1200px;
+        margin: 0 auto;
+        width: 100%;
+        scroll-behavior: smooth;
+    }
 
-        .promo-icon {
-            font-size: 16px;
-            animation: bounce 1.5s ease-in-out infinite;
-        }
+    .menu-nav-wrapper::-webkit-scrollbar { display: none; }
 
-        .promo-text {
-            letter-spacing: 0.5px;
-        }
+    .menu-nav-list {
+        display: flex;
+        gap: 0;
+        min-width: max-content;
+        align-items: center;
+        justify-content: center;
+    }
 
-        .promo-close {
-            position: absolute;
-            right: 20px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            color: var(--white); /* LEVEL 1: White */
-            font-size: 18px;
-            cursor: pointer;
-            opacity: 0.8;
-            transition: opacity 0.3s ease;
-        }
+    .menu-nav-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        height: 54px;
+        padding: 0 16px;
+        border-bottom: 2px solid transparent;
+        background: transparent;
+        cursor: pointer;
+        font-family: 'BaticaSans', Arial, sans-serif;
+        font-size: 14px;
+        font-weight: 600;
+        color: #707070;
+        transition: all 0.3s ease;
+        white-space: nowrap;
+        text-decoration: none;
+        border-radius: 8px;
+        outline: none !important;
+        -webkit-tap-highlight-color: transparent;
+    }
 
-        .promo-close:hover {
-            opacity: 1;
-        }
+    .menu-nav-item:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(189, 147, 121, 0.3);
+    }
 
-        @keyframes glow {
-            from {
-                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            }
-            to {
-                box-shadow: 0 2px 20px rgba(207, 114, 58, 0.3);
-            }
-        }
+    .menu-nav-item:hover {
+        color: var(--brown);
+        background: rgba(189, 147, 121, 0.1);
+        border-bottom-color: var(--brown);
+    }
 
-        @keyframes bounce {
-            0%, 20%, 50%, 80%, 100% {
-                transform: translateY(0);
-            }
-            40% {
-                transform: translateY(-3px);
-            }
-            60% {
-                transform: translateY(-2px);
-            }
-        }
+    .menu-nav-item.active {
+        color: var(--brown);
+        background: var(--white);
+        border-bottom-color: var(--brown);
+        box-shadow: var(--shadow-soft);
+    }
 
-        /* Navigation (MATCHING home2.php EXACTLY) */
-        .navbar {
-            position: fixed;
-            top: 38px;
-            left: 0;
-            right: 0;
-            background: #ece8e1;
-            backdrop-filter: blur(10px);
-            z-index: 1000;
-            transition: var(--transition);
-            box-shadow: var(--shadow-soft);
-        }
+    .menu-nav-icon {
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
 
-        .navbar, .navbar * {
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-        }
+    .menu-nav-icon svg {
+        width: 100%;
+        height: 100%;
+        fill: #707070;
+        transition: fill 0.3s ease;
+    }
 
-        nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 100%;
-        }
+    .menu-nav-item:hover .menu-nav-icon svg { fill: var(--brown); }
+    .menu-nav-item.active .menu-nav-icon svg { fill: var(--brown); }
 
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 0.8rem;
-            text-decoration: none;
-            color: var(--brown); /* LEVEL 1: Brown */
-        }
+    .menu-nav-text {
+        font-size: 14px;
+        font-weight: 600;
+    }
 
-        .logo-icon {
-            width: 45px;
-            height: 45px;
-            background: var(--brown); /* LEVEL 1: Solid brown instead of gradient */
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--white); /* LEVEL 1: White text */
-            font-size: 1.5rem;
-            font-family: 'BaticaSans', sans-serif;
-            font-weight: 700;
-        }
+    /* Results */
+    .results-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding: 1rem 0;
+        border-bottom: 2px solid var(--border-light);
+    }
 
-        .logo-text {
-            font-size: 1.8rem;
-            font-weight: 800;
-            color: var(--brown); /* LEVEL 1: Brown */
-            font-family: 'BaticaSans', sans-serif;
-        }
+    .results-count {
+        font-size: 1.1rem;
+        color: var(--text-gray);
+        font-family: 'BaticaSans', sans-serif;
+    }
 
-        .nav-links {
-            display: flex;
-            list-style: none;
-            gap: 2rem;
-            align-items: center;
-        }
+    /* Menu Grid */
+    .menus-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 2rem;
+        margin-bottom: 3rem;
+    }
 
-        .nav-links a {
-            text-decoration: none;
-            color: var(--text-gray);
-            font-weight: 500;
-            font-family: 'BaticaSans', sans-serif;
-            transition: var(--transition);
-        }
+    .menu-card {
+        background: var(--white);
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: var(--shadow-soft);
+        border: 1px solid var(--border-light);
+        transition: var(--transition);
+        position: relative;
+    }
 
-        .nav-links a:hover {
-            color: var(--brown); /* LEVEL 1: Brown hover */
-        }
+    .menu-card:hover {
+        transform: translateY(-8px);
+        box-shadow: var(--shadow-medium);
+    }
 
-        .nav-actions {
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-        }
+    .menu-image {
+        position: relative;
+        height: 200px;
+        background: linear-gradient(135deg, var(--cream), #e8dcc0);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-gray);
+        font-size: 1rem;
+        font-weight: 600;
+        font-family: 'BaticaSans', sans-serif;
+        cursor: pointer;
+        transition: var(--transition);
+    }
 
-        .btn {
-            padding: 0.8rem 1.5rem;
-            border: none;
-            border-radius: 50px;
-            font-weight: 600;
-            font-family: 'BaticaSans', sans-serif;
-            text-decoration: none;
-            cursor: pointer;
-            transition: var(--transition);
-            font-size: 0.95rem;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
+    .menu-image:hover { transform: scale(1.02); }
+    .menu-image img { width: 100%; height: 100%; object-fit: cover; }
 
-        .btn-primary {
-            background: var(--brown); /* LEVEL 1: Brown primary */
-            color: var(--white); /* LEVEL 1: White text */
-            box-shadow: var(--shadow-soft);
-        }
+    .menu-badge {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        background: rgba(255, 255, 255, 0.95);
+        color: var(--brown);
+        padding: 0.4rem 0.8rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        backdrop-filter: blur(10px);
+        font-family: 'BaticaSans', sans-serif;
+    }
 
-        .btn-primary:hover {
-            background: #a8855f; /* Darker brown on hover */
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-medium);
-        }
+    .featured-badge {
+        position: absolute;
+        top: 1rem;
+        left: 1rem;
+        background: var(--brown);
+        color: var(--white);
+        padding: 0.4rem 0.8rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        font-family: 'BaticaSans', sans-serif;
+    }
 
-        .btn-secondary {
-            background: transparent;
-            color: var(--brown); /* LEVEL 1: Brown */
-            border: 2px solid var(--brown); /* LEVEL 1: Brown border */
-        }
+    .menu-content { padding: 1.5rem; }
 
-        .btn-secondary:hover {
-            background: var(--brown); /* LEVEL 1: Brown */
-            color: var(--white); /* LEVEL 1: White */
-        }
+    .menu-category {
+        font-size: 0.8rem;
+        color: var(--brown);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.5rem;
+        font-family: 'BaticaSans', sans-serif;
+    }
 
-        .btn-sm {
-            padding: 0.5rem 1rem;
-            font-size: 0.9rem;
-        }
+    .menu-title {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: var(--brown);
+        margin-bottom: 0.8rem;
+        line-height: 1.3;
+        font-family: 'BaticaSans', sans-serif;
+    }
 
-        /* Profile Icon Styles (MATCHING home2.php) */
-        .profile-link {
-            text-decoration: none;
-            transition: var(--transition);
-        }
+    .menu-title-en {
+        font-size: 0.9rem;
+        color: var(--text-gray);
+        font-weight: 500;
+        margin-bottom: 0.8rem;
+        font-family: 'BaticaSans', sans-serif;
+    }
 
-        .profile-icon {
-            width: 45px;
-            height: 45px;
-            background: var(--brown); /* LEVEL 1: Brown */
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--white); /* LEVEL 1: White */
-            transition: var(--transition);
-            box-shadow: var(--shadow-soft);
-        }
+    .menu-description {
+        color: var(--text-gray);
+        font-size: 0.95rem;
+        line-height: 1.5;
+        margin-bottom: 1.2rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        font-family: 'BaticaSans', sans-serif;
+    }
 
-        .profile-icon:hover {
-            background: #a8855f; /* Darker brown on hover */
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-medium);
-        }
+    .menu-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        margin-bottom: 1.2rem;
+    }
 
-        .profile-icon svg {
-            width: 24px;
-            height: 24px;
-        }
+    .tag {
+        background: var(--cream);
+        color: var(--brown);
+        padding: 0.3rem 0.6rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        font-family: 'BaticaSans', sans-serif;
+    }
 
-        /* Container */
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-        }
+    .spice-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.3rem 0.6rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        font-family: 'BaticaSans', sans-serif;
+    }
 
-        /* Main Content */
-        .main-content {
-            padding-top: 120px;
-            min-height: calc(100vh - 200px);
-        }
+    .spice-mild { background: #e8f5e8; color: #2e7d32; }
+    .spice-medium { background: #fff8e1; color: #f57f17; }
+    .spice-hot { background: #ffebee; color: #d32f2f; }
+    .spice-extra_hot { background: #ffebee; color: #b71c1c; }
 
-        .page-header {
-            text-align: center;
-            margin-bottom: 3rem;
-            padding: 2rem 0;
-        }
+    .menu-nutrition {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1.2rem;
+        flex-wrap: wrap;
+    }
 
-        .page-title {
-            font-size: 2.5rem;
-            font-weight: 800;
-            color: var(--brown); /* Changed to brown to match home2.php */
-            margin-bottom: 1rem;
-            font-family: 'BaticaSans', sans-serif;
-        }
+    .nutrition-item {
+        text-align: center;
+        flex: 1;
+        min-width: 60px;
+    }
 
-        .page-subtitle {
-            font-size: 1.2rem;
-            color: var(--text-gray);
-            max-width: 600px;
-            margin: 0 auto;
-            font-family: 'BaticaSans', sans-serif;
-        }
+    .nutrition-value {
+        font-weight: 700;
+        color: var(--brown);
+        font-size: 0.9rem;
+        font-family: 'BaticaSans', sans-serif;
+    }
 
-        /* Menu Navigation Container - EXACT MATCH with home2.php */
-        .menu-nav-container {
-            margin-bottom: 32px;
-            margin-top: 2rem;
-            /* Remove max-width and centering margin */
-            width: 100%; /* Full width */
-            padding: 20px 0;
-            background: var(--cream); /* LEVEL 2: Cream background */
-            border-radius: 0; /* Remove border radius for full width */
-            box-shadow: none; /* Remove shadow for cleaner full-width look */
-            /* Add a subtle border instead */
-            border-top: 1px solid rgba(189, 147, 121, 0.1);
-            border-bottom: 1px solid rgba(189, 147, 121, 0.1);
-        }
+    .nutrition-label {
+        font-size: 0.8rem;
+        color: var(--text-gray);
+        margin-top: 0.2rem;
+        font-family: 'BaticaSans', sans-serif;
+    }
 
+    .menu-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border-light);
+    }
+
+    .menu-price {
+        font-size: 1.3rem;
+        font-weight: 800;
+        color: var(--brown);
+        font-family: 'BaticaSans', sans-serif;
+    }
+
+    .menu-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    /* Button styles for menu actions (extend header.php button styles) */
+    .btn-sm {
+        padding: 0.6rem 1rem;
+        font-size: 0.9rem;
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: var(--text-gray);
+        grid-column: 1 / -1;
+    }
+
+    .empty-state h3 {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+        color: var(--brown);
+        font-family: 'BaticaSans', sans-serif;
+    }
+
+    /* Modal */
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 2000;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal.show { display: flex; }
+
+    .modal-content {
+        background: var(--white);
+        border-radius: 16px;
+        max-width: 900px;
+        width: 90%;
+        max-height: 90vh;
+        overflow-y: auto;
+        margin: 2rem;
+        box-shadow: var(--shadow-medium);
+    }
+
+    .modal-header {
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--border-light);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .modal-title {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: var(--brown);
+        font-family: 'BaticaSans', sans-serif;
+    }
+
+    .modal-close {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: var(--text-gray);
+    }
+
+    /* Modal Image Gallery */
+    .modal-image-gallery {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        height: 400px;
+    }
+
+    .modal-main-image-container {
+        flex: 5;
+        position: relative;
+        border-radius: 12px;
+        overflow: hidden;
+        background: linear-gradient(135deg, var(--cream), #e8dcc0);
+    }
+
+    .modal-main-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: var(--transition);
+    }
+
+    .modal-main-image-placeholder {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-gray);
+        font-size: 1.5rem;
+        font-weight: 600;
+        font-family: 'BaticaSans', sans-serif;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .modal-thumbnail-container {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .modal-thumbnail {
+        flex: 1;
+        border-radius: 8px;
+        overflow: hidden;
+        cursor: pointer;
+        transition: var(--transition);
+        position: relative;
+        background: linear-gradient(135deg, #f8f4f0, #e8dcc0);
+        border: 2px solid transparent;
+    }
+
+    .modal-thumbnail:hover {
+        transform: scale(1.02);
+        box-shadow: var(--shadow-soft);
+    }
+
+    .modal-thumbnail.active {
+        border-color: var(--brown);
+        transform: scale(1.02);
+    }
+
+    .modal-thumbnail img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .modal-thumbnail-placeholder {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-gray);
+        font-size: 1.2rem;
+        opacity: 0.5;
+    }
+
+    /* CTA Section */
+    .cta-section {
+        text-align: center;
+        padding: 3rem 2rem;
+        background: var(--cream);
+        border-radius: 16px;
+        margin-top: 3rem;
+    }
+
+    .cta-section h2 {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: var(--brown);
+        margin-bottom: 1rem;
+        font-family: 'BaticaSans', sans-serif;
+    }
+
+    .cta-section p {
+        font-size: 1.1rem;
+        color: var(--text-gray);
+        margin-bottom: 2rem;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+        font-family: 'BaticaSans', sans-serif;
+    }
+
+    /* Footer */
+    footer {
+        background: var(--text-dark);
+        color: var(--white);
+        padding: 2rem 0;
+        text-align: center;
+        margin-top: 4rem;
+    }
+
+    /* Loading animation */
+    .loading {
+        text-align: center;
+        padding: 2rem;
+        color: var(--text-gray);
+    }
+
+    .loading i {
+        font-size: 2rem;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    /* Mobile responsiveness */
+    @media (max-width: 768px) {
+        .container { padding: 0 15px; }
+        .menus-grid { grid-template-columns: 1fr; }
+        .results-header { flex-direction: column; gap: 1rem; align-items: flex-start; }
+        
         .menu-nav-wrapper {
-            overflow-x: auto;
-            overflow-y: hidden;
-            scrollbar-width: none;
-            -ms-overflow-style: none;
-            padding: 0 1rem;
-            /* Center the content */
-            max-width: 1200px;
-            margin: 0 auto;
+            padding: 0 50px; /* Slightly less padding on mobile */
+        }
+        
+        .menu-nav-scroll-btn {
+            width: 36px;
+            height: 36px;
+        }
+        
+        .menu-nav-scroll-left {
+            left: 8px;
         }
 
-        .menu-nav-wrapper::-webkit-scrollbar {
-            display: none;
+        .menu-nav-scroll-right {
+            right: 8px;
         }
-
-        .menu-nav-list {
-            display: flex;
-            gap: 0;
-            min-width: max-content;
-            align-items: center;
-            justify-content: center; /* Center the navigation items */
-        }
-        /* Also prevent text selection on menu navigation */
-        .menu-nav-container,
-        .menu-nav-container * {
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-        }
-        .menu-nav-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            height: 54px;
-            padding: 0 16px;
-            border: none;
-            border-bottom: 2px solid transparent;
-            background: transparent;
-            cursor: pointer;
-            font-family: 'BaticaSans', Arial, sans-serif;
-            font-size: 14px;
-            font-weight: 600;
-            color: #707070;
-            transition: all 0.3s ease;
-            white-space: nowrap;
-            text-decoration: none;
-            border-radius: var(--radius-sm);
-            /* Remove any focus outline */
-            outline: none !important;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .menu-nav-item:focus {
-            outline: none;
-            box-shadow: 0 0 0 2px rgba(189, 147, 121, 0.3);
-        }
-
-        .menu-nav-item:hover {
-            color: var(--brown); /* LEVEL 1: Brown hover */
-            background: rgba(189, 147, 121, 0.1); /* Light brown background */
-            border-bottom-color: var(--brown); /* LEVEL 1: Brown */
-        }
-
-        .menu-nav-item.active {
-            color: var(--brown); /* LEVEL 1: Brown active */
-            background: var(--white); /* LEVEL 1: White background */
-            border-bottom-color: var(--brown); /* LEVEL 1: Brown */
-            box-shadow: var(--shadow-soft);
-        }
-
-        .menu-nav-icon {
-            width: 24px;
-            height: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .menu-nav-icon svg {
-            width: 100%;
-            height: 100%;
-            fill: #707070;
-            transition: fill 0.3s ease;
-        }
-
-        .menu-nav-item:hover .menu-nav-icon svg {
-            fill: var(--brown); /* LEVEL 1: Brown */
-        }
-
-        .menu-nav-item.active .menu-nav-icon svg {
-            fill: var(--brown); /* LEVEL 1: Brown */
-        }
-
-        .menu-nav-text {
-            font-size: 14px;
-            font-weight: 600;
-        }
-
-        /* Responsive design */
-        @media (max-width: 768px) {
-            .menu-nav-container {
-                margin-bottom: 24px;
-            }
-            
-            .menu-nav-item {
-                padding: 0 12px;
-                font-size: 13px;
-            }
-            
-            .menu-nav-icon {
-                width: 20px;
-                height: 20px;
-            }
-        }
-
-        /* Results Header */
-        .results-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-            padding: 1rem 0;
-            border-bottom: 2px solid var(--border-light);
-        }
-
-        .results-count {
-            font-size: 1.1rem;
-            color: var(--text-gray);
-            font-family: 'BaticaSans', sans-serif;
-        }
-
-        .sort-select {
-            padding: 0.6rem 1rem;
-            border: 2px solid var(--border-light);
-            border-radius: 25px;
-            background: var(--white);
-            font-family: 'BaticaSans', sans-serif;
-        }
-
-        /* Menu Grid */
-        .menus-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-            gap: 2rem;
-            margin-bottom: 3rem;
-        }
-
-        .menu-card {
-            background: var(--white);
-            border-radius: var(--radius-lg);
-            overflow: hidden;
-            box-shadow: var(--shadow-soft);
-            border: 1px solid var(--border-light);
-            transition: var(--transition);
-            position: relative;
-        }
-
-        .menu-card:hover {
-            transform: translateY(-8px);
-            box-shadow: var(--shadow-medium);
-        }
-
-        .menu-image {
-            position: relative;
-            height: 200px;
-            background: linear-gradient(135deg, var(--cream), #e8dcc0);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--text-gray);
-            font-size: 1rem;
-            font-weight: 600;
-            font-family: 'BaticaSans', sans-serif;
-            cursor: pointer;
-            transition: var(--transition);
-        }
-
-        .menu-image:hover {
-            transform: scale(1.02);
-        }
-
-        .menu-image img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .menu-badge {
-            position: absolute;
-            top: 1rem;
-            right: 1rem;
-            background: rgba(255, 255, 255, 0.95);
-            color: var(--brown); /* Changed to brown */
-            padding: 0.4rem 0.8rem;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            backdrop-filter: blur(10px);
-            font-family: 'BaticaSans', sans-serif;
-        }
-
-        .featured-badge {
-            position: absolute;
-            top: 1rem;
-            left: 1rem;
-            background: var(--brown); /* Changed to brown */
-            color: var(--white);
-            padding: 0.4rem 0.8rem;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            font-family: 'BaticaSans', sans-serif;
-        }
-
-        .menu-content {
-            padding: 1.5rem;
-        }
-
-        .menu-category {
-            font-size: 0.8rem;
-            color: var(--brown);
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 0.5rem;
-            font-family: 'BaticaSans', sans-serif;
-        }
-
-        .menu-title {
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: var(--brown); /* Changed to brown to match home2.php */
-            margin-bottom: 0.8rem;
-            line-height: 1.3;
-            font-family: 'BaticaSans', sans-serif;
-        }
-
-        .menu-title-en {
-            font-size: 0.9rem;
-            color: var(--text-gray);
-            font-weight: 500;
-            margin-bottom: 0.8rem;
-            font-family: 'BaticaSans', sans-serif;
-        }
-
-        .menu-description {
-            color: var(--text-gray);
-            font-size: 0.95rem;
-            line-height: 1.5;
-            margin-bottom: 1.2rem;
-            display: -webkit-box;
-            -webkit-line-clamp: 3;
-            line-clamp: 3;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-            font-family: 'BaticaSans', sans-serif;
-        }
-
-        .menu-tags {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.4rem;
-            margin-bottom: 1.2rem;
-        }
-
-        .tag {
-            background: var(--cream);
-            color: var(--brown);
-            padding: 0.3rem 0.6rem;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            font-family: 'BaticaSans', sans-serif;
-        }
-
-        .spice-tag {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.3rem;
-            padding: 0.3rem 0.6rem;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            font-family: 'BaticaSans', sans-serif;
-        }
-
-        .spice-mild { background: #e8f5e8; color: #2e7d32; }
-        .spice-medium { background: #fff8e1; color: #f57f17; }
-        .spice-hot { background: #ffebee; color: #d32f2f; }
-        .spice-extra_hot { background: #ffebee; color: #b71c1c; }
-
-        .menu-nutrition {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 1.2rem;
-            flex-wrap: wrap;
-        }
-
-        .nutrition-item {
-            text-align: center;
-            flex: 1;
-            min-width: 60px;
-        }
-
-        .nutrition-value {
-            font-weight: 700;
-            color: var(--brown); /* Changed to brown */
-            font-size: 0.9rem;
-            font-family: 'BaticaSans', sans-serif;
-        }
-
-        .nutrition-label {
-            font-size: 0.8rem;
-            color: var(--text-gray);
-            margin-top: 0.2rem;
-            font-family: 'BaticaSans', sans-serif;
-        }
-
-        .menu-footer {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding-top: 1rem;
-            border-top: 1px solid var(--border-light);
-        }
-
-        .menu-price {
-            font-size: 1.3rem;
-            font-weight: 800;
-            color: var(--brown); /* Changed to brown */
-            font-family: 'BaticaSans', sans-serif;
-        }
-
-        .menu-actions {
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        /* Empty State */
-        .empty-state {
-            text-align: center;
-            padding: 4rem 2rem;
-            color: var(--text-gray);
-        }
-
-        .empty-state i {
-            font-size: 4rem;
-            margin-bottom: 1rem;
-            opacity: 0.3;
-        }
-
-        .empty-state h3 {
-            font-size: 1.5rem;
-            margin-bottom: 0.5rem;
-            color: var(--brown); /* Changed to brown */
-            font-family: 'BaticaSans', sans-serif;
-        }
-
-        .empty-state p {
-            font-family: 'BaticaSans', sans-serif;
-        }
-
-        /* Updated Modal Styles for Image Gallery */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal.show {
-            display: flex;
-        }
-
-        .modal-content {
-            background: var(--white);
-            border-radius: var(--radius-lg);
-            max-width: 900px; /* Made wider for desktop */
-            width: 90%;
-            max-height: 90vh;
-            overflow-y: auto;
-            margin: 2rem;
-            box-shadow: var(--shadow-medium);
-        }
-
-        .modal-header {
-            padding: 1.5rem;
-            border-bottom: 1px solid var(--border-light);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .modal-title {
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: var(--brown); /* Changed to brown */
-            font-family: 'BaticaSans', sans-serif;
-        }
-
-        .modal-close {
-            background: none;
-            border: none;
-            font-size: 1.5rem;
-            cursor: pointer;
-            color: var(--text-gray);
-        }
-
-        .modal-body {
-            padding: 1.5rem;
-        }
-
-        /* Modal Image Gallery */
+        
+        .menu-nav-item { padding: 0 12px; font-size: 13px; }
+        .menu-nav-icon { width: 20px; height: 20px; }
+        .menu-actions { flex-direction: column; gap: 0.5rem; }
+        .menu-footer { flex-direction: column; gap: 1rem; align-items: flex-start; }
+        .modal-content { margin: 1rem; max-width: 95%; }
+        .cta-section { padding: 2rem 1rem; }
+        
+        /* Modal image gallery responsive */
         .modal-image-gallery {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 2rem;
-            height: 400px;
+            flex-direction: column;
+            height: auto;
         }
 
         .modal-main-image-container {
-            flex: 5;
-            position: relative;
-            border-radius: var(--radius-md);
-            overflow: hidden;
-            background: linear-gradient(135deg, var(--cream), #e8dcc0);
-        }
-
-        .modal-main-image {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transition: var(--transition);
-        }
-
-        .modal-main-image-placeholder {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--text-gray);
-            font-size: 1.5rem;
-            font-weight: 600;
-            font-family: 'BaticaSans', sans-serif;
-            flex-direction: column;
-            gap: 0.5rem;
+            height: 280px;
         }
 
         .modal-thumbnail-container {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
+            flex-direction: row;
+            height: 80px;
         }
-
-        .modal-thumbnail {
-            flex: 1;
-            border-radius: var(--radius-sm);
-            overflow: hidden;
-            cursor: pointer;
-            transition: var(--transition);
-            position: relative;
-            background: linear-gradient(135deg, #f8f4f0, #e8dcc0);
-            border: 2px solid transparent;
-        }
-
-        .modal-thumbnail:hover {
-            transform: scale(1.02);
-            box-shadow: var(--shadow-soft);
-        }
-
-        .modal-thumbnail.active {
-            border-color: var(--brown); /* Changed to brown */
-            transform: scale(1.02);
-        }
-
-        .modal-thumbnail img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .modal-thumbnail-placeholder {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--text-gray);
-            font-size: 1.2rem;
-            opacity: 0.5;
-        }
-
-        /* CTA Section */
-        .cta-section {
-            text-align: center;
-            padding: 3rem 2rem;
-            background: var(--cream);
-            border-radius: var(--radius-lg);
-            margin-top: 3rem;
-        }
-
-        .cta-section h2 {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: var(--brown); /* Changed to brown */
-            margin-bottom: 1rem;
-            font-family: 'BaticaSans', sans-serif;
-        }
-
-        .cta-section p {
-            font-size: 1.1rem;
-            color: var(--text-gray);
-            margin-bottom: 2rem;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
-            font-family: 'BaticaSans', sans-serif;
-        }
-
-        /* Footer */
-        footer {
-            background: var(--text-dark);
-            color: var(--white);
-            padding: 2rem 0;
-            text-align: center;
-            margin-top: 4rem;
-        }
-
-        footer .logo-icon {
-            width: 45px;
-            height: 45px;
-            background: var(--brown); /* Changed to brown */
-            border-radius: 50%;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--white);
-            font-size: 1.5rem;
-            font-family: 'BaticaSans', sans-serif;
-            font-weight: 700;
-        }
-
-        footer p {
-            font-family: 'BaticaSans', sans-serif;
-        }
-
-        /* Responsive Design (MATCHING home2.php) */
-        @media (max-width: 768px) {
-            .promo-banner {
-                font-size: 12px;
-                padding: 6px 15px;
-            }
-            
-            .navbar {
-                top: 32px;
-            }
-            
-            .main-content {
-                padding-top: 100px;
-            }
-            
-            .promo-banner-content {
-                flex-direction: column;
-                gap: 5px;
-            }
-            
-            .promo-close {
-                right: 10px;
-            }
-
-            .container {
-                padding: 0 15px;
-            }
-
-            nav {
-                padding: 1rem;
-            }
-
-            .nav-links {
-                display: none;
-            }
-
-            .nav-actions {
-                gap: 0.5rem;
-            }
-
-            .page-title {
-                font-size: 2rem;
-            }
-
-            .page-subtitle {
-                font-size: 1rem;
-            }
-
-            .results-header {
-                flex-direction: column;
-                gap: 1rem;
-                align-items: flex-start;
-            }
-
-            .menus-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .menu-nutrition {
-                gap: 0.5rem;
-            }
-
-            .nutrition-item {
-                min-width: 50px;
-            }
-
-            .modal-content {
-                margin: 1rem;
-                max-width: 95%;
-            }
-
-            .modal-image-gallery {
-                flex-direction: column;
-                height: auto;
-            }
-
-            .modal-main-image-container {
-                height: 280px;
-            }
-
-            .modal-thumbnail-container {
-                flex-direction: row;
-                height: 80px;
-            }
-
-            .cta-section {
-                padding: 2rem 1rem;
-            }
-
-            .cta-section h2 {
-                font-size: 1.5rem;
-            }
-
-            .cta-section p {
-                font-size: 1rem;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .page-title {
-                font-size: 1.8rem;
-            }
-
-            .menu-actions {
-                flex-direction: column;
-                gap: 0.5rem;
-            }
-
-            .menu-footer {
-                flex-direction: column;
-                gap: 1rem;
-                align-items: flex-start;
-            }
-
-            .btn-sm {
-                width: 100%;
-                justify-content: center;
-            }
-        }
-
-        /* Loading animation */
-        .loading {
-            text-align: center;
-            padding: 2rem;
-            color: var(--text-gray);
-        }
-
-        .loading i {
-            font-size: 2rem;
-            animation: spin 1s linear infinite;
-        }
-
-        .loading p {
-            font-family: 'BaticaSans', sans-serif;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+    }
     </style>
 </head>
-<body>
-    <!-- Promotional Banner -->
-    <div class="promo-banner" id="promoBanner">
-        <div class="promo-banner-content">
-            <span class="promo-icon">🪙</span>
-            <span class="promo-text">50% OFF First Week + Free Cookies for Life</span>
-            <span class="promo-icon">🎉</span>
-        </div>
-        <button class="promo-close" onclick="closePromoBanner()" title="Close">×</button>
-    </div>
 
-    <!-- Navigation (EXACT MATCH with home2.php) -->
-    <nav class="navbar">
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem; max-width: 1200px; margin: 0 auto; width: 100%;">
-            <a href="index.php" class="logo">
-                <img src="./assets/image/LOGO_BG2.png" alt="Somdul Table" style="height: 80px; width: auto;">
-            </a>
-
-            
-            <ul class="nav-links">
-                <li><a href="./menus.php">Menu</a></li>
-                <li><a href="./meal-kits.php">Meal-Kits</a></li>
-                <li><a href="#how-it-works">How It Works</a></li>
-                <li><a href="./blogs.php">About</a></li>
-                <li><a href="./contact.php">Contact</a></li>
-            </ul>
-            
-            <div class="nav-actions">
-                <?php if (isset($_SESSION['user_id'])): ?>
-                    <!-- User is logged in - show profile icon -->
-                    <a href="dashboard.php" class="profile-link" title="Go to Dashboard">
-                        <div class="profile-icon">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="12" cy="7" r="4"></circle>
-                            </svg>
-                        </div>
-                    </a>
-                <?php else: ?>
-                    <!-- User is not logged in - show sign in button -->
-                    <a href="login.php" class="btn btn-secondary">Sign In</a>
-                <?php endif; ?>
-                <a href="subscribe.php" class="btn btn-primary">Get Started</a>
-            </div>
-        </div>
-    </nav>
-
+<!-- IMPORTANT: Add has-header class for proper spacing -->
+<body class="has-header">
+    <!-- The header (promo banner + navbar) is already included from header.php -->
+    
     <!-- Main Content -->
     <main class="main-content">
         <div class="container">
 
-            <!-- Menu Navigation Container - EXACT MATCH with home2.php -->
+            <!-- Menu Navigation Container -->
             <div class="menu-nav-container">
-                <div class="menu-nav-wrapper">
+                <button class="menu-nav-scroll-btn menu-nav-scroll-left" id="menuScrollLeft" aria-label="Scroll left">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+                
+                <div class="menu-nav-wrapper" id="menuNavWrapper">
                     <div class="menu-nav-list">
                         <?php if (empty($categories)): ?>
-                            <!-- Fallback categories if database is empty -->
                             <a href="menus.php" class="menu-nav-item <?php echo empty($category_id) ? 'active' : ''; ?>">
                                 <span class="menu-nav-icon">
                                     <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -1260,7 +771,6 @@ try {
                                 <span class="menu-nav-text">All Items</span>
                             </a>
                         <?php else: ?>
-                            <!-- All items button -->
                             <a href="menus.php" class="menu-nav-item <?php echo empty($category_id) ? 'active' : ''; ?>">
                                 <span class="menu-nav-icon">
                                     <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -1270,7 +780,6 @@ try {
                                 <span class="menu-nav-text">All Items</span>
                             </a>
                             
-                            <!-- Dynamic categories from database -->
                             <?php 
                             $category_icons = [
                                 'Rice Bowls' => '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-2V4c0-1.1-.9-2-2-2zm0 2v2h-2V4h2zm-4 4h8v2h-8V8zm0 4h8v6H8v-6z"/>',
@@ -1286,7 +795,7 @@ try {
                             
                             $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-2V4c0-1.1-.9-2-2-2zm0 2v2h-2V4h2zm-4 4h8v2h-8V8zm0 4h8v6H8v-6z"/>';
                             
-                            foreach ($categories as $index => $category): 
+                            foreach ($categories as $category): 
                                 $category_name = $category['name'] ?: $category['name_thai'];
                                 $icon_path = $category_icons[$category_name] ?? $default_icon;
                                 $is_active = ($category_id == $category['id']) ? 'active' : '';
@@ -1306,6 +815,12 @@ try {
                         <?php endif; ?>
                     </div>
                 </div>
+                
+                <button class="menu-nav-scroll-btn menu-nav-scroll-right" id="menuScrollRight" aria-label="Scroll right">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
             </div>
 
             <!-- Results Header -->
@@ -1321,7 +836,7 @@ try {
             <!-- Menus Grid -->
             <div class="menus-grid">
                 <?php if (empty($menus)): ?>
-                    <div class="empty-state" style="grid-column: 1 / -1;">
+                    <div class="empty-state">
                         <i style="font-size: 4rem; margin-bottom: 1rem; opacity: 0.3;">🍽️</i>
                         <h3>No dishes found</h3>
                         <p>Try changing your search terms or filter criteria</p>
@@ -1455,14 +970,14 @@ try {
                                         </button>
                                         
                                         <?php if ($is_logged_in): ?>
-                                            <a href="meal-selection.php?single=<?php echo $menu['id']; ?>" 
-                                               class="btn btn-primary btn-sm">
+                                            <a href="subscribe.php?menu=<?php echo $menu['id']; ?>" 
+                                            class="btn btn-primary btn-sm">
                                                 🛒 Order Now
                                             </a>
                                         <?php else: ?>
                                             <a href="register.php?menu=<?php echo $menu['id']; ?>" 
-                                               class="btn btn-primary btn-sm">
-                                                Add to cart
+                                            class="btn btn-primary btn-sm">
+                                                Sign Up to Order
                                             </a>
                                         <?php endif; ?>
                                     </div>
@@ -1480,7 +995,7 @@ try {
                     <p>
                         Choose the meal plan that's right for you and start taking care of your health with authentic Thai cuisine
                     </p>
-                    <a href="home2.php#plans" class="btn btn-primary" style="font-size: 1.1rem; padding: 1rem 2.5rem;">
+                    <a href="index.php#plans" class="btn btn-primary" style="font-size: 1.1rem; padding: 1rem 2.5rem;">
                         🌿 View All Plans
                     </a>
                 </div>
@@ -1488,18 +1003,16 @@ try {
         </div>
     </main>
 
-    <!-- Menu Detail Modal with Image Gallery -->
+    <!-- Menu Detail Modal -->
     <div id="menuModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
                 <h3 class="modal-title">Menu Details</h3>
-                <button class="modal-close" onclick="closeMenuModal()">
-                    ×
-                </button>
+                <button class="modal-close" onclick="closeMenuModal()">×</button>
             </div>
             <div class="modal-body" id="modalBody">
                 <div class="loading">
-                    <i>⏿</i>
+                    <i>⟲</i>
                     <p>Loading...</p>
                 </div>
             </div>
@@ -1522,326 +1035,350 @@ try {
         </div>
     </footer>
 
-<script>
-        // Modal Image Gallery Functions
-        function changeModalImage(menuId, imageIndex, clickedThumbnail) {
-            const mainImageElement = document.getElementById(`modal-main-image-${menuId}`);
-            const imageUrl = clickedThumbnail.getAttribute('data-image-url');
+    <script>
+    // Page-specific JavaScript for menus.php
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('🍽️ Menus page loaded');
+        
+        // Menu navigation scroll functionality
+        const menuNavWrapper = document.getElementById('menuNavWrapper');
+        const menuScrollLeftBtn = document.getElementById('menuScrollLeft');
+        const menuScrollRightBtn = document.getElementById('menuScrollRight');
+        
+        function updateMenuScrollButtons() {
+            if (!menuNavWrapper || !menuScrollLeftBtn || !menuScrollRightBtn) return;
             
-            // Remove active class from all thumbnails in this modal
-            const thumbnailContainer = clickedThumbnail.parentElement;
-            thumbnailContainer.querySelectorAll('.modal-thumbnail').forEach(thumb => {
-                thumb.classList.remove('active');
-            });
+            const canScrollLeft = menuNavWrapper.scrollLeft > 0;
+            const canScrollRight = menuNavWrapper.scrollLeft < (menuNavWrapper.scrollWidth - menuNavWrapper.clientWidth);
+            const hasOverflow = menuNavWrapper.scrollWidth > menuNavWrapper.clientWidth;
             
-            // Add active class to clicked thumbnail
-            clickedThumbnail.classList.add('active');
-            
-            // Change main image
-            if (imageUrl && imageUrl.trim() !== '') {
-                if (mainImageElement.tagName === 'IMG') {
-                    mainImageElement.src = imageUrl;
-                } else {
-                    // Replace placeholder with actual image
-                    const newImg = document.createElement('img');
-                    newImg.src = imageUrl;
-                    newImg.alt = 'Menu Image';
-                    newImg.className = 'modal-main-image';
-                    newImg.id = `modal-main-image-${menuId}`;
-                    newImg.loading = 'lazy';
-                    
-                    mainImageElement.parentElement.replaceChild(newImg, mainImageElement);
-                }
+            if (hasOverflow) {
+                menuScrollLeftBtn.classList.add('visible');
+                menuScrollRightBtn.classList.add('visible');
+                
+                menuScrollLeftBtn.disabled = !canScrollLeft;
+                menuScrollRightBtn.disabled = !canScrollRight;
+            } else {
+                menuScrollLeftBtn.classList.remove('visible');
+                menuScrollRightBtn.classList.remove('visible');
             }
         }
-
-        // Close promotional banner function
-        function closePromoBanner() {
-            const promoBanner = document.getElementById('promoBanner');
-            const navbar = document.querySelector('.navbar');
-            const mainContent = document.querySelector('.main-content');
+        
+        // Menu scroll button event listeners
+        if (menuScrollLeftBtn && menuScrollRightBtn && menuNavWrapper) {
+            menuScrollLeftBtn.addEventListener('click', () => {
+                menuNavWrapper.scrollBy({ left: -200, behavior: 'smooth' });
+            });
             
-            promoBanner.style.transform = 'translateY(-100%)';
-            promoBanner.style.opacity = '0';
+            menuScrollRightBtn.addEventListener('click', () => {
+                menuNavWrapper.scrollBy({ left: 200, behavior: 'smooth' });
+            });
             
-            setTimeout(() => {
-                promoBanner.style.display = 'none';
-                navbar.style.top = '0';
-                mainContent.style.paddingTop = '80px';
-            }, 300);
+            // Update scroll buttons when scrolling
+            menuNavWrapper.addEventListener('scroll', updateMenuScrollButtons);
+            
+            // Update scroll buttons on window resize
+            window.addEventListener('resize', updateMenuScrollButtons);
+            
+            // Initial update
+            setTimeout(updateMenuScrollButtons, 100);
         }
-
-        // Menu Modal Functions
-        async function showMenuModal(menuId) {
-            const modal = document.getElementById('menuModal');
-            const modalBody = document.getElementById('modalBody');
-            
-            // Show modal with loading state
-            modal.classList.add('show');
-            modalBody.innerHTML = `
-                <div class="loading">
-                    <i>⏿</i>
-                    <p>Loading details...</p>
-                </div>
-            `;
-            
-            try {
-                // Fetch menu details
-                const response = await fetch(`ajax/get_menu_details.php?id=${menuId}`);
-                const data = await response.json();
-                
-                if (data.success) {
-                    modalBody.innerHTML = buildMenuModalContent(data.menu);
+        
+        // Check for show_menu parameter and automatically open modal
+        const urlParams = new URLSearchParams(window.location.search);
+        const showMenuId = urlParams.get('show_menu');
+        
+        if (showMenuId) {
+            console.log('Auto-opening modal for menu ID:', showMenuId);
+            // Wait a brief moment for the page to fully load, then show the modal
+            setTimeout(() => {
+                showMenuModal(showMenuId);
+                // Remove the parameter from the URL without reloading the page
+                const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+                urlParams.delete('show_menu');
+                const remainingParams = urlParams.toString();
+                if (remainingParams) {
+                    window.history.replaceState({}, document.title, newUrl + '?' + remainingParams);
                 } else {
-                    modalBody.innerHTML = `
-                        <div class="text-center" style="padding: 2rem; color: var(--text-gray);">
-                            <i style="font-size: 2rem; margin-bottom: 1rem;">⚠️</i>
-                            <h4>Unable to load data</h4>
-                            <p>Please try again</p>
-                        </div>
-                    `;
+                    window.history.replaceState({}, document.title, newUrl);
                 }
-            } catch (error) {
-                console.error('Error loading menu details:', error);
+            }, 500);
+        }
+        
+        // The mobile menu and promo banner functions are already available from header.php
+        // You can use: toggleMobileMenu(), closeMobileMenu(), closePromoBanner()
+    });
+
+    // Modal Image Gallery Functions
+    function changeModalImage(menuId, imageIndex, clickedThumbnail) {
+        const mainImageElement = document.getElementById(`modal-main-image-${menuId}`);
+        const imageUrl = clickedThumbnail.getAttribute('data-image-url');
+        
+        // Remove active class from all thumbnails in this modal
+        const thumbnailContainer = clickedThumbnail.parentElement;
+        thumbnailContainer.querySelectorAll('.modal-thumbnail').forEach(thumb => {
+            thumb.classList.remove('active');
+        });
+        
+        // Add active class to clicked thumbnail
+        clickedThumbnail.classList.add('active');
+        
+        // Change main image
+        if (imageUrl && imageUrl.trim() !== '') {
+            if (mainImageElement.tagName === 'IMG') {
+                mainImageElement.src = imageUrl;
+            } else {
+                // Replace placeholder with actual image
+                const newImg = document.createElement('img');
+                newImg.src = imageUrl;
+                newImg.alt = 'Menu Image';
+                newImg.className = 'modal-main-image';
+                newImg.id = `modal-main-image-${menuId}`;
+                newImg.loading = 'lazy';
+                
+                mainImageElement.parentElement.replaceChild(newImg, mainImageElement);
+            }
+        }
+    }
+
+    // Menu Modal Functions
+    async function showMenuModal(menuId) {
+        const modal = document.getElementById('menuModal');
+        const modalBody = document.getElementById('modalBody');
+        
+        // Show modal with loading state
+        modal.classList.add('show');
+        modalBody.innerHTML = `
+            <div class="loading">
+                <i>⟲</i>
+                <p>Loading details...</p>
+            </div>
+        `;
+        
+        try {
+            // Fetch menu details
+            const response = await fetch(`ajax/get_menu_details.php?id=${menuId}`);
+            const data = await response.json();
+            
+            if (data.success) {
+                modalBody.innerHTML = buildMenuModalContent(data.menu);
+            } else {
                 modalBody.innerHTML = `
                     <div class="text-center" style="padding: 2rem; color: var(--text-gray);">
-                        <i style="font-size: 2rem; margin-bottom: 1rem;">📶</i>
-                        <h4>Connection Error</h4>
-                        <p>Check your internet connection</p>
+                        <i style="font-size: 2rem; margin-bottom: 1rem;">⚠️</i>
+                        <h4>Unable to load data</h4>
+                        <p>Please try again</p>
                     </div>
                 `;
             }
-        }
-
-        function buildMenuModalContent(menu) {
-            const dietaryTags = menu.dietary_tags ? JSON.parse(menu.dietary_tags) : [];
-            const healthBenefits = menu.health_benefits ? JSON.parse(menu.health_benefits) : [];
-            
-            // Parse additional images
-            const additionalImages = menu.additional_images ? JSON.parse(menu.additional_images) : [];
-            
-            // Create image array with main image first, then additional images (or mock images for demo)
-            const allImages = [];
-            if (menu.main_image_url) {
-                allImages.push(menu.main_image_url);
-            }
-            
-            // Add additional images or create mock images for demonstration
-            if (additionalImages.length > 0) {
-                allImages.push(...additionalImages);
-            } else {
-                // Mock additional images for demonstration (remove this in production)
-                const mockImages = [
-                    'assets/image/sample1.jpg',
-                    'assets/image/sample2.jpg',
-                    'assets/image/sample3.jpg',
-                    'assets/image/sample4.jpg'
-                ];
-                allImages.push(...mockImages);
-            }
-            
-            // Fill up to 5 images with placeholders if needed
-            while (allImages.length < 5) {
-                allImages.push(null);
-            }
-            allImages.splice(5); // Limit to 5 images
-            
-            const spiceLabels = {
-                'mild': 'Mild',
-                'medium': 'Medium', 
-                'hot': 'Hot',
-                'extra_hot': 'Extra Hot'
-            };
-            
-            return `
-                <!-- Image Gallery -->
-                <div class="modal-image-gallery">
-                    <!-- Main Image -->
-                    <div class="modal-main-image-container">
-                        ${allImages[0] ? 
-                            `<img src="${allImages[0]}" alt="${menu.name}" class="modal-main-image" id="modal-main-image-${menu.id}" loading="lazy">` :
-                            `<div class="modal-main-image-placeholder" id="modal-main-image-${menu.id}">
-                                <div style="font-size: 3rem; margin-bottom: 0.5rem; opacity: 0.5;">🍽️</div>
-                                <div>${menu.name || menu.name_thai}</div>
-                            </div>`
-                        }
-                    </div>
-                    
-                    <!-- Thumbnail Images -->
-                    <div class="modal-thumbnail-container">
-                        ${allImages.slice(1, 5).map((imageUrl, index) => `
-                            <div class="modal-thumbnail ${index === 0 ? 'active' : ''}" 
-                                 onclick="changeModalImage('${menu.id}', ${index + 1}, this)"
-                                 data-image-url="${imageUrl || ''}">
-                                ${imageUrl ? 
-                                    `<img src="${imageUrl}" alt="${menu.name} - Image ${index + 2}" loading="lazy">` :
-                                    `<div class="modal-thumbnail-placeholder">📷</div>`
-                                }
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-
-                <!-- Menu Information -->
-                <div style="text-align: center; margin-bottom: 2rem;">
-                    <h2 style="font-size: 1.8rem; font-weight: 700; color: var(--brown); margin-bottom: 0.5rem;">
-                        ${menu.name || menu.name_thai}
-                    </h2>
-                    ${menu.name && menu.name_thai ? `<p style="color: var(--text-gray); margin-bottom: 1rem;">${menu.name_thai}</p>` : ''}
-                    <div style="font-size: 1.5rem; font-weight: 700; color: var(--brown);">
-                        $${parseFloat(menu.base_price).toFixed(2)}
-                    </div>
-                </div>
-
-                <div style="margin-bottom: 2rem;">
-                    <h4 style="font-weight: 600; margin-bottom: 0.8rem; color: var(--brown);">Description</h4>
-                    <p style="color: var(--text-gray); line-height: 1.6;">
-                        ${menu.description || 'Healthy Thai cuisine'}
-                    </p>
-                </div>
-
-                ${menu.ingredients ? `
-                    <div style="margin-bottom: 2rem;">
-                        <h4 style="font-weight: 600; margin-bottom: 0.8rem; color: var(--brown);">Ingredients</h4>
-                        <p style="color: var(--text-gray); line-height: 1.6;">
-                            ${menu.ingredients}
-                        </p>
-                    </div>
-                ` : ''}
-
-                <div style="margin-bottom: 2rem;">
-                    <h4 style="font-weight: 600; margin-bottom: 1rem; color: var(--brown);">Nutritional Information</h4>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 1rem; background: var(--cream); padding: 1.5rem; border-radius: 12px;">
-                        ${menu.calories_per_serving ? `
-                            <div style="text-align: center;">
-                                <div style="font-weight: 700; font-size: 1.2rem; color: var(--brown);">${menu.calories_per_serving}</div>
-                                <div style="font-size: 0.9rem; color: var(--text-gray);">Calories</div>
-                            </div>
-                        ` : ''}
-                        ${menu.protein_g ? `
-                            <div style="text-align: center;">
-                                <div style="font-weight: 700; font-size: 1.2rem; color: var(--brown);">${parseFloat(menu.protein_g).toFixed(1)}g</div>
-                                <div style="font-size: 0.9rem; color: var(--text-gray);">Protein</div>
-                            </div>
-                        ` : ''}
-                        ${menu.carbs_g ? `
-                            <div style="text-align: center;">
-                                <div style="font-weight: 700; font-size: 1.2rem; color: var(--brown);">${parseFloat(menu.carbs_g).toFixed(1)}g</div>
-                                <div style="font-size: 0.9rem; color: var(--text-gray);">Carbohydrates</div>
-                            </div>
-                        ` : ''}
-                        ${menu.fat_g ? `
-                            <div style="text-align: center;">
-                                <div style="font-weight: 700; font-size: 1.2rem; color: var(--brown);">${parseFloat(menu.fat_g).toFixed(1)}g</div>
-                                <div style="font-size: 0.9rem; color: var(--text-gray);">Fat</div>
-                            </div>
-                        ` : ''}
-                        ${menu.fiber_g ? `
-                            <div style="text-align: center;">
-                                <div style="font-weight: 700; font-size: 1.2rem; color: var(--brown);">${parseFloat(menu.fiber_g).toFixed(1)}g</div>
-                                <div style="font-size: 0.9rem; color: var(--text-gray);">Fiber</div>
-                            </div>
-                        ` : ''}
-                        ${menu.sodium_mg ? `
-                            <div style="text-align: center;">
-                                <div style="font-weight: 700; font-size: 1.2rem; color: var(--brown);">${parseFloat(menu.sodium_mg).toFixed(0)}mg</div>
-                                <div style="font-size: 0.9rem; color: var(--text-gray);">Sodium</div>
-                            </div>
-                        ` : ''}
-                    </div>
-                </div>
-
-                ${dietaryTags.length > 0 ? `
-                    <div style="margin-bottom: 2rem;">
-                        <h4 style="font-weight: 600; margin-bottom: 0.8rem; color: var(--brown);">Diet Types</h4>
-                        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
-                            ${dietaryTags.map(tag => `
-                                <span style="background: var(--cream); color: var(--brown); padding: 0.4rem 0.8rem; border-radius: 12px; font-size: 0.85rem; font-weight: 600;">
-                                    ${tag}
-                                </span>
-                            `).join('')}
-                        </div>
-                    </div>
-                ` : ''}
-
-                ${menu.spice_level ? `
-                    <div style="margin-bottom: 2rem;">
-                        <h4 style="font-weight: 600; margin-bottom: 0.8rem; color: var(--brown);">Spice Level</h4>
-                        <div style="display: inline-flex; align-items: center; gap: 0.5rem; background: var(--cream); padding: 0.6rem 1rem; border-radius: 25px;">
-                            <span style="font-size: 1.1rem;">🌶️</span>
-                            <span style="font-weight: 600; color: var(--brown);">
-                                ${spiceLabels[menu.spice_level] || 'Medium'}
-                            </span>
-                        </div>
-                    </div>
-                ` : ''}
-
-                ${healthBenefits.length > 0 ? `
-                    <div style="margin-bottom: 2rem;">
-                        <h4 style="font-weight: 600; margin-bottom: 0.8rem; color: var(--brown);">Health Benefits</h4>
-                        <ul style="color: var(--text-gray); line-height: 1.8; padding-left: 1.5rem;">
-                            ${healthBenefits.map(benefit => `<li>${benefit}</li>`).join('')}
-                        </ul>
-                    </div>
-                ` : ''}
-
-                <div style="text-align: center; margin-top: 2rem;">
-                    ${menu.is_logged_in ? `
-                        <a href="meal-selection.php?single=${menu.id}" class="btn btn-primary" style="font-size: 1.1rem; padding: 0.8rem 2rem;">
-                            🛒 Order This Dish
-                        </a>
-                    ` : `
-                        <a href="register.php?menu=${menu.id}" class="btn btn-primary" style="font-size: 1.1rem; padding: 0.8rem 2rem;">
-                            👤 Sign Up to Order
-                        </a>
-                    `}
+        } catch (error) {
+            console.error('Error loading menu details:', error);
+            modalBody.innerHTML = `
+                <div class="text-center" style="padding: 2rem; color: var(--text-gray);">
+                    <i style="font-size: 2rem; margin-bottom: 1rem;">📶</i>
+                    <h4>Connection Error</h4>
+                    <p>Check your internet connection</p>
                 </div>
             `;
         }
+    }
 
-        function closeMenuModal() {
-            document.getElementById('menuModal').classList.remove('show');
+    function buildMenuModalContent(menu) {
+        const dietaryTags = menu.dietary_tags ? JSON.parse(menu.dietary_tags) : [];
+        const healthBenefits = menu.health_benefits ? JSON.parse(menu.health_benefits) : [];
+        
+        // Parse additional images
+        const additionalImages = menu.additional_images ? JSON.parse(menu.additional_images) : [];
+        
+        // Create image array with main image first, then additional images
+        const allImages = [];
+        if (menu.main_image_url) {
+            allImages.push(menu.main_image_url);
         }
-
-        // Close modal when clicking outside
-        document.getElementById('menuModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeMenuModal();
-            }
-        });
-
-        // 🆕 NEW: Check for show_menu parameter and automatically open modal
-        document.addEventListener('DOMContentLoaded', function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const showMenuId = urlParams.get('show_menu');
-            
-            if (showMenuId) {
-                console.log('Auto-opening modal for menu ID:', showMenuId);
-                // Wait a brief moment for the page to fully load, then show the modal
-                setTimeout(() => {
-                    showMenuModal(showMenuId);
-                    // Remove the parameter from the URL without reloading the page
-                    const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
-                    urlParams.delete('show_menu');
-                    const remainingParams = urlParams.toString();
-                    if (remainingParams) {
-                        window.history.replaceState({}, document.title, newUrl + '?' + remainingParams);
-                    } else {
-                        window.history.replaceState({}, document.title, newUrl);
+        
+        // Add additional images
+        if (additionalImages.length > 0) {
+            allImages.push(...additionalImages);
+        } else {
+            // Mock additional images for demonstration (remove this in production)
+            const mockImages = [
+                'assets/image/sample1.jpg',
+                'assets/image/sample2.jpg',
+                'assets/image/sample3.jpg',
+                'assets/image/sample4.jpg'
+            ];
+            allImages.push(...mockImages);
+        }
+        
+        // Fill up to 5 images with placeholders if needed
+        while (allImages.length < 5) {
+            allImages.push(null);
+        }
+        allImages.splice(5); // Limit to 5 images
+        
+        const spiceLabels = {
+            'mild': 'Mild',
+            'medium': 'Medium', 
+            'hot': 'Hot',
+            'extra_hot': 'Extra Hot'
+        };
+        
+        return `
+            <!-- Image Gallery -->
+            <div class="modal-image-gallery">
+                <!-- Main Image -->
+                <div class="modal-main-image-container">
+                    ${allImages[0] ? 
+                        `<img src="${allImages[0]}" alt="${menu.name}" class="modal-main-image" id="modal-main-image-${menu.id}" loading="lazy">` :
+                        `<div class="modal-main-image-placeholder" id="modal-main-image-${menu.id}">
+                            <div style="font-size: 3rem; margin-bottom: 0.5rem; opacity: 0.5;">🍽️</div>
+                            <div>${menu.name || menu.name_thai}</div>
+                        </div>`
                     }
-                }, 500);
-            }
-        });
+                </div>
+                
+                <!-- Thumbnail Images -->
+                <div class="modal-thumbnail-container">
+                    ${allImages.slice(1, 5).map((imageUrl, index) => `
+                        <div class="modal-thumbnail ${index === 0 ? 'active' : ''}" 
+                             onclick="changeModalImage('${menu.id}', ${index + 1}, this)"
+                             data-image-url="${imageUrl || ''}">
+                            ${imageUrl ? 
+                                `<img src="${imageUrl}" alt="${menu.name} - Image ${index + 2}" loading="lazy">` :
+                                `<div class="modal-thumbnail-placeholder">📷</div>`
+                            }
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
 
-        // Navbar background on scroll
-        window.addEventListener('scroll', function() {
-            const navbar = document.querySelector('.navbar');
-            if (window.scrollY > 100) {
-                navbar.style.background = '#ece8e1';
-            } else {
-                navbar.style.background = '#ece8e1';
-            }
-        });
+            <!-- Menu Information -->
+            <div style="text-align: center; margin-bottom: 2rem;">
+                <h2 style="font-size: 1.8rem; font-weight: 700; color: var(--brown); margin-bottom: 0.5rem;">
+                    ${menu.name || menu.name_thai}
+                </h2>
+                ${menu.name && menu.name_thai ? `<p style="color: var(--text-gray); margin-bottom: 1rem;">${menu.name_thai}</p>` : ''}
+                <div style="font-size: 1.5rem; font-weight: 700; color: var(--brown);">
+                    $${parseFloat(menu.base_price).toFixed(2)}
+                </div>
+            </div>
+
+            <div style="margin-bottom: 2rem;">
+                <h4 style="font-weight: 600; margin-bottom: 0.8rem; color: var(--brown);">Description</h4>
+                <p style="color: var(--text-gray); line-height: 1.6;">
+                    ${menu.description || 'Healthy Thai cuisine'}
+                </p>
+            </div>
+
+            ${menu.ingredients ? `
+                <div style="margin-bottom: 2rem;">
+                    <h4 style="font-weight: 600; margin-bottom: 0.8rem; color: var(--brown);">Ingredients</h4>
+                    <p style="color: var(--text-gray); line-height: 1.6;">
+                        ${menu.ingredients}
+                    </p>
+                </div>
+            ` : ''}
+
+            <div style="margin-bottom: 2rem;">
+                <h4 style="font-weight: 600; margin-bottom: 1rem; color: var(--brown);">Nutritional Information</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 1rem; background: var(--cream); padding: 1.5rem; border-radius: 12px;">
+                    ${menu.calories_per_serving ? `
+                        <div style="text-align: center;">
+                            <div style="font-weight: 700; font-size: 1.2rem; color: var(--brown);">${menu.calories_per_serving}</div>
+                            <div style="font-size: 0.9rem; color: var(--text-gray);">Calories</div>
+                        </div>
+                    ` : ''}
+                    ${menu.protein_g ? `
+                        <div style="text-align: center;">
+                            <div style="font-weight: 700; font-size: 1.2rem; color: var(--brown);">${parseFloat(menu.protein_g).toFixed(1)}g</div>
+                            <div style="font-size: 0.9rem; color: var(--text-gray);">Protein</div>
+                        </div>
+                    ` : ''}
+                    ${menu.carbs_g ? `
+                        <div style="text-align: center;">
+                            <div style="font-weight: 700; font-size: 1.2rem; color: var(--brown);">${parseFloat(menu.carbs_g).toFixed(1)}g</div>
+                            <div style="font-size: 0.9rem; color: var(--text-gray);">Carbohydrates</div>
+                        </div>
+                    ` : ''}
+                    ${menu.fat_g ? `
+                        <div style="text-align: center;">
+                            <div style="font-weight: 700; font-size: 1.2rem; color: var(--brown);">${parseFloat(menu.fat_g).toFixed(1)}g</div>
+                            <div style="font-size: 0.9rem; color: var(--text-gray);">Fat</div>
+                        </div>
+                    ` : ''}
+                    ${menu.fiber_g ? `
+                        <div style="text-align: center;">
+                            <div style="font-weight: 700; font-size: 1.2rem; color: var(--brown);">${parseFloat(menu.fiber_g).toFixed(1)}g</div>
+                            <div style="font-size: 0.9rem; color: var(--text-gray);">Fiber</div>
+                        </div>
+                    ` : ''}
+                    ${menu.sodium_mg ? `
+                        <div style="text-align: center;">
+                            <div style="font-weight: 700; font-size: 1.2rem; color: var(--brown);">${parseFloat(menu.sodium_mg).toFixed(0)}mg</div>
+                            <div style="font-size: 0.9rem; color: var(--text-gray);">Sodium</div>
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+
+            ${dietaryTags.length > 0 ? `
+                <div style="margin-bottom: 2rem;">
+                    <h4 style="font-weight: 600; margin-bottom: 0.8rem; color: var(--brown);">Diet Types</h4>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                        ${dietaryTags.map(tag => `
+                            <span style="background: var(--cream); color: var(--brown); padding: 0.4rem 0.8rem; border-radius: 12px; font-size: 0.85rem; font-weight: 600;">
+                                ${tag}
+                            </span>
+                        `).join('')}
+                    </div>
+                </div>
+            ` : ''}
+
+            ${menu.spice_level ? `
+                <div style="margin-bottom: 2rem;">
+                    <h4 style="font-weight: 600; margin-bottom: 0.8rem; color: var(--brown);">Spice Level</h4>
+                    <div style="display: inline-flex; align-items: center; gap: 0.5rem; background: var(--cream); padding: 0.6rem 1rem; border-radius: 25px;">
+                        <span style="font-size: 1.1rem;">🌶️</span>
+                        <span style="font-weight: 600; color: var(--brown);">
+                            ${spiceLabels[menu.spice_level] || 'Medium'}
+                        </span>
+                    </div>
+                </div>
+            ` : ''}
+
+            ${healthBenefits.length > 0 ? `
+                <div style="margin-bottom: 2rem;">
+                    <h4 style="font-weight: 600; margin-bottom: 0.8rem; color: var(--brown);">Health Benefits</h4>
+                    <ul style="color: var(--text-gray); line-height: 1.8; padding-left: 1.5rem;">
+                        ${healthBenefits.map(benefit => `<li>${benefit}</li>`).join('')}
+                    </ul>
+                </div>
+            ` : ''}
+
+            <div style="text-align: center; margin-top: 2rem;">
+                ${menu.is_logged_in ? `
+                    <a href="meal-selection.php?single=${menu.id}" class="btn btn-primary" style="font-size: 1.1rem; padding: 0.8rem 2rem;">
+                        🛒 Order This Dish
+                    </a>
+                ` : `
+                    <a href="register.php?menu=${menu.id}" class="btn btn-primary" style="font-size: 1.1rem; padding: 0.8rem 2rem;">
+                        👤 Sign Up to Order
+                    </a>
+                `}
+            </div>
+        `;
+    }
+
+    function closeMenuModal() {
+        document.getElementById('menuModal').classList.remove('show');
+    }
+
+    // Close modal when clicking outside
+    document.getElementById('menuModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeMenuModal();
+        }
+    });
     </script>
 </body>
 </html>

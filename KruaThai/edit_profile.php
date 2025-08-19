@@ -1,9 +1,10 @@
 <?php
 /**
- * Krua Thai - Improved Edit Profile Page
+ * Somdul Table - Improved Edit Profile Page
  * File: edit_profile.php
  * Status: PRODUCTION READY ✅
  * Enhanced UX with progressive disclosure, auto-save, and smart validation
+ * UPDATED: Now uses header.php for consistent navigation and styling
  */
 
 error_reporting(E_ALL);
@@ -19,6 +20,9 @@ if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
 require_once 'config/database.php';
 require_once 'includes/functions.php';
 
+// Include the header (contains navbar, promo banner, fonts, and base styles)
+include 'header.php';
+
 $user_id = $_SESSION['user_id'];
 $errors = [];
 $success_message = "";
@@ -28,11 +32,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
     header('Content-Type: application/json');
     $action = $_POST['action'];
 
-error_log("=== DEBUG ===");
+    error_log("=== DEBUG ===");
     error_log("POST data: " . print_r($_POST, true));
     error_log("Dietary: " . print_r($_POST['dietary_preferences'] ?? 'NOT SET', true));
     error_log("Allergies: " . print_r($_POST['allergies'] ?? 'NOT SET', true));
-
 
     $response = ['success' => false, 'errors' => [], 'message' => ''];
 
@@ -132,8 +135,8 @@ error_log("=== DEBUG ===");
                 $city = sanitizeInput($_POST['city'] ?? '');
                 $zip_code = sanitizeInput($_POST['zip_code'] ?? '');
                 $delivery_instructions = sanitizeInput($_POST['delivery_instructions'] ?? '');
-                $dietary_preferences = $_POST['dietary_preferences'] ?? [];$dietary_preferences = isset($_POST['dietary_preferences']) ? json_encode($_POST['dietary_preferences']) : '[]';
-$allergies = isset($_POST['allergies']) ? json_encode($_POST['allergies']) : '[]';    
+                $dietary_preferences = isset($_POST['dietary_preferences']) ? json_encode($_POST['dietary_preferences']) : '[]';
+                $allergies = isset($_POST['allergies']) ? json_encode($_POST['allergies']) : '[]';    
                 $spice_level = sanitizeInput($_POST['spice_level'] ?? 'medium');
 
                 // Enhanced validation
@@ -157,18 +160,18 @@ $allergies = isset($_POST['allergies']) ? json_encode($_POST['allergies']) : '[]
                     $response['errors'][] = ['field' => 'zip_code', 'message' => 'Please enter a valid ZIP code'];
                 }
 
-              if (empty($response['errors'])) {
-    $sql = "UPDATE users SET 
-        first_name = ?, last_name = ?, phone = ?, date_of_birth = ?, gender = ?,
-        delivery_address = ?, city = ?, zip_code = ?, delivery_instructions = ?,
-        dietary_preferences = ?, allergies = ?, spice_level = ?, updated_at = NOW() 
-    WHERE id = ?";
-    $stmt = $pdo->prepare($sql);
-               $stmt->execute([
-    $first_name, $last_name, $phone, $date_of_birth, $gender, 
-    $delivery_address, $city, $zip_code, $delivery_instructions, 
-    $dietary_preferences, $allergies, $spice_level, $user_id
-]);
+                if (empty($response['errors'])) {
+                    $sql = "UPDATE users SET 
+                        first_name = ?, last_name = ?, phone = ?, date_of_birth = ?, gender = ?,
+                        delivery_address = ?, city = ?, zip_code = ?, delivery_instructions = ?,
+                        dietary_preferences = ?, allergies = ?, spice_level = ?, updated_at = NOW() 
+                    WHERE id = ?";
+                    $stmt = $pdo->prepare($sql);
+                    $stmt->execute([
+                        $first_name, $last_name, $phone, $date_of_birth, $gender, 
+                        $delivery_address, $city, $zip_code, $delivery_instructions, 
+                        $dietary_preferences, $allergies, $spice_level, $user_id
+                    ]);
 
                     $response['success'] = true;
                     $response['message'] = "Profile updated successfully! 🎉";
@@ -176,7 +179,7 @@ $allergies = isset($_POST['allergies']) ? json_encode($_POST['allergies']) : '[]
                 }
                 break;
 
-case 'update_preferences':
+            case 'update_preferences':
                 // อัพเดท Food Preferences เท่านั้น
                 $dietary_preferences = isset($_POST['dietary_preferences']) ? json_encode($_POST['dietary_preferences']) : '[]';
                 $allergies = isset($_POST['allergies']) ? json_encode($_POST['allergies']) : '[]';
@@ -272,164 +275,22 @@ $page_title = "Edit Profile";
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo htmlspecialchars($page_title); ?> - Krua Thai</title>
+    <title><?php echo htmlspecialchars($page_title); ?> - Somdul Table</title>
     
-    <!-- BaticaSans Font Import -->
-    <link rel="preconnect" href="https://ydpschool.com">
     <style>
-        @font-face {
-            font-family: 'BaticaSans';
-            src: url('https://ydpschool.com/fonts/BaticaSans-Regular.woff2') format('woff2');
-            font-weight: 400;
-            font-style: normal;
-            font-display: swap;
-        }
+        /* EDIT PROFILE SPECIFIC STYLES ONLY - header styles come from header.php */
         
-        @font-face {
-            font-family: 'BaticaSans';
-            src: url('https://ydpschool.com/fonts/BaticaSans-Bold.woff2') format('woff2');
-            font-weight: 700;
-            font-style: normal;
-            font-display: swap;
-        }
-        
-        @font-face {
-            font-family: 'BaticaSans';
-            src: url('https://ydpschool.com/fonts/BaticaSans-Medium.woff2') format('woff2');
-            font-weight: 500;
-            font-style: normal;
-            font-display: swap;
-        }
-
-        /* Enhanced CSS Custom Properties */
-        :root {
-            --brown: #bd9379;
-            --cream: #ece8e1;
-            --sage: #adb89d;
-            --curry: #cf723a;
-            --white: #ffffff;
-            --text-dark: #2c3e50;
-            --text-gray: #7f8c8d;
-            --border-light: #e8e8e8;
-            --success: #27ae60;
-            --warning: #f39c12;
-            --error: #e74c3c;
-            --info: #3498db;
-            --shadow-soft: 0 4px 12px rgba(189, 147, 121, 0.15);
-            --shadow-medium: 0 8px 24px rgba(189, 147, 121, 0.25);
-            --radius-sm: 8px;
-            --radius-md: 12px;
-            --radius-lg: 16px;
-            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            --z-navbar: 1000;
-            --z-modal: 2000;
-            --z-toast: 3000;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'BaticaSans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            line-height: 1.6;
-            color: var(--text-dark);
-            background-color: var(--cream);
-            font-weight: 400;
-            min-height: 100vh;
-        }
-
-        /* Enhanced Navigation */
-        .navbar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            z-index: var(--z-navbar);
-            transition: var(--transition);
-            box-shadow: var(--shadow-soft);
-        }
-
-        .nav-container {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1rem 2rem;
+        /* Container */
+        .container {
             max-width: 1200px;
             margin: 0 auto;
-        }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 0.8rem;
-            text-decoration: none;
-            color: var(--text-dark);
-        }
-
-        .logo-text {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: var(--curry);
-        }
-
-        .nav-actions {
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-        }
-
-        .btn {
-            padding: 0.8rem 1.5rem;
-            border: none;
-            border-radius: 50px;
-            font-weight: 600;
-            font-family: inherit;
-            text-decoration: none;
-            cursor: pointer;
-            transition: var(--transition);
-            font-size: 0.95rem;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--curry), var(--brown));
-            color: var(--white);
-            box-shadow: var(--shadow-soft);
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-medium);
-        }
-
-        .btn-secondary {
-            background: transparent;
-            color: var(--curry);
-            border: 2px solid var(--curry);
-        }
-
-        .btn-secondary:hover {
-            background: var(--curry);
-            color: var(--white);
+            padding: 2rem;
         }
 
         /* Main Content Layout */
         .main-content {
-            margin-top: 100px;
+            padding-top: 2rem;
             min-height: calc(100vh - 100px);
-            padding: 2rem;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
         }
 
         /* Enhanced Profile Header */
@@ -464,11 +325,14 @@ $page_title = "Edit Profile";
             font-size: 2.5rem;
             font-weight: 700;
             margin-bottom: 0.5rem;
+            color: var(--white) !important;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .profile-header p {
             font-size: 1.2rem;
             opacity: 0.9;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         /* Enhanced Progress Indicator */
@@ -492,6 +356,7 @@ $page_title = "Edit Profile";
             border-radius: var(--radius-md);
             font-weight: 600;
             transition: var(--transition);
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .progress-step.active {
@@ -549,7 +414,7 @@ $page_title = "Edit Profile";
             text-align: left;
             width: 100%;
             background: transparent;
-            font-family: inherit;
+            font-family: 'BaticaSans', sans-serif;
             font-size: 1rem;
             color: var(--text-gray);
             position: relative;
@@ -616,11 +481,13 @@ $page_title = "Edit Profile";
         .section-header h2 {
             font-size: 1.8rem;
             margin-bottom: 0.5rem;
-            color: var(--text-dark);
+            color: var(--brown);
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .section-header p {
             color: var(--text-gray);
+            font-family: 'BaticaSans', sans-serif;
         }
 
         /* Enhanced Form Styles */
@@ -647,6 +514,7 @@ $page_title = "Edit Profile";
             display: flex;
             align-items: center;
             gap: 0.5rem;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .required {
@@ -658,7 +526,7 @@ $page_title = "Edit Profile";
             border: 2px solid var(--border-light);
             border-radius: var(--radius-md);
             font-size: 1rem;
-            font-family: inherit;
+            font-family: 'BaticaSans', sans-serif;
             transition: var(--transition);
             background: var(--white);
         }
@@ -689,6 +557,7 @@ $page_title = "Edit Profile";
             color: var(--success);
             opacity: 0;
             transition: var(--transition);
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .auto-save-indicator.show {
@@ -701,6 +570,7 @@ $page_title = "Edit Profile";
             margin-top: 0.25rem;
             min-height: 1.2rem;
             transition: var(--transition);
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .field-feedback.error {
@@ -787,6 +657,7 @@ $page_title = "Edit Profile";
             cursor: pointer;
             transition: var(--transition);
             border: 2px solid transparent;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .checkbox-item:hover {
@@ -800,10 +671,11 @@ $page_title = "Edit Profile";
         }
 
         .checkbox-item.checked {
-    background: var(--curry);
-    color: var(--white);
-    border-color: var(--curry);
-}
+            background: var(--curry);
+            color: var(--white);
+            border-color: var(--curry);
+        }
+
         /* Spice Level Selector */
         .spice-level-selector {
             display: grid;
@@ -828,6 +700,7 @@ $page_title = "Edit Profile";
             border: 2px solid transparent;
             transition: var(--transition);
             display: block;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .spice-option input[type="radio"]:checked + .spice-label {
@@ -875,6 +748,7 @@ $page_title = "Edit Profile";
             border-radius: var(--radius-md);
             color: var(--white);
             font-weight: 600;
+            font-family: 'BaticaSans', sans-serif;
             box-shadow: var(--shadow-medium);
             transform: translateX(100%);
             opacity: 0;
@@ -962,6 +836,7 @@ $page_title = "Edit Profile";
             gap: 1rem;
             padding: 0.75rem 0;
             border-bottom: 1px solid var(--border-light);
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .info-item:last-child {
@@ -984,6 +859,7 @@ $page_title = "Edit Profile";
             border-radius: 20px;
             font-size: 0.85rem;
             font-weight: 600;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .status-badge.verified,
@@ -1005,6 +881,7 @@ $page_title = "Edit Profile";
             border-radius: var(--radius-md);
             margin-top: 1rem;
             display: none;
+            font-family: 'BaticaSans', sans-serif;
         }
 
         .delivery-zone-warning.show {
@@ -1042,7 +919,6 @@ $page_title = "Edit Profile";
 
         @media (max-width: 768px) {
             .main-content {
-                margin-top: 80px;
                 padding: 1rem;
             }
             
@@ -1077,15 +953,6 @@ $page_title = "Edit Profile";
                 min-width: calc(100vw - 2rem);
                 margin: 0 1rem;
             }
-            
-            .nav-actions {
-                gap: 0.5rem;
-            }
-            
-            .btn {
-                padding: 0.6rem 1rem;
-                font-size: 0.9rem;
-            }
         }
 
         @media (max-width: 480px) {
@@ -1098,57 +965,45 @@ $page_title = "Edit Profile";
                 font-size: 1.8rem;
             }
             
-            .nav-container {
+            .container {
                 padding: 1rem;
             }
         }
     </style>
 </head>
 
-<body>
-    <!-- Navigation -->
-    <nav class="navbar">
-        <div class="nav-container">
-            <a href="home2.php" class="logo">
-                <img src="./assets/image/LOGO_BG.png" alt="Krua Thai" style="height: 40px; width: auto;">
-                <span class="logo-text">Krua Thai</span>
-            </a>
-            
-            <div class="nav-actions">
-                <a href="logout.php" class="btn btn-secondary">Sign Out</a>
-                <a href="dashboard.php" class="btn btn-primary">Dashboard</a>
-            </div>
-        </div>
-    </nav>
+<!-- IMPORTANT: Add has-header class for proper spacing -->
+<body class="has-header">
+    <!-- The header (promo banner + navbar) is already included from header.php -->
 
     <div class="main-content">
-        <!-- Profile Header -->
-        <div class="profile-header">
-            <div class="profile-header-content">
-                <h1>Edit Profile</h1>
-                <p>Manage your account settings and meal preferences</p>
-            </div>
-        </div>
-
-        <!-- Progress Indicator -->
-        <div class="progress-indicator">
-            <div class="progress-step active" data-step="profile">
-                <span class="step-icon">👤</span>
-                <span>Personal Info</span>
-            </div>
-            <div class="progress-connector"></div>
-            <div class="progress-step" data-step="preferences">
-                <span class="step-icon">🍽️</span>
-                <span>Food Preferences</span>
-            </div>
-            <div class="progress-connector"></div>
-            <div class="progress-step" data-step="security">
-                <span class="step-icon">🔒</span>
-                <span>Security</span>
-            </div>
-        </div>
-
         <div class="container">
+            <!-- Profile Header -->
+            <div class="profile-header">
+                <div class="profile-header-content">
+                    <h1>Edit Profile</h1>
+                    <p>Manage your account settings and meal preferences</p>
+                </div>
+            </div>
+
+            <!-- Progress Indicator -->
+            <div class="progress-indicator">
+                <div class="progress-step active" data-step="profile">
+                    <span class="step-icon">👤</span>
+                    <span>Personal Info</span>
+                </div>
+                <div class="progress-connector"></div>
+                <div class="progress-step" data-step="preferences">
+                    <span class="step-icon">🍽️</span>
+                    <span>Food Preferences</span>
+                </div>
+                <div class="progress-connector"></div>
+                <div class="progress-step" data-step="security">
+                    <span class="step-icon">🔒</span>
+                    <span>Security</span>
+                </div>
+            </div>
+
             <div class="profile-layout">
                 <!-- Sidebar Navigation -->
                 <aside class="profile-sidebar">
@@ -1366,8 +1221,8 @@ $page_title = "Edit Profile";
 
                     <!-- Food Preferences Tab -->
                     <div class="tab-content" id="preferences-tab">
-                <form id="preferencesForm">
-    <input type="hidden" name="action" value="update_preferences">
+                        <form id="preferencesForm">
+                            <input type="hidden" name="action" value="update_preferences">
 
                             <div class="section-header">
                                 <h2>Food Preferences</h2>
@@ -1663,393 +1518,395 @@ $page_title = "Edit Profile";
                 document.getElementById(`${targetTab}-tab`).classList.add('active');
                 document.querySelector(`[data-step="${targetTab}"]`).classList.add('active');
                 this.currentTab = targetTab;
-   }
+            }
 
-   setupAutoSave() {
-       const autoSaveFields = document.querySelectorAll('[data-auto-save="true"]');
-       
-       autoSaveFields.forEach(field => {
-           field.addEventListener('input', (e) => {
-               this.handleAutoSave(e.target);
-           });
-       });
-   }
+            setupAutoSave() {
+                const autoSaveFields = document.querySelectorAll('[data-auto-save="true"]');
+                
+                autoSaveFields.forEach(field => {
+                    field.addEventListener('input', (e) => {
+                        this.handleAutoSave(e.target);
+                    });
+                });
+            }
 
-   handleAutoSave(field) {
-       clearTimeout(this.autoSaveTimeout);
-       
-       this.autoSaveTimeout = setTimeout(() => {
-           const formData = new FormData();
-           formData.append('action', 'auto_save');
-           formData.append('field', field.name);
-           formData.append('value', field.value);
+            handleAutoSave(field) {
+                clearTimeout(this.autoSaveTimeout);
+                
+                this.autoSaveTimeout = setTimeout(() => {
+                    const formData = new FormData();
+                    formData.append('action', 'auto_save');
+                    formData.append('field', field.name);
+                    formData.append('value', field.value);
 
-           fetch('edit_profile.php', {
-               method: 'POST',
-               body: formData
-           })
-           .then(response => response.json())
-           .then(data => {
-               if (data.success) {
-                   this.showAutoSaveIndicator(field);
-               }
-           })
-           .catch(console.error);
-       }, 2000); // Auto-save after 2 seconds of inactivity
-   }
+                    fetch('edit_profile.php', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            this.showAutoSaveIndicator(field);
+                        }
+                    })
+                    .catch(console.error);
+                }, 2000); // Auto-save after 2 seconds of inactivity
+            }
 
-   showAutoSaveIndicator(field) {
-       const indicator = field.parentNode.querySelector('.auto-save-indicator');
-       if (indicator) {
-           indicator.classList.add('show');
-           setTimeout(() => {
-               indicator.classList.remove('show');
-           }, 2000);
-       }
-   }
+            showAutoSaveIndicator(field) {
+                const indicator = field.parentNode.querySelector('.auto-save-indicator');
+                if (indicator) {
+                    indicator.classList.add('show');
+                    setTimeout(() => {
+                        indicator.classList.remove('show');
+                    }, 2000);
+                }
+            }
 
-   setupValidation() {
-       const validateFields = document.querySelectorAll('[data-validate]');
-       
-       validateFields.forEach(field => {
-           field.addEventListener('blur', () => this.validateField(field));
-           field.addEventListener('input', () => this.clearFieldError(field));
-       });
+            setupValidation() {
+                const validateFields = document.querySelectorAll('[data-validate]');
+                
+                validateFields.forEach(field => {
+                    field.addEventListener('blur', () => this.validateField(field));
+                    field.addEventListener('input', () => this.clearFieldError(field));
+                });
 
-       // Special handling for ZIP code delivery check
-       const zipField = document.querySelector('[data-check-delivery="true"]');
-       if (zipField) {
-           zipField.addEventListener('blur', () => this.checkDeliveryZone(zipField));
-       }
-   }
+                // Special handling for ZIP code delivery check
+                const zipField = document.querySelector('[data-check-delivery="true"]');
+                if (zipField) {
+                    zipField.addEventListener('blur', () => this.checkDeliveryZone(zipField));
+                }
+            }
 
-   async validateField(field) {
-       const validationType = field.getAttribute('data-validate');
-       const value = field.value.trim();
-       
-       if (!value) return;
+            async validateField(field) {
+                const validationType = field.getAttribute('data-validate');
+                const value = field.value.trim();
+                
+                if (!value) return;
 
-       const formData = new FormData();
-       formData.append('action', 'validate_field');
-       formData.append('field', validationType);
-       formData.append('value', value);
+                const formData = new FormData();
+                formData.append('action', 'validate_field');
+                formData.append('field', validationType);
+                formData.append('value', value);
 
-       try {
-           const response = await fetch('edit_profile.php', {
-               method: 'POST',
-               body: formData
-           });
-           const data = await response.json();
-           
-           this.showFieldFeedback(field, data.errors.length > 0 ? data.errors[0] : data.message, data.success ? 'success' : 'error');
-       } catch (error) {
-           console.error('Validation error:', error);
-       }
-   }
+                try {
+                    const response = await fetch('edit_profile.php', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const data = await response.json();
+                    
+                    this.showFieldFeedback(field, data.errors.length > 0 ? data.errors[0] : data.message, data.success ? 'success' : 'error');
+                } catch (error) {
+                    console.error('Validation error:', error);
+                }
+            }
 
-   async checkDeliveryZone(field) {
-       const zipCode = field.value.trim();
-       if (!zipCode) return;
+            async checkDeliveryZone(field) {
+                const zipCode = field.value.trim();
+                if (!zipCode) return;
 
-       const formData = new FormData();
-       formData.append('action', 'check_delivery_zone');
-       formData.append('zip_code', zipCode);
+                const formData = new FormData();
+                formData.append('action', 'check_delivery_zone');
+                formData.append('zip_code', zipCode);
 
-       try {
-           const response = await fetch('edit_profile.php', {
-               method: 'POST',
-               body: formData
-           });
-           const data = await response.json();
-           
-           const warningDiv = document.getElementById('deliveryZoneWarning');
-           if (data.success) {
-               this.showFieldFeedback(field, data.message, 'success');
-               warningDiv.classList.remove('show');
-           } else {
-               this.showFieldFeedback(field, 'ZIP code checked', 'warning');
-               warningDiv.classList.add('show');
-           }
-       } catch (error) {
-           console.error('Delivery zone check error:', error);
-       }
-   }
+                try {
+                    const response = await fetch('edit_profile.php', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const data = await response.json();
+                    
+                    const warningDiv = document.getElementById('deliveryZoneWarning');
+                    if (data.success) {
+                        this.showFieldFeedback(field, data.message, 'success');
+                        warningDiv.classList.remove('show');
+                    } else {
+                        this.showFieldFeedback(field, 'ZIP code checked', 'warning');
+                        warningDiv.classList.add('show');
+                    }
+                } catch (error) {
+                    console.error('Delivery zone check error:', error);
+                }
+            }
 
-   showFieldFeedback(field, message, type) {
-       const feedback = field.parentNode.querySelector('.field-feedback');
-       if (feedback) {
-           feedback.textContent = message;
-           feedback.className = `field-feedback ${type}`;
-       }
-       
-       field.classList.remove('error', 'success');
-       if (type === 'error') {
-           field.classList.add('error');
-       } else if (type === 'success') {
-           field.classList.add('success');
-       }
-   }
+            showFieldFeedback(field, message, type) {
+                const feedback = field.parentNode.querySelector('.field-feedback');
+                if (feedback) {
+                    feedback.textContent = message;
+                    feedback.className = `field-feedback ${type}`;
+                }
+                
+                field.classList.remove('error', 'success');
+                if (type === 'error') {
+                    field.classList.add('error');
+                } else if (type === 'success') {
+                    field.classList.add('success');
+                }
+            }
 
-   clearFieldError(field) {
-       field.classList.remove('error');
-       const feedback = field.parentNode.querySelector('.field-feedback');
-       if (feedback && feedback.classList.contains('error')) {
-           feedback.textContent = '';
-           feedback.className = 'field-feedback';
-       }
-   }
+            clearFieldError(field) {
+                field.classList.remove('error');
+                const feedback = field.parentNode.querySelector('.field-feedback');
+                if (feedback && feedback.classList.contains('error')) {
+                    feedback.textContent = '';
+                    feedback.className = 'field-feedback';
+                }
+            }
 
-   setupFormSubmissions() {
-       // Profile form
-       document.getElementById('profileForm').addEventListener('submit', (e) => {
-           this.handleFormSubmit(e, 'Profile updated successfully! 🎉');
-       });
+            setupFormSubmissions() {
+                // Profile form
+                document.getElementById('profileForm').addEventListener('submit', (e) => {
+                    this.handleFormSubmit(e, 'Profile updated successfully! 🎉');
+                });
 
-       // Preferences form  
-       document.getElementById('preferencesForm').addEventListener('submit', (e) => {
-           this.handleFormSubmit(e, 'Food preferences saved! 🍽️');
-       });
+                // Preferences form  
+                document.getElementById('preferencesForm').addEventListener('submit', (e) => {
+                    this.handleFormSubmit(e, 'Food preferences saved! 🍽️');
+                });
 
-       // Password form
-       document.getElementById('passwordForm').addEventListener('submit', (e) => {
-           this.handleFormSubmit(e, 'Password changed successfully! 🔒', true);
-       });
-   }
+                // Password form
+                document.getElementById('passwordForm').addEventListener('submit', (e) => {
+                    this.handleFormSubmit(e, 'Password changed successfully! 🔒', true);
+                });
+            }
 
-   async handleFormSubmit(e, successMessage, resetForm = false) {
-       e.preventDefault();
-       
-       const form = e.target;
-       const formData = new FormData(form);
-       const submitBtn = form.querySelector('button[type="submit"]');
-       const btnText = submitBtn.querySelector('.btn-text');
-       const btnLoading = submitBtn.querySelector('.btn-loading');
-       
-       // Show loading state
-       this.setButtonLoading(submitBtn, btnText, btnLoading, true);
-       
-       try {
-           const response = await fetch('edit_profile.php', {
-               method: 'POST',
-               body: formData
-           });
-           const data = await response.json();
-           
-           if (data.success) {
-               this.showToast(data.message || successMessage, 'success');
-               if (resetForm) {
-                   form.reset();
-                   this.resetPasswordToggles();
-               }
-               this.clearFormErrors(form);
-           } else {
-               this.handleFormErrors(form, data.errors);
-           }
-       } catch (error) {
-           this.showToast('Network error. Please try again.', 'error');
-           console.error('Form submission error:', error);
-       } finally {
-           this.setButtonLoading(submitBtn, btnText, btnLoading, false);
-       }
-   }
+            async handleFormSubmit(e, successMessage, resetForm = false) {
+                e.preventDefault();
+                
+                const form = e.target;
+                const formData = new FormData(form);
+                const submitBtn = form.querySelector('button[type="submit"]');
+                const btnText = submitBtn.querySelector('.btn-text');
+                const btnLoading = submitBtn.querySelector('.btn-loading');
+                
+                // Show loading state
+                this.setButtonLoading(submitBtn, btnText, btnLoading, true);
+                
+                try {
+                    const response = await fetch('edit_profile.php', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.showToast(data.message || successMessage, 'success');
+                        if (resetForm) {
+                            form.reset();
+                            this.resetPasswordToggles();
+                        }
+                        this.clearFormErrors(form);
+                    } else {
+                        this.handleFormErrors(form, data.errors);
+                    }
+                } catch (error) {
+                    this.showToast('Network error. Please try again.', 'error');
+                    console.error('Form submission error:', error);
+                } finally {
+                    this.setButtonLoading(submitBtn, btnText, btnLoading, false);
+                }
+            }
 
-   setButtonLoading(button, textEl, loadingEl, isLoading) {
-       if (isLoading) {
-           button.disabled = true;
-           textEl.style.display = 'none';
-           loadingEl.style.display = 'inline';
-       } else {
-           button.disabled = false;
-           textEl.style.display = 'inline';
-           loadingEl.style.display = 'none';
-       }
-   }
+            setButtonLoading(button, textEl, loadingEl, isLoading) {
+                if (isLoading) {
+                    button.disabled = true;
+                    textEl.style.display = 'none';
+                    loadingEl.style.display = 'inline';
+                } else {
+                    button.disabled = false;
+                    textEl.style.display = 'inline';
+                    loadingEl.style.display = 'none';
+                }
+            }
 
-   handleFormErrors(form, errors) {
-       this.clearFormErrors(form);
-       
-       errors.forEach(error => {
-           if (typeof error === 'object' && error.field) {
-               const field = form.querySelector(`[name="${error.field}"]`);
-               if (field) {
-                   this.showFieldFeedback(field, error.message, 'error');
-               }
-           } else {
-               this.showToast(error, 'error');
-           }
-       });
-   }
+            handleFormErrors(form, errors) {
+                this.clearFormErrors(form);
+                
+                errors.forEach(error => {
+                    if (typeof error === 'object' && error.field) {
+                        const field = form.querySelector(`[name="${error.field}"]`);
+                        if (field) {
+                            this.showFieldFeedback(field, error.message, 'error');
+                        }
+                    } else {
+                        this.showToast(error, 'error');
+                    }
+                });
+            }
 
-   clearFormErrors(form) {
-       const fields = form.querySelectorAll('.form-input, .form-select, .form-textarea');
-       fields.forEach(field => {
-           field.classList.remove('error', 'success');
-       });
-       
-       const feedbacks = form.querySelectorAll('.field-feedback');
-       feedbacks.forEach(feedback => {
-           if (feedback.classList.contains('error')) {
-               feedback.textContent = '';
-               feedback.className = 'field-feedback';
-           }
-       });
-   }
+            clearFormErrors(form) {
+                const fields = form.querySelectorAll('.form-input, .form-select, .form-textarea');
+                fields.forEach(field => {
+                    field.classList.remove('error', 'success');
+                });
+                
+                const feedbacks = form.querySelectorAll('.field-feedback');
+                feedbacks.forEach(feedback => {
+                    if (feedback.classList.contains('error')) {
+                        feedback.textContent = '';
+                        feedback.className = 'field-feedback';
+                    }
+                });
+            }
 
-   setupPasswordToggle() {
-       window.togglePassword = (fieldId) => {
-           const field = document.getElementById(fieldId);
-           const toggle = field.nextElementSibling;
-           
-           if (field.type === 'password') {
-               field.type = 'text';
-               toggle.textContent = '🙈';
-           } else {
-               field.type = 'password';
-               toggle.textContent = '👁️';
-           }
-       };
+            setupPasswordToggle() {
+                window.togglePassword = (fieldId) => {
+                    const field = document.getElementById(fieldId);
+                    const toggle = field.nextElementSibling;
+                    
+                    if (field.type === 'password') {
+                        field.type = 'text';
+                        toggle.textContent = '🙈';
+                    } else {
+                        field.type = 'password';
+                        toggle.textContent = '👁️';
+                    }
+                };
 
-       window.resetPasswordForm = () => {
-           document.getElementById('passwordForm').reset();
-           this.resetPasswordToggles();
-           this.updatePasswordStrength('');
-       };
-   }
+                window.resetPasswordForm = () => {
+                    document.getElementById('passwordForm').reset();
+                    this.resetPasswordToggles();
+                    this.updatePasswordStrength('');
+                };
+            }
 
-   resetPasswordToggles() {
-       ['current_password', 'new_password', 'confirm_password'].forEach(id => {
-           const field = document.getElementById(id);
-           if (field) {
-               const toggle = field.nextElementSibling;
-               field.type = 'password';
-               toggle.textContent = '👁️';
-           }
-       });
-   }
+            resetPasswordToggles() {
+                ['current_password', 'new_password', 'confirm_password'].forEach(id => {
+                    const field = document.getElementById(id);
+                    if (field) {
+                        const toggle = field.nextElementSibling;
+                        field.type = 'password';
+                        toggle.textContent = '👁️';
+                    }
+                });
+            }
 
-   setupPasswordStrength() {
-       const passwordField = document.getElementById('new_password');
-       const confirmField = document.getElementById('confirm_password');
-       
-       if (passwordField) {
-           passwordField.addEventListener('input', (e) => {
-               this.updatePasswordStrength(e.target.value);
-           });
-       }
+            setupPasswordStrength() {
+                const passwordField = document.getElementById('new_password');
+                const confirmField = document.getElementById('confirm_password');
+                
+                if (passwordField) {
+                    passwordField.addEventListener('input', (e) => {
+                        this.updatePasswordStrength(e.target.value);
+                    });
+                }
 
-       if (confirmField) {
-           confirmField.addEventListener('input', (e) => {
-               this.validatePasswordMatch();
-           });
-       }
-   }
+                if (confirmField) {
+                    confirmField.addEventListener('input', (e) => {
+                        this.validatePasswordMatch();
+                    });
+                }
+            }
 
-   updatePasswordStrength(password) {
-       const strengthBar = document.getElementById('passwordStrengthBar');
-       if (!strengthBar) return;
+            updatePasswordStrength(password) {
+                const strengthBar = document.getElementById('passwordStrengthBar');
+                if (!strengthBar) return;
 
-       let strength = 0;
-       
-       if (password.length >= 8) strength++;
-       if (/[a-z]/.test(password)) strength++;
-       if (/[A-Z]/.test(password)) strength++;
-       if (/\d/.test(password)) strength++;
-       if (/[^a-zA-Z\d]/.test(password)) strength++;
+                let strength = 0;
+                
+                if (password.length >= 8) strength++;
+                if (/[a-z]/.test(password)) strength++;
+                if (/[A-Z]/.test(password)) strength++;
+                if (/\d/.test(password)) strength++;
+                if (/[^a-zA-Z\d]/.test(password)) strength++;
 
-       strengthBar.className = 'password-strength-bar';
-       
-       if (strength <= 2) {
-           strengthBar.classList.add('weak');
-       } else if (strength <= 4) {
-           strengthBar.classList.add('medium');
-       } else {
-           strengthBar.classList.add('strong');
-       }
-   }
+                strengthBar.className = 'password-strength-bar';
+                
+                if (strength <= 2) {
+                    strengthBar.classList.add('weak');
+                } else if (strength <= 4) {
+                    strengthBar.classList.add('medium');
+                } else {
+                    strengthBar.classList.add('strong');
+                }
+            }
 
-   validatePasswordMatch() {
-       const newPassword = document.getElementById('new_password').value;
-       const confirmPassword = document.getElementById('confirm_password').value;
-       const confirmField = document.getElementById('confirm_password');
-       
-       if (confirmPassword && newPassword !== confirmPassword) {
-           this.showFieldFeedback(confirmField, 'Passwords do not match', 'error');
-       } else if (confirmPassword && newPassword === confirmPassword) {
-           this.showFieldFeedback(confirmField, 'Passwords match', 'success');
-       }
-   }
+            validatePasswordMatch() {
+                const newPassword = document.getElementById('new_password').value;
+                const confirmPassword = document.getElementById('confirm_password').value;
+                const confirmField = document.getElementById('confirm_password');
+                
+                if (confirmPassword && newPassword !== confirmPassword) {
+                    this.showFieldFeedback(confirmField, 'Passwords do not match', 'error');
+                } else if (confirmPassword && newPassword === confirmPassword) {
+                    this.showFieldFeedback(confirmField, 'Passwords match', 'success');
+                }
+            }
 
-   showToast(message, type = 'success') {
-       const container = document.getElementById('toastContainer');
-       const toast = document.createElement('div');
-       
-       const icons = {
-           success: '✅',
-           error: '❌',
-           warning: '⚠️',
-           info: 'ℹ️'
-       };
-       
-       toast.className = `toast ${type}`;
-       toast.innerHTML = `
-           <span>${icons[type]} ${message}</span>
-           <button class="toast-close" onclick="this.parentElement.remove()">×</button>
-       `;
-       
-       container.appendChild(toast);
-       
-       // Trigger animation
-       setTimeout(() => toast.classList.add('show'), 100);
-       
-       // Auto remove after 5 seconds
-       setTimeout(() => {
-           if (toast.parentElement) {
-               toast.classList.remove('show');
-               setTimeout(() => toast.remove(), 300);
-           }
-       }, 5000);
-   }
-  setupCheckboxStyles() {
-       const checkboxes = document.querySelectorAll('.checkbox-item input[type="checkbox"]');
-       checkboxes.forEach(checkbox => {
-           const updateStyle = () => {
-               const label = checkbox.closest('.checkbox-item');
-               if (checkbox.checked) {
-                   label.classList.add('checked');
-               } else {
-                   label.classList.remove('checked');
-               }
-           };
-           
-           checkbox.addEventListener('change', updateStyle);
-           updateStyle(); // Initial check
-       });
-   }
+            showToast(message, type = 'success') {
+                const container = document.getElementById('toastContainer');
+                const toast = document.createElement('div');
+                
+                const icons = {
+                    success: '✅',
+                    error: '❌',
+                    warning: '⚠️',
+                    info: 'ℹ️'
+                };
+                
+                toast.className = `toast ${type}`;
+                toast.innerHTML = `
+                    <span>${icons[type]} ${message}</span>
+                    <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+                `;
+                
+                container.appendChild(toast);
+                
+                // Trigger animation
+                setTimeout(() => toast.classList.add('show'), 100);
+                
+                // Auto remove after 5 seconds
+                setTimeout(() => {
+                    if (toast.parentElement) {
+                        toast.classList.remove('show');
+                        setTimeout(() => toast.remove(), 300);
+                    }
+                }, 5000);
+            }
 
-}
+            setupCheckboxStyles() {
+                const checkboxes = document.querySelectorAll('.checkbox-item input[type="checkbox"]');
+                checkboxes.forEach(checkbox => {
+                    const updateStyle = () => {
+                        const label = checkbox.closest('.checkbox-item');
+                        if (checkbox.checked) {
+                            label.classList.add('checked');
+                        } else {
+                            label.classList.remove('checked');
+                        }
+                    };
+                    
+                    checkbox.addEventListener('change', updateStyle);
+                    updateStyle(); // Initial check
+                });
+            }
+        }
 
-// Initialize the profile manager when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-   new ProfileManager();
-});
+        // Initialize the profile manager when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            new ProfileManager();
+        });
 
-// Phone number formatting
-document.getElementById('phone').addEventListener('input', function(e) {
-   let value = e.target.value.replace(/\D/g, '');
-   if (value.length >= 6) {
-       value = value.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3');
-   } else if (value.length >= 3) {
-       value = value.replace(/(\d{3})(\d+)/, '($1) $2');
-   }
-   e.target.value = value;
-});
+        // Phone number formatting
+        document.getElementById('phone').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length >= 6) {
+                value = value.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3');
+            } else if (value.length >= 3) {
+                value = value.replace(/(\d{3})(\d+)/, '($1) $2');
+            }
+            e.target.value = value;
+        });
 
-// ZIP code formatting
-document.getElementById('zip_code').addEventListener('input', function(e) {
-   let value = e.target.value.replace(/\D/g, '');
-   if (value.length > 5) {
-       value = value.replace(/(\d{5})(\d{4})/, '$1-$2');
-   }
-   e.target.value = value;
-});
-</script>
+        // ZIP code formatting
+        document.getElementById('zip_code').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length > 5) {
+                value = value.replace(/(\d{5})(\d{4})/, '$1-$2');
+            }
+            e.target.value = value;
+        });
+    </script>
+</body>
+</html>
