@@ -67,6 +67,18 @@ function autoFixMenuNutrition($pdo, $menu_id, $menu_name) {
     
     return $nutrition;
 }
+function getNutritionTargets($goal_type = 'maintenance') {
+    $targets = [
+        'weight_loss' => ['calories' => 1600, 'protein' => 120, 'carbs' => 150, 'fat' => 55],
+        'maintenance' => ['calories' => 2000, 'protein' => 150, 'carbs' => 250, 'fat' => 65],
+        'muscle_gain' => ['calories' => 2400, 'protein' => 180, 'carbs' => 300, 'fat' => 80],
+        'healthy_thai' => ['calories' => 1800, 'protein' => 135, 'carbs' => 225, 'fat' => 60]
+    ];
+    
+    return $targets[$goal_type] ?? $targets['maintenance'];
+}
+
+
 function syncLatestOrdersToNutrition($pdo, $user_id) {
     $stmt = $pdo->prepare("
         INSERT IGNORE INTO subscription_menus (id, subscription_id, menu_id, delivery_date, quantity, status, created_at)
@@ -144,10 +156,19 @@ function calculateDailyNutritionFromSubscription($pdo, $user_id, $date) {
         $totals['meals'][] = $meal;
     }
     
-    $totals['calories_percent'] = round(($totals['calories'] / 2000) * 100);
-    $totals['protein_percent'] = round(($totals['protein'] / 150) * 100);
-    $totals['carbs_percent'] = round(($totals['carbs'] / 250) * 100);
-    $totals['fat_percent'] = round(($totals['fat'] / 65) * 100);
+   // ✅ ใช้ goal จริงจาก session
+$goal_type = $_SESSION['nutrition_goal'] ?? 'maintenance';
+$targets = getNutritionTargets($goal_type);
+
+$totals['calories_percent'] = round(($totals['calories'] / $targets['calories']) * 100);
+$totals['protein_percent'] = round(($totals['protein'] / $targets['protein']) * 100);
+$totals['carbs_percent'] = round(($totals['carbs'] / $targets['carbs']) * 100);
+$totals['fat_percent'] = round(($totals['fat'] / $targets['fat']) * 100);
+
+// เพิ่มข้อมูล targets
+$totals['targets'] = $targets;
+$totals['goal_type'] = $goal_type;
+
     
     $totals['message'] = getNutritionMessage($totals);
     $totals['status_color'] = getNutritionColor($totals['calories_percent']);
@@ -996,6 +1017,322 @@ include 'header.php';
             border: 2px solid var(--text-dark);
         }
     }
+    
+/* ========================
+   IMPROVED MEALS SECTION 
+   ======================== */
+
+/* Meals Header */
+.meals-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.meals-summary {
+    color: var(--text-gray);
+    font-weight: 600;
+    font-size: 0.95rem;
+    background: var(--cream);
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-md);
+}
+
+/* Improved Meals Grid */
+.meals-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+/* Enhanced Meal Card */
+.meal-card {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-soft);
+    border: 1px solid var(--border-light);
+    transition: var(--transition);
+    position: relative;
+}
+
+.meal-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-medium);
+}
+
+/* Meal Number Badge */
+.meal-number {
+    position: absolute;
+    top: 0.75rem;
+    left: 0.75rem;
+    background: var(--curry);
+    color: var(--white);
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+    z-index: 2;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+/* Image Container */
+.meal-image-container {
+    position: relative;
+    width: 100%;
+    height: 180px;
+    overflow: hidden;
+    background: linear-gradient(135deg, var(--cream), var(--sage));
+}
+
+.meal-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.meal-card:hover .meal-image {
+    transform: scale(1.05);
+}
+
+.meal-image-fallback {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-gray);
+    font-size: 2.5rem;
+    opacity: 0.5;
+}
+
+/* Quantity Badge */
+.quantity-badge {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    background: rgba(0,0,0,0.8);
+    color: var(--white);
+    padding: 0.3rem 0.6rem;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    font-size: 0.8rem;
+    z-index: 2;
+}
+
+/* Meal Content */
+.meal-content {
+    padding: 1.25rem;
+}
+
+.meal-name {
+    font-weight: 700;
+    font-family: 'BaticaSans', sans-serif;
+    color: var(--text-dark);
+    margin-bottom: 0.3rem;
+    font-size: 1.05rem;
+    line-height: 1.3;
+}
+
+.meal-name-thai {
+    color: var(--text-gray);
+    font-size: 0.9rem;
+    font-style: italic;
+    margin-bottom: 0.75rem;
+    font-family: 'BaticaSans', sans-serif;
+}
+
+/* Main Calories Display */
+.meal-calories {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--curry);
+    margin-bottom: 1rem;
+    padding: 0.5rem;
+    background: rgba(207, 114, 58, 0.1);
+    border-radius: var(--radius-md);
+}
+
+.meal-calories i {
+    color: #e74c3c;
+}
+
+/* Nutrition Grid */
+.meal-nutrition-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.meal-nutrition-grid .nutrition-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+    padding: 0.4rem;
+    background: var(--cream);
+    border-radius: var(--radius-sm);
+    transition: var(--transition);
+}
+
+.meal-nutrition-grid .nutrition-item:hover {
+    background: rgba(207, 114, 58, 0.1);
+}
+
+.meal-nutrition-grid .nutrition-item i {
+    font-size: 0.9rem;
+}
+
+.meal-nutrition-grid .nutrition-item span {
+    font-weight: 600;
+    color: var(--text-dark);
+}
+
+.meal-nutrition-grid .nutrition-item small {
+    color: var(--text-gray);
+    font-size: 0.75rem;
+    margin-left: auto;
+}
+
+/* Meals Footer Summary */
+.meals-footer {
+    border-top: 1px solid var(--border-light);
+    padding-top: 1.5rem;
+    margin-top: 1rem;
+}
+
+.summary-stats {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    flex-wrap: wrap;
+}
+
+.summary-stats .stat {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    font-size: 0.95rem;
+}
+
+.summary-stats .stat i {
+    font-size: 1rem;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .meals-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .meals-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .meal-nutrition-grid {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+    
+    .summary-stats {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: center;
+    }
+    
+    .meals-summary {
+        align-self: stretch;
+        text-align: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .meal-image-container {
+        height: 150px;
+    }
+    
+    .meal-content {
+        padding: 1rem;
+    }
+    
+    .meal-number {
+        width: 24px;
+        height: 24px;
+        font-size: 0.8rem;
+        top: 0.5rem;
+        left: 0.5rem;
+    }
+    
+    .quantity-badge {
+        top: 0.5rem;
+        right: 0.5rem;
+        padding: 0.2rem 0.5rem;
+        font-size: 0.75rem;
+    }
+}
+
+/* Animation for meal cards loading */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.meal-card {
+    animation: fadeInUp 0.5s ease forwards;
+}
+
+.meal-card:nth-child(2) { animation-delay: 0.1s; }
+.meal-card:nth-child(3) { animation-delay: 0.2s; }
+.meal-card:nth-child(4) { animation-delay: 0.3s; }
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .meal-card {
+        border: 2px solid var(--text-dark);
+    }
+    
+    .meal-nutrition-grid .nutrition-item {
+        border: 1px solid var(--border-light);
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .meal-card,
+    .meal-image {
+        transition: none;
+        animation: none;
+    }
+    
+    .meal-card:hover {
+        transform: none;
+    }
+}
+
     </style>
 </head>
 
@@ -1020,147 +1357,243 @@ include 'header.php';
                         Hello <?= htmlspecialchars($user_info['first_name'] ?? 'there') ?>! Here's your nutrition summary for today
                     </p>
                 </div>
-
-                <?php if ($today_nutrition['meals_count'] > 0): ?>
-                    <div class="nutrition-grid">
-                        <!-- Calories Card -->
-                        <div class="nutrition-card">
-                            <div class="nutrition-card-header">
-                                <div class="nutrition-card-title">
-                                    <i class="fas fa-fire"></i>
-                                    Calories
-                                </div>
-                            </div>
-                            
-                            <div class="nutrition-item">
-                                <div class="nutrition-label">
-                                    <div class="nutrition-name">
-                                        <i class="fas fa-drumstick-bite" style="color: #8e44ad;"></i>
-                                        Protein
-                                    </div>
-                                    <div class="nutrition-value"><?= number_format($today_nutrition['protein'], 1) ?>g</div>
-                                </div>
-                                <div class="progress-bar">
-                                    <div class="progress-fill <?= $today_nutrition['protein_percent'] < 50 ? 'low' : ($today_nutrition['protein_percent'] < 80 ? 'medium' : 'good') ?>" 
-                                         style="width: <?= min($today_nutrition['protein_percent'], 100) ?>%"></div>
-                                </div>
-                            </div>
-
-                            <div class="nutrition-item">
-                                <div class="nutrition-label">
-                                    <div class="nutrition-name">
-                                        <i class="fas fa-bread-slice" style="color: #f39c12;"></i>
-                                        Carbs
-                                    </div>
-                                    <div class="nutrition-value"><?= number_format($today_nutrition['carbs'], 1) ?>g</div>
-                                </div>
-                                <div class="progress-bar">
-                                    <div class="progress-fill <?= $today_nutrition['carbs_percent'] < 50 ? 'low' : ($today_nutrition['carbs_percent'] < 80 ? 'medium' : 'good') ?>" 
-                                         style="width: <?= min($today_nutrition['carbs_percent'], 100) ?>%"></div>
-                                </div>
-                            </div>
-
-                            <div class="nutrition-item">
-                                <div class="nutrition-label">
-                                    <div class="nutrition-name">
-                                        <i class="fas fa-tint" style="color: #27ae60;"></i>
-                                        Fat
-                                    </div>
-                                    <div class="nutrition-value"><?= number_format($today_nutrition['fat'], 1) ?>g</div>
-                                </div>
-                                <div class="progress-bar">
-                                    <div class="progress-fill <?= $today_nutrition['fat_percent'] < 50 ? 'low' : ($today_nutrition['fat_percent'] < 80 ? 'medium' : 'good') ?>" 
-                                         style="width: <?= min($today_nutrition['fat_percent'], 100) ?>%"></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Today's Stats -->
-                        <div class="nutrition-card">
-                            <div class="nutrition-card-header">
-                                <div class="nutrition-card-title">
-                                    <i class="fas fa-chart-bar"></i>
-                                    Today's Stats
-                                </div>
-                            </div>
-                            
-                            <div class="stats-grid">
-                                <div class="stat-item">
-                                    <div class="stat-value"><?= $today_nutrition['meals_count'] ?></div>
-                                    <div class="stat-label">Meals</div>
-                                </div>
-                                <div class="stat-item">
-                                    <div class="stat-value"><?= number_format($today_nutrition['fiber'], 1) ?></div>
-                                    <div class="stat-label">Fiber (g)</div>
-                                </div>
-                                <div class="stat-item">
-                                    <div class="stat-value"><?= number_format($today_nutrition['sodium'] / 1000, 1) ?></div>
-                                    <div class="stat-label">Sodium (g)</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Nutrition Message -->
-                    <div class="nutrition-message">
-                        <div class="nutrition-message-text">
-                            <?= htmlspecialchars($today_nutrition['message']) ?>
-                        </div>
-                    </div>
-
-                    <!-- Today's Meals -->
-                    <div class="meals-section">
-                        <h3 class="card-title">
-                            <i class="fas fa-utensils"></i>
-                            Today's Meals
-                        </h3>
-                        
-                        <div class="meals-grid">
-                            <?php foreach ($today_nutrition['meals'] as $meal): ?>
-                                <div class="meal-card">
-                                    <?php if ($meal['main_image_url']): ?>
-                                        <img src="<?= htmlspecialchars($meal['main_image_url']) ?>" 
-                                             alt="<?= htmlspecialchars($meal['name'] ?? $meal['name_thai']) ?>" 
-                                             class="meal-image" 
-                                             onerror="this.style.display='none'">
-                                    <?php else: ?>
-                                        <div class="meal-image" style="display: flex; align-items: center; justify-content: center; color: var(--text-gray);">
-                                            <i class="fas fa-utensils" style="font-size: 2rem;"></i>
-                                        </div>
-                                    <?php endif; ?>
-                                    
-                                    <div class="meal-content">
-                                        <div class="meal-name">
-                                            <?= htmlspecialchars($meal['name'] ?? $meal['name_thai']) ?>
-                                            <?php if ($meal['quantity'] > 1): ?>
-                                                <span style="color: var(--curry); font-weight: 700;">(×<?= $meal['quantity'] ?>)</span>
-                                            <?php endif; ?>
-                                        </div>
-                                        
-                                        <div class="meal-nutrition">
-                                            <span><i class="fas fa-fire" style="color: #e74c3c;"></i> <?= $meal['calories_per_serving'] * $meal['quantity'] ?> cal</span>
-                                            <span><i class="fas fa-drumstick-bite" style="color: #8e44ad;"></i> <?= number_format($meal['protein_g'] * $meal['quantity'], 1) ?>g</span>
-                                            <span><i class="fas fa-bread-slice" style="color: #f39c12;"></i> <?= number_format($meal['carbs_g'] * $meal['quantity'], 1) ?>g</span>
-                                            <span><i class="fas fa-tint" style="color: #27ae60;"></i> <?= number_format($meal['fat_g'] * $meal['quantity'], 1) ?>g</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
-                    </div>
-
-                <?php else: ?>
-                    <div class="empty-state">
-                        <i class="fas fa-utensils"></i>
-                        <h3>No Meals Today</h3>
-                        <p>You haven't ordered any meals for today yet</p>
-                        <a href="subscribe.php" class="btn">
-                            <i class="fas fa-plus"></i>
-                            Order Meal Plan
-                        </a>
-                    </div>
-                <?php endif; ?>
+<?php if ($today_nutrition['meals_count'] > 0): ?>
+    <div class="nutrition-grid">
+        <!-- Nutrition Progress Card -->
+        <div class="nutrition-card">
+            <div class="nutrition-card-header">
+                <div class="nutrition-card-title">
+                    <i class="fas fa-fire"></i>
+                    Nutrition Progress
+                </div>
             </div>
+            
+            <!-- Calories -->
+            <div class="nutrition-item">
+                <div class="nutrition-label">
+                    <div class="nutrition-name">
+                        <i class="fas fa-fire" style="color: #e74c3c;"></i>
+                        Calories
+                    </div>
+                    <div class="nutrition-value">
+                        <?= number_format($today_nutrition['calories']) ?> / <?= $today_nutrition['targets']['calories'] ?? 2000 ?> kcal
+                    </div>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill <?= $today_nutrition['calories_percent'] < 50 ? 'low' : ($today_nutrition['calories_percent'] < 80 ? 'medium' : 'good') ?>" 
+                         style="width: <?= min($today_nutrition['calories_percent'], 100) ?>%"></div>
+                </div>
+            </div>
+
+            <!-- Protein -->
+            <div class="nutrition-item">
+                <div class="nutrition-label">
+                    <div class="nutrition-name">
+                        <i class="fas fa-drumstick-bite" style="color: #8e44ad;"></i>
+                        Protein
+                    </div>
+                    <div class="nutrition-value">
+                        <?= number_format($today_nutrition['protein'], 1) ?>g / <?= $today_nutrition['targets']['protein'] ?? 150 ?>g
+                    </div>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill <?= $today_nutrition['protein_percent'] < 50 ? 'low' : ($today_nutrition['protein_percent'] < 80 ? 'medium' : 'good') ?>" 
+                         style="width: <?= min($today_nutrition['protein_percent'], 100) ?>%"></div>
+                </div>
+            </div>
+
+            <!-- Carbs -->
+            <div class="nutrition-item">
+                <div class="nutrition-label">
+                    <div class="nutrition-name">
+                        <i class="fas fa-bread-slice" style="color: #f39c12;"></i>
+                        Carbs
+                    </div>
+                    <div class="nutrition-value">
+                        <?= number_format($today_nutrition['carbs'], 1) ?>g / <?= $today_nutrition['targets']['carbs'] ?? 250 ?>g
+                    </div>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill <?= $today_nutrition['carbs_percent'] < 50 ? 'low' : ($today_nutrition['carbs_percent'] < 80 ? 'medium' : 'good') ?>" 
+                         style="width: <?= min($today_nutrition['carbs_percent'], 100) ?>%"></div>
+                </div>
+            </div>
+
+            <!-- Fat -->
+            <div class="nutrition-item">
+                <div class="nutrition-label">
+                    <div class="nutrition-name">
+                        <i class="fas fa-tint" style="color: #27ae60;"></i>
+                        Fat
+                    </div>
+                    <div class="nutrition-value">
+                        <?= number_format($today_nutrition['fat'], 1) ?>g / <?= $today_nutrition['targets']['fat'] ?? 65 ?>g
+                    </div>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill <?= $today_nutrition['fat_percent'] < 50 ? 'low' : ($today_nutrition['fat_percent'] < 80 ? 'medium' : 'good') ?>" 
+                         style="width: <?= min($today_nutrition['fat_percent'], 100) ?>%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Today's Stats Card -->
+        <div class="nutrition-card">
+            <div class="nutrition-card-header">
+                <div class="nutrition-card-title">
+                    <i class="fas fa-chart-bar"></i>
+                    Today's Stats
+                </div>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-value"><?= $today_nutrition['meals_count'] ?></div>
+                    <div class="stat-label">Meals</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value"><?= number_format($today_nutrition['fiber'], 1) ?></div>
+                    <div class="stat-label">Fiber (g)</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value"><?= number_format($today_nutrition['sodium'] / 1000, 1) ?></div>
+                    <div class="stat-label">Sodium (g)</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ลบ Nutrition Message ออก เพื่อประหยัดพื้นที่ -->
+
+    <!-- Today's Meals Section - IMPROVED VERSION -->
+    <div class="meals-section">
+        <div class="meals-header">
+            <h3 class="card-title">
+                <i class="fas fa-utensils"></i>
+                Today's Meals (<?= count($today_nutrition['meals']) ?>)
+            </h3>
+            <div class="meals-summary">
+                Total: <?= number_format($today_nutrition['calories']) ?> calories
+            </div>
+        </div>
+        
+        <div class="meals-grid">
+            <?php foreach ($today_nutrition['meals'] as $index => $meal): ?>
+                <div class="meal-card" data-meal-index="<?= $index ?>">
+                    <!-- Meal Number Badge -->
+                    <div class="meal-number">
+                        <?= $index + 1 ?>
+                    </div>
+                    
+                    <!-- Meal Image -->
+                    <div class="meal-image-container">
+                        <?php if ($meal['main_image_url']): ?>
+                            <img src="<?= htmlspecialchars($meal['main_image_url']) ?>" 
+                                 alt="<?= htmlspecialchars($meal['name'] ?? $meal['name_thai']) ?>" 
+                                 class="meal-image" 
+                                 loading="lazy"
+                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            <!-- Fallback icon (hidden by default) -->
+                            <div class="meal-image-fallback" style="display: none;">
+                                <i class="fas fa-utensils"></i>
+                            </div>
+                        <?php else: ?>
+                            <div class="meal-image-fallback">
+                                <i class="fas fa-utensils"></i>
+                            </div>
+                        <?php endif; ?>
+                        
+                        <!-- Quantity Badge (if more than 1) -->
+                        <?php if ($meal['quantity'] > 1): ?>
+                            <div class="quantity-badge">
+                                ×<?= $meal['quantity'] ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                    
+                    <!-- Meal Content -->
+                    <div class="meal-content">
+                        <!-- Meal Name -->
+                        <div class="meal-name">
+                            <?= htmlspecialchars($meal['name'] ?? $meal['name_thai']) ?>
+                        </div>
+                        
+                        <!-- Thai Name (if different) -->
+                        <?php if (!empty($meal['name_thai']) && $meal['name'] !== $meal['name_thai']): ?>
+                            <div class="meal-name-thai">
+                                <?= htmlspecialchars($meal['name_thai']) ?>
+                            </div>
+                        <?php endif; ?>
+                        
+                        <!-- Main Nutrition Info -->
+                        <div class="meal-calories">
+                            <i class="fas fa-fire"></i>
+                            <?= number_format($meal['calories_per_serving'] * $meal['quantity']) ?> cal
+                        </div>
+                        
+                        <!-- Detailed Nutrition Grid -->
+                        <div class="meal-nutrition-grid">
+                            <div class="nutrition-item">
+                                <i class="fas fa-drumstick-bite" style="color: #8e44ad;"></i>
+                                <span><?= number_format($meal['protein_g'] * $meal['quantity'], 1) ?>g</span>
+                                <small>Protein</small>
+                            </div>
+                            <div class="nutrition-item">
+                                <i class="fas fa-bread-slice" style="color: #f39c12;"></i>
+                                <span><?= number_format($meal['carbs_g'] * $meal['quantity'], 1) ?>g</span>
+                                <small>Carbs</small>
+                            </div>
+                            <div class="nutrition-item">
+                                <i class="fas fa-tint" style="color: #27ae60;"></i>
+                                <span><?= number_format($meal['fat_g'] * $meal['quantity'], 1) ?>g</span>
+                                <small>Fat</small>
+                            </div>
+                            <?php if ($meal['fiber_g'] > 0): ?>
+                            <div class="nutrition-item">
+                                <i class="fas fa-leaf" style="color: #27ae60;"></i>
+                                <span><?= number_format($meal['fiber_g'] * $meal['quantity'], 1) ?>g</span>
+                                <small>Fiber</small>
+                            </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+        
+        <!-- Meals Summary Footer -->
+        <div class="meals-footer">
+            <div class="summary-stats">
+                <div class="stat">
+                    <i class="fas fa-utensils" style="color: var(--curry);"></i>
+                    <span><?= count($today_nutrition['meals']) ?> meals</span>
+                </div>
+                <div class="stat">
+                    <i class="fas fa-fire" style="color: #e74c3c;"></i>
+                    <span><?= number_format($today_nutrition['calories']) ?> cal total</span>
+                </div>
+                <div class="stat">
+                    <i class="fas fa-chart-line" style="color: var(--sage);"></i>
+                    <span><?= $today_nutrition['calories_percent'] ?>% of goal</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<?php else: ?>
+    <div class="empty-state">
+        <i class="fas fa-utensils"></i>
+        <h3>No Meals Today</h3>
+        <p>You haven't ordered any meals for today yet</p>
+        <a href="subscribe.php" class="btn">
+            <i class="fas fa-plus"></i>
+            Order Meal Plan
+        </a>
+    </div>
+<?php endif; ?>
+
+
+                 
 
             <!-- Weekly Overview -->
             <div class="main-card">
