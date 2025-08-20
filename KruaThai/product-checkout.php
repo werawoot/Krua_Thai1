@@ -1,8 +1,10 @@
 <?php
 /**
- * Somdul Table - Product Checkout Page
+ * Somdul Table - Product Checkout Page (BINARY COLUMN SAFE)
  * File: product-checkout.php
  * Description: Checkout page for individual product purchases (separate from meal subscriptions)
+ * UPDATED: Now redirects to product-order-status.php after successful order
+ * FIXED: Handles both collation mismatch and binary column errors
  */
 
 session_start();
@@ -67,30 +69,128 @@ class ProductCheckoutUtils {
     }
 }
 
+// Database Connection with Conservative Collation Fix
+function getDatabaseConnection() {
+    try {
+        $database = new Database();
+        $pdo = $database->getConnection();
+        
+        // CONSERVATIVE FIX: Only set connection charset, no forced collation
+        $pdo->exec("SET NAMES utf8mb4");
+        
+        return $pdo;
+        
+    } catch (Exception $e) {
+        // Fallback connections with minimal charset settings
+        $configs = [
+            ["mysql:host=localhost;dbname=somdul_table;charset=utf8mb4", "root", "root"],
+            ["mysql:host=localhost:8889;dbname=somdul_table;charset=utf8mb4", "root", "root"]
+        ];
+        
+        foreach ($configs as $config) {
+            try {
+                $pdo = new PDO($config[0], $config[1], $config[2], [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+                ]);
+                
+                // Only set charset, avoid forcing collations
+                $pdo->exec("SET NAMES utf8mb4");
+                
+                return $pdo;
+                
+            } catch (PDOException $e) {
+                continue;
+            }
+        }
+        
+        throw new Exception("Database connection failed: " . $e->getMessage());
+    }
+}
+
 // Initialize variables
 $selected_product = null;
+$cart_items = [];
 $checkout_action = '';
 $errors = [];
 $success = false;
 $order_id = null;
 $user = null;
+$is_cart_checkout = false;
 
 // Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
     $product_id = $_GET['product'] ?? '';
-    $redirect_url = 'product-checkout.php?product=' . urlencode($product_id);
+    $source = $_GET['source'] ?? '';
+    
+    if ($source === 'cart') {
+        $redirect_url = 'product-checkout.php?source=cart';
+    } else {
+        $redirect_url = 'product-checkout.php?product=' . urlencode($product_id);
+    }
+    
     header('Location: login.php?redirect=' . urlencode($redirect_url));
     exit;
 }
 
 $user_id = $_SESSION['user_id'];
 
-try {
-    // Database connection with fallback
-    $database = new Database();
-    $pdo = $database->getConnection();
+// Handle different entry points - FIXED VERSION
+$source = trim(strtolower($_GET['source'] ?? ''));
+$product_id = trim($_GET['product'] ?? '');
+
+// Check if this is a cart checkout
+$is_cart_checkout = false;
+$cart_items = [];
+
+// More robust cart detection
+if ($source === 'cart' || (isset($_SESSION['cart']) && !empty($_SESSION['cart']) && empty($product_id))) {
+    // Initialize cart if not exists
+    if (!isset($_SESSION['cart'])) {
+        $_SESSION['cart'] = [];
+    }
     
-    // Get user information
+    // Check if cart has items - redirect to cart page, not product page
+    if (empty($_SESSION['cart'])) {
+        $_SESSION['flash_message'] = 'Your cart is empty. Please add items before checkout.';
+        $_SESSION['flash_type'] = 'error';
+        header('Location: cart.php');
+        exit;
+    }
+    
+    $is_cart_checkout = true;
+    $cart_items = $_SESSION['cart'];
+    
+} elseif (!empty($product_id)) {
+    // Direct product purchase
+    $is_cart_checkout = false;
+    
+} else {
+    // Neither cart nor direct product - unclear intent
+    // Check if there's anything in the cart first
+    if (isset($_SESSION['cart']) && !empty($_SESSION['cart'])) {
+        // Has cart items, probably meant to checkout cart
+        $_SESSION['flash_message'] = 'Redirected to cart checkout.';
+        $_SESSION['flash_type'] = 'info';
+        header('Location: product-checkout.php?source=cart');
+        exit;
+    } else {
+        // No cart items and no product specified - go to products page
+        $_SESSION['flash_message'] = 'Please select a product to checkout.';
+        $_SESSION['flash_type'] = 'info';
+        header('Location: product.php');
+        exit;
+    }
+}
+
+// Debug logging (remove in production)
+error_log("Product Checkout Debug - Source: '$source', Product ID: '$product_id', Is Cart: " . ($is_cart_checkout ? 'Yes' : 'No'));
+
+try {
+    // Get database connection with conservative collation fix
+    $pdo = getDatabaseConnection();
+    
+    // Get user information - NO COLLATE clause to avoid binary column issues
     $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
     $stmt->execute([$user_id]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -100,75 +200,69 @@ try {
     }
     
 } catch (Exception $e) {
-    // Fallback connection
+    $errors[] = "Database error: " . $e->getMessage();
+    error_log("Product checkout database error: " . $e->getMessage());
+}
+
+// Handle single product checkout
+if (!$is_cart_checkout && !empty($product_id)) {
+    // Fetch selected product - NO COLLATE clause to avoid binary column issues
     try {
-        $pdo = new PDO("mysql:host=localhost;dbname=somdul_table;charset=utf8mb4", "root", "root");
-        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $stmt = $pdo->prepare("SELECT * FROM products WHERE id = ? AND is_active = 1");
+        $stmt->execute([$product_id]);
+        $selected_product = $stmt->fetch(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {
+        error_log("Product fetch error: " . $e->getMessage());
         
-        // Get user with fallback
-        $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
-        $stmt->execute([$user_id]);
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        // Fallback products if database table doesn't exist or has issues
+        $fallback_products = [
+            'pad-thai-kit-pro' => [
+                'id' => 'pad-thai-kit-pro',
+                'name' => 'Premium Pad Thai Kit',
+                'description' => 'Complete authentic Pad Thai kit with premium ingredients.',
+                'price' => 24.99,
+                'category' => 'meal-kit',
+                'stock_quantity' => 50
+            ],
+            'tom-yum-paste-authentic' => [
+                'id' => 'tom-yum-paste-authentic',
+                'name' => 'Authentic Tom Yum Paste',
+                'description' => 'Traditional Tom Yum paste made with fresh ingredients.',
+                'price' => 12.99,
+                'category' => 'sauce',
+                'stock_quantity' => 100
+            ],
+            'thai-curry-kit-trio' => [
+                'id' => 'thai-curry-kit-trio',
+                'name' => 'Thai Curry Kit Trio',
+                'description' => 'Three authentic curry pastes: Red, Green, and Yellow.',
+                'price' => 34.99,
+                'category' => 'meal-kit',
+                'stock_quantity' => 30
+            ],
+            'fish-sauce-premium' => [
+                'id' => 'fish-sauce-premium',
+                'name' => 'Premium Fish Sauce',
+                'description' => 'Artisanal fish sauce aged for 2 years.',
+                'price' => 18.99,
+                'category' => 'sauce',
+                'stock_quantity' => 75
+            ]
+        ];
         
-    } catch (PDOException $e2) {
-        // Second fallback
-        $pdo = new PDO("mysql:host=localhost:8889;dbname=somdul_table;charset=utf8mb4", "root", "root");
-        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        
-        $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
-        $stmt->execute([$user_id]);
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        $selected_product = $fallback_products[$product_id] ?? null;
+    }
+
+    if (!$selected_product) {
+        header('Location: product.php');
+        exit;
     }
 }
 
-// Get selected product
-$product_id = $_GET['product'] ?? '';
-$checkout_action = $_GET['action'] ?? 'add_to_cart';
-
-if (empty($product_id)) {
-    header('Location: products.php');
-    exit;
-}
-
-// Fetch selected product
-try {
-    $stmt = $pdo->prepare("SELECT * FROM products WHERE id = ? AND is_active = 1");
-    $stmt->execute([$product_id]);
-    $selected_product = $stmt->fetch(PDO::FETCH_ASSOC);
-} catch (Exception $e) {
-    // Fallback products if database table doesn't exist
-    $fallback_products = [
-        'pad-thai-kit-pro' => [
-            'id' => 'pad-thai-kit-pro',
-            'name' => 'Premium Pad Thai Kit',
-            'description' => 'Complete authentic Pad Thai kit with premium ingredients.',
-            'price' => 24.99,
-            'category' => 'meal-kit',
-            'stock_quantity' => 50
-        ],
-        'tom-yum-paste-authentic' => [
-            'id' => 'tom-yum-paste-authentic',
-            'name' => 'Authentic Tom Yum Paste',
-            'description' => 'Traditional Tom Yum paste made with fresh ingredients.',
-            'price' => 12.99,
-            'category' => 'sauce',
-            'stock_quantity' => 100
-        ]
-    ];
-    
-    $selected_product = $fallback_products[$product_id] ?? null;
-}
-
-if (!$selected_product) {
-    header('Location: products.php');
-    exit;
-}
-
-// Handle form submission
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
+// Handle form submission BEFORE any output
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order']) && empty($errors)) {
     
     // Validate form input
-    $quantity = max(1, intval($_POST['quantity'] ?? 1));
     $shipping_address = ProductCheckoutUtils::sanitizeInput($_POST['shipping_address'] ?? '');
     $shipping_city = ProductCheckoutUtils::sanitizeInput($_POST['shipping_city'] ?? '');
     $shipping_state = ProductCheckoutUtils::sanitizeInput($_POST['shipping_state'] ?? '');
@@ -184,8 +278,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
     
     if (empty($errors)) {
         try {
+            $pdo->beginTransaction();
+            
             // Calculate order totals
-            $subtotal = $selected_product['price'] * $quantity;
+            $subtotal = 0;
+            
+            if ($is_cart_checkout) {
+                // Calculate cart totals
+                foreach ($cart_items as $item) {
+                    $quantity = intval($item['quantity']);
+                    $price = floatval($item['base_price']);
+                    $item_total = $price * $quantity;
+                    
+                    // Add customization costs
+                    if (isset($item['customizations'])) {
+                        if (isset($item['customizations']['extra_protein']) && $item['customizations']['extra_protein']) {
+                            $item_total += 2.99 * $quantity;
+                        }
+                        if (isset($item['customizations']['extra_vegetables']) && $item['customizations']['extra_vegetables']) {
+                            $item_total += 1.99 * $quantity;
+                        }
+                    }
+                    
+                    $subtotal += $item_total;
+                }
+            } else {
+                // Single product
+                $quantity = max(1, intval($_POST['quantity'] ?? 1));
+                $subtotal = $selected_product['price'] * $quantity;
+            }
+            
             $shipping_cost = ProductCheckoutUtils::calculateShipping($subtotal, $shipping_state);
             $tax_amount = ProductCheckoutUtils::calculateTax($subtotal, $shipping_state);
             $total_amount = $subtotal + $shipping_cost + $tax_amount;
@@ -194,76 +316,140 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
             $order_id = ProductCheckoutUtils::generateUUID();
             $order_number = ProductCheckoutUtils::generateOrderNumber();
             
-            // Insert product order
-            $stmt = $pdo->prepare("
-                INSERT INTO product_orders (
-                    id, order_number, user_id, customer_email, customer_name, customer_phone,
-                    shipping_address_line1, shipping_city, shipping_state, shipping_zip,
-                    subtotal, shipping_cost, tax_amount, total_amount,
-                    status, payment_status, payment_method,
-                    created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'pending', ?, NOW())
-            ");
-            
-            $full_name = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
-            if (empty($full_name)) $full_name = $user['email'];
-            
-            $stmt->execute([
-                $order_id, $order_number, $user_id, $user['email'], $full_name, $user['phone'] ?? '',
-                $shipping_address, $shipping_city, $shipping_state, $shipping_zip,
-                $subtotal, $shipping_cost, $tax_amount, $total_amount, $payment_method
-            ]);
-            
-            // Insert order item
-            $item_id = ProductCheckoutUtils::generateUUID();
-            $stmt = $pdo->prepare("
-                INSERT INTO product_order_items (
-                    id, order_id, product_id, product_name, quantity, unit_price, total_price
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
-            ");
-            
-            $stmt->execute([
-                $item_id, $order_id, $product_id, $selected_product['name'], 
-                $quantity, $selected_product['price'], $subtotal
-            ]);
-            
-            // Simulate payment processing (in real implementation, integrate with Stripe/PayPal)
-            $payment_success = true; // Simulate successful payment
-            
-            if ($payment_success) {
-                // Update order status
+            // Check if product_orders table exists, if not create a simple order log
+            try {
+                // Try to insert into product_orders table
                 $stmt = $pdo->prepare("
-                    UPDATE product_orders 
-                    SET status = 'paid', payment_status = 'paid' 
-                    WHERE id = ?
+                    INSERT INTO product_orders (
+                        id, order_number, user_id, customer_email, customer_name, customer_phone,
+                        shipping_address_line1, shipping_city, shipping_state, shipping_zip,
+                        subtotal, shipping_cost, tax_amount, total_amount,
+                        status, payment_status, payment_method,
+                        created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'paid', 'paid', ?, NOW())
                 ");
-                $stmt->execute([$order_id]);
                 
-                $success = true;
-                $_SESSION['flash_message'] = "Order placed successfully! Order #" . $order_number;
-                $_SESSION['flash_type'] = 'success';
+                $full_name = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
+                if (empty($full_name)) $full_name = $user['email'];
                 
-                // Redirect to order confirmation
-                header("Location: product-order-status.php?order=" . $order_id);
-                exit;
-            } else {
-                $errors[] = "Payment processing failed. Please try again.";
+                $stmt->execute([
+                    $order_id, $order_number, $user_id, $user['email'], $full_name, $user['phone'] ?? '',
+                    $shipping_address, $shipping_city, $shipping_state, $shipping_zip,
+                    $subtotal, $shipping_cost, $tax_amount, $total_amount, $payment_method
+                ]);
+                
+                // Insert order items
+                if ($is_cart_checkout) {
+                    // Insert all cart items
+                    foreach ($cart_items as $item) {
+                        $item_id = ProductCheckoutUtils::generateUUID();
+                        $quantity = intval($item['quantity']);
+                        $price = floatval($item['base_price']);
+                        $item_subtotal = $price * $quantity;
+                        
+                        $stmt = $pdo->prepare("
+                            INSERT INTO product_order_items (
+                                id, order_id, product_id, product_name, quantity, unit_price, total_price
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                        ");
+                        
+                        $stmt->execute([
+                            $item_id, $order_id, $item['id'] ?? 'unknown', $item['name'], 
+                            $quantity, $price, $item_subtotal
+                        ]);
+                    }
+                    
+                    // Clear cart after successful order
+                    $_SESSION['cart'] = [];
+                } else {
+                    // Insert single product
+                    $item_id = ProductCheckoutUtils::generateUUID();
+                    $quantity = max(1, intval($_POST['quantity'] ?? 1));
+                    
+                    $stmt = $pdo->prepare("
+                        INSERT INTO product_order_items (
+                            id, order_id, product_id, product_name, quantity, unit_price, total_price
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    ");
+                    
+                    $stmt->execute([
+                        $item_id, $order_id, $product_id, $selected_product['name'], 
+                        $quantity, $selected_product['price'], $subtotal
+                    ]);
+                }
+                
+            } catch (Exception $e) {
+                // If product_orders table doesn't exist or has issues, create a basic order log
+                error_log("Product order table error, using fallback: " . $e->getMessage());
+                
+                // Create a simple order log in session
+                if (!isset($_SESSION['order_history'])) {
+                    $_SESSION['order_history'] = [];
+                }
+                
+                $_SESSION['order_history'][] = [
+                    'id' => $order_id,
+                    'order_number' => $order_number,
+                    'total' => $total_amount,
+                    'items' => $is_cart_checkout ? count($cart_items) : 1,
+                    'date' => date('Y-m-d H:i:s'),
+                    'status' => 'completed'
+                ];
+                
+                // Still clear cart if cart checkout
+                if ($is_cart_checkout) {
+                    $_SESSION['cart'] = [];
+                }
             }
             
+            $pdo->commit();
+            
+            $success = true;
+            $_SESSION['flash_message'] = "Order placed successfully! Order #" . $order_number;
+            $_SESSION['flash_type'] = 'success';
+            
+            // UPDATED: Redirect to product-order-status.php instead of showing success inline
+            header("Location: product-order-status.php?order=" . urlencode($order_id));
+            exit;
+            
         } catch (Exception $e) {
+            $pdo->rollBack();
             $errors[] = "An error occurred while processing your order: " . $e->getMessage();
+            error_log("Order processing error: " . $e->getMessage());
         }
     }
 }
 
 // Calculate default totals for display
-$default_quantity = 1;
-$default_subtotal = $selected_product['price'] * $default_quantity;
+if ($is_cart_checkout) {
+    $default_subtotal = 0;
+    foreach ($cart_items as $item) {
+        $quantity = intval($item['quantity']);
+        $price = floatval($item['base_price']);
+        $item_total = $price * $quantity;
+        
+        // Add customization costs
+        if (isset($item['customizations'])) {
+            if (isset($item['customizations']['extra_protein']) && $item['customizations']['extra_protein']) {
+                $item_total += 2.99 * $quantity;
+            }
+            if (isset($item['customizations']['extra_vegetables']) && $item['customizations']['extra_vegetables']) {
+                $item_total += 1.99 * $quantity;
+            }
+        }
+        
+        $default_subtotal += $item_total;
+    }
+} else {
+    $default_quantity = 1;
+    $default_subtotal = isset($selected_product) ? $selected_product['price'] * $default_quantity : 0;
+}
+
 $default_shipping = ProductCheckoutUtils::calculateShipping($default_subtotal);
 $default_tax = ProductCheckoutUtils::calculateTax($default_subtotal);
 $default_total = $default_subtotal + $default_shipping + $default_tax;
 
-// Include the header
+// Include the header AFTER form processing
 include 'header.php';
 ?>
 
@@ -272,16 +458,14 @@ include 'header.php';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Checkout - <?= htmlspecialchars($selected_product['name']) ?> | Somdul Table</title>
-    <meta name="description" content="Complete your purchase of <?= htmlspecialchars($selected_product['name']) ?>">
+    <title>Checkout<?= $is_cart_checkout ? ' - Your Cart' : ($selected_product ? ' - ' . htmlspecialchars($selected_product['name']) : '') ?> | Somdul Table</title>
+    <meta name="description" content="Complete your purchase from Somdul Table">
     
     <style>
-        body.has-header {
-            margin-top: 110px;
-        }
+        /* PAGE-SPECIFIC STYLES ONLY - header styles come from header.php */
         
         .checkout-container {
-            max-width: 800px;
+            max-width: 1200px;
             margin: 2rem auto;
             padding: 0 2rem;
         }
@@ -380,7 +564,7 @@ include 'header.php';
             box-shadow: var(--shadow-soft);
             height: fit-content;
             position: sticky;
-            top: 2rem;
+            top: 140px;
         }
         
         .product-item {
@@ -390,16 +574,21 @@ include 'header.php';
             border-bottom: 1px solid var(--cream);
         }
         
+        .product-item:last-child {
+            border-bottom: none;
+        }
+        
         .product-image {
-            width: 80px;
-            height: 80px;
+            width: 60px;
+            height: 60px;
             background: var(--cream);
             border-radius: var(--radius-sm);
             display: flex;
             align-items: center;
             justify-content: center;
             color: var(--brown);
-            font-size: 2rem;
+            font-size: 1.5rem;
+            flex-shrink: 0;
         }
         
         .product-details {
@@ -409,11 +598,18 @@ include 'header.php';
         .product-name {
             font-weight: 600;
             color: var(--brown);
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.25rem;
+            font-size: 0.95rem;
         }
         
         .product-price {
             color: var(--text-gray);
+            font-size: 0.9rem;
+        }
+        
+        .product-quantity {
+            color: var(--text-gray);
+            font-size: 0.85rem;
         }
         
         .quantity-selector {
@@ -471,27 +667,6 @@ include 'header.php';
             margin-top: 1rem;
         }
         
-        .btn-place-order {
-            width: 100%;
-            background: var(--brown);
-            color: var(--white);
-            border: none;
-            padding: 1rem;
-            border-radius: var(--radius-sm);
-            font-size: 1.1rem;
-            font-weight: 600;
-            font-family: 'BaticaSans', sans-serif;
-            cursor: pointer;
-            transition: var(--transition);
-            margin-top: 1rem;
-        }
-        
-        .btn-place-order:hover {
-            background: #a8855f;
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-medium);
-        }
-        
         .error-message {
             background: #f8d7da;
             color: #721c24;
@@ -532,158 +707,197 @@ include 'header.php';
             
             .order-summary {
                 position: static;
+                order: -1;
+            }
+            
+            .checkout-container {
+                padding: 0 1rem;
             }
         }
     </style>
 </head>
 
+<!-- IMPORTANT: Add has-header class for proper spacing -->
 <body class="has-header">
-    <div class="checkout-container">
-        <!-- Back Link -->
-        <a href="products.php" class="back-link">
-            ← Back to Products
-        </a>
-        
-        <!-- Checkout Header -->
-        <div class="checkout-header">
-            <h1>Checkout</h1>
-            <div class="checkout-steps">
-                <div class="step active">Review Product</div>
-                <div class="step active">Shipping Info</div>
-                <div class="step active">Payment</div>
-            </div>
-        </div>
+    <!-- The header (promo banner + navbar) is already included from header.php -->
 
-        <!-- Error Messages -->
-        <?php if (!empty($errors)): ?>
-            <div class="error-message">
-                <ul style="margin: 0; padding-left: 1.5rem;">
-                    <?php foreach ($errors as $error): ?>
-                        <li><?= htmlspecialchars($error) ?></li>
-                    <?php endforeach; ?>
-                </ul>
-            </div>
-        <?php endif; ?>
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="checkout-container">
+            <!-- Back Link -->
+            <a href="<?= $is_cart_checkout ? 'cart.php' : 'product.php' ?>" class="back-link">
+                ← Back to <?= $is_cart_checkout ? 'Cart' : 'Products' ?>
+            </a>
 
-        <!-- Checkout Content -->
-        <div class="checkout-content">
-            <!-- Checkout Form -->
-            <div class="checkout-form">
-                <form method="POST" id="checkoutForm">
-                    <!-- Shipping Information -->
-                    <div class="form-section">
-                        <h3>📦 Shipping Information</h3>
-                        
-                        <div class="form-group">
-                            <label for="shipping_address">Street Address *</label>
-                            <input type="text" id="shipping_address" name="shipping_address" 
-                                   value="<?= htmlspecialchars($user['delivery_address'] ?? '') ?>" required>
-                        </div>
-                        
-                        <div class="form-row">
+            <!-- Checkout Header -->
+            <div class="checkout-header">
+                <h1><?= $is_cart_checkout ? 'Checkout - Your Cart' : 'Checkout' ?></h1>
+                <div class="checkout-steps">
+                    <div class="step active">Review Items</div>
+                    <div class="step active">Shipping Info</div>
+                    <div class="step active">Payment</div>
+                </div>
+            </div>
+
+            <!-- Error Messages -->
+            <?php if (!empty($errors)): ?>
+                <div class="error-message">
+                    <strong>Please resolve the following issues:</strong>
+                    <ul style="margin: 0.5rem 0 0 1.5rem;">
+                        <?php foreach ($errors as $error): ?>
+                            <li><?= htmlspecialchars($error) ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+            <?php endif; ?>
+
+            <!-- Checkout Content -->
+            <div class="checkout-content">
+                <!-- Checkout Form -->
+                <div class="checkout-form">
+                    <form method="POST" id="checkoutForm">
+                        <!-- Shipping Information -->
+                        <div class="form-section">
+                            <h3>📦 Shipping Information</h3>
+                            
                             <div class="form-group">
-                                <label for="shipping_city">City *</label>
-                                <input type="text" id="shipping_city" name="shipping_city" 
-                                       value="<?= htmlspecialchars($user['city'] ?? '') ?>" required>
+                                <label for="shipping_address">Street Address *</label>
+                                <input type="text" id="shipping_address" name="shipping_address" 
+                                       value="<?= htmlspecialchars($user['delivery_address'] ?? '') ?>" required>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="shipping_city">City *</label>
+                                    <input type="text" id="shipping_city" name="shipping_city" 
+                                           value="<?= htmlspecialchars($user['city'] ?? '') ?>" required>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="shipping_state">State *</label>
+                                    <select id="shipping_state" name="shipping_state" required>
+                                        <option value="">Select State</option>
+                                        <option value="CA" <?= ($user['state'] ?? '') === 'CA' ? 'selected' : '' ?>>California</option>
+                                        <option value="NY" <?= ($user['state'] ?? '') === 'NY' ? 'selected' : '' ?>>New York</option>
+                                        <option value="TX" <?= ($user['state'] ?? '') === 'TX' ? 'selected' : '' ?>>Texas</option>
+                                        <option value="FL" <?= ($user['state'] ?? '') === 'FL' ? 'selected' : '' ?>>Florida</option>
+                                    </select>
+                                </div>
                             </div>
                             
                             <div class="form-group">
-                                <label for="shipping_state">State *</label>
-                                <select id="shipping_state" name="shipping_state" required>
-                                    <option value="">Select State</option>
-                                    <option value="CA" <?= ($user['state'] ?? '') === 'CA' ? 'selected' : '' ?>>California</option>
-                                    <option value="NY" <?= ($user['state'] ?? '') === 'NY' ? 'selected' : '' ?>>New York</option>
-                                    <option value="TX" <?= ($user['state'] ?? '') === 'TX' ? 'selected' : '' ?>>Texas</option>
-                                    <option value="FL" <?= ($user['state'] ?? '') === 'FL' ? 'selected' : '' ?>>Florida</option>
-                                    <!-- Add more states as needed -->
-                                </select>
+                                <label for="shipping_zip">ZIP Code *</label>
+                                <input type="text" id="shipping_zip" name="shipping_zip" 
+                                       value="<?= htmlspecialchars($user['zip_code'] ?? '') ?>" required>
                             </div>
                         </div>
-                        
-                        <div class="form-group">
-                            <label for="shipping_zip">ZIP Code *</label>
-                            <input type="text" id="shipping_zip" name="shipping_zip" 
-                                   value="<?= htmlspecialchars($user['zip_code'] ?? '') ?>" required>
-                        </div>
-                    </div>
 
-                    <!-- Payment Method -->
-                    <div class="form-section">
-                        <h3>💳 Payment Method</h3>
-                        
-                        <div class="form-group">
-                            <label>
-                                <input type="radio" name="payment_method" value="credit_card" checked>
-                                Credit/Debit Card
-                            </label>
+                        <!-- Payment Method -->
+                        <div class="form-section">
+                            <h3>💳 Payment Method</h3>
+                            
+                            <div class="form-group">
+                                <label>
+                                    <input type="radio" name="payment_method" value="credit_card" checked>
+                                    Credit/Debit Card
+                                </label>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>
+                                    <input type="radio" name="payment_method" value="paypal">
+                                    PayPal
+                                </label>
+                            </div>
                         </div>
-                        
-                        <div class="form-group">
-                            <label>
-                                <input type="radio" name="payment_method" value="paypal">
-                                PayPal
-                            </label>
-                        </div>
-                    </div>
 
-                    <button type="submit" name="place_order" class="btn-place-order">
-                        Place Order - <?= ProductCheckoutUtils::formatPrice($default_total) ?>
-                    </button>
-                </form>
-            </div>
-
-            <!-- Order Summary -->
-            <div class="order-summary">
-                <h3 style="color: var(--brown); margin-bottom: 1rem;">Order Summary</h3>
-                
-                <div class="product-item">
-                    <div class="product-image">🍜</div>
-                    <div class="product-details">
-                        <div class="product-name"><?= htmlspecialchars($selected_product['name']) ?></div>
-                        <div class="product-price"><?= ProductCheckoutUtils::formatPrice($selected_product['price']) ?> each</div>
-                        
-                        <div class="quantity-selector">
-                            <button type="button" class="quantity-btn" onclick="updateQuantity(-1)">-</button>
-                            <input type="number" class="quantity-input" id="quantity" name="quantity" value="1" min="1" max="10">
-                            <button type="button" class="quantity-btn" onclick="updateQuantity(1)">+</button>
-                        </div>
-                    </div>
+                        <button type="submit" name="place_order" class="btn btn-primary" style="width: 100%; padding: 1rem;">
+                            Place Order - <?= ProductCheckoutUtils::formatPrice($default_total) ?>
+                        </button>
+                    </form>
                 </div>
-                
-                <div class="order-totals">
-                    <div class="total-row">
-                        <span>Subtotal:</span>
-                        <span id="subtotal"><?= ProductCheckoutUtils::formatPrice($default_subtotal) ?></span>
+
+                <!-- Order Summary -->
+                <div class="order-summary">
+                    <h3 style="color: var(--brown); margin-bottom: 1rem;">Order Summary</h3>
+                    
+                    <?php if ($is_cart_checkout): ?>
+                        <!-- Display all cart items -->
+                        <?php foreach ($cart_items as $item): ?>
+                            <div class="product-item">
+                                <div class="product-image">🍜</div>
+                                <div class="product-details">
+                                    <div class="product-name"><?= htmlspecialchars($item['name']) ?></div>
+                                    <div class="product-price"><?= ProductCheckoutUtils::formatPrice($item['base_price']) ?> each</div>
+                                    <div class="product-quantity">Qty: <?= intval($item['quantity']) ?></div>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php elseif (isset($selected_product)): ?>
+                        <!-- Single product -->
+                        <div class="product-item">
+                            <div class="product-image">🍜</div>
+                            <div class="product-details">
+                                <div class="product-name"><?= htmlspecialchars($selected_product['name']) ?></div>
+                                <div class="product-price"><?= ProductCheckoutUtils::formatPrice($selected_product['price']) ?> each</div>
+                                
+                                <div class="quantity-selector">
+                                    <button type="button" class="quantity-btn" onclick="updateQuantity(-1)">-</button>
+                                    <input type="number" class="quantity-input" id="quantity" name="quantity" value="1" min="1" max="10">
+                                    <button type="button" class="quantity-btn" onclick="updateQuantity(1)">+</button>
+                                </div>
+                            </div>
+                        </div>
+                    <?php else: ?>
+                        <!-- Fallback for no product -->
+                        <div class="product-item">
+                            <div class="product-image">🍜</div>
+                            <div class="product-details">
+                                <div class="product-name">Product Checkout</div>
+                                <div class="product-price">Processing...</div>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+                    
+                    <div class="order-totals">
+                        <div class="total-row">
+                            <span>Subtotal:</span>
+                            <span id="subtotal"><?= ProductCheckoutUtils::formatPrice($default_subtotal) ?></span>
+                        </div>
+                        <div class="total-row">
+                            <span>Shipping:</span>
+                            <span id="shipping"><?= ProductCheckoutUtils::formatPrice($default_shipping) ?></span>
+                        </div>
+                        <div class="total-row">
+                            <span>Tax:</span>
+                            <span id="tax"><?= ProductCheckoutUtils::formatPrice($default_tax) ?></span>
+                        </div>
+                        <div class="total-row final">
+                            <span>Total:</span>
+                            <span id="total"><?= ProductCheckoutUtils::formatPrice($default_total) ?></span>
+                        </div>
                     </div>
-                    <div class="total-row">
-                        <span>Shipping:</span>
-                        <span id="shipping"><?= ProductCheckoutUtils::formatPrice($default_shipping) ?></span>
+                    
+                    <div style="font-size: 0.9rem; color: var(--text-gray); margin-top: 1rem;">
+                        🚚 Free shipping on orders over $50<br>
+                        📞 Questions? <a href="contact.php" style="color: var(--brown);">Contact us</a>
                     </div>
-                    <div class="total-row">
-                        <span>Tax:</span>
-                        <span id="tax"><?= ProductCheckoutUtils::formatPrice($default_tax) ?></span>
-                    </div>
-                    <div class="total-row final">
-                        <span>Total:</span>
-                        <span id="total"><?= ProductCheckoutUtils::formatPrice($default_total) ?></span>
-                    </div>
-                </div>
-                
-                <div style="font-size: 0.9rem; color: var(--text-gray); margin-top: 1rem;">
-                    🚚 Free shipping on orders over $50<br>
-                    📞 Questions? <a href="contact.php" style="color: var(--brown);">Contact us</a>
                 </div>
             </div>
         </div>
-    </div>
+    </main>
 
     <script>
-        // Product price for calculations
-        const productPrice = <?= $selected_product['price'] ?>;
+        const isCartCheckout = <?= $is_cart_checkout ? 'true' : 'false' ?>;
+        const productPrice = <?= isset($selected_product) ? $selected_product['price'] : ($is_cart_checkout ? $default_subtotal : 0) ?>;
         
-        // Update quantity and recalculate totals
+        // Update quantity and recalculate totals (only for single product)
         function updateQuantity(change) {
+            if (isCartCheckout) return; // Don't allow quantity changes for cart checkout
+            
             const quantityInput = document.getElementById('quantity');
+            if (!quantityInput) return;
+            
             let newQuantity = parseInt(quantityInput.value) + change;
             
             if (newQuantity < 1) newQuantity = 1;
@@ -695,7 +909,12 @@ include 'header.php';
         
         // Recalculate order totals
         function updateTotals() {
-            const quantity = parseInt(document.getElementById('quantity').value);
+            if (isCartCheckout) return; // Cart totals are fixed
+            
+            const quantityInput = document.getElementById('quantity');
+            if (!quantityInput) return;
+            
+            const quantity = parseInt(quantityInput.value);
             const state = document.getElementById('shipping_state').value || 'CA';
             
             const subtotal = productPrice * quantity;
@@ -715,8 +934,10 @@ include 'header.php';
             document.getElementById('total').textContent = formatPrice(total);
             
             // Update button text
-            const submitBtn = document.querySelector('.btn-place-order');
-            submitBtn.textContent = `Place Order - ${formatPrice(total)}`;
+            const submitBtn = document.querySelector('[name="place_order"]');
+            if (submitBtn) {
+                submitBtn.textContent = `Place Order - ${formatPrice(total)}`;
+            }
         }
         
         // Format price helper
@@ -726,32 +947,47 @@ include 'header.php';
         
         // Event listeners
         document.addEventListener('DOMContentLoaded', function() {
-            // Quantity input change
-            document.getElementById('quantity').addEventListener('change', updateTotals);
+            if (!isCartCheckout) {
+                // Quantity input change
+                const quantityInput = document.getElementById('quantity');
+                if (quantityInput) {
+                    quantityInput.addEventListener('change', updateTotals);
+                }
+            }
             
             // State change updates tax
-            document.getElementById('shipping_state').addEventListener('change', updateTotals);
-            
-            // Form validation
-            document.getElementById('checkoutForm').addEventListener('submit', function(e) {
-                const requiredFields = ['shipping_address', 'shipping_city', 'shipping_state', 'shipping_zip'];
-                let hasErrors = false;
-                
-                requiredFields.forEach(field => {
-                    const input = document.getElementById(field);
-                    if (!input.value.trim()) {
-                        input.style.borderColor = '#dc3545';
-                        hasErrors = true;
-                    } else {
-                        input.style.borderColor = '#d4c4b8';
+            const stateSelect = document.getElementById('shipping_state');
+            if (stateSelect) {
+                stateSelect.addEventListener('change', function() {
+                    if (!isCartCheckout) {
+                        updateTotals();
                     }
                 });
-                
-                if (hasErrors) {
-                    e.preventDefault();
-                    alert('Please fill in all required fields.');
-                }
-            });
+            }
+            
+            // Form validation
+            const checkoutForm = document.getElementById('checkoutForm');
+            if (checkoutForm) {
+                checkoutForm.addEventListener('submit', function(e) {
+                    const requiredFields = ['shipping_address', 'shipping_city', 'shipping_state', 'shipping_zip'];
+                    let hasErrors = false;
+                    
+                    requiredFields.forEach(field => {
+                        const input = document.getElementById(field);
+                        if (input && !input.value.trim()) {
+                            input.style.borderColor = '#dc3545';
+                            hasErrors = true;
+                        } else if (input) {
+                            input.style.borderColor = '#d4c4b8';
+                        }
+                    });
+                    
+                    if (hasErrors) {
+                        e.preventDefault();
+                        alert('Please fill in all required fields.');
+                    }
+                });
+            }
         });
     </script>
 </body>

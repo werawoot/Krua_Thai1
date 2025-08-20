@@ -3,6 +3,7 @@
  * Somdul Table - Products Page
  * File: products.php
  * Description: Browse and purchase individual products (meal kits, sauces, etc.)
+ * CLEAN VERSION: Uses header.php consistently like menus.php
  */
 
 session_start();
@@ -10,6 +11,14 @@ error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
 require_once 'config/database.php';
+
+// Include the header (contains navbar, promo banner, fonts, and base styles)
+include 'header.php';
+
+// Include cart functions if available
+if (file_exists('includes/cart_functions.php')) {
+    require_once 'includes/cart_functions.php';
+}
 
 // Database connection with fallback
 try {
@@ -32,6 +41,14 @@ $is_logged_in = isset($_SESSION['user_id']);
 
 // Get filter from URL
 $category_filter = $_GET['category'] ?? 'all';
+
+// Calculate cart count
+$cart_count = 0;
+if (isset($_SESSION['cart']) && is_array($_SESSION['cart'])) {
+    foreach ($_SESSION['cart'] as $item) {
+        $cart_count += intval($item['quantity'] ?? 1);
+    }
+}
 
 // Fetch products from database
 try {
@@ -71,7 +88,7 @@ try {
         [
             'id' => 'thai-curry-kit-trio',
             'name' => 'Thai Curry Kit Trio',
-            'name_thai' => 'ชุดแกงไทย 3 รส',
+            'name_thai' => 'ชุดแกง 3 รส',
             'description' => 'Three authentic curry pastes: Red, Green, and Yellow. Includes coconut milk powder and cooking instructions.',
             'price' => 34.99,
             'image_url' => './assets/image/curry-kit-trio.jpg',
@@ -130,9 +147,6 @@ function formatCategoryName($category) {
 function formatPrice($price) {
     return '$' . number_format($price, 2);
 }
-
-// Include the header
-include 'header.php';
 ?>
 
 <!DOCTYPE html>
@@ -144,11 +158,21 @@ include 'header.php';
     <meta name="description" content="Shop authentic Thai meal kits, sauces, and ingredients. Delivered nationwide. Cook restaurant-quality Thai food at home.">
     
     <style>
-        /* Product Page Specific Styles */
-        body.has-header {
-            margin-top: 110px;
-        }
+        /* PAGE-SPECIFIC STYLES ONLY - header styles come from header.php */
         
+        /* Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .main-content {
+            padding-top: 2rem;
+            min-height: calc(100vh - 200px);
+        }
+
+        /* Products Hero Section */
         .products-hero {
             background: linear-gradient(135deg, var(--brown) 0%, var(--curry) 100%);
             color: var(--white);
@@ -176,6 +200,71 @@ include 'header.php';
             padding: 3rem 2rem;
         }
         
+        /* Floating Cart */
+        .floating-cart {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1000;
+            animation: slideInUp 0.3s ease-out, float 3s ease-in-out infinite;
+        }
+        
+        .floating-cart.hidden {
+            display: none;
+        }
+        
+        .floating-cart-link {
+            text-decoration: none;
+            display: block;
+        }
+        
+        .floating-cart-icon {
+            position: relative;
+            width: 60px;
+            height: 60px;
+            background: var(--brown);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: var(--white);
+            box-shadow: var(--shadow-medium);
+            transition: var(--transition);
+            border: 3px solid var(--white);
+        }
+        
+        .floating-cart-icon:hover {
+            background: var(--curry);
+            transform: scale(1.1) translateY(-5px);
+            box-shadow: 0 12px 30px rgba(189, 147, 121, 0.4);
+            animation: none; /* Stop floating animation on hover */
+        }
+        
+        .floating-cart-counter {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: var(--curry);
+            color: var(--white);
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 700;
+            border: 2px solid var(--white);
+            min-width: 28px;
+            animation: pulse 0.6s ease-out;
+        }
+        
+        .floating-cart-counter.hidden {
+            display: none;
+        }
+        
+        /* Category Filters */
         .products-filters {
             display: flex;
             justify-content: center;
@@ -205,6 +294,7 @@ include 'header.php';
             box-shadow: var(--shadow-medium);
         }
         
+        /* Products Grid */
         .products-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -219,6 +309,7 @@ include 'header.php';
             box-shadow: var(--shadow-soft);
             transition: var(--transition);
             border: 1px solid var(--cream);
+            position: relative;
         }
         
         .product-card:hover {
@@ -298,17 +389,15 @@ include 'header.php';
         }
         
         .product-actions {
-            display: flex;
-            gap: 0.5rem;
             margin-top: 1rem;
         }
         
         .btn-add-cart {
-            flex: 1;
+            width: 100%;
             background: var(--brown);
             color: var(--white);
             border: none;
-            padding: 0.8rem 1rem;
+            padding: 1rem;
             border-radius: var(--radius-sm);
             font-weight: 600;
             font-family: 'BaticaSans', sans-serif;
@@ -320,6 +409,9 @@ include 'header.php';
             align-items: center;
             justify-content: center;
             gap: 0.5rem;
+            position: relative;
+            overflow: hidden;
+            font-size: 1rem;
         }
         
         .btn-add-cart:hover {
@@ -328,28 +420,18 @@ include 'header.php';
             box-shadow: var(--shadow-medium);
         }
         
-        .btn-quick-buy {
-            background: var(--curry);
-            color: var(--white);
-            border: none;
-            padding: 0.8rem 1rem;
-            border-radius: var(--radius-sm);
-            font-weight: 600;
-            font-family: 'BaticaSans', sans-serif;
-            cursor: pointer;
-            transition: var(--transition);
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-width: 120px;
+        .btn-add-cart:disabled {
+            background: var(--text-gray);
+            cursor: not-allowed;
+            transform: none;
         }
         
-        .btn-quick-buy:hover {
-            background: #b8621f;
-            transform: translateY(-2px);
+        .btn-add-cart.loading {
+            background: var(--sage);
+            pointer-events: none;
         }
         
+        /* Shipping Banner */
         .shipping-banner {
             background: var(--sage);
             color: var(--white);
@@ -360,6 +442,7 @@ include 'header.php';
             font-weight: 600;
         }
         
+        /* Empty State */
         .empty-state {
             text-align: center;
             padding: 4rem 2rem;
@@ -369,6 +452,79 @@ include 'header.php';
         .empty-state h3 {
             color: var(--brown);
             margin-bottom: 1rem;
+        }
+        
+        /* Success notification */
+        .toast-notification {
+            position: fixed;
+            top: 140px;
+            right: 2rem;
+            background: var(--sage);
+            color: var(--white);
+            padding: 1rem 1.5rem;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-medium);
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease-out;
+            max-width: 350px;
+        }
+        
+        .toast-notification.show {
+            transform: translateX(0);
+        }
+        
+        .toast-content {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .toast-icon {
+            font-size: 1.2rem;
+        }
+        
+        .toast-text {
+            font-weight: 600;
+        }
+        
+        /* Animations */
+        @keyframes slideInUp {
+            from {
+                transform: translateY(100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-20px) scale(1.1);
+            }
+            60% {
+                transform: translateY(-10px) scale(1.05);
+            }
         }
         
         /* Mobile responsive */
@@ -386,136 +542,300 @@ include 'header.php';
                 gap: 1.5rem;
             }
             
-            .product-actions {
-                flex-direction: column;
+            .floating-cart {
+                bottom: 20px;
+                right: 20px;
             }
             
-            .btn-quick-buy {
-                min-width: auto;
+            .floating-cart-icon {
+                width: 50px;
+                height: 50px;
+                font-size: 1.3rem;
+            }
+            
+            .floating-cart-counter {
+                width: 24px;
+                height: 24px;
+                font-size: 0.7rem;
+                top: -6px;
+                right: -6px;
+            }
+            
+            .toast-notification {
+                right: 1rem;
+                left: 1rem;
+                max-width: none;
             }
         }
     </style>
 </head>
 
+<!-- IMPORTANT: Add has-header class for proper spacing -->
 <body class="has-header">
-    <!-- Products Hero Section -->
-    <section class="products-hero">
-        <h1>Thai Products & Meal Kits</h1>
-        <p>Authentic Thai ingredients and meal kits delivered nationwide. Bring the flavors of Thailand to your kitchen.</p>
-    </section>
+    <!-- The header (promo banner + navbar) is already included from header.php -->
 
-    <!-- Main Products Container -->
-    <div class="products-container">
-        <!-- Shipping Banner -->
-        <div class="shipping-banner">
-            🚚 Free shipping on orders over $50 • Delivered nationwide • 5-7 business days
-        </div>
-
-        <!-- Category Filters -->
-        <div class="products-filters">
-            <a href="products.php?category=all" class="filter-btn <?= $category_filter === 'all' ? 'active' : '' ?>">
-                All Products
-            </a>
-            <a href="products.php?category=meal-kit" class="filter-btn <?= $category_filter === 'meal-kit' ? 'active' : '' ?>">
-                Meal Kits
-            </a>
-            <a href="products.php?category=sauce" class="filter-btn <?= $category_filter === 'sauce' ? 'active' : '' ?>">
-                Sauces & Condiments
-            </a>
-            <a href="products.php?category=ingredient" class="filter-btn <?= $category_filter === 'ingredient' ? 'active' : '' ?>">
-                Ingredients
-            </a>
-        </div>
-
-        <!-- Products Grid -->
-        <?php if (empty($products)): ?>
-            <div class="empty-state">
-                <h3>No products found</h3>
-                <p>We're currently updating our product catalog. Please check back soon!</p>
-                <a href="products.php?category=all" class="btn btn-primary" style="margin-top: 1rem;">View All Products</a>
+    <!-- Floating Cart Icon -->
+    <div class="floating-cart" id="floatingCart">
+        <a href="cart.php" class="floating-cart-link">
+            <div class="floating-cart-icon">
+                🛒
+                <span class="floating-cart-counter <?= $cart_count == 0 ? 'hidden' : '' ?>" id="floatingCartCounter">
+                    <?= $cart_count ?>
+                </span>
             </div>
-        <?php else: ?>
-            <div class="products-grid">
-                <?php foreach ($products as $product): ?>
-                    <div class="product-card">
-                        <div class="product-image">
-                            <?php if (!empty($product['image_url']) && file_exists($product['image_url'])): ?>
-                                <img src="<?= htmlspecialchars($product['image_url']) ?>" alt="<?= htmlspecialchars($product['name']) ?>">
-                            <?php else: ?>
-                                🍜
-                            <?php endif; ?>
-                        </div>
-                        
-                        <div class="product-content">
-                            <div class="product-category">
-                                <?= formatCategoryName($product['category']) ?>
-                            </div>
-                            
-                            <h3 class="product-name">
-                                <?= htmlspecialchars($product['name']) ?>
-                            </h3>
-                            
-                            <?php if (!empty($product['name_thai'])): ?>
-                                <div class="product-name-thai">
-                                    <?= htmlspecialchars($product['name_thai']) ?>
-                                </div>
-                            <?php endif; ?>
-                            
-                            <p class="product-description">
-                                <?= htmlspecialchars($product['description']) ?>
-                            </p>
-                            
-                            <div class="product-footer">
-                                <div>
-                                    <div class="product-price">
-                                        <?= formatPrice($product['price']) ?>
-                                    </div>
-                                    <?php if (isset($product['stock_quantity']) && $product['stock_quantity'] > 0): ?>
-                                        <div class="product-stock">
-                                            <?= $product['stock_quantity'] ?> in stock
-                                        </div>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                            
-                            <div class="product-actions">
-                                <?php if ($is_logged_in): ?>
-                                    <a href="product-checkout.php?product=<?= urlencode($product['id']) ?>&action=add_to_cart" 
-                                       class="btn-add-cart">
-                                        🛒 Add to Cart
-                                    </a>
-                                    <a href="product-checkout.php?product=<?= urlencode($product['id']) ?>&action=buy_now" 
-                                       class="btn-quick-buy">
-                                        Buy Now
-                                    </a>
+        </a>
+    </div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Products Hero Section -->
+        <section class="products-hero">
+            <h1>Thai Products & Meal Kits</h1>
+            <p>Authentic Thai ingredients and meal kits delivered nationwide. Bring the flavors of Thailand to your kitchen.</p>
+        </section>
+
+        <!-- Main Products Container -->
+        <div class="products-container">
+            <!-- Shipping Banner -->
+            <div class="shipping-banner">
+                🚚 Free shipping on orders over $50 • Delivered nationwide • 5-7 business days
+            </div>
+
+            <!-- Category Filters -->
+            <div class="products-filters">
+                <a href="products.php?category=all" class="filter-btn <?= $category_filter === 'all' ? 'active' : '' ?>">
+                    All Products
+                </a>
+                <a href="products.php?category=meal-kit" class="filter-btn <?= $category_filter === 'meal-kit' ? 'active' : '' ?>">
+                    Meal Kits
+                </a>
+                <a href="products.php?category=sauce" class="filter-btn <?= $category_filter === 'sauce' ? 'active' : '' ?>">
+                    Sauces & Condiments
+                </a>
+                <a href="products.php?category=ingredient" class="filter-btn <?= $category_filter === 'ingredient' ? 'active' : '' ?>">
+                    Ingredients
+                </a>
+            </div>
+
+            <!-- Products Grid -->
+            <?php if (empty($products)): ?>
+                <div class="empty-state">
+                    <h3>No products found</h3>
+                    <p>We're currently updating our product catalog. Please check back soon!</p>
+                    <a href="products.php?category=all" class="btn btn-primary" style="margin-top: 1rem;">View All Products</a>
+                </div>
+            <?php else: ?>
+                <div class="products-grid">
+                    <?php foreach ($products as $product): ?>
+                        <div class="product-card" data-product-id="<?= htmlspecialchars($product['id']) ?>">
+                            <div class="product-image">
+                                <?php if (!empty($product['image_url']) && file_exists($product['image_url'])): ?>
+                                    <img src="<?= htmlspecialchars($product['image_url']) ?>" alt="<?= htmlspecialchars($product['name']) ?>">
                                 <?php else: ?>
-                                    <a href="login.php?redirect=<?= urlencode('product-checkout.php?product=' . $product['id']) ?>" 
-                                       class="btn-add-cart">
-                                        🛒 Add to Cart
-                                    </a>
-                                    <a href="guest-product-checkout.php?product=<?= urlencode($product['id']) ?>" 
-                                       class="btn-quick-buy">
-                                        Buy as Guest
-                                    </a>
+                                    🍜
                                 <?php endif; ?>
                             </div>
+                            
+                            <div class="product-content">
+                                <div class="product-category">
+                                    <?= formatCategoryName($product['category']) ?>
+                                </div>
+                                
+                                <h3 class="product-name">
+                                    <?= htmlspecialchars($product['name']) ?>
+                                </h3>
+                                
+                                <?php if (!empty($product['name_thai'])): ?>
+                                    <div class="product-name-thai">
+                                        <?= htmlspecialchars($product['name_thai']) ?>
+                                    </div>
+                                <?php endif; ?>
+                                
+                                <p class="product-description">
+                                    <?= htmlspecialchars($product['description']) ?>
+                                </p>
+                                
+                                <div class="product-footer">
+                                    <div>
+                                        <div class="product-price">
+                                            <?= formatPrice($product['price']) ?>
+                                        </div>
+                                        <?php if (isset($product['stock_quantity']) && $product['stock_quantity'] > 0): ?>
+                                            <div class="product-stock">
+                                                <?= $product['stock_quantity'] ?> in stock
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                                
+                                <div class="product-actions">
+                                    <button class="btn-add-cart" onclick="addToCart('<?= htmlspecialchars($product['id']) ?>')" 
+                                            data-product-id="<?= htmlspecialchars($product['id']) ?>"
+                                            data-product-name="<?= htmlspecialchars($product['name']) ?>">
+                                        🛒 Add to Cart
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                <?php endforeach; ?>
-            </div>
-        <?php endif; ?>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
 
-        <!-- Call to Action -->
-        <div style="text-align: center; margin-top: 3rem; padding: 2rem; background: var(--cream); border-radius: var(--radius-lg);">
-            <h3 style="color: var(--brown); margin-bottom: 1rem;">Can't find what you're looking for?</h3>
-            <p style="color: var(--text-gray); margin-bottom: 1.5rem;">Contact us for custom orders or special requests.</p>
-            <a href="contact.php" class="btn btn-primary">Contact Us</a>
+            <!-- Call to Action -->
+            <div style="text-align: center; margin-top: 3rem; padding: 2rem; background: var(--cream); border-radius: var(--radius-lg);">
+                <h3 style="color: var(--brown); margin-bottom: 1rem;">Can't find what you're looking for?</h3>
+                <p style="color: var(--text-gray); margin-bottom: 1.5rem;">Contact us for custom orders or special requests.</p>
+                <a href="contact.php" class="btn btn-primary">Contact Us</a>
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast Notification -->
+    <div class="toast-notification" id="toastNotification">
+        <div class="toast-content">
+            <span class="toast-icon">✅</span>
+            <span class="toast-text" id="toastText">Product added to cart!</span>
         </div>
     </div>
 
     <script>
-        // Simple product page interactions
+        // Cart management and AJAX functionality
+        let cartCount = <?= $cart_count ?>;
+        
+        // Add to cart function
+        async function addToCart(productId) {
+            const button = document.querySelector(`[data-product-id="${productId}"]`);
+            const productName = button.getAttribute('data-product-name');
+            const originalText = button.innerHTML;
+            
+            // Show loading state
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
+            button.classList.add('loading');
+            button.disabled = true;
+            
+            try {
+                const response = await fetch('ajax/add_product_to_cart.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        product_id: productId,
+                        quantity: 1,
+                        type: 'product'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Update cart count
+                    cartCount = data.cart_count;
+                    updateCartDisplay();
+                    
+                    // Add bounce effect to floating cart
+                    const floatingCart = document.getElementById('floatingCart');
+                    if (floatingCart) {
+                        floatingCart.style.animation = 'bounce 0.6s ease-out';
+                        setTimeout(() => {
+                            floatingCart.style.animation = 'slideInUp 0.3s ease-out, float 3s ease-in-out infinite';
+                        }, 600);
+                    }
+                    
+                    // Reset button immediately (no "Added!" text)
+                    button.innerHTML = originalText;
+                    button.classList.remove('loading');
+                    button.disabled = false;
+                    
+                    // Show toast notification
+                    showToast(`${productName} added to cart!`);
+                    
+                } else {
+                    throw new Error(data.message || 'Failed to add to cart');
+                }
+                
+            } catch (error) {
+                console.error('Error adding to cart:', error);
+                
+                // Show error state
+                button.innerHTML = '❌ Error';
+                button.classList.remove('loading');
+                
+                // Show error toast
+                showToast(error.message || 'Error adding to cart', 'error');
+                
+                // Reset button
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                }, 2000);
+            }
+        }
+        
+        // Update cart display
+        function updateCartDisplay() {
+            const floatingCartCounter = document.getElementById('floatingCartCounter');
+            const floatingCart = document.getElementById('floatingCart');
+            
+            if (floatingCartCounter) {
+                floatingCartCounter.textContent = cartCount;
+            }
+            
+            // Show/hide floating cart
+            if (cartCount > 0) {
+                floatingCart.classList.remove('hidden');
+                if (floatingCartCounter) {
+                    floatingCartCounter.classList.remove('hidden');
+                    // Add pulse animation
+                    floatingCartCounter.style.animation = 'pulse 0.6s ease-out';
+                    setTimeout(() => {
+                        floatingCartCounter.style.animation = '';
+                    }, 600);
+                }
+            } else {
+                if (floatingCartCounter) {
+                    floatingCartCounter.classList.add('hidden');
+                }
+                // Keep floating cart visible but with 0 counter
+                floatingCart.classList.remove('hidden');
+            }
+            
+            // Update navbar cart counter if exists
+            const navCartCounter = document.querySelector('.cart-counter');
+            if (navCartCounter) {
+                navCartCounter.textContent = cartCount;
+                navCartCounter.style.display = cartCount > 0 ? 'inline-block' : 'none';
+            }
+        }
+        
+        // Show toast notification
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toastNotification');
+            const toastText = document.getElementById('toastText');
+            const toastIcon = toast.querySelector('.toast-icon');
+            
+            toastText.textContent = message;
+            
+            if (type === 'error') {
+                toastIcon.textContent = '❌';
+                toast.style.background = 'var(--error-color, #e74c3c)';
+            } else {
+                toastIcon.textContent = '✅';
+                toast.style.background = 'var(--sage)';
+            }
+            
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+        
+        // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('Products page loaded');
+            updateCartDisplay();
+            
             // Add smooth hover effects
             const productCards = document.querySelectorAll('.product-card');
             
@@ -529,14 +849,19 @@ include 'header.php';
                 });
             });
             
-            // Track button clicks for analytics (if needed)
-            const buttons = document.querySelectorAll('.btn-add-cart, .btn-quick-buy');
-            buttons.forEach(button => {
-                button.addEventListener('click', function(e) {
-                    // Optional: Add analytics tracking here
-                    console.log('Product interaction:', this.href);
-                });
+            // Close toast notification when clicked
+            const toast = document.getElementById('toastNotification');
+            toast.addEventListener('click', function() {
+                this.classList.remove('show');
             });
+        });
+        
+        // Handle escape key to close toast
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const toast = document.getElementById('toastNotification');
+                toast.classList.remove('show');
+            }
         });
     </script>
 </body>
