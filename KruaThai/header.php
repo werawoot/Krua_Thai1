@@ -685,7 +685,7 @@ body.has-header {
         <ul class="nav-links">
             <li><a href="./index.php">Home</a></li>
             <li><a href="./menus.php">Menu</a></li>
-            <li><a href="./meal-kits.php">Meal-Kits</a></li>
+            <li><a href="./product.php">Meal-Kits</a></li>
             <li><a href="./index.php#how-it-works">How It Works</a></li>
             <li><a href="./blogs.php">About</a></li>
             <li><a href="./contact.php">Contact</a></li>
