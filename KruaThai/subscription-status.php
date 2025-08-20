@@ -3,7 +3,7 @@
  * Somdul Table - Subscription Status Page
  * File: subscription-status.php
  * Description: Track order status and manage subscriptions
- * FIXED: Now uses header.php consistently like other pages
+ * UPDATED: Added "delivered" status and photo viewing functionality
  */
 
 session_start();
@@ -130,6 +130,22 @@ function hasExistingReview($pdo, $user_id, $subscription_id) {
     return $stmt->fetchColumn() > 0;
 }
 
+// ✅ NEW: Function to get delivery photo for subscription
+function getDeliveryPhoto($pdo, $subscription_id) {
+    // 🔧 FIX: Cast both IDs as CHAR to ensure proper UUID matching
+    $stmt = $pdo->prepare("
+        SELECT photo_path, notes, updated_at, rider_id
+        FROM delivery_status 
+        WHERE CAST(subscription_id as CHAR) = CAST(? as CHAR) 
+        AND photo_path IS NOT NULL 
+        AND photo_path != ''
+        ORDER BY updated_at DESC
+        LIMIT 1
+    ");
+    $stmt->execute([$subscription_id]);
+    return $stmt->fetch(PDO::FETCH_ASSOC);
+}
+
 // --- Review Submission Function (เวอร์ชันสมบูรณ์) ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'submit_review') {
     $subscription_id = $_POST['subscription_id'];
@@ -138,8 +154,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $comment = $_POST['comment'];
     
     try {
-
-            // ✅ เพิ่มการตรวจสอบว่ามีรีวิวแล้วหรือไม่ (เพิ่มตรงนี้)
+        // ✅ เพิ่มการตรวจสอบว่ามีรีวิวแล้วหรือไม่ (เพิ่มตรงนี้)
         if (hasExistingReview($pdo, $user_id, $subscription_id)) {
             $_SESSION['flash_message'] = "คุณได้ทำการรีวิวแพ็คเกจนี้แล้ว";
             $_SESSION['flash_type'] = 'error';
@@ -315,6 +330,11 @@ foreach ($subs as &$sub) {
     $sub['has_review'] = hasExistingReview($pdo, $user_id, $sub['id']);
     $sub['order_status'] = getOrderStatusForSubscription($sub['id'], $pdo);
     $sub['status_display'] = getOrderStatusDisplay($sub['order_status']);
+    
+    // ✅ NEW: Get delivery photo if subscription is delivered
+    if ($sub['status'] === 'delivered') {
+        $sub['delivery_photo'] = getDeliveryPhoto($pdo, $sub['id']);
+    }
 }
 
 // --- Fetch selected menus for each subscription ---
@@ -334,13 +354,15 @@ foreach ($subs as $sub) {
     $subscription_menus[$sub['id']] = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
+// ✅ UPDATED: Enhanced getStatusText function with delivered status
 function getStatusText($status) {
     $map = [
         'active' => 'Active',
         'paused' => 'Paused',
         'cancelled' => 'Cancelled',
         'expired' => 'Expired',
-        'pending_payment' => 'Pending Payment'
+        'pending_payment' => 'Pending Payment',
+        'delivered' => 'Delivered' // ✅ NEW: Added delivered status
     ];
     return $map[$status] ?? $status;
 }
@@ -586,6 +608,13 @@ include 'header.php';
         border: 1px solid #3498db;
     }
 
+    /* ✅ NEW: Delivered status styling */
+    .status.delivered {
+        background: linear-gradient(135deg, rgba(111, 66, 193, 0.1), rgba(111, 66, 193, 0.05));
+        color: #6f42c1;
+        border: 1px solid #6f42c1;
+    }
+
     /* Action Buttons */
     .action-buttons {
         display: flex;
@@ -671,6 +700,19 @@ include 'header.php';
         background: linear-gradient(135deg, #e67e22, #d35400);
         transform: translateY(-1px);
         border-color: #e67e22;
+    }
+
+    /* ✅ NEW: View Photo button styling */
+    .btn-view-photo {
+        background: linear-gradient(135deg, #6f42c1, #5a32a3);
+        color: white;
+        border-color: #6f42c1;
+    }
+
+    .btn-view-photo:hover {
+        background: linear-gradient(135deg, #5a32a3, #4c2a91);
+        transform: translateY(-1px);
+        border-color: #5a32a3;
     }
 
     .btn-disabled {
@@ -773,6 +815,47 @@ include 'header.php';
         max-height: 600px;
         overflow-y: auto;
         font-family: 'BaticaSans', sans-serif;
+    }
+
+    /* ✅ NEW: Photo modal styles */
+    .photo-modal-content {
+        max-width: 90%;
+        max-height: 90%;
+        background: var(--white);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        position: relative;
+    }
+
+    .photo-display {
+        text-align: center;
+        padding: 2rem;
+    }
+
+    .delivery-photo-large {
+        max-width: 100%;
+        max-height: 70vh;
+        object-fit: contain;
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-medium);
+    }
+
+    .photo-info {
+        margin-top: 1rem;
+        padding: 1rem;
+        background: var(--cream);
+        border-radius: var(--radius-md);
+        text-align: left;
+    }
+
+    .photo-info-item {
+        margin-bottom: 0.5rem;
+        color: var(--text-gray);
+        font-size: 0.9rem;
+    }
+
+    .photo-info-item strong {
+        color: var(--text-dark);
     }
 
     /* Order Progress Bar */
@@ -1522,6 +1605,14 @@ include 'header.php';
                                     </td>
                                     <td>
                                         <span class="status <?= $sub['status'] ?>"><?= getStatusText($sub['status']) ?></span>
+                                        
+                                        <!-- ✅ NEW: Show delivered timestamp if available -->
+                                        <?php if ($sub['status'] === 'delivered' && $sub['delivered_at']): ?>
+                                            <small style="display: block; margin-top: 0.3rem; color: var(--text-gray);">
+                                                <i class="fas fa-check-circle"></i> 
+                                                <?= date('M j, Y \a\t g:i A', strtotime($sub['delivered_at'])) ?>
+                                            </small>
+                                        <?php endif; ?>
                                     </td>
                                     <td><?= htmlspecialchars($sub['start_date']) ?></td>
                                     <td>
@@ -1531,7 +1622,14 @@ include 'header.php';
                                                 <i class="fas fa-eye"></i> View Details
                                             </button>
 
-                                            <?php if (($sub['status'] === 'active' || $sub['status'] === 'completed') && !$sub['has_review']): ?>
+                                            <!-- ✅ NEW: View Photo button for delivered orders -->
+                                            <?php if ($sub['status'] === 'delivered' && isset($sub['delivery_photo']) && $sub['delivery_photo']): ?>
+                                                <button onclick="viewDeliveryPhoto('<?= htmlspecialchars($sub['delivery_photo']['photo_path']) ?>', '<?= htmlspecialchars($sub['plan_name']) ?>', '<?= htmlspecialchars($sub['delivery_photo']['notes'] ?? '') ?>', '<?= $sub['delivery_photo']['updated_at'] ?>')" class="btn-action btn-view-photo">
+                                                    <i class="fas fa-camera"></i> View Photo
+                                                </button>
+                                            <?php endif; ?>
+
+                                            <?php if (($sub['status'] === 'active' || $sub['status'] === 'completed' || $sub['status'] === 'delivered') && !$sub['has_review']): ?>
                                             <button onclick="openReviewModal('<?= htmlspecialchars($sub['id']) ?>', '<?= htmlspecialchars($sub['plan_name']) ?>')" class="btn-action btn-review">
                                                 <i class="fas fa-star"></i> Review
                                             </button>
@@ -1640,6 +1738,29 @@ include 'header.php';
             </div>
             <div class="modal-body" id="modalBody">
                 <!-- Content will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- ✅ NEW: Modal for Delivery Photo Viewing -->
+    <div id="photoModal" class="modal">
+        <div class="modal-content photo-modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <i class="fas fa-camera"></i>
+                    Delivery Photo
+                </h3>
+                <button class="modal-close" onclick="closeModal('photoModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="photo-display">
+                    <img id="deliveryPhotoImg" src="" alt="Delivery Photo" class="delivery-photo-large">
+                    <div id="photoInfoSection" class="photo-info">
+                        <!-- Photo info will be loaded here -->
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -1846,6 +1967,7 @@ include 'header.php';
                     closeModal('detailsModal');
                     closeModal('complaintModal');
                     closeModal('reviewModal');
+                    closeModal('photoModal'); // ✅ NEW: Added photo modal
                 }
             });
 
@@ -1868,6 +1990,39 @@ include 'header.php';
         // Subscription data for modal
         const subscriptionData = <?= json_encode($subs) ?>;
         const menuData = <?= json_encode($subscription_menus) ?>;
+
+        // ✅ NEW: Function to view delivery photo
+        function viewDeliveryPhoto(photoPath, planName, notes, timestamp) {
+            const photoModal = document.getElementById('photoModal');
+            const photoImg = document.getElementById('deliveryPhotoImg');
+            const photoInfo = document.getElementById('photoInfoSection');
+            
+            // Set the photo source
+            photoImg.src = photoPath;
+            
+            // Build photo info content
+            let infoContent = `
+                <div class="photo-info-item">
+                    <strong><i class="fas fa-box"></i> Order Plan:</strong> ${planName}
+                </div>
+                <div class="photo-info-item">
+                    <strong><i class="fas fa-clock"></i> Photo Taken:</strong> ${new Date(timestamp).toLocaleString()}
+                </div>
+            `;
+            
+            if (notes && notes.trim()) {
+                infoContent += `
+                    <div class="photo-info-item">
+                        <strong><i class="fas fa-sticky-note"></i> Delivery Notes:</strong> ${notes}
+                    </div>
+                `;
+            }
+            
+            photoInfo.innerHTML = infoContent;
+            
+            // Show modal
+            photoModal.classList.add('show');
+        }
 
         // Create Order Progress Bar
         function createOrderProgressBar(orderStatus) {
@@ -1943,7 +2098,8 @@ include 'header.php';
                 'paused': '#f39c12',
                 'cancelled': '#e74c3c',
                 'expired': '#636e72',
-                'pending_payment': '#3498db'
+                'pending_payment': '#3498db',
+                'delivered': '#6f42c1' // ✅ NEW: Added delivered status color
             };
 
             // Group menus by day
@@ -2022,6 +2178,15 @@ include 'header.php';
                                 subscription.preferred_delivery_time === 'evening' ? 'Evening (16:00-20:00)' : 'Flexible'}
                             </div>
                         </div>
+                        
+                        ${subscription.status === 'delivered' && subscription.delivered_at ? `
+                        <div class="detail-item">
+                            <div class="detail-label">Delivered At</div>
+                            <div class="detail-value" style="color: #6f42c1; font-weight: 700;">
+                                <i class="fas fa-check-circle"></i> ${new Date(subscription.delivered_at).toLocaleString()}
+                            </div>
+                        </div>
+                        ` : ''}
                     </div>
                     
                     ${deliveryDays.length > 0 ? `
@@ -2164,7 +2329,8 @@ include 'header.php';
                 'paused': 'Paused',
                 'cancelled': 'Cancelled',
                 'expired': 'Expired',
-                'pending_payment': 'Pending Payment'
+                'pending_payment': 'Pending Payment',
+                'delivered': 'Delivered' // ✅ NEW: Added delivered status
             };
             return statusMap[status] || status;
         }

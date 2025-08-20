@@ -58,11 +58,111 @@ $API_SUCCESS = false;
 $API_ERROR = null;
 $API_DATA = null;
 $AVAILABLE_RIDERS = [];
+$ASSIGNED_DELIVERIES = []; // NEW: Initialize assigned deliveries
 
 // Database functions
 function getDatabaseConnection() {
     global $connection; // Use your existing database connection
     return $connection;
+}
+
+// NEW: Function to unassign all deliveries from a rider
+function unassignAllFromRider($rider_id) {
+    $connection = getDatabaseConnection();
+    
+    try {
+        // Validate rider ID
+        if (empty($rider_id)) {
+            return [
+                'success' => false,
+                'message' => 'Invalid rider ID'
+            ];
+        }
+        
+        // Get rider name and count of assigned subscriptions
+        $rider_info_sql = "
+            SELECT 
+                CONCAT(u.first_name, ' ', u.last_name) as rider_name,
+                COUNT(s.id) as assigned_count
+            FROM users u
+            LEFT JOIN subscriptions s ON u.id = s.assigned_rider_id AND s.status = 'active'
+            WHERE u.id = ? AND u.role = 'rider' AND u.status = 'active'
+            GROUP BY u.id, u.first_name, u.last_name
+        ";
+        
+        $rider_stmt = mysqli_prepare($connection, $rider_info_sql);
+        mysqli_stmt_bind_param($rider_stmt, "s", $rider_id);
+        mysqli_stmt_execute($rider_stmt);
+        $rider_result = mysqli_stmt_get_result($rider_stmt);
+        $rider_data = mysqli_fetch_assoc($rider_result);
+        mysqli_stmt_close($rider_stmt);
+        
+        if (!$rider_data) {
+            return [
+                'success' => false,
+                'message' => 'Rider not found or not active'
+            ];
+        }
+        
+        $rider_name = $rider_data['rider_name'];
+        $assigned_count = $rider_data['assigned_count'];
+        
+        if ($assigned_count == 0) {
+            return [
+                'success' => true,
+                'message' => "{$rider_name} has no assignments to remove"
+            ];
+        }
+        
+        // Begin transaction
+        mysqli_begin_transaction($connection);
+        
+        // Unassign all subscriptions from this rider
+        $unassign_sql = "
+            UPDATE subscriptions 
+            SET assigned_rider_id = NULL, updated_at = NOW() 
+            WHERE assigned_rider_id = ? AND status = 'active'
+        ";
+        
+        $unassign_stmt = mysqli_prepare($connection, $unassign_sql);
+        mysqli_stmt_bind_param($unassign_stmt, "s", $rider_id);
+        
+        if (mysqli_stmt_execute($unassign_stmt)) {
+            $affected_rows = mysqli_stmt_affected_rows($unassign_stmt);
+            mysqli_stmt_close($unassign_stmt);
+            
+            // Commit transaction
+            mysqli_commit($connection);
+            
+            return [
+                'success' => true,
+                'message' => "Successfully unassigned {$affected_rows} deliveries from {$rider_name}"
+            ];
+        } else {
+            mysqli_stmt_close($unassign_stmt);
+            
+            // Rollback transaction
+            mysqli_rollback($connection);
+            
+            return [
+                'success' => false,
+                'message' => 'Failed to unassign deliveries: ' . mysqli_error($connection)
+            ];
+        }
+        
+    } catch (Exception $e) {
+        // Rollback transaction on error
+        if (mysqli_ping($connection)) {
+            mysqli_rollback($connection);
+        }
+        
+        error_log("Unassign all error: " . $e->getMessage());
+        
+        return [
+            'success' => false,
+            'message' => 'Error unassigning deliveries: ' . $e->getMessage()
+        ];
+    }
 }
 
 function getDeliveryTimeSlots() {
@@ -74,7 +174,7 @@ function getDeliveryTimeSlots() {
     ];
 }
 
-// NEW: Get available riders/drivers
+// Get available riders/drivers
 function getAvailableRiders() {
     $connection = getDatabaseConnection();
     
@@ -109,11 +209,45 @@ function getAvailableRiders() {
     }
 }
 
-// NEW: Assign entire route to a rider
+// FIXED: Enhanced function to assign entire route to a rider (UUID Support)
 function assignRouteToRider($route_customers, $rider_id) {
     $connection = getDatabaseConnection();
     
     try {
+        // Validate input parameters
+        if (empty($route_customers) || !is_array($route_customers)) {
+            return [
+                'success' => false,
+                'message' => 'Invalid route customers data - empty or not array'
+            ];
+        }
+        
+        // FIXED: Handle both UUID strings and integers for rider_id
+        if (empty($rider_id) || (is_numeric($rider_id) && $rider_id <= 0)) {
+            return [
+                'success' => false,
+                'message' => 'Invalid rider ID - must be valid UUID or positive number'
+            ];
+        }
+        
+        // FIXED: Validate that rider exists (works for both UUID and integer)
+        $rider_check_sql = "SELECT id, CONCAT(first_name, ' ', last_name) as name FROM users WHERE id = ? AND role = 'rider' AND status = 'active'";
+        $rider_check_stmt = mysqli_prepare($connection, $rider_check_sql);
+        mysqli_stmt_bind_param($rider_check_stmt, "s", $rider_id); // Use "s" for string to handle UUID
+        mysqli_stmt_execute($rider_check_stmt);
+        $rider_check_result = mysqli_stmt_get_result($rider_check_stmt);
+        $rider_data = mysqli_fetch_assoc($rider_check_result);
+        mysqli_stmt_close($rider_check_stmt);
+        
+        if (!$rider_data) {
+            return [
+                'success' => false,
+                'message' => "Rider with ID '$rider_id' not found or not active"
+            ];
+        }
+        
+        $rider_name = $rider_data['name'];
+        
         // Begin transaction
         mysqli_begin_transaction($connection);
         
@@ -121,20 +255,64 @@ function assignRouteToRider($route_customers, $rider_id) {
         $error_messages = [];
         
         foreach ($route_customers as $customer) {
+            // Debug log
+            error_log("Processing customer: " . json_encode($customer));
+            
             // Check if customer has subscription_ids array or single ID
-            $subscription_ids = isset($customer['subscription_ids']) ? $customer['subscription_ids'] : [$customer['subscription_id']];
+            $subscription_ids = [];
+            
+            if (isset($customer['subscription_ids']) && is_array($customer['subscription_ids'])) {
+                $subscription_ids = $customer['subscription_ids'];
+            } elseif (isset($customer['subscription_id'])) {
+                $subscription_ids = [$customer['subscription_id']];
+            } elseif (isset($customer['id'])) {
+                $subscription_ids = [$customer['id']];
+            } else {
+                $error_messages[] = "No valid subscription ID found for customer: " . ($customer['customer_name'] ?? 'Unknown');
+                continue;
+            }
             
             foreach ($subscription_ids as $subscription_id) {
+                if (empty($subscription_id)) {
+                    continue;
+                }
+                
+                // Check if subscription exists
+                $check_sql = "SELECT id FROM subscriptions WHERE id = ?";
+                $check_stmt = mysqli_prepare($connection, $check_sql);
+                // Handle both UUID and integer subscription IDs
+                if (is_numeric($subscription_id)) {
+                    mysqli_stmt_bind_param($check_stmt, "i", $subscription_id);
+                } else {
+                    mysqli_stmt_bind_param($check_stmt, "s", $subscription_id);
+                }
+                mysqli_stmt_execute($check_stmt);
+                $check_result = mysqli_stmt_get_result($check_stmt);
+                
+                if (!mysqli_fetch_assoc($check_result)) {
+                    $error_messages[] = "Subscription ID $subscription_id not found";
+                    mysqli_stmt_close($check_stmt);
+                    continue;
+                }
+                mysqli_stmt_close($check_stmt);
+                
+                // FIXED: Assign rider to subscription (handle UUID rider_id)
                 $sql = "UPDATE subscriptions SET assigned_rider_id = ?, updated_at = NOW() WHERE id = ?";
                 $stmt = mysqli_prepare($connection, $sql);
                 
                 if ($stmt) {
-                    mysqli_stmt_bind_param($stmt, "ii", $rider_id, $subscription_id);
+                    // Use string binding for rider_id to handle UUID
+                    if (is_numeric($subscription_id)) {
+                        mysqli_stmt_bind_param($stmt, "si", $rider_id, $subscription_id);
+                    } else {
+                        mysqli_stmt_bind_param($stmt, "ss", $rider_id, $subscription_id);
+                    }
                     
                     if (mysqli_stmt_execute($stmt)) {
                         $success_count++;
+                        error_log("Successfully assigned rider $rider_id to subscription $subscription_id");
                     } else {
-                        $error_messages[] = "Failed to assign subscription ID: $subscription_id";
+                        $error_messages[] = "Failed to assign subscription ID: $subscription_id - " . mysqli_error($connection);
                     }
                     
                     mysqli_stmt_close($stmt);
@@ -144,19 +322,9 @@ function assignRouteToRider($route_customers, $rider_id) {
             }
         }
         
-        if (empty($error_messages)) {
+        if (empty($error_messages) && $success_count > 0) {
             // Commit transaction
             mysqli_commit($connection);
-            
-            // Get rider name for response
-            $rider_sql = "SELECT CONCAT(first_name, ' ', last_name) as name FROM users WHERE id = ?";
-            $rider_stmt = mysqli_prepare($connection, $rider_sql);
-            mysqli_stmt_bind_param($rider_stmt, "i", $rider_id);
-            mysqli_stmt_execute($rider_stmt);
-            $rider_result = mysqli_stmt_get_result($rider_stmt);
-            $rider_data = mysqli_fetch_assoc($rider_result);
-            $rider_name = $rider_data['name'] ?? 'Unknown';
-            mysqli_stmt_close($rider_stmt);
             
             return [
                 'success' => true,
@@ -167,15 +335,21 @@ function assignRouteToRider($route_customers, $rider_id) {
             // Rollback transaction
             mysqli_rollback($connection);
             
+            $error_summary = empty($error_messages) ? 'No subscriptions were processed' : implode(', ', $error_messages);
+            
             return [
                 'success' => false,
-                'message' => 'Some assignments failed: ' . implode(', ', $error_messages)
+                'message' => 'Assignment failed: ' . $error_summary . " (Processed: $success_count)"
             ];
         }
         
     } catch (Exception $e) {
         // Rollback transaction on error
-        mysqli_rollback($connection);
+        if (mysqli_ping($connection)) {
+            mysqli_rollback($connection);
+        }
+        
+        error_log("Route assignment error: " . $e->getMessage());
         
         return [
             'success' => false,
@@ -184,26 +358,73 @@ function assignRouteToRider($route_customers, $rider_id) {
     }
 }
 
-// Handle AJAX requests for route assignment
+// Handle AJAX requests for route assignment (FIXED for UUID)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     header('Content-Type: application/json');
     
     try {
         switch ($_POST['action']) {
             case 'assign_route_to_rider':
-                // Decode route customers data
-                $route_customers = json_decode($_POST['route_customers'], true);
-                $rider_id = (int)$_POST['rider_id'];
+                // Debug logging
+                error_log("Route assignment request received");
+                error_log("POST data: " . json_encode($_POST));
                 
-                if (empty($route_customers) || $rider_id <= 0) {
+                // Decode route customers data
+                $route_customers_json = $_POST['route_customers'] ?? '';
+                $rider_id = $_POST['rider_id'] ?? ''; // FIXED: Don't convert to int, keep as string for UUID
+                
+                error_log("Route customers JSON: " . $route_customers_json);
+                error_log("Rider ID (original): " . $rider_id);
+                
+                // Validate JSON
+                if (empty($route_customers_json)) {
                     echo json_encode([
                         'success' => false,
-                        'message' => 'Invalid route data or rider ID'
+                        'message' => 'Route customers data is empty'
+                    ]);
+                    exit;
+                }
+                
+                $route_customers = json_decode($route_customers_json, true);
+                
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    echo json_encode([
+                        'success' => false,
+                        'message' => 'Invalid JSON in route customers data: ' . json_last_error_msg()
+                    ]);
+                    exit;
+                }
+                
+                // FIXED: Validate parameters (handle UUID strings)
+                if (empty($route_customers) || empty($rider_id)) {
+                    echo json_encode([
+                        'success' => false,
+                        'message' => 'Invalid route data or rider ID - Route customers: ' . 
+                                   (empty($route_customers) ? 'empty' : count($route_customers)) . 
+                                   ', Rider ID: ' . (empty($rider_id) ? 'empty' : $rider_id)
                     ]);
                     exit;
                 }
                 
                 $result = assignRouteToRider($route_customers, $rider_id);
+                echo json_encode($result);
+                exit;
+                
+            case 'unassign_all_from_rider':
+                // NEW: Unassign all deliveries from a rider
+                error_log("Unassign all request received");
+                
+                $rider_id = $_POST['rider_id'] ?? '';
+                
+                if (empty($rider_id)) {
+                    echo json_encode([
+                        'success' => false,
+                        'message' => 'Rider ID is required'
+                    ]);
+                    exit;
+                }
+                
+                $result = unassignAllFromRider($rider_id);
                 echo json_encode($result);
                 exit;
                 
@@ -215,6 +436,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 exit;
         }
     } catch (Exception $e) {
+        error_log("AJAX error: " . $e->getMessage());
         echo json_encode([
             'success' => false,
             'message' => 'Error processing request: ' . $e->getMessage()
@@ -423,11 +645,119 @@ function addCoordinatesToDeliveries($deliveries) {
     return $deliveries;
 }
 
+// NEW: Function to get assigned deliveries for display
+function getAssignedDeliveries($date, $time_slot = '') {
+    $connection = getDatabaseConnection();
+    
+    $dayOfWeek = strtolower(date('l', strtotime($date)));
+    
+    $sql = "
+        SELECT 
+            s.id as subscription_id,
+            s.user_id,
+            s.assigned_rider_id,
+            s.total_amount,
+            s.delivery_days,
+            s.preferred_delivery_time,
+            u.first_name as customer_first_name,
+            u.last_name as customer_last_name,
+            u.delivery_address,
+            u.city,
+            u.state,
+            u.zip_code,
+            u.phone,
+            r.first_name as rider_first_name,
+            r.last_name as rider_last_name,
+            r.phone as rider_phone,
+            COUNT(s.id) as subscription_count,
+            SUM(CASE WHEN s.total_amount IS NOT NULL AND s.total_amount > 0 
+                THEN GREATEST(1, ROUND(s.total_amount / 15)) 
+                ELSE 1 END) as total_items
+        FROM subscriptions s
+        JOIN users u ON s.user_id = u.id
+        JOIN users r ON s.assigned_rider_id = r.id
+        WHERE s.status = 'active'
+        AND s.assigned_rider_id IS NOT NULL
+        AND r.role = 'rider'
+        AND r.status = 'active'
+        AND (
+            s.delivery_days LIKE ? 
+            OR s.delivery_days LIKE ?
+            OR s.delivery_days IS NULL 
+            OR s.delivery_days = ''
+        )
+    ";
+    
+    if (!empty($time_slot)) {
+        $sql .= " AND s.preferred_delivery_time = ?";
+    }
+    
+    $sql .= " GROUP BY s.user_id, s.assigned_rider_id, u.first_name, u.last_name, u.delivery_address, u.city, u.state, u.zip_code, u.phone, r.first_name, r.last_name, r.phone";
+    $sql .= " ORDER BY r.first_name, r.last_name, u.zip_code, u.last_name, u.first_name";
+    
+    try {
+        $stmt = mysqli_prepare($connection, $sql);
+        
+        if (!empty($time_slot)) {
+            $dayOfWeekParam = "%$dayOfWeek%";
+            $dateParam = "%$date%";
+            mysqli_stmt_bind_param($stmt, "sss", $dayOfWeekParam, $dateParam, $time_slot);
+        } else {
+            $dayOfWeekParam = "%$dayOfWeek%";
+            $dateParam = "%$date%";
+            mysqli_stmt_bind_param($stmt, "ss", $dayOfWeekParam, $dateParam);
+        }
+        
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        
+        $assigned_deliveries = [];
+        while ($row = mysqli_fetch_assoc($result)) {
+            $rider_id = $row['assigned_rider_id'];
+            $rider_name = $row['rider_first_name'] . ' ' . $row['rider_last_name'];
+            
+            if (!isset($assigned_deliveries[$rider_id])) {
+                $assigned_deliveries[$rider_id] = [
+                    'rider_id' => $rider_id,
+                    'rider_name' => $rider_name,
+                    'rider_phone' => $row['rider_phone'],
+                    'customers' => [],
+                    'total_customers' => 0,
+                    'total_items' => 0,
+                    'total_subscriptions' => 0
+                ];
+            }
+            
+            $assigned_deliveries[$rider_id]['customers'][] = [
+                'customer_name' => $row['customer_first_name'] . ' ' . $row['customer_last_name'],
+                'delivery_address' => $row['delivery_address'] . ', ' . $row['city'] . ', ' . $row['state'] . ' ' . $row['zip_code'],
+                'phone' => $row['phone'],
+                'zip_code' => $row['zip_code'],
+                'subscription_count' => $row['subscription_count'],
+                'total_items' => $row['total_items'],
+                'delivery_time' => $row['preferred_delivery_time'] ?? ''
+            ];
+            
+            $assigned_deliveries[$rider_id]['total_customers']++;
+            $assigned_deliveries[$rider_id]['total_items'] += $row['total_items'];
+            $assigned_deliveries[$rider_id]['total_subscriptions'] += $row['subscription_count'];
+        }
+        
+        mysqli_stmt_close($stmt);
+        return $assigned_deliveries;
+        
+    } catch (Exception $e) {
+        error_log("Error fetching assigned deliveries: " . $e->getMessage());
+        return [];
+    }
+}
+
 // Fetch deliveries when date is selected
 if (!empty($selected_date)) {
     $DELIVERIES = fetchDeliveriesForDate($selected_date, $selected_time);
     $DELIVERIES = addCoordinatesToDeliveries($DELIVERIES);
     $AVAILABLE_RIDERS = getAvailableRiders(); // Fetch available riders
+    $ASSIGNED_DELIVERIES = getAssignedDeliveries($selected_date, $selected_time); // Fetch assigned deliveries
 }
 
 // Helper functions from original code
@@ -520,7 +850,7 @@ function base64url_encode($data) {
     return rtrim(strtr(base64_encode($data), '+/', '-_'), '=');
 }
 
-// Route optimization logic
+// Route optimization logic (UNCHANGED - preserving Google API functionality)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['optimize']) && !empty($DELIVERIES)) {
     $accessToken = getAccessToken($SERVICE_ACCOUNT_KEY_FILE);
     
@@ -1073,7 +1403,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['optimize']) && !empty
             font-size: 0.9rem;
         }
         
-        /* NEW: Route Assignment Styles */
+        /* ENHANCED: Route Assignment Styles */
         .route-assignment {
             background: #f0f8ff;
             border: 2px solid #bd9379;
@@ -1093,6 +1423,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['optimize']) && !empty
             display: flex;
             gap: 15px;
             align-items: center;
+            flex-wrap: wrap;
         }
         
         .rider-select {
@@ -1127,6 +1458,245 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['optimize']) && !empty
         .assignment-info {
             font-size: 0.9rem;
             color: #666;
+        }
+        
+        /* NEW: Assigned Deliveries Section Styles */
+        .assignment-summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .rider-assignments-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .rider-assignment-card {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #adb89d;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .rider-assignment-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        }
+        
+        .rider-card-header {
+            background: linear-gradient(135deg, #bd9379, #cf723a);
+            color: white;
+            padding: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .rider-info h3 {
+            margin: 0;
+            font-size: 1.3rem;
+        }
+        
+        .rider-phone {
+            margin: 0.5rem 0 0 0;
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        .rider-stats {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .rider-stat {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+        }
+        
+        .rider-stat .stat-number {
+            display: block;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        
+        .rider-stat .stat-label {
+            font-size: 0.8rem;
+            opacity: 0.9;
+        }
+        
+        .customer-assignments-list {
+            padding: 1rem;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .assigned-customer-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            padding: 1rem;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background-color 0.2s ease;
+        }
+        
+        .assigned-customer-item:hover {
+            background: #f8f9fa;
+        }
+        
+        .assigned-customer-item:last-child {
+            border-bottom: none;
+        }
+        
+        .customer-sequence-number {
+            min-width: 30px;
+            height: 30px;
+            background: #cf723a;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        
+        .assigned-customer-info {
+            flex: 1;
+        }
+        
+        .assigned-customer-name {
+            font-weight: bold;
+            color: #cf723a;
+            font-size: 1.1rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        .subscription-badge {
+            background: #adb89d;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            margin-left: 0.5rem;
+            font-weight: normal;
+        }
+        
+        .assigned-customer-address {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        .assigned-customer-phone {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .assigned-customer-phone a {
+            color: #cf723a;
+            text-decoration: none;
+        }
+        
+        .assigned-customer-phone a:hover {
+            text-decoration: underline;
+        }
+        
+        .assigned-customer-details {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        
+        .item-badge, .time-badge, .zip-badge {
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        
+        .item-badge {
+            background: #bd9379;
+            color: white;
+        }
+        
+        .time-badge {
+            background: #adb89d;
+            color: white;
+        }
+        
+        .zip-badge {
+            background: #e9ecef;
+            color: #6c757d;
+        }
+        
+        .rider-actions {
+            background: #f8f9fa;
+            padding: 1rem;
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .btn-call-rider, .btn-view-route, .btn-unassign-all {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .btn-call-rider {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-call-rider:hover {
+            background: #218838;
+            transform: translateY(-1px);
+        }
+        
+        .btn-view-route {
+            background: #17a2b8;
+            color: white;
+        }
+        
+        .btn-view-route:hover {
+            background: #138496;
+            transform: translateY(-1px);
+        }
+        
+        .btn-unassign-all {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-unassign-all:hover {
+            background: #c82333;
+            transform: translateY(-1px);
+        }
+        
+        .assignment-summary-info {
+            background: #f0f8ff;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid #bd9379;
+            font-size: 0.95rem;
         }
         
         /* Loading overlay */
@@ -1189,6 +1759,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['optimize']) && !empty
             
             .rider-select {
                 min-width: 100%;
+            }
+            
+            /* NEW: Mobile styles for assigned deliveries */
+            .rider-assignments-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .rider-card-header {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+            
+            .rider-stats {
+                justify-content: center;
+            }
+            
+            .rider-actions {
+                flex-direction: column;
+            }
+            
+            .btn-call-rider, .btn-view-route, .btn-unassign-all {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .assigned-customer-details {
+                flex-direction: column;
+                gap: 0.25rem;
+            }
+            
+            .assignment-summary-stats {
+                grid-template-columns: repeat(2, 1fr);
             }
         }
     </style>
@@ -1388,7 +1992,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['optimize']) && !empty
             </div>
         <?php endif; ?>
         
-        <!-- Optimization Results -->
+        <!-- Optimization Results with ENHANCED Route Assignment -->
         <?php if (!empty($ROUTES) && isset($API_DATA['metrics'])): ?>
             <div class="section">
                 <h2>📊 Optimization Results</h2>
@@ -1436,9 +2040,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['optimize']) && !empty
                 <?php endif; ?>
             </div>
             
-            <!-- Route Details with Assignment -->
+            <!-- ENHANCED Route Details with Assignment -->
             <div class="section">
-                <h2>🗺️ Optimized Routes</h2>
+                <h2>🗺️ Optimized Routes with Assignment</h2>
                 <?php foreach ($ROUTES as $routeIndex => $route): ?>
                     <div class="route" id="route-<?= $routeIndex ?>">
                         <h3><?= htmlspecialchars($route['driver']) ?></h3>
@@ -1476,7 +2080,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['optimize']) && !empty
                             <?php endif; ?>
                         </div>
                         
-                        <!-- NEW: Route Assignment Section -->
+                        <!-- ENHANCED: Route Assignment Section -->
                         <div class="route-assignment">
                             <div class="assignment-header">
                                 <h4><i class="fas fa-user-plus"></i> Assign This Route to Rider</h4>
@@ -1499,13 +2103,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['optimize']) && !empty
                                 <button class="assign-btn" onclick="assignRouteToRider(<?= $routeIndex ?>)" id="assign-btn-<?= $routeIndex ?>" disabled>
                                     <i class="fas fa-check"></i> Assign Route
                                 </button>
+                                
+                                <!-- Debug button (remove in production) -->
+                                <button class="btn" onclick="debugRouteData(<?= $routeIndex ?>)" style="background: #17a2b8; color: white; margin-left: 10px;">
+                                    <i class="fas fa-bug"></i> Debug
+                                </button>
                             </div>
                         </div>
                         
+                        <!-- ENHANCED Route Sequence with proper data attributes -->
                         <?php if (!empty($route['sequence'])): ?>
                             <h5 style="margin-top: 1rem; margin-bottom: 0.5rem;">Route Sequence:</h5>
                             <?php foreach ($route['sequence'] as $index => $stop): ?>
-                                <div class="sequence-item" data-customer-data='<?= json_encode($stop['customer']) ?>'>
+                                <?php 
+                                // Ensure customer data has subscription_ids
+                                $customerData = $stop['customer'];
+                                if (!isset($customerData['subscription_ids']) && isset($customerData['subscription_id'])) {
+                                    $customerData['subscription_ids'] = [$customerData['subscription_id']];
+                                }
+                                if (!isset($customerData['subscription_ids']) && isset($customerData['id'])) {
+                                    $customerData['subscription_ids'] = [$customerData['id']];
+                                }
+                                ?>
+                                <div class="sequence-item" data-customer-data='<?= htmlspecialchars(json_encode($customerData)) ?>'>
                                     <span class="sequence-number"><?= ($index + 1) ?></span>
                                     <strong><?= htmlspecialchars($stop['customer']['customer_name']) ?></strong>
                                     <?php if ($stop['customer']['subscription_count'] > 1): ?>
@@ -1553,6 +2173,131 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['optimize']) && !empty
                 </div>
             </div>
         <?php endif; ?>
+        
+        <!-- NEW: Assigned Deliveries Section -->
+        <?php if (!empty($selected_date) && isset($ASSIGNED_DELIVERIES)): ?>
+            <div class="section">
+                <h2>👥 Current Rider Assignments for <?= date('l, F j, Y', strtotime($selected_date)) ?></h2>
+                
+                <?php if (empty($ASSIGNED_DELIVERIES)): ?>
+                    <div class="info-box">
+                        <strong>📋 No Assignments Yet</strong><br>
+                        No riders have been assigned deliveries for this date. Use the route optimization above to assign routes to riders.
+                    </div>
+                <?php else: ?>
+                    <!-- Assignment Summary Stats -->
+                    <div class="assignment-summary-stats">
+                        <?php 
+                        $total_assigned_riders = count($ASSIGNED_DELIVERIES);
+                        $total_assigned_customers = array_sum(array_column($ASSIGNED_DELIVERIES, 'total_customers'));
+                        $total_assigned_items = array_sum(array_column($ASSIGNED_DELIVERIES, 'total_items'));
+                        $total_assigned_subscriptions = array_sum(array_column($ASSIGNED_DELIVERIES, 'total_subscriptions'));
+                        ?>
+                        <div class="summary-stat">
+                            <div class="stat-value"><?= $total_assigned_riders ?></div>
+                            <div class="stat-label">Active Riders</div>
+                        </div>
+                        <div class="summary-stat">
+                            <div class="stat-value"><?= $total_assigned_customers ?></div>
+                            <div class="stat-label">Assigned Customers</div>
+                        </div>
+                        <div class="summary-stat">
+                            <div class="stat-value"><?= $total_assigned_items ?></div>
+                            <div class="stat-label">Total Items</div>
+                        </div>
+                        <div class="summary-stat">
+                            <div class="stat-value"><?= $total_assigned_subscriptions ?></div>
+                            <div class="stat-label">Total Subscriptions</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Rider Assignment Cards -->
+                    <div class="rider-assignments-grid">
+                        <?php foreach ($ASSIGNED_DELIVERIES as $rider_assignment): ?>
+                            <div class="rider-assignment-card">
+                                <div class="rider-card-header">
+                                    <div class="rider-info">
+                                        <h3>🚗 <?= htmlspecialchars($rider_assignment['rider_name']) ?></h3>
+                                        <?php if (!empty($rider_assignment['rider_phone'])): ?>
+                                            <p class="rider-phone">📞 <?= htmlspecialchars($rider_assignment['rider_phone']) ?></p>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="rider-stats">
+                                        <div class="rider-stat">
+                                            <span class="stat-number"><?= $rider_assignment['total_customers'] ?></span>
+                                            <span class="stat-label">Customers</span>
+                                        </div>
+                                        <div class="rider-stat">
+                                            <span class="stat-number"><?= $rider_assignment['total_items'] ?></span>
+                                            <span class="stat-label">Items</span>
+                                        </div>
+                                        <div class="rider-stat">
+                                            <span class="stat-number"><?= $rider_assignment['total_subscriptions'] ?></span>
+                                            <span class="stat-label">Subscriptions</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="customer-assignments-list">
+                                    <?php foreach ($rider_assignment['customers'] as $index => $customer): ?>
+                                        <div class="assigned-customer-item">
+                                            <div class="customer-sequence-number"><?= ($index + 1) ?></div>
+                                            <div class="assigned-customer-info">
+                                                <div class="assigned-customer-name">
+                                                    <?= htmlspecialchars($customer['customer_name']) ?>
+                                                    <?php if ($customer['subscription_count'] > 1): ?>
+                                                        <span class="subscription-badge"><?= $customer['subscription_count'] ?> subs</span>
+                                                    <?php endif; ?>
+                                                </div>
+                                                <div class="assigned-customer-address">
+                                                    📍 <?= htmlspecialchars($customer['delivery_address']) ?>
+                                                </div>
+                                                <?php if (!empty($customer['phone'])): ?>
+                                                    <div class="assigned-customer-phone">
+                                                        📞 <a href="tel:<?= htmlspecialchars($customer['phone']) ?>"><?= htmlspecialchars($customer['phone']) ?></a>
+                                                    </div>
+                                                <?php endif; ?>
+                                                <div class="assigned-customer-details">
+                                                    <span class="item-badge"><?= $customer['total_items'] ?> items</span>
+                                                    <?php if (!empty($customer['delivery_time'])): ?>
+                                                        <span class="time-badge"><?= htmlspecialchars($customer['delivery_time']) ?></span>
+                                                    <?php endif; ?>
+                                                    <span class="zip-badge">ZIP: <?= htmlspecialchars($customer['zip_code']) ?></span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                                
+                                <!-- Rider Action Buttons -->
+                                <div class="rider-actions">
+                                    <button class="btn-call-rider" onclick="window.open('tel:<?= htmlspecialchars($rider_assignment['rider_phone']) ?>', '_self')">
+                                        <i class="fas fa-phone"></i> Call Rider
+                                    </button>
+                                    <button class="btn-view-route" onclick="showRiderRoute('<?= $rider_assignment['rider_id'] ?>')">
+                                        <i class="fas fa-route"></i> View Route
+                                    </button>
+                                    <button class="btn-unassign-all" onclick="unassignAllFromRider('<?= $rider_assignment['rider_id'] ?>', '<?= htmlspecialchars($rider_assignment['rider_name']) ?>')">
+                                        <i class="fas fa-user-times"></i> Unassign All
+                                    </button>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                    
+                    <div class="assignment-summary-info">
+                        <strong>📊 Assignment Overview:</strong>
+                        <?= $total_assigned_riders ?> riders assigned • 
+                        <?= $total_assigned_customers ?> customers covered • 
+                        <?= $total_assigned_items ?> total items • 
+                        Coverage: <?= round(($total_assigned_customers / (count($DELIVERIES) ?: 1)) * 100, 1) ?>%
+                        <?php if (!empty($UNASSIGNED)): ?>
+                            • <span style="color: #856404;"><?= count($UNASSIGNED) ?> customers still unassigned</span>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+        <?php endif; ?>
     </div>
     
     <!-- Loading Overlay -->
@@ -1587,22 +2332,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['optimize']) && !empty
             this.form.submit();
         });
         
-        // NEW: Route Assignment Functions
+        // ======================================================================
+        // ENHANCED: ROUTE ASSIGNMENT FUNCTIONS
+        // ======================================================================
         
         // Enable/disable assign button based on rider selection
         document.addEventListener('DOMContentLoaded', function() {
-            // Add event listeners to all rider selects
-            <?php foreach ($ROUTES as $routeIndex => $route): ?>
-                document.getElementById('rider-select-<?= $routeIndex ?>').addEventListener('change', function() {
-                    const assignBtn = document.getElementById('assign-btn-<?= $routeIndex ?>');
-                    assignBtn.disabled = this.value === '';
+            // Add event listeners to all rider selects for route assignment
+            const routeSelects = document.querySelectorAll('.rider-select[id^="rider-select-"]');
+            routeSelects.forEach(select => {
+                const routeIndex = select.id.split('-')[2];
+                select.addEventListener('change', function() {
+                    const assignBtn = document.getElementById(`assign-btn-${routeIndex}`);
+                    if (assignBtn) {
+                        assignBtn.disabled = this.value === '';
+                    }
                 });
-            <?php endforeach; ?>
+            });
         });
         
         function assignRouteToRider(routeIndex) {
             const riderSelect = document.getElementById(`rider-select-${routeIndex}`);
             const riderId = riderSelect.value;
+            
+            // ENHANCED: Debug rider ID to check if it's UUID or integer
+            console.log('Raw Rider ID:', riderId);
+            console.log('Rider ID type:', typeof riderId);
+            console.log('Is UUID format?', riderId.includes('-'));
             
             if (!riderId) {
                 Swal.fire({
@@ -1616,37 +2372,75 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['optimize']) && !empty
             // Get rider name for confirmation
             const riderName = riderSelect.options[riderSelect.selectedIndex].text;
             
+            // Debug: Log the route element search
+            console.log('Looking for route element with ID:', `route-${routeIndex}`);
+            
             // Collect all customers in this route
             const routeElement = document.getElementById(`route-${routeIndex}`);
+            if (!routeElement) {
+                console.error('Route element not found:', `route-${routeIndex}`);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Route Not Found',
+                    text: 'Could not find the route data. Please refresh and try again.'
+                });
+                return;
+            }
+            
+            // Look for customer data in sequence items
             const customerElements = routeElement.querySelectorAll('.sequence-item[data-customer-data]');
+            console.log('Found customer elements:', customerElements.length);
             
             const routeCustomers = [];
-            customerElements.forEach(element => {
+            customerElements.forEach((element, index) => {
                 try {
-                    const customerData = JSON.parse(element.getAttribute('data-customer-data'));
-                    routeCustomers.push(customerData);
+                    const customerDataAttr = element.getAttribute('data-customer-data');
+                    console.log(`Customer ${index} data attribute:`, customerDataAttr);
+                    
+                    if (customerDataAttr) {
+                        const customerData = JSON.parse(customerDataAttr);
+                        console.log(`Parsed customer ${index} data:`, customerData);
+                        
+                        // Ensure subscription_ids exist (required by PHP function)
+                        if (!customerData.subscription_ids && customerData.subscription_id) {
+                            customerData.subscription_ids = [customerData.subscription_id];
+                        }
+                        if (!customerData.subscription_ids && customerData.id) {
+                            customerData.subscription_ids = [customerData.id];
+                        }
+                        
+                        routeCustomers.push(customerData);
+                    }
                 } catch (e) {
                     console.error('Error parsing customer data:', e);
                 }
             });
             
+            console.log('Route customers collected:', routeCustomers);
+            
             if (routeCustomers.length === 0) {
                 Swal.fire({
                     icon: 'error',
                     title: 'No Customers Found',
-                    text: 'No customers found in this route to assign.'
+                    text: 'No customers found in this route to assign. The route may not be properly generated.'
                 });
                 return;
             }
             
-            // Show confirmation dialog
+            // Show confirmation dialog with UUID info
             Swal.fire({
                 title: 'Confirm Route Assignment',
                 html: `
                     <p>Assign <strong>${routeCustomers.length} customers</strong> to <strong>${riderName}</strong>?</p>
                     <div style="text-align: left; margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 6px;">
                         <strong>Customers to assign:</strong><br>
-                        ${routeCustomers.map(customer => `• ${customer.customer_name} (${customer.total_items} items)`).join('<br>')}
+                        ${routeCustomers.map(customer => `• ${customer.customer_name || customer.first_name + ' ' + customer.last_name} (${customer.total_items || 1} items)`).join('<br>')}
+                    </div>
+                    <div style="text-align: left; margin-top: 10px; padding: 8px; background: #e9ecef; border-radius: 4px; font-size: 0.9rem;">
+                        <strong>Debug Info:</strong><br>
+                        Rider ID: ${riderId}<br>
+                        ID Type: ${typeof riderId}<br>
+                        Is UUID: ${riderId.includes('-') ? 'Yes' : 'No'}
                     </div>
                 `,
                 icon: 'question',
@@ -1664,68 +2458,334 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['optimize']) && !empty
         
         function performRouteAssignment(routeIndex, riderId, routeCustomers, riderName) {
             // Show loading overlay
-            document.getElementById('loadingOverlay').style.display = 'flex';
+            showLoading();
+            
+            console.log('=== SENDING ASSIGNMENT DATA ===');
+            console.log('Rider ID:', riderId);
+            console.log('Rider ID Type:', typeof riderId);
+            console.log('Route Customers:', routeCustomers);
+            console.log('================================');
             
             // Prepare the data for the API call
             const formData = new FormData();
             formData.append('action', 'assign_route_to_rider');
-            formData.append('rider_id', riderId);
+            formData.append('rider_id', riderId); // Keep as string for UUID support
             formData.append('route_customers', JSON.stringify(routeCustomers));
+            
+            // Log FormData for debugging
+            console.log('FormData entries:');
+            for (let pair of formData.entries()) {
+                console.log(pair[0] + ': ' + pair[1]);
+            }
             
             fetch(window.location.href, {
                 method: 'POST',
                 body: formData
             })
-            .then(response => response.json())
-            .then(data => {
+            .then(response => {
+                console.log('Response status:', response.status);
+                return response.text(); // Get as text first to see what we're getting
+            })
+            .then(text => {
+                console.log('Raw response:', text);
+                
+                // Try to parse as JSON
+                let data;
+                try {
+                    data = JSON.parse(text);
+                    console.log('Parsed response:', data);
+                } catch (e) {
+                    console.error('JSON parse error:', e);
+                    console.error('Response text:', text);
+                    throw new Error('Invalid response format: ' + text.substring(0, 200));
+                }
+                
                 // Hide loading overlay
-                document.getElementById('loadingOverlay').style.display = 'none';
+                hideLoading();
                 
                 if (data.success) {
                     // Show success message
                     Swal.fire({
                         icon: 'success',
                         title: 'Route Assigned Successfully!',
-                        text: data.message,
-                        timer: 3000,
-                        showConfirmButton: false
+                        html: `
+                            <p>${data.message}</p>
+                            <div style="background: #d4edda; padding: 10px; margin-top: 10px; border-radius: 6px; color: #155724;">
+                                <strong>✅ Assignment Details:</strong><br>
+                                Rider: ${riderName}<br>
+                                Customers: ${routeCustomers.length}<br>
+                                Subscriptions Updated: ${data.assignments_made || routeCustomers.length}
+                            </div>
+                        `,
+                        timer: 4000,
+                        showConfirmButton: true
                     }).then(() => {
-                        // Disable the assignment controls for this route
+                        // Update the assignment section to show completion
                         const riderSelect = document.getElementById(`rider-select-${routeIndex}`);
-                        const assignBtn = document.getElementById(`assign-btn-${routeIndex}`);
                         const assignmentDiv = riderSelect.closest('.route-assignment');
                         
-                        // Update the assignment section to show completion
-                        assignmentDiv.innerHTML = `
-                            <div class="assignment-header">
-                                <h4 style="color: #28a745;"><i class="fas fa-check-circle"></i> Route Assigned Successfully</h4>
-                                <div class="assignment-info" style="color: #28a745;">
-                                    All ${routeCustomers.length} customers assigned to ${riderName}
+                        if (assignmentDiv) {
+                            assignmentDiv.innerHTML = `
+                                <div class="assignment-header">
+                                    <h4 style="color: #28a745;"><i class="fas fa-check-circle"></i> Route Assigned Successfully</h4>
+                                    <div class="assignment-info" style="color: #28a745;">
+                                        All ${routeCustomers.length} customers assigned to ${riderName}
+                                    </div>
                                 </div>
-                            </div>
-                            <div style="background: #d4edda; padding: 10px; border-radius: 6px; color: #155724;">
-                                <strong>✅ Assignment Complete:</strong> ${data.assignments_made} subscriptions updated
-                            </div>
-                        `;
+                                <div style="background: #d4edda; padding: 10px; border-radius: 6px; color: #155724;">
+                                    <strong>✅ Assignment Complete:</strong> ${data.assignments_made || routeCustomers.length} subscriptions updated<br>
+                                    <small>Rider ID: ${riderId}</small>
+                                </div>
+                            `;
+                        }
+                        
+                        // Optionally refresh the page to update the display
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 3000);
                     });
                 } else {
-                    // Show error message
+                    // Show detailed error message
                     Swal.fire({
                         icon: 'error',
                         title: 'Assignment Failed',
-                        text: data.message
+                        html: `
+                            <p><strong>Error:</strong> ${data.message}</p>
+                            <div style="background: #f8d7da; padding: 10px; margin-top: 10px; border-radius: 6px; color: #721c24; font-size: 0.9rem;">
+                                <strong>Debug Information:</strong><br>
+                                Rider ID Sent: ${riderId}<br>
+                                Customers Count: ${routeCustomers.length}<br>
+                                Response: ${JSON.stringify(data)}
+                            </div>
+                        `,
+                        width: 600
                     });
                 }
             })
             .catch(error => {
                 // Hide loading overlay
-                document.getElementById('loadingOverlay').style.display = 'none';
+                hideLoading();
                 
-                console.error('Error:', error);
+                console.error('Fetch error:', error);
                 Swal.fire({
                     icon: 'error',
                     title: 'Network Error',
-                    text: 'Failed to assign route. Please check your connection and try again.'
+                    html: `
+                        <p>Failed to assign route. Please check your connection and try again.</p>
+                        <div style="background: #f8d7da; padding: 10px; margin-top: 10px; border-radius: 6px; color: #721c24; font-size: 0.9rem;">
+                            <strong>Technical Details:</strong><br>
+                            ${error.message}
+                        </div>
+                    `
+                });
+            });
+        }
+        
+        // ENHANCED: Debugging function with UUID information
+        function debugRouteData(routeIndex) {
+            console.log('=== DEBUG ROUTE DATA ===');
+            console.log('Route Index:', routeIndex);
+            
+            const routeElement = document.getElementById(`route-${routeIndex}`);
+            console.log('Route Element:', routeElement);
+            
+            if (routeElement) {
+                const customerElements = routeElement.querySelectorAll('.sequence-item[data-customer-data]');
+                console.log('Customer Elements Found:', customerElements.length);
+                
+                customerElements.forEach((element, index) => {
+                    const data = element.getAttribute('data-customer-data');
+                    console.log(`Customer ${index} raw data:`, data);
+                    try {
+                        const parsed = JSON.parse(data);
+                        console.log(`Customer ${index} parsed:`, parsed);
+                        console.log(`Customer ${index} subscription_ids:`, parsed.subscription_ids);
+                    } catch (e) {
+                        console.error(`Customer ${index} parse error:`, e);
+                    }
+                });
+            }
+            
+            const riderSelect = document.getElementById(`rider-select-${routeIndex}`);
+            console.log('Rider Select:', riderSelect);
+            const selectedValue = riderSelect ? riderSelect.value : 'Not found';
+            console.log('Selected Rider ID:', selectedValue);
+            console.log('Selected Rider ID Type:', typeof selectedValue);
+            console.log('Is UUID format?', selectedValue.includes('-'));
+            
+            // Check all rider options
+            if (riderSelect) {
+                console.log('All rider options:');
+                Array.from(riderSelect.options).forEach((option, index) => {
+                    console.log(`Option ${index}: value="${option.value}", text="${option.text}"`);
+                });
+            }
+            
+            console.log('=== END DEBUG ===');
+            
+            // Show enhanced debug info in alert
+            const debugInfo = {
+                routeIndex: routeIndex,
+                routeElementFound: !!routeElement,
+                customerElements: routeElement ? routeElement.querySelectorAll('.sequence-item[data-customer-data]').length : 0,
+                riderSelectFound: !!riderSelect,
+                selectedRider: selectedValue,
+                riderIdType: typeof selectedValue,
+                isUUID: selectedValue.includes('-'),
+                totalRiderOptions: riderSelect ? riderSelect.options.length : 0
+            };
+            
+            Swal.fire({
+                title: 'Enhanced Debug Information',
+                html: `
+                    <div style="text-align: left; font-family: monospace; font-size: 0.9rem;">
+                        <p><strong>Route Index:</strong> ${debugInfo.routeIndex}</p>
+                        <p><strong>Route Element Found:</strong> ${debugInfo.routeElementFound ? 'Yes' : 'No'}</p>
+                        <p><strong>Customer Elements:</strong> ${debugInfo.customerElements}</p>
+                        <p><strong>Rider Select Found:</strong> ${debugInfo.riderSelectFound ? 'Yes' : 'No'}</p>
+                        <p><strong>Selected Rider ID:</strong> ${debugInfo.selectedRider || 'None'}</p>
+                        <p><strong>Rider ID Type:</strong> ${debugInfo.riderIdType}</p>
+                        <p><strong>Is UUID Format:</strong> ${debugInfo.isUUID ? 'Yes' : 'No'}</p>
+                        <p><strong>Total Rider Options:</strong> ${debugInfo.totalRiderOptions}</p>
+                        <hr>
+                        <p style="color: #666;"><em>Check browser console for detailed logs</em></p>
+                    </div>
+                `,
+                width: 600
+            });
+        }
+        
+        function showLoading() {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
+        
+        // ======================================================================
+        // NEW: ASSIGNED DELIVERIES FUNCTIONS
+        // ======================================================================
+        
+        function showRiderRoute(riderId) {
+            // Show route information for a specific rider
+            Swal.fire({
+                title: 'Rider Route Information',
+                html: `
+                    <div style="text-align: left;">
+                        <p><strong>Feature Coming Soon!</strong></p>
+                        <p>This will show the optimized route for Rider ID: ${riderId}</p>
+                        <p>Including:</p>
+                        <ul>
+                            <li>Turn-by-turn directions</li>
+                            <li>Estimated delivery times</li>
+                            <li>Traffic conditions</li>
+                            <li>Route optimization suggestions</li>
+                        </ul>
+                    </div>
+                `,
+                icon: 'info',
+                confirmButtonColor: '#bd9379'
+            });
+        }
+        
+        function unassignAllFromRider(riderId, riderName) {
+            Swal.fire({
+                title: 'Unassign All Deliveries?',
+                html: `
+                    <p>Remove all delivery assignments from <strong>${riderName}</strong>?</p>
+                    <div style="background: #fff3cd; padding: 10px; margin: 10px 0; border-radius: 6px; color: #856404;">
+                        <strong>⚠️ Warning:</strong> This will unassign ALL customers currently assigned to this rider.
+                        You will need to reassign them manually or through route optimization.
+                    </div>
+                `,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, Unassign All',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    performUnassignAll(riderId, riderName);
+                }
+            });
+        }
+        
+        function performUnassignAll(riderId, riderName) {
+            showLoading();
+            
+            console.log('Unassigning all deliveries from rider:', riderId);
+            
+            // Prepare the data for the API call
+            const formData = new FormData();
+            formData.append('action', 'unassign_all_from_rider');
+            formData.append('rider_id', riderId);
+            
+            fetch(window.location.href, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.text())
+            .then(text => {
+                console.log('Raw response:', text);
+                
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    console.error('JSON parse error:', e);
+                    throw new Error('Invalid response format: ' + text.substring(0, 200));
+                }
+                
+                hideLoading();
+                
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'All Deliveries Unassigned!',
+                        html: `
+                            <p>${data.message}</p>
+                            <div style="background: #d4edda; padding: 10px; margin-top: 10px; border-radius: 6px; color: #155724;">
+                                <strong>✅ Unassignment Complete:</strong><br>
+                                All deliveries removed from ${riderName}
+                            </div>
+                        `,
+                        timer: 3000,
+                        showConfirmButton: true
+                    }).then(() => {
+                        // Refresh the page to update the display
+                        window.location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Unassignment Failed',
+                        html: `
+                            <p><strong>Error:</strong> ${data.message}</p>
+                            <div style="background: #f8d7da; padding: 10px; margin-top: 10px; border-radius: 6px; color: #721c24; font-size: 0.9rem;">
+                                <strong>Debug Information:</strong><br>
+                                Rider ID: ${riderId}<br>
+                                Response: ${JSON.stringify(data)}
+                            </div>
+                        `,
+                        width: 600
+                    });
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                console.error('Fetch error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Network Error',
+                    html: `
+                        <p>Failed to unassign deliveries. Please check your connection and try again.</p>
+                        <div style="background: #f8d7da; padding: 10px; margin-top: 10px; border-radius: 6px; color: #721c24; font-size: 0.9rem;">
+                            <strong>Technical Details:</strong><br>
+                            ${error.message}
+                        </div>
+                    `
                 });
             });
         }

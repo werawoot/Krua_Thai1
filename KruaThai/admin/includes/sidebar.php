@@ -495,32 +495,30 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
-// Logout function
+// Simple but effective logout function
 function logout() {
     if (confirm('Are you sure you want to logout?')) {
         // Show loading state
         const logoutBtn = document.querySelector('.nav-item[onclick="logout()"]');
+        const originalHTML = logoutBtn.innerHTML;
+        
         if (logoutBtn) {
             logoutBtn.innerHTML = '<i class="nav-icon fas fa-spinner fa-spin"></i><span>Logging out...</span>';
+            logoutBtn.style.pointerEvents = 'none';
         }
         
-        // Send logout request
-        fetch('../auth/logout.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: 'action=logout'
-        })
-        .then(response => {
-            // Redirect to login page
-            window.location.href = '../login.php';
-        })
-        .catch(error => {
-            console.error('Logout error:', error);
-            // Force redirect even if request fails
-            window.location.href = '../login.php';
-        });
+        // Simple direct navigation to logout
+        window.location.href = '../logout.php';
+        
+        // Fallback in case the above doesn't work
+        setTimeout(() => {
+            if (logoutBtn) {
+                logoutBtn.innerHTML = originalHTML;
+                logoutBtn.style.pointerEvents = '';
+            }
+            // Force redirect
+            window.location.replace('../logout.php');
+        }, 2000);
     }
 }
 
@@ -545,6 +543,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     toggleSidebar();
                 }, 200);
             });
+        });
+    }
+    
+    // Add logout button hover effect
+    const logoutBtn = document.querySelector('.nav-item[onclick="logout()"]');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('mouseenter', function() {
+            this.style.background = 'rgba(231, 76, 60, 0.2)';
+        });
+        
+        logoutBtn.addEventListener('mouseleave', function() {
+            this.style.background = '';
         });
     }
 });
