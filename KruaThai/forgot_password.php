@@ -1,19 +1,20 @@
 <?php
 /**
- * Somdul Table - Beautiful Forgot Password Page
+ * Krua Thai - Forgot Password Page
  * File: forgot_password.php
- * Description: Modern, responsive forgot password page with beautiful UI
+ * Description: Modern, responsive forgot password page with Krua Thai theme
+ * Theme: Matching nutrition-tracking.php design system
+ * Language: English (USA market)
+ * Mobile-responsive and fully functional
  */
-// subscription-status.php
+
 session_start();
-date_default_timezone_set('Asia/Bangkok'); // 👈 เพิ่มบรรทัดนี้
+date_default_timezone_set('Asia/Bangkok');
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
 require_once 'config/database.php';
 require_once 'includes/functions.php';
-
-
 
 if (isLoggedIn()) {
     header("Location: dashboard.php");
@@ -55,20 +56,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         "UPDATE users SET password_reset_token = ?, password_reset_expires = ? WHERE id = ?");
                     $update_stmt->execute([$reset_token, $reset_expires, $user['id']]);
                     
-                  // ส่งอีเมลรีเซ็ตรหัสผ่าน
-$emailSent = sendPasswordResetEmail($email, $user['first_name'], $reset_token);
+                    // Send password reset email
+                    $emailSent = sendPasswordResetEmail($email, $user['first_name'], $reset_token);
 
+                    if ($emailSent) {
+                        $success_message = "We've sent a password reset link to your email. Please check your inbox.";
+                    } else {
+                        $success_message = "Password reset link has been generated. Check test emails if in development mode.";
+                    }
 
-if ($emailSent) {
-    $success_message = "We've sent a password reset link to your email. Please check your inbox.";
-} else {
-    $success_message = "Password reset link has been generated. Check test emails if in development mode.";
-}
-
-// Log activity if function exists
-if (function_exists('logActivity')) {
-    logActivity($user['id'], 'password_reset_requested', 'Password reset token generated');
-}
+                    // Log activity if function exists
+                    if (function_exists('logActivity')) {
+                        logActivity($user['id'], 'password_reset_requested', 'Password reset token generated');
+                    }
                 }
             } else {
                 // Don't reveal if email exists or not for security
@@ -88,7 +88,11 @@ $page_title = "Forgot Password";
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo htmlspecialchars($page_title); ?> - Somdul Table</title>
+    <title><?php echo htmlspecialchars($page_title); ?> - Krua Thai</title>
+    <meta name="description" content="Reset your Krua Thai account password - Healthy Thai meal delivery">
+    
+    <!-- Font Awesome for icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     
     <!-- BaticaSans Font Import -->
     <link rel="preconnect" href="https://ydpschool.com">
@@ -123,7 +127,7 @@ $page_title = "Forgot Password";
             font-display: swap;
         }
 
-        /* CSS Custom Properties for Somdul Table Design System */
+        /* Krua Thai Design System - Same as nutrition-tracking.php */
         :root {
             --brown: #bd9379;
             --cream: #ece8e1;
@@ -139,10 +143,10 @@ $page_title = "Forgot Password";
             --radius-md: 12px;
             --radius-lg: 16px;
             --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            --success: #28a745;
-            --warning: #ffc107;
-            --danger: #dc3545;
-            --info: #17a2b8;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+            --info: #3498db;
         }
 
         * {
@@ -161,6 +165,34 @@ $page_title = "Forgot Password";
             align-items: center;
             justify-content: center;
             padding: 2rem 1rem;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Background Animation */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="20" cy="20" r="2" fill="rgba(189,147,121,0.1)"/><circle cx="80" cy="80" r="3" fill="rgba(173,184,157,0.1)"/><circle cx="40" cy="70" r="1" fill="rgba(207,114,58,0.1)"/></svg>');
+            animation: float 20s linear infinite;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0) rotate(0deg); }
+            100% { transform: translateY(-100vh) rotate(360deg); }
+        }
+
+        /* Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
         }
 
         .auth-container {
@@ -169,32 +201,45 @@ $page_title = "Forgot Password";
             position: relative;
         }
 
-        .auth-card {
+        /* Main Card - Same style as nutrition-tracking.php */
+        .main-card {
             background: var(--white);
             border-radius: var(--radius-lg);
             box-shadow: var(--shadow-medium);
             overflow: hidden;
             position: relative;
-            border: 1px solid rgba(189, 147, 121, 0.1);
+            border: 1px solid var(--border-light);
+            margin-bottom: 2rem;
         }
 
-        .auth-header {
-            background: linear-gradient(135deg, var(--curry) 0%, var(--brown) 100%);
-            color: var(--white);
+        .main-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--curry), var(--brown), var(--sage));
+        }
+
+        /* Header */
+        .card-header {
             padding: 3rem 2rem 2rem;
+            border-bottom: 1px solid var(--border-light);
+            background: linear-gradient(135deg, rgba(207, 114, 58, 0.05), rgba(189, 147, 121, 0.05));
             text-align: center;
             position: relative;
             overflow: hidden;
         }
 
-        .auth-header::before {
+        .card-header::after {
             content: "";
             position: absolute;
             top: -50%;
             right: -50%;
             width: 200%;
             height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            background: radial-gradient(circle, rgba(207,114,58,0.1) 0%, transparent 70%);
             animation: floating 6s ease-in-out infinite;
         }
 
@@ -202,11 +247,6 @@ $page_title = "Forgot Password";
             0%, 100% { transform: translate(0, 0) rotate(0deg); }
             33% { transform: translate(30px, -30px) rotate(120deg); }
             66% { transform: translate(-20px, 20px) rotate(240deg); }
-        }
-
-        .logo-section {
-            position: relative;
-            z-index: 1;
         }
 
         .auth-logo {
@@ -220,29 +260,43 @@ $page_title = "Forgot Password";
             margin: 0 auto 1.5rem;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
             font-size: 2rem;
-            border: 3px solid rgba(255,255,255,0.3);
+            border: 3px solid rgba(207,114,58,0.3);
+            position: relative;
+            z-index: 1;
         }
 
-        .auth-header h1 {
+        .card-title {
             font-size: 2rem;
             font-weight: 700;
+            font-family: 'BaticaSans', sans-serif;
+            color: var(--brown);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
             margin-bottom: 0.5rem;
-            text-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            font-family: 'BaticaSans', sans-serif;
+            position: relative;
+            z-index: 1;
         }
 
-        .auth-header p {
+        .card-title i {
+            color: var(--curry);
+        }
+
+        .card-subtitle {
+            color: var(--text-gray);
             font-size: 1rem;
-            opacity: 0.9;
-            line-height: 1.5;
             font-family: 'BaticaSans', sans-serif;
+            position: relative;
+            z-index: 1;
         }
 
-        .auth-body {
+        /* Body */
+        .card-body {
             padding: 2.5rem 2rem;
         }
 
-        /* Alerts */
+        /* Alerts - Same style as nutrition-tracking.php */
         .alert {
             display: flex;
             align-items: flex-start;
@@ -268,13 +322,13 @@ $page_title = "Forgot Password";
         }
 
         .alert-success {
-            background: linear-gradient(135deg, rgba(40, 167, 69, 0.1), rgba(40, 167, 69, 0.05));
+            background: linear-gradient(135deg, rgba(39, 174, 96, 0.1), rgba(39, 174, 96, 0.05));
             border-color: var(--success);
             color: var(--success);
         }
 
         .alert-error {
-            background: linear-gradient(135deg, rgba(220, 53, 69, 0.1), rgba(220, 53, 69, 0.05));
+            background: linear-gradient(135deg, rgba(231, 76, 60, 0.1), rgba(231, 76, 60, 0.05));
             border-color: var(--danger);
             color: var(--danger);
         }
@@ -357,7 +411,7 @@ $page_title = "Forgot Password";
             left: 1rem;
             z-index: 2;
             font-size: 1.2rem;
-            opacity: 0.7;
+            color: var(--text-gray);
             transition: var(--transition);
         }
 
@@ -409,6 +463,8 @@ $page_title = "Forgot Password";
             gap: 0.5rem;
             text-transform: none;
             font-family: 'BaticaSans', sans-serif;
+            touch-action: manipulation;
+            min-height: 48px;
         }
 
         .btn-primary::before {
@@ -469,7 +525,7 @@ $page_title = "Forgot Password";
         }
 
         /* Footer */
-        .auth-footer {
+        .card-footer {
             padding: 1.5rem 2rem 2rem;
             background: #f8f6f0;
             border-top: 1px solid var(--border-light);
@@ -495,6 +551,8 @@ $page_title = "Forgot Password";
             transition: var(--transition);
             border: 1px solid transparent;
             font-family: 'BaticaSans', sans-serif;
+            touch-action: manipulation;
+            min-height: 44px;
         }
 
         .auth-link:hover {
@@ -528,6 +586,8 @@ $page_title = "Forgot Password";
             transition: var(--transition);
             display: inline-block;
             font-family: 'BaticaSans', sans-serif;
+            touch-action: manipulation;
+            min-height: 44px;
         }
 
         .btn-link:hover {
@@ -536,7 +596,7 @@ $page_title = "Forgot Password";
             transform: translateY(-1px);
         }
 
-        /* Help Section */
+        /* Help Section - Same as nutrition-tracking.php */
         .help-section {
             margin-top: 2rem;
             background: var(--white);
@@ -623,26 +683,29 @@ $page_title = "Forgot Password";
             text-decoration: underline;
         }
 
-        /* Background Animation */
-        .auth-container::before {
-            content: "";
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="20" cy="20" r="2" fill="rgba(189,147,121,0.1)"/><circle cx="80" cy="80" r="3" fill="rgba(189,147,121,0.05)"/><circle cx="40" cy="70" r="1" fill="rgba(189,147,121,0.1)"/></svg>');
-            animation: float 20s linear infinite;
+        /* Loading State */
+        .loading .main-card {
             pointer-events: none;
-            z-index: -1;
+            opacity: 0.8;
         }
 
-        @keyframes float {
-            0% { transform: translateY(0) rotate(0deg); }
-            100% { transform: translateY(-100vh) rotate(360deg); }
+        /* Success State Animation */
+        .success-state .alert-success {
+            animation: slideInUp 0.5s ease-out;
         }
 
-        /* Mobile Responsive */
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Mobile Responsive Design - Same as nutrition-tracking.php */
         @media (max-width: 768px) {
             body {
                 padding: 1rem;
@@ -652,16 +715,16 @@ $page_title = "Forgot Password";
                 max-width: 100%;
             }
 
-            .auth-header {
+            .card-header {
                 padding: 2rem 1.5rem 1.5rem;
             }
 
-            .auth-header h1 {
+            .card-title {
                 font-size: 1.5rem;
             }
 
-            .auth-body,
-            .auth-footer {
+            .card-body,
+            .card-footer {
                 padding-left: 1.5rem;
                 padding-right: 1.5rem;
             }
@@ -693,12 +756,12 @@ $page_title = "Forgot Password";
                 padding: 1rem;
             }
 
-            .auth-header {
+            .card-header {
                 padding: 1.5rem 1rem;
             }
 
-            .auth-body,
-            .auth-footer,
+            .card-body,
+            .card-footer,
             .help-section {
                 padding: 1.5rem 1rem;
             }
@@ -710,44 +773,59 @@ $page_title = "Forgot Password";
             outline-offset: 2px;
         }
 
-        /* Loading State */
-        .loading .auth-card {
-            pointer-events: none;
-            opacity: 0.8;
-        }
-
-        /* Success State Animation */
-        .success-state .alert-success {
-            animation: slideInUp 0.5s ease-out;
-        }
-
-        @keyframes slideInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
+        /* Touch-friendly interactions */
+        @media (hover: none) {
+            .help-item:hover,
+            .auth-link:hover,
+            .btn-primary:hover {
+                transform: none;
             }
-            to {
-                opacity: 1;
-                transform: translateY(0);
+        }
+
+        /* Accessibility improvements */
+        @media (prefers-reduced-motion: reduce) {
+            .spinner,
+            .help-icon,
+            .floating {
+                animation: none;
+            }
+            
+            * {
+                transition: none !important;
+            }
+        }
+
+        /* High contrast mode */
+        @media (prefers-contrast: high) {
+            .main-card,
+            .help-item {
+                border: 2px solid var(--text-dark);
             }
         }
     </style>
 </head>
-<body>
-    <div class="auth-container <?php echo $success_message ? 'success-state' : ''; ?>">
-        <div class="auth-card">
-            <div class="auth-header">
-                <div class="logo-section">
-                    <div class="auth-logo">🍜</div>
-                    <h1>Forgot Password</h1>
-                    <p>Enter your email address to receive a password reset link<br>We'll send you instructions right away</p>
-                </div>
+
+<body class="<?php echo $success_message ? 'success-state' : ''; ?>">
+    <div class="auth-container">
+        <div class="main-card">
+            <div class="card-header">
+                <div class="auth-logo">🍜</div>
+                <h1 class="card-title">
+                    <i class="fas fa-key"></i>
+                    Forgot Password
+                </h1>
+                <p class="card-subtitle">
+                    Enter your email address to receive a password reset link<br>
+                    We'll send you instructions right away
+                </p>
             </div>
 
-            <div class="auth-body">
+            <div class="card-body">
                 <?php if (!empty($errors)): ?>
                     <div class="alert alert-error">
-                        <div class="alert-icon">⚠️</div>
+                        <div class="alert-icon">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
                         <div class="alert-content">
                             <ul class="error-list">
                                 <?php foreach ($errors as $error): ?>
@@ -760,7 +838,9 @@ $page_title = "Forgot Password";
 
                 <?php if ($success_message): ?>
                     <div class="alert alert-success">
-                        <div class="alert-icon">✅</div>
+                        <div class="alert-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
                         <div class="alert-content">
                             <p><?php echo htmlspecialchars($success_message); ?></p>
                             <div class="success-actions">
@@ -772,6 +852,7 @@ $page_title = "Forgot Password";
                     <form method="POST" class="auth-form" id="forgotPasswordForm">
                         <div class="form-group">
                             <label for="email" class="form-label">
+                                <i class="fas fa-envelope"></i>
                                 <span class="label-text">Your Email Address</span>
                                 <span class="required">*</span>
                             </label>
@@ -787,12 +868,17 @@ $page_title = "Forgot Password";
                                     autocomplete="email"
                                     autofocus
                                 >
-                                <span class="input-icon">📧</span>
+                                <span class="input-icon">
+                                    <i class="fas fa-envelope"></i>
+                                </span>
                             </div>
                         </div>
 
                         <button type="submit" class="btn-primary btn-full" id="submitBtn">
-                            <span class="btn-text">Send Password Reset Link</span>
+                            <span class="btn-text">
+                                <i class="fas fa-paper-plane"></i>
+                                Send Password Reset Link
+                            </span>
                             <span class="btn-spinner" style="display: none;">
                                 <span class="spinner"></span>
                                 Sending...
@@ -802,16 +888,20 @@ $page_title = "Forgot Password";
                 <?php endif; ?>
             </div>
 
-            <div class="auth-footer">
+            <div class="card-footer">
                 <div class="auth-links">
                     <a href="login.php" class="auth-link">
-                        <span class="link-icon">←</span>
+                        <span class="link-icon">
+                            <i class="fas fa-arrow-left"></i>
+                        </span>
                         Back to Sign In
                     </a>
                     <span class="link-divider">|</span>
                     <a href="register.php" class="auth-link">
                         Create New Account
-                        <span class="link-icon">→</span>
+                        <span class="link-icon">
+                            <i class="fas fa-arrow-right"></i>
+                        </span>
                     </a>
                 </div>
             </div>
@@ -819,27 +909,39 @@ $page_title = "Forgot Password";
 
         <!-- Help Section -->
         <div class="help-section">
-            <h3>💡 Need Help?</h3>
+            <h3>
+                <i class="fas fa-question-circle" style="color: var(--curry); margin-right: 0.5rem;"></i>
+                Need Help?
+            </h3>
             <div class="help-grid">
                 <div class="help-item">
-                    <div class="help-icon">💡</div>
+                    <div class="help-icon">
+                        <i class="fas fa-inbox" style="color: var(--curry);"></i>
+                    </div>
                     <h4>Check Spam</h4>
                     <p>Check your spam folder if you don't see the reset email</p>
                 </div>
                 <div class="help-item">
-                    <div class="help-icon">⏰</div>
+                    <div class="help-icon">
+                        <i class="fas fa-clock" style="color: var(--warning);"></i>
+                    </div>
                     <h4>Expires</h4>
                     <p>Password reset link expires within 1 hour</p>
                 </div>
                 <div class="help-item">
-                    <div class="help-icon">🔒</div>
+                    <div class="help-icon">
+                        <i class="fas fa-shield-alt" style="color: var(--success);"></i>
+                    </div>
                     <h4>Security</h4>
                     <p>Reset link can only be used once for security</p>
                 </div>
                 <div class="help-item">
-                    <div class="help-icon">📞</div>
+                    <div class="help-icon">
+                        <i class="fas fa-headset" style="color: var(--info);"></i>
+                    </div>
                     <h4>Contact Us</h4>
-                    <p>Need help? Call <a href="tel:02-000-1234">02-000-1234</a><br>or <a href="mailto:support@somdultable.com">support@somdultable.com</a></p>
+                    <p>Need help? Call <a href="tel:+1-555-KRUA-THAI">+1-555-KRUA-THAI</a><br>
+                    or <a href="mailto:support@kruathai.com">support@kruathai.com</a></p>
                 </div>
             </div>
         </div>
@@ -847,11 +949,16 @@ $page_title = "Forgot Password";
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('🍜 Krua Thai - Forgot Password page loaded successfully!');
+            
             const form = document.getElementById('forgotPasswordForm');
             const submitBtn = document.getElementById('submitBtn');
             const btnText = submitBtn?.querySelector('.btn-text');
             const btnSpinner = submitBtn?.querySelector('.btn-spinner');
             const emailField = document.getElementById('email');
+
+            // Initialize page animations
+            initializePageAnimations();
 
             // Form submission handling
             if (form && submitBtn) {
@@ -879,11 +986,23 @@ $page_title = "Forgot Password";
                     
                     if (email.length > 0) {
                         if (isValid) {
-                            this.style.borderColor = 'var(--border-light)';
+                            this.style.borderColor = 'var(--success)';
+                            this.style.boxShadow = '0 0 0 4px rgba(39, 174, 96, 0.1)';
+                        } else {
+                            this.style.borderColor = 'var(--danger)';
+                            this.style.boxShadow = '0 0 0 4px rgba(231, 76, 60, 0.1)';
+                        }
+                    } else {
+                        this.style.borderColor = 'var(--border-light)';
                         this.style.boxShadow = '';
                     }
-                
-                }
+                    
+                    // Enable/disable submit button
+                    if (submitBtn) {
+                        submitBtn.disabled = !isValid;
+                    }
+                });
+            }
 
             // Keyboard shortcuts
             document.addEventListener('keydown', function(e) {
@@ -907,7 +1026,7 @@ $page_title = "Forgot Password";
                         setTimeout(() => {
                             alert.remove();
                         }, 300);
-                    }, 8000); // Hide success message after 8 seconds
+                    }, 8000);
                 }
             });
 
@@ -931,25 +1050,6 @@ $page_title = "Forgot Password";
 
                 emailField.addEventListener('input', validateForm);
                 validateForm(); // Initial validation
-            }
-
-            // Smooth scrolling for help section
-            const helpSection = document.querySelector('.help-section');
-            if (helpSection) {
-                const observerOptions = {
-                    threshold: 0.1,
-                    rootMargin: '0px 0px -50px 0px'
-                };
-
-                const observer = new IntersectionObserver((entries) => {
-                    entries.forEach(entry => {
-                        if (entry.isIntersecting) {
-                            entry.target.style.animation = 'slideInUp 0.6s ease-out forwards';
-                        }
-                    });
-                }, observerOptions);
-
-                observer.observe(helpSection);
             }
 
             // Add ripple effect to buttons
@@ -985,18 +1085,6 @@ $page_title = "Forgot Password";
                 });
             });
 
-            // Add CSS for ripple animation
-            const style = document.createElement('style');
-            style.textContent = `
-                @keyframes ripple {
-                    to {
-                        transform: scale(4);
-                        opacity: 0;
-                    }
-                }
-            `;
-            document.head.appendChild(style);
-
             // Preload login page for faster navigation
             const loginLink = document.querySelector('a[href="login.php"]');
             if (loginLink) {
@@ -1019,21 +1107,106 @@ $page_title = "Forgot Password";
                 });
             }
 
-            // Performance: Lazy load help section animations
-            const helpItems = document.querySelectorAll('.help-item');
-            helpItems.forEach((item, index) => {
-                item.style.opacity = '0';
-                item.style.transform = 'translateY(20px)';
+            // Show notification function
+            function showNotification(message, type = 'info') {
+                const colors = {
+                    success: 'var(--success)',
+                    error: 'var(--danger)',
+                    info: 'var(--info)',
+                    warning: 'var(--warning)'
+                };
                 
+                const notification = document.createElement('div');
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 2rem;
+                    right: 2rem;
+                    background: ${colors[type]};
+                    color: white;
+                    padding: 1rem 1.5rem;
+                    border-radius: var(--radius-md);
+                    font-family: 'BaticaSans', sans-serif;
+                    font-weight: 600;
+                    z-index: 10000;
+                    box-shadow: var(--shadow-medium);
+                    transform: translateX(100%);
+                    transition: transform 0.3s ease;
+                    max-width: 300px;
+                `;
+                notification.textContent = message;
+                
+                document.body.appendChild(notification);
+                
+                // Animate in
                 setTimeout(() => {
-                    item.style.transition = 'all 0.5s ease';
-                    item.style.opacity = '1';
-                    item.style.transform = 'translateY(0)';
-                }, index * 100); // Stagger animation
+                    notification.style.transform = 'translateX(0)';
+                }, 100);
+                
+                // Remove after delay
+                setTimeout(() => {
+                    notification.style.transform = 'translateX(100%)';
+                    setTimeout(() => {
+                        notification.remove();
+                    }, 300);
+                }, 3000);
+            }
+
+            // Initialize page animations
+            function initializePageAnimations() {
+                // Animate main card on load
+                const mainCard = document.querySelector('.main-card');
+                if (mainCard) {
+                    mainCard.style.opacity = '0';
+                    mainCard.style.transform = 'translateY(20px)';
+                    setTimeout(() => {
+                        mainCard.style.transition = 'all 0.6s ease';
+                        mainCard.style.opacity = '1';
+                        mainCard.style.transform = 'translateY(0)';
+                    }, 100);
+                }
+
+                // Animate help items
+                const helpItems = document.querySelectorAll('.help-item');
+                helpItems.forEach((item, index) => {
+                    item.style.opacity = '0';
+                    item.style.transform = 'translateY(20px)';
+                    
+                    setTimeout(() => {
+                        item.style.transition = 'all 0.5s ease';
+                        item.style.opacity = '1';
+                        item.style.transform = 'translateY(0)';
+                    }, 200 + (index * 100));
+                });
+            }
+
+            // Touch feedback for mobile
+            const touchElements = document.querySelectorAll('.btn-primary, .auth-link, .help-item');
+            touchElements.forEach(element => {
+                element.addEventListener('touchstart', function() {
+                    this.style.transform = 'scale(0.98)';
+                });
+                
+                element.addEventListener('touchend', function() {
+                    setTimeout(() => {
+                        this.style.transform = '';
+                    }, 150);
+                });
             });
 
-            console.log('🍜 Somdul Table - Forgot Password page loaded successfully!');
+            console.log('🥗 All interactions initialized for mobile-friendly experience');
         });
+
+        // Add CSS for ripple animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes ripple {
+                to {
+                    transform: scale(4);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
 
         // Global error handler
         window.addEventListener('error', function(e) {
@@ -1043,15 +1216,17 @@ $page_title = "Forgot Password";
             const errorDiv = document.createElement('div');
             errorDiv.className = 'alert alert-error';
             errorDiv.innerHTML = `
-                <div class="alert-icon">⚠️</div>
+                <div class="alert-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
                 <div class="alert-content">
                     <p>An unexpected error occurred. Please refresh the page.</p>
                 </div>
             `;
             
-            const authBody = document.querySelector('.auth-body');
-            if (authBody) {
-                authBody.insertBefore(errorDiv, authBody.firstChild);
+            const cardBody = document.querySelector('.card-body');
+            if (cardBody) {
+                cardBody.insertBefore(errorDiv, cardBody.firstChild);
             }
         });
 
@@ -1067,13 +1242,30 @@ $page_title = "Forgot Password";
                     });
             });
         }
+
+        // Performance optimization - lazy load help section
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.animation = 'slideInUp 0.6s ease-out forwards';
+                }
+            });
+        }, {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        });
+
+        const helpSection = document.querySelector('.help-section');
+        if (helpSection) {
+            observer.observe(helpSection);
+        }
     </script>
 </body>
 </html>
 
 <?php
 /**
- * Email Template Functions
+ * Email Template Functions for Krua Thai
  * Add these to includes/functions.php if they don't exist
  */
 
@@ -1088,7 +1280,7 @@ if (!function_exists('generatePasswordResetEmail')) {
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Password Reset - Somdul Table</title>
+            <title>Password Reset - Krua Thai</title>
             <style>
                 body { 
                     font-family: "BaticaSans", "Inter", Arial, sans-serif; 
@@ -1163,16 +1355,16 @@ if (!function_exists('generatePasswordResetEmail')) {
                     border-top: 1px solid #e9ecef;
                 }
                 .warning { 
-                    background: linear-gradient(135deg, rgba(255, 193, 7, 0.1), rgba(255, 193, 7, 0.05)); 
-                    border-left: 4px solid #ffc107; 
+                    background: linear-gradient(135deg, rgba(243, 156, 18, 0.1), rgba(243, 156, 18, 0.05)); 
+                    border-left: 4px solid #f39c12; 
                     padding: 1.5rem; 
                     margin: 2rem 0; 
                     border-radius: 8px;
-                    border: 1px solid rgba(255, 193, 7, 0.3);
+                    border: 1px solid rgba(243, 156, 18, 0.3);
                 }
                 .warning h3 { 
                     margin-top: 0; 
-                    color: #856404; 
+                    color: #b7950b; 
                     font-size: 1.1rem;
                 }
                 .warning ul { 
@@ -1216,7 +1408,7 @@ if (!function_exists('generatePasswordResetEmail')) {
                 <div class="content">
                     <p style="font-size: 1.1rem; margin-bottom: 1.5rem;">Hello <strong>' . htmlspecialchars($firstName) . '</strong> 👋</p>
                     
-                    <p>We received a password reset request for your <strong>Somdul Table</strong> account.</p>
+                    <p>We received a password reset request for your <strong>Krua Thai</strong> account.</p>
                     
                     <p>Please click the button below to create a new password:</p>
                     
@@ -1247,13 +1439,13 @@ if (!function_exists('generatePasswordResetEmail')) {
                     </p>
                 </div>
                 <div class="footer">
-                    <p style="margin-bottom: 1rem;">With care ❤️<br><strong>Somdul Table Team</strong></p>
+                    <p style="margin-bottom: 1rem;">With care ❤️<br><strong>Krua Thai Team</strong></p>
                     <p style="margin-bottom: 1rem;">
-                        📞 <a href="tel:02-000-1234" style="color: #cf723a;">02-000-1234</a> | 
-                        ✉️ <a href="mailto:support@somdultable.com" style="color: #cf723a;">support@somdultable.com</a>
+                        📞 <a href="tel:+1-555-KRUA-THAI" style="color: #cf723a;">+1-555-KRUA-THAI</a> | 
+                        ✉️ <a href="mailto:support@kruathai.com" style="color: #cf723a;">support@kruathai.com</a>
                     </p>
                     <p style="font-size: 0.8rem; color: #adb5bd;">
-                        © ' . $currentYear . ' Somdul Table. All rights reserved.<br>
+                        © ' . $currentYear . ' Krua Thai. All rights reserved.<br>
                         This email was sent to ' . htmlspecialchars($firstName) . ' because a password reset was requested.
                     </p>
                 </div>
@@ -1268,8 +1460,8 @@ if (!function_exists('sendEmail')) {
         $headers = [
             'MIME-Version: 1.0',
             'Content-type: text/html; charset=UTF-8',
-            'From: Somdul Table <noreply@somdultable.com>',
-            'Reply-To: support@somdultable.com',
+            'From: Krua Thai <noreply@kruathai.com>',
+            'Reply-To: support@kruathai.com',
             'X-Mailer: PHP/' . phpversion(),
             'X-Priority: 1',
             'Importance: High'
@@ -1277,15 +1469,15 @@ if (!function_exists('sendEmail')) {
         
         // For development, log email instead of sending
         if ($_SERVER['HTTP_HOST'] === 'localhost' || strpos($_SERVER['HTTP_HOST'], '127.0.0.1') !== false) {
-            error_log("=== EMAIL DEBUG ===");
+            error_log("=== KRUA THAI EMAIL DEBUG ===");
             error_log("To: " . $to);
             error_log("Subject: " . $subject);
             error_log("Body: " . substr(strip_tags($body), 0, 200) . "...");
-            error_log("==================");
+            error_log("=============================");
             return true; // Simulate successful sending in development
         }
         
         return mail($to, $subject, $body, implode("\r\n", $headers));
     }
 }
-?> 
+?>
