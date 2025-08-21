@@ -1,8 +1,8 @@
 <?php
 /**
- * Krua Thai - Universal Shopping Cart
+ * Somdul Table - Shopping Cart Page
  * File: cart.php
- * Description: Shopping cart that works for both guest users and logged-in members
+ * Description: View and manage cart items before checkout
  */
 
 session_start();
@@ -11,1253 +11,661 @@ ini_set('display_errors', 1);
 
 require_once 'config/database.php';
 
-// Utility Functions
-class CartManager {
-    
-    public static function generateUUID() {
-        return sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
-            mt_rand(0, 0xffff), mt_rand(0, 0xffff),
-            mt_rand(0, 0xffff),
-            mt_rand(0, 0x0fff) | 0x4000,
-            mt_rand(0, 0x3fff) | 0x8000,
-            mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
-        );
-    }
-    
-    public static function formatPrice($price) {
-        return '$' . number_format($price, 2);
-    }
-    
-    public static function getCartItems() {
-        // Initialize cart if doesn't exist
-        if (!isset($_SESSION['cart'])) {
-            $_SESSION['cart'] = [];
-        }
-        
-        return $_SESSION['cart'];
-    }
-    
-    public static function calculateCartTotals($cart_items) {
-        $subtotal = 0;
-        $total_items = 0;
-        
-        foreach ($cart_items as $item) {
-            $item_total = ($item['base_price'] ?? 0) * ($item['quantity'] ?? 1);
-            
-            // Add extra charges
-            if (isset($item['customizations'])) {
-                if (isset($item['customizations']['extra_protein']) && $item['customizations']['extra_protein']) {
-                    $item_total += 2.99 * $item['quantity'];
-                }
-                if (isset($item['customizations']['extra_vegetables']) && $item['customizations']['extra_vegetables']) {
-                    $item_total += 1.99 * $item['quantity'];
-                }
-            }
-            
-            $subtotal += $item_total;
-            $total_items += $item['quantity'];
-        }
-        
-        $delivery_fee = $subtotal >= 25 ? 0 : 3.99;
-        $tax_rate = 0.0825; // 8.25%
-        $tax_amount = $subtotal * $tax_rate;
-        $total = $subtotal + $delivery_fee + $tax_amount;
-        
-        return [
-            'subtotal' => $subtotal,
-            'delivery_fee' => $delivery_fee,
-            'tax_amount' => $tax_amount,
-            'total' => $total,
-            'total_items' => $total_items
-        ];
-    }
-    
-    public static function removeFromCart($item_index) {
-        if (isset($_SESSION['cart'][$item_index])) {
-            unset($_SESSION['cart'][$item_index]);
-            $_SESSION['cart'] = array_values($_SESSION['cart']); // Re-index array
-            return true;
-        }
-        return false;
-    }
-    
-    public static function updateQuantity($item_index, $new_quantity) {
-        if (isset($_SESSION['cart'][$item_index])) {
-            $quantity = max(1, min(10, intval($new_quantity)));
-            $_SESSION['cart'][$item_index]['quantity'] = $quantity;
-            return true;
-        }
-        return false;
-    }
+// Initialize cart if not exists
+if (!isset($_SESSION['cart'])) {
+    $_SESSION['cart'] = [];
 }
 
-// Handle AJAX requests
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
-    header('Content-Type: application/json');
-    
-    $action = $_POST['action'];
-    $response = ['success' => false, 'message' => ''];
+// Handle cart actions BEFORE any output (including header.php)
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $action = $_POST['action'] ?? '';
     
     switch ($action) {
-        case 'remove_item':
+        case 'update_quantity':
             $item_index = intval($_POST['item_index'] ?? -1);
-            if (CartManager::removeFromCart($item_index)) {
-                $response['success'] = true;
-                $response['message'] = 'Item removed from cart';
-                $response['cart_totals'] = CartManager::calculateCartTotals(CartManager::getCartItems());
-            } else {
-                $response['message'] = 'Item not found';
+            $new_quantity = max(1, min(10, intval($_POST['quantity'] ?? 1)));
+            
+            if ($item_index >= 0 && isset($_SESSION['cart'][$item_index])) {
+                $_SESSION['cart'][$item_index]['quantity'] = $new_quantity;
+                $_SESSION['flash_message'] = 'Cart updated successfully';
+                $_SESSION['flash_type'] = 'success';
             }
             break;
             
-        case 'update_quantity':
+        case 'remove_item':
             $item_index = intval($_POST['item_index'] ?? -1);
-            $quantity = intval($_POST['quantity'] ?? 1);
-            if (CartManager::updateQuantity($item_index, $quantity)) {
-                $response['success'] = true;
-                $response['message'] = 'Quantity updated';
-                $response['cart_totals'] = CartManager::calculateCartTotals(CartManager::getCartItems());
-            } else {
-                $response['message'] = 'Failed to update quantity';
+            
+            if ($item_index >= 0 && isset($_SESSION['cart'][$item_index])) {
+                $item_name = $_SESSION['cart'][$item_index]['name'];
+                unset($_SESSION['cart'][$item_index]);
+                $_SESSION['cart'] = array_values($_SESSION['cart']); // Re-index array
+                $_SESSION['flash_message'] = $item_name . ' removed from cart';
+                $_SESSION['flash_type'] = 'success';
             }
             break;
             
         case 'clear_cart':
             $_SESSION['cart'] = [];
-            $response['success'] = true;
-            $response['message'] = 'Cart cleared';
-            $response['cart_totals'] = CartManager::calculateCartTotals([]);
+            $_SESSION['flash_message'] = 'Cart cleared successfully';
+            $_SESSION['flash_type'] = 'success';
             break;
-
-
-                case 'prepare_guest_checkout':
-        // Ensure cart is properly stored in session
-        if (!empty($_SESSION['cart'])) {
-            $response['success'] = true;
-            $response['message'] = 'Cart prepared for guest checkout';
-            $response['cart_items'] = count($_SESSION['cart']);
-        } else {
-            $response['message'] = 'Cart is empty';
-        }
-        break;
     }
     
-    echo json_encode($response);
+    // Redirect to prevent form resubmission
+    header('Location: cart.php');
     exit;
 }
 
-// Get cart data
+// Check if user is logged in
 $is_logged_in = isset($_SESSION['user_id']);
-$cart_items = CartManager::getCartItems();
-$cart_totals = CartManager::calculateCartTotals($cart_items);
-$is_empty = empty($cart_items);
 
-// Get user info if logged in
-$user = null;
-if ($is_logged_in) {
-    try {
-        $database = new Database();
-        $pdo = $database->getConnection();
-        $stmt = $pdo->prepare("SELECT first_name, last_name, email FROM users WHERE id = ?");
-        $stmt->execute([$_SESSION['user_id']]);
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
-    } catch (Exception $e) {
-        // Continue without user data
+// Calculate cart totals
+$subtotal = 0;
+$total_items = 0;
+
+foreach ($_SESSION['cart'] as $item) {
+    $quantity = intval($item['quantity']);
+    $price = floatval($item['base_price']);
+    $item_total = $price * $quantity;
+    
+    // Add customization costs
+    if (isset($item['customizations'])) {
+        if (isset($item['customizations']['extra_protein']) && $item['customizations']['extra_protein']) {
+            $item_total += 2.99 * $quantity;
+        }
+        if (isset($item['customizations']['extra_vegetables']) && $item['customizations']['extra_vegetables']) {
+            $item_total += 1.99 * $quantity;
+        }
     }
+    
+    $subtotal += $item_total;
+    $total_items += $quantity;
 }
 
-// Handle success message
-$success_message = '';
-if (isset($_GET['added']) && $_GET['added'] == '1') {
-    $success_message = 'Item added to cart successfully!';
-}
+$delivery_fee = $subtotal >= 25 ? 0 : 3.99;
+$tax_rate = 0.0825; // 8.25%
+$tax_amount = $subtotal * $tax_rate;
+$total = $subtotal + $delivery_fee + $tax_amount;
+
+// Get flash message
+$flash_message = $_SESSION['flash_message'] ?? '';
+$flash_type = $_SESSION['flash_type'] ?? '';
+unset($_SESSION['flash_message'], $_SESSION['flash_type']);
+
+// Include the header (contains navbar, promo banner, fonts, and base styles)
+include 'header.php';
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shopping Cart - Krua Thai</title>
-    <meta name="description" content="Review your selected Thai meal kits and proceed to checkout">
+    <title>Shopping Cart | Somdul Table</title>
+    <meta name="description" content="Review your cart and proceed to checkout for authentic Thai meal kits and products.">
     
-    <!-- BaticaSans Font Import -->
-    <link rel="preconnect" href="https://ydpschool.com">
     <style>
-        @font-face {
-            font-family: 'BaticaSans';
-            src: url('https://ydpschool.com/fonts/BaticaSans-Regular.woff2') format('woff2'),
-                 url('https://ydpschool.com/fonts/BaticaSans-Regular.woff') format('woff'),
-                 url('https://ydpschool.com/fonts/BaticaSans-Regular.ttf') format('truetype');
-            font-weight: 400;
-            font-style: normal;
-            font-display: swap;
-        }
+        /* PAGE-SPECIFIC STYLES ONLY - header styles come from header.php */
         
-        @font-face {
-            font-family: 'BaticaSans';
-            src: url('https://ydpschool.com/fonts/BaticaSans-Bold.woff2') format('woff2'),
-                 url('https://ydpschool.com/fonts/BaticaSans-Bold.woff') format('woff'),
-                 url('https://ydpschool.com/fonts/BaticaSans-Bold.ttf') format('truetype');
-            font-weight: 700;
-            font-style: normal;
-            font-display: swap;
-        }
-        
-        @font-face {
-            font-family: 'BaticaSans';
-            src: url('https://ydpschool.com/fonts/BaticaSans-Medium.woff2') format('woff2'),
-                 url('https://ydpschool.com/fonts/BaticaSans-Medium.woff') format('woff'),
-                 url('https://ydpschool.com/fonts/BaticaSans-Medium.ttf') format('truetype');
-            font-weight: 500;
-            font-style: normal;
-            font-display: swap;
-        }
-
-        /* CSS Custom Properties */
-        :root {
-            --brown: #bd9379;
-            --cream: #ece8e1;
-            --sage: #adb89d;
-            --curry: #cf723a;
-            --white: #ffffff;
-            --text-dark: #2c3e50;
-            --text-gray: #7f8c8d;
-            --border-light: #e8e8e8;
-            --shadow-soft: 0 4px 12px rgba(189, 147, 121, 0.15);
-            --shadow-medium: 0 8px 24px rgba(189, 147, 121, 0.25);
-            --radius-sm: 8px;
-            --radius-md: 12px;
-            --radius-lg: 16px;
-            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            --success-color: #27ae60;
-            --error-color: #e74c3c;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'BaticaSans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            line-height: 1.6;
-            color: var(--text-dark);
-            background-color: #f8f9fa;
-            font-weight: 400;
-        }
-
-        h1, h2, h3, h4, h5, h6 {
-            font-family: 'BaticaSans', sans-serif;
-            font-weight: 700;
-            line-height: 1.2;
-            color: var(--text-dark);
-        }
-
-        /* Navigation */
-        .navbar {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            box-shadow: var(--shadow-soft);
-            padding: 1rem 0;
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-        }
-
-        .nav-container {
+        .container {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 0 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            padding: 0 20px;
         }
 
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 0.8rem;
-            text-decoration: none;
-            color: var(--text-dark);
+        .main-content {
+            padding-top: 2rem;
+            min-height: calc(100vh - 200px);
         }
-
-        .logo-text {
-            font-size: 1.8rem;
-            font-weight: 800;
-            color: var(--curry);
-            font-family: 'BaticaSans', sans-serif;
-        }
-
-        .nav-links {
-            display: flex;
-            gap: 2rem;
-            align-items: center;
-        }
-
-        .nav-links a {
-            text-decoration: none;
-            color: var(--text-gray);
-            font-weight: 500;
-            font-family: 'BaticaSans', sans-serif;
-            transition: var(--transition);
-        }
-
-        .nav-links a:hover {
-            color: var(--curry);
-        }
-
-        /* Main Content */
-        .main-container {
-            min-height: 100vh;
-            padding: 2rem 0;
-        }
-
+        
         .cart-container {
             max-width: 1200px;
-            margin: 0 auto;
+            margin: 2rem auto;
             padding: 0 2rem;
         }
-
-        .page-header {
+        
+        .cart-header {
             text-align: center;
-            margin-bottom: 3rem;
-        }
-
-        .page-title {
-            font-size: 2.5rem;
-            margin-bottom: 1rem;
-            color: var(--text-dark);
-            font-family: 'BaticaSans', sans-serif;
-        }
-
-        .page-subtitle {
-            font-size: 1.1rem;
-            color: var(--text-gray);
-            font-family: 'BaticaSans', sans-serif;
-        }
-
-        /* Success Message */
-        .success-message {
-            background: rgba(39, 174, 96, 0.1);
-            border: 1px solid var(--success-color);
-            color: var(--success-color);
-            padding: 1rem;
-            border-radius: var(--radius-sm);
             margin-bottom: 2rem;
-            text-align: center;
-            font-family: 'BaticaSans', sans-serif;
         }
-
-        /* Cart Layout */
-        .cart-layout {
+        
+        .cart-header h1 {
+            color: var(--brown);
+            margin-bottom: 0.5rem;
+        }
+        
+        .cart-breadcrumb {
+            color: var(--text-gray);
+            margin-bottom: 2rem;
+        }
+        
+        .cart-breadcrumb a {
+            color: var(--curry);
+            text-decoration: none;
+        }
+        
+        .cart-breadcrumb a:hover {
+            text-decoration: underline;
+        }
+        
+        .cart-content {
             display: grid;
-            grid-template-columns: 1fr 400px;
+            grid-template-columns: 1fr 350px;
             gap: 3rem;
         }
-
+        
         .cart-items {
             background: var(--white);
             border-radius: var(--radius-lg);
             padding: 2rem;
             box-shadow: var(--shadow-soft);
-            height: fit-content;
         }
-
+        
         .cart-summary {
             background: var(--white);
             border-radius: var(--radius-lg);
             padding: 2rem;
             box-shadow: var(--shadow-soft);
-            position: sticky;
-            top: 100px;
             height: fit-content;
+            position: sticky;
+            top: 140px;
         }
-
-        /* Cart Items */
+        
+        .section-title {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            color: var(--brown);
+            font-weight: 700;
+        }
+        
         .cart-item {
             display: grid;
             grid-template-columns: 100px 1fr auto;
-            gap: 1.5rem;
+            gap: 1rem;
             padding: 1.5rem 0;
-            border-bottom: 1px solid var(--border-light);
+            border-bottom: 1px solid var(--cream);
         }
-
+        
         .cart-item:last-child {
             border-bottom: none;
         }
-
+        
         .item-image {
             width: 100px;
             height: 100px;
-            background: linear-gradient(45deg, var(--curry), var(--brown));
+            background: var(--cream);
             border-radius: var(--radius-sm);
             display: flex;
             align-items: center;
             justify-content: center;
-            color: var(--white);
+            color: var(--brown);
             font-size: 2rem;
         }
-
-        .item-details {
-            flex: 1;
+        
+        .item-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: var(--radius-sm);
         }
-
+        
+        .item-details {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        
         .item-name {
             font-size: 1.2rem;
             font-weight: 600;
-            margin-bottom: 0.5rem;
-            color: var(--text-dark);
-            font-family: 'BaticaSans', sans-serif;
-        }
-
-        .item-type {
-            font-size: 0.9rem;
-            color: var(--text-gray);
+            color: var(--brown);
             margin-bottom: 0.5rem;
         }
-
-        .item-customizations {
+        
+        .item-category {
             font-size: 0.9rem;
+            color: var(--curry);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.5rem;
+        }
+        
+        .item-price {
+            font-size: 1rem;
             color: var(--text-gray);
             margin-bottom: 1rem;
         }
-
-        .item-controls {
+        
+        .item-customizations {
+            font-size: 0.9rem;
+            color: var(--sage);
+            margin-bottom: 0.5rem;
+        }
+        
+        .item-actions {
             display: flex;
             align-items: center;
             gap: 1rem;
         }
-
-        .quantity-control {
+        
+        .quantity-controls {
             display: flex;
             align-items: center;
             gap: 0.5rem;
-        }
-
-        .quantity-btn {
-            width: 32px;
-            height: 32px;
-            border: 1px solid var(--border-light);
-            background: var(--white);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: var(--transition);
-            font-weight: 600;
-        }
-
-        .quantity-btn:hover {
-            border-color: var(--curry);
-            color: var(--curry);
-        }
-
-        .quantity-input {
-            width: 60px;
-            text-align: center;
             border: 1px solid var(--border-light);
             border-radius: var(--radius-sm);
-            padding: 0.5rem;
-            font-family: 'BaticaSans', sans-serif;
+            padding: 0.25rem;
         }
-
-        .remove-btn {
-            background: none;
+        
+        .quantity-btn {
+            width: 30px;
+            height: 30px;
             border: none;
-            color: var(--error-color);
+            background: var(--white);
+            color: var(--brown);
+            border-radius: 50%;
             cursor: pointer;
-            font-size: 0.9rem;
-            font-family: 'BaticaSans', sans-serif;
+            font-weight: bold;
             transition: var(--transition);
         }
-
-        .remove-btn:hover {
-            opacity: 0.7;
+        
+        .quantity-btn:hover {
+            background: var(--brown);
+            color: var(--white);
         }
-
-        .item-price {
-            text-align: right;
+        
+        .quantity-input {
+            width: 50px;
+            text-align: center;
+            border: none;
+            background: transparent;
+            font-weight: 600;
         }
-
-        .item-unit-price {
+        
+        .item-controls {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            justify-content: space-between;
+            height: 100px;
+        }
+        
+        .item-total {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--brown);
+        }
+        
+        .btn-remove {
+            background: none;
+            border: none;
+            color: var(--text-gray);
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: var(--transition);
+        }
+        
+        .btn-remove:hover {
+            color: var(--error-color, #e74c3c);
+        }
+        
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+            font-size: 1rem;
+        }
+        
+        .summary-row.total {
+            border-top: 2px solid var(--cream);
+            padding-top: 1rem;
+            margin-top: 1rem;
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: var(--brown);
+        }
+        
+        .free-shipping-note {
+            background: var(--cream);
+            padding: 1rem;
+            border-radius: var(--radius-sm);
+            margin: 1rem 0;
+            text-align: center;
             font-size: 0.9rem;
             color: var(--text-gray);
         }
-
-        .item-total-price {
-            font-size: 1.2rem;
+        
+        .free-shipping-note.achieved {
+            background: rgba(173, 184, 157, 0.2);
+            color: var(--sage);
             font-weight: 600;
-            color: var(--curry);
-            font-family: 'BaticaSans', sans-serif;
         }
-
-        /* Empty Cart */
+        
+        /* Remove conflicting button styles - let header.php handle all button styling */
+        
+        .checkout-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .btn-danger {
+            background: var(--error-color, #e74c3c);
+            color: var(--white);
+            font-size: 0.9rem;
+            padding: 0.5rem 1rem;
+        }
+        
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+        
         .empty-cart {
             text-align: center;
             padding: 4rem 2rem;
             color: var(--text-gray);
         }
-
+        
+        .empty-cart h3 {
+            color: var(--brown);
+            margin-bottom: 1rem;
+        }
+        
         .empty-cart-icon {
             font-size: 4rem;
-            margin-bottom: 1.5rem;
+            margin-bottom: 1rem;
             opacity: 0.5;
         }
-
-        .empty-cart h3 {
-            margin-bottom: 1rem;
-            color: var(--text-gray);
-        }
-
-        /* Cart Summary */
-        .summary-title {
-            font-size: 1.5rem;
-            margin-bottom: 1.5rem;
-            color: var(--text-dark);
-            font-family: 'BaticaSans', sans-serif;
-        }
-
-        .summary-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 1rem;
-            font-family: 'BaticaSans', sans-serif;
-        }
-
-        .summary-row.total {
-            border-top: 2px solid var(--border-light);
-            padding-top: 1rem;
-            margin-top: 1.5rem;
-            font-weight: 700;
-            font-size: 1.2rem;
-        }
-
-        .free-delivery {
-            color: var(--success-color);
-            font-weight: 500;
-        }
-
-        /* User Status */
-        .user-status {
-            background: var(--cream);
-            padding: 1.5rem;
-            border-radius: var(--radius-sm);
-            margin-bottom: 2rem;
-        }
-
-        .user-status.guest {
-            border-left: 4px solid var(--curry);
-        }
-
-        .user-status.member {
-            border-left: 4px solid var(--success-color);
-        }
-
-        .status-title {
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            font-family: 'BaticaSans', sans-serif;
-        }
-
-        .status-description {
-            font-size: 0.9rem;
-            color: var(--text-gray);
-            margin-bottom: 1rem;
-        }
-
-        /* Buttons */
-        .btn {
-            padding: 1rem 2rem;
-            border: none;
-            border-radius: var(--radius-sm);
-            font-weight: 600;
-            font-family: 'BaticaSans', sans-serif;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: var(--transition);
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            width: 100%;
-            margin-bottom: 1rem;
-        }
-
-        .btn-primary {
-            background: var(--curry);
-            color: var(--white);
-        }
-
-        .btn-primary:hover {
-            background: var(--brown);
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-medium);
-        }
-
-        .btn-secondary {
-            background: transparent;
-            color: var(--curry);
-            border: 2px solid var(--curry);
-        }
-
-        .btn-secondary:hover {
-            background: var(--curry);
-            color: var(--white);
-        }
-
-        .btn-outline {
-            background: var(--white);
-            color: var(--text-dark);
-            border: 2px solid var(--border-light);
-        }
-
-        .btn-outline:hover {
-            border-color: var(--curry);
-            color: var(--curry);
-        }
-
-        .btn-danger {
-            background: var(--error-color);
-            color: var(--white);
-        }
-
-        .btn-danger:hover {
-            background: #c0392b;
-        }
-
-        /* Checkout Actions */
-        .checkout-actions {
-            margin-top: 2rem;
-        }
-
-        .benefits-list {
-            background: rgba(207, 114, 58, 0.05);
+        
+        .flash-message {
             padding: 1rem;
             border-radius: var(--radius-sm);
-            margin-bottom: 1rem;
-        }
-
-        .benefits-list h4 {
-            font-size: 1rem;
-            margin-bottom: 0.5rem;
-            color: var(--curry);
-        }
-
-        .benefits-list ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .benefits-list li {
-            font-size: 0.9rem;
-            color: var(--text-dark);
-            margin-bottom: 0.25rem;
-            padding-left: 1rem;
-            position: relative;
-        }
-
-        .benefits-list li::before {
-            content: "✓";
-            position: absolute;
-            left: 0;
-            color: var(--success-color);
+            margin-bottom: 2rem;
             font-weight: 600;
         }
-
-        /* Responsive Design */
+        
+        .flash-message.success {
+            background: rgba(173, 184, 157, 0.2);
+            color: var(--sage);
+            border: 1px solid var(--sage);
+        }
+        
+        .flash-message.error {
+            background: rgba(231, 76, 60, 0.1);
+            color: var(--error-color, #e74c3c);
+            border: 1px solid var(--error-color, #e74c3c);
+        }
+        
+        /* Mobile responsive */
         @media (max-width: 768px) {
-            .cart-layout {
+            .cart-content {
                 grid-template-columns: 1fr;
                 gap: 2rem;
             }
-
+            
             .cart-summary {
                 position: static;
                 order: -1;
             }
-
+            
             .cart-item {
                 grid-template-columns: 80px 1fr;
                 gap: 1rem;
             }
-
-            .item-price {
-                grid-column: span 2;
-                text-align: left;
+            
+            .item-controls {
+                grid-column: 1 / -1;
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
                 margin-top: 1rem;
-                padding-top: 1rem;
-                border-top: 1px solid var(--border-light);
+                height: auto;
             }
-
-            .nav-container {
-                padding: 0 1rem;
-            }
-
+            
             .cart-container {
                 padding: 0 1rem;
             }
-
-            .page-title {
-                font-size: 2rem;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .cart-items,
-            .cart-summary {
-                padding: 1.5rem;
-            }
-
-            .item-controls {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 0.5rem;
-            }
-        }
-
-        /* Loading states */
-        .loading {
-            opacity: 0.7;
-            pointer-events: none;
-        }
-
-        .spinner {
-            display: none;
-            width: 20px;
-            height: 20px;
-            border: 2px solid var(--border-light);
-            border-top: 2px solid var(--curry);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
 
-<body>
-    <!-- Navigation -->
-    <nav class="navbar">
-        <div class="nav-container">
-            <a href="home2.php" class="logo">
-                <img src="./assets/image/LOGO_BG.png" alt="Krua Thai" style="height: 40px; width: auto;">
-                <span class="logo-text">Krua Thai</span>
-            </a>
-            <div class="nav-links">
-                <a href="meal-kit.php">Meal Kits</a>
-                <a href="menus.php">Ready Meals</a>
-                <?php if ($is_logged_in): ?>
-                    <a href="dashboard.php">My Account</a>
-                    <a href="logout.php">Sign Out</a>
-                <?php else: ?>
-                    <a href="login.php">Sign In</a>
-                    <a href="register.php">Register</a>
+<!-- IMPORTANT: Add has-header class for proper spacing (like product.php) -->
+<body class="has-header">
+    <!-- The header (promo banner + navbar) is already included from header.php -->
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="cart-container">
+            <!-- Breadcrumb -->
+            <div class="cart-breadcrumb">
+                <a href="index.php">Home</a> → <a href="product.php">Products</a> → Shopping Cart
+            </div>
+            
+            <!-- Cart Header -->
+            <div class="cart-header">
+                <h1>Shopping Cart</h1>
+                <?php if (!empty($_SESSION['cart'])): ?>
+                    <p>Review your items and proceed to checkout</p>
                 <?php endif; ?>
             </div>
-        </div>
-    </nav>
 
-    <div class="main-container">
-        <div class="cart-container">
-            <!-- Page Header -->
-            <div class="page-header">
-                <h1 class="page-title">🛒 Shopping Cart</h1>
-                <p class="page-subtitle">Review your selected items and proceed to checkout</p>
-            </div>
-
-            <!-- Success Message -->
-            <?php if ($success_message): ?>
-                <div class="success-message" id="successMessage">
-                    <?php echo htmlspecialchars($success_message); ?>
+            <!-- Flash Message -->
+            <?php if ($flash_message): ?>
+                <div class="flash-message <?= $flash_type ?>">
+                    <?= htmlspecialchars($flash_message) ?>
                 </div>
             <?php endif; ?>
 
-            <?php if ($is_empty): ?>
-                <!-- Empty Cart -->
-                <div class="cart-items">
-                    <div class="empty-cart">
-                        <div class="empty-cart-icon">🛒</div>
-                        <h3>Your cart is empty</h3>
-                        <p>Looks like you haven't added any delicious Thai meal kits yet!</p>
-                        <div style="margin-top: 2rem;">
-                            <a href="meal-kit.php" class="btn btn-primary" style="width: auto; display: inline-flex;">
-                                Browse Meal Kits
-                            </a>
-                        </div>
-                    </div>
+            <?php if (empty($_SESSION['cart'])): ?>
+                <!-- Empty Cart State -->
+                <div class="empty-cart">
+                    <div class="empty-cart-icon">🛒</div>
+                    <h3>Your cart is empty</h3>
+                    <p>Looks like you haven't added any items to your cart yet.</p>
+                    <a href="product.php" class="btn btn-primary" style="margin-top: 2rem; max-width: 300px;">
+                        Start Shopping
+                    </a>
                 </div>
             <?php else: ?>
-                <!-- Cart with Items -->
-                <div class="cart-layout">
+                <!-- Cart Content -->
+                <div class="cart-content">
                     <!-- Cart Items -->
                     <div class="cart-items">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-                            <h2 style="margin: 0;">Cart Items (<?php echo $cart_totals['total_items']; ?>)</h2>
-                            <button type="button" class="btn btn-danger" style="width: auto; padding: 0.5rem 1rem; font-size: 0.9rem;" onclick="clearCart()">
-                                Clear Cart
-                            </button>
-                        </div>
-
-                        <?php foreach ($cart_items as $index => $item): ?>
-                            <div class="cart-item" data-index="<?php echo $index; ?>">
+                        <h2 class="section-title">Your Items (<?= count($_SESSION['cart']) ?>)</h2>
+                        
+                        <?php foreach ($_SESSION['cart'] as $index => $item): ?>
+                            <?php
+                            $quantity = intval($item['quantity']);
+                            $price = floatval($item['base_price']);
+                            $item_subtotal = $price * $quantity;
+                            
+                            // Calculate extras
+                            $extras_cost = 0;
+                            $extras_text = '';
+                            if (isset($item['customizations'])) {
+                                if (isset($item['customizations']['extra_protein']) && $item['customizations']['extra_protein']) {
+                                    $extras_cost += 2.99 * $quantity;
+                                    $extras_text .= 'Extra Protein (+$2.99) ';
+                                }
+                                if (isset($item['customizations']['extra_vegetables']) && $item['customizations']['extra_vegetables']) {
+                                    $extras_cost += 1.99 * $quantity;
+                                    $extras_text .= 'Extra Vegetables (+$1.99) ';
+                                }
+                            }
+                            
+                            $item_total = $item_subtotal + $extras_cost;
+                            ?>
+                            
+                            <div class="cart-item">
                                 <div class="item-image">
-                                    🍛
+                                    <?php if (!empty($item['image_url']) && file_exists($item['image_url'])): ?>
+                                        <img src="<?= htmlspecialchars($item['image_url']) ?>" alt="<?= htmlspecialchars($item['name']) ?>">
+                                    <?php else: ?>
+                                        🍜
+                                    <?php endif; ?>
                                 </div>
                                 
                                 <div class="item-details">
-                                    <h3 class="item-name"><?php echo htmlspecialchars($item['name']); ?></h3>
-                                    <div class="item-type">
-                                        <?php echo htmlspecialchars(ucfirst($item['type'] ?? 'meal_kit')); ?>
-                                        <?php if (isset($item['category'])): ?>
-                                            • <?php echo htmlspecialchars($item['category']); ?>
-                                        <?php endif; ?>
-                                    </div>
+                                    <div class="item-name"><?= htmlspecialchars($item['name']) ?></div>
+                                    <div class="item-category"><?= htmlspecialchars($item['category'] ?? 'Product') ?></div>
+                                    <div class="item-price">$<?= number_format($price, 2) ?> each</div>
                                     
-                                    <?php if (!empty($item['customizations'])): ?>
+                                    <?php if ($extras_text): ?>
                                         <div class="item-customizations">
-                                            <?php
-                                            $customs = [];
-                                            if (isset($item['customizations']['extra_protein']) && $item['customizations']['extra_protein']) {
-                                                $customs[] = 'Extra Protein (+$2.99)';
-                                            }
-                                            if (isset($item['customizations']['extra_vegetables']) && $item['customizations']['extra_vegetables']) {
-                                                $customs[] = 'Extra Vegetables (+$1.99)';
-                                            }
-                                            if (!empty($customs)) {
-                                                echo implode(', ', $customs);
-                                            }
-                                            ?>
+                                            <?= htmlspecialchars(trim($extras_text)) ?>
                                         </div>
                                     <?php endif; ?>
                                     
-                                    <?php if (!empty($item['special_requests'])): ?>
-                                        <div class="item-customizations">
-                                            Note: <?php echo htmlspecialchars($item['special_requests']); ?>
-                                        </div>
-                                    <?php endif; ?>
-                                    
-                                    <div class="item-controls">
-                                        <div class="quantity-control">
-                                            <button type="button" class="quantity-btn" onclick="updateQuantity(<?php echo $index; ?>, <?php echo max(1, $item['quantity'] - 1); ?>)">-</button>
-                                            <input type="number" class="quantity-input" value="<?php echo $item['quantity']; ?>" 
-                                                   min="1" max="10" onchange="updateQuantity(<?php echo $index; ?>, this.value)">
-                                            <button type="button" class="quantity-btn" onclick="updateQuantity(<?php echo $index; ?>, <?php echo min(10, $item['quantity'] + 1); ?>)">+</button>
-                                        </div>
-                                        <button type="button" class="remove-btn" onclick="removeItem(<?php echo $index; ?>)">
-                                            🗑️ Remove
-                                        </button>
+                                    <div class="item-actions">
+                                        <form method="POST" style="display: inline;">
+                                            <input type="hidden" name="action" value="update_quantity">
+                                            <input type="hidden" name="item_index" value="<?= $index ?>">
+                                            <div class="quantity-controls">
+                                                <button type="button" class="quantity-btn" onclick="changeQuantity(this, -1)">-</button>
+                                                <input type="number" name="quantity" value="<?= $quantity ?>" min="1" max="10" class="quantity-input" onchange="this.form.submit()">
+                                                <button type="button" class="quantity-btn" onclick="changeQuantity(this, 1)">+</button>
+                                            </div>
+                                        </form>
                                     </div>
                                 </div>
                                 
-                                <div class="item-price">
-                                    <div class="item-unit-price">
-                                        <?php echo CartManager::formatPrice($item['base_price']); ?> each
-                                    </div>
-                                    <div class="item-total-price">
-                                        <?php 
-                                        $item_total = $item['base_price'] * $item['quantity'];
-                                        if (isset($item['customizations']['extra_protein']) && $item['customizations']['extra_protein']) {
-                                            $item_total += 2.99 * $item['quantity'];
-                                        }
-                                        if (isset($item['customizations']['extra_vegetables']) && $item['customizations']['extra_vegetables']) {
-                                            $item_total += 1.99 * $item['quantity'];
-                                        }
-                                        echo CartManager::formatPrice($item_total);
-                                        ?>
-                                    </div>
+                                <div class="item-controls">
+                                    <div class="item-total">$<?= number_format($item_total, 2) ?></div>
+                                    <form method="POST" style="display: inline;">
+                                        <input type="hidden" name="action" value="remove_item">
+                                        <input type="hidden" name="item_index" value="<?= $index ?>">
+                                        <button type="submit" class="btn-remove" onclick="return confirm('Remove this item from cart?')">
+                                            🗑️ Remove
+                                        </button>
+                                    </form>
                                 </div>
                             </div>
                         <?php endforeach; ?>
+                        
+                        <!-- Clear Cart Button -->
+                        <div style="text-align: right; margin-top: 2rem;">
+                            <form method="POST" style="display: inline;">
+                                <input type="hidden" name="action" value="clear_cart">
+                                <button type="submit" class="btn-clear-cart" onclick="return confirm('Clear all items from cart?')">
+                                    Clear Cart
+                                </button>
+                            </form>
+                        </div>
                     </div>
 
                     <!-- Cart Summary -->
                     <div class="cart-summary">
-                        <!-- User Status -->
-                        <div class="user-status <?php echo $is_logged_in ? 'member' : 'guest'; ?>">
-                            <?php if ($is_logged_in): ?>
-                                <div class="status-title">👤 Welcome back, <?php echo htmlspecialchars($user['first_name'] ?? 'Member'); ?>!</div>
-                                <div class="status-description">You're signed in and ready for faster checkout with saved addresses and payment methods.</div>
-                            <?php else: ?>
-                                <div class="status-title">👋 Shopping as Guest</div>
-                                <div class="status-description">Create an account for faster checkout, order tracking, and exclusive member benefits.</div>
-                                <a href="register.php" class="btn btn-secondary" style="width: auto; margin: 0;">Create Account</a>
-                            <?php endif; ?>
-                        </div>
-
-                        <h3 class="summary-title">Order Summary</h3>
+                        <h3 class="section-title">Order Summary</h3>
                         
                         <div class="summary-row">
-                            <span>Subtotal (<?php echo $cart_totals['total_items']; ?> items):</span>
-                            <span id="subtotal"><?php echo CartManager::formatPrice($cart_totals['subtotal']); ?></span>
+                            <span>Subtotal (<?= $total_items ?> items):</span>
+                            <span>$<?= number_format($subtotal, 2) ?></span>
                         </div>
                         
                         <div class="summary-row">
                             <span>Delivery Fee:</span>
-                            <span id="delivery-fee" class="<?php echo $cart_totals['delivery_fee'] == 0 ? 'free-delivery' : ''; ?>">
-                                <?php 
-                                if ($cart_totals['delivery_fee'] == 0) {
-                                    echo 'FREE';
-                                } else {
-                                    echo CartManager::formatPrice($cart_totals['delivery_fee']);
-                                }
-                                ?>
+                            <span style="<?= $delivery_fee == 0 ? 'color: var(--sage); font-weight: 600;' : '' ?>">
+                                <?= $delivery_fee == 0 ? 'FREE' : '$' . number_format($delivery_fee, 2) ?>
                             </span>
                         </div>
                         
-                        <?php if ($cart_totals['subtotal'] < 25 && $cart_totals['delivery_fee'] > 0): ?>
-                            <div style="font-size: 0.9rem; color: var(--text-gray); margin-bottom: 1rem;">
-                                💡 Add <?php echo CartManager::formatPrice(25 - $cart_totals['subtotal']); ?> more for free delivery!
-                            </div>
-                        <?php endif; ?>
-                        
                         <div class="summary-row">
                             <span>Tax (8.25%):</span>
-                            <span id="tax"><?php echo CartManager::formatPrice($cart_totals['tax_amount']); ?></span>
+                            <span>$<?= number_format($tax_amount, 2) ?></span>
                         </div>
                         
                         <div class="summary-row total">
                             <span>Total:</span>
-                            <span id="total"><?php echo CartManager::formatPrice($cart_totals['total']); ?></span>
+                            <span>$<?= number_format($total, 2) ?></span>
                         </div>
-
-                        <?php if ($is_logged_in): ?>
-                            <!-- Member Benefits -->
-                            <div class="benefits-list">
-                                <h4>🎉 Member Benefits:</h4>
-                                <ul>
-                                    <li>Saved payment methods</li>
-                                    <li>Order history & tracking</li>
-                                    <li>Exclusive member discounts</li>
-                                    <li>Priority customer support</li>
-                                </ul>
+                        
+                        <!-- Free Shipping Notice -->
+                        <?php if ($delivery_fee > 0): ?>
+                            <div class="free-shipping-note">
+                                💡 Add $<?= number_format(25 - $subtotal, 2) ?> more for free delivery!
                             </div>
                         <?php else: ?>
-                            <!-- Guest Benefits -->
-                            <div class="benefits-list">
-                                <h4>✨ Why create an account?</h4>
-                                <ul>
-                                    <li>Faster future checkouts</li>
-                                    <li>Order tracking & history</li>
-                                    <li>Exclusive member-only deals</li>
-                                    <li>Personalized meal recommendations</li>
-                                </ul>
+                            <div class="free-shipping-note achieved">
+                                ✅ You've earned free delivery!
                             </div>
                         <?php endif; ?>
-
-                        <!-- Checkout Actions -->
-                        <div class="checkout-actions">
-                            <?php if ($is_logged_in): ?>
-                                <!-- Logged-in user checkout -->
-                                <a href="guest-checkout.php" class="btn btn-primary">
-                                    🔒 Proceed to Checkout
-                                </a>
-                            <?php else: ?>
-                                <!-- Guest checkout options -->
-                                <a href="javascript:void(0)" onclick="proceedAsGuest()" class="btn btn-primary">
-                                    🚀 Continue as Guest
-                                </a>
-                                <a href="login.php" class="btn btn-secondary">
-                                    👤 Sign In for Faster Checkout
-                                </a>
-                            <?php endif; ?>
+                        
+                        <!-- Checkout Buttons -->
+                        <div class="checkout-buttons">
+                            <a href="<?= $is_logged_in ? 'product-checkout.php?source=cart' : 'guest-product-checkout.php?source=cart' ?>" class="btn btn-primary">
+                                🛒 Proceed to Checkout
+                            </a>
                             
-                            <a href="meal-kit.php" class="btn btn-outline">
+                            <a href="product.php" class="btn btn-secondary">
                                 ← Continue Shopping
                             </a>
                         </div>
-
-                        <!-- Security Badge -->
-                        <div style="text-align: center; margin-top: 2rem; font-size: 0.9rem; color: var(--text-gray);">
-                            🔒 Secure checkout • SSL encrypted<br>
-                            💳 We accept all major credit cards
+                        
+                        <!-- Additional Info -->
+                        <div style="font-size: 0.9rem; color: var(--text-gray); margin-top: 1.5rem; text-align: center; line-height: 1.4;">
+                            <p>🔒 Secure checkout</p>
+                            <p>📞 Need help? <a href="contact.php" style="color: var(--curry);">Contact us</a></p>
                         </div>
                     </div>
                 </div>
             <?php endif; ?>
         </div>
-    </div>
-
-    <!-- Loading Overlay -->
-    <div id="loadingOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); z-index: 9999; align-items: center; justify-content: center;">
-        <div style="background: white; padding: 2rem; border-radius: 1rem; text-align: center;">
-            <div class="spinner" style="display: inline-block; margin-bottom: 1rem;"></div>
-            <div>Processing...</div>
-        </div>
-    </div>
+    </main>
 
     <script>
-        // Remove item from cart
-        function removeItem(itemIndex) {
-            if (confirm('Remove this item from your cart?')) {
-                showLoading(true);
-                
-                fetch(window.location.href, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: `action=remove_item&item_index=${itemIndex}`
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // Reload page to update cart
-                        window.location.reload();
-                    } else {
-                        alert('Error: ' + data.message);
-                        showLoading(false);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('An error occurred while removing the item.');
-                    showLoading(false);
-                });
-            }
-        }
-
-        // Update item quantity
-        function updateQuantity(itemIndex, newQuantity) {
-            newQuantity = Math.max(1, Math.min(10, parseInt(newQuantity)));
+        // Quantity controls
+        function changeQuantity(button, change) {
+            const quantityInput = button.parentElement.querySelector('.quantity-input');
+            let newQuantity = parseInt(quantityInput.value) + change;
             
-            showLoading(true);
-            startLoadingTimeout(); // Safety net
+            if (newQuantity < 1) newQuantity = 1;
+            if (newQuantity > 10) newQuantity = 10;
             
-            fetch(window.location.href, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: `action=update_quantity&item_index=${itemIndex}&quantity=${newQuantity}`
-            })
-            .then(response => response.json())
-            .then(data => {
-                hideLoading(); // Force hide loading
-                if (data.success) {
-                    // Update the UI without full reload
-                    updateCartTotals(data.cart_totals);
-                    // Update the quantity input
-                    const quantityInput = document.querySelector(`[data-index="${itemIndex}"] .quantity-input`);
-                    if (quantityInput) {
-                        quantityInput.value = newQuantity;
-                    }
-                    // Update item total price display
-                    window.location.reload(); // Temporary fix - reload to ensure consistency
-                } else {
-                    alert('Error: ' + data.message);
-                }
-            })
-            .catch(error => {
-                hideLoading(); // Force hide loading
-                console.error('Error:', error);
-                alert('An error occurred while updating quantity.');
-            });
+            quantityInput.value = newQuantity;
+            quantityInput.form.submit();
         }
-
-        // Clear entire cart
-        function clearCart() {
-            if (confirm('Are you sure you want to clear your entire cart?')) {
-                showLoading(true);
-                
-                fetch(window.location.href, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: 'action=clear_cart'
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        window.location.reload();
-                    } else {
-                        alert('Error: ' + data.message);
-                        showLoading(false);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('An error occurred while clearing the cart.');
-                    showLoading(false);
-                });
-            }
-        }
-
- // Proceed as guest
-function proceedAsGuest() {
-    // Show loading state
-    showLoading(true);
-    
-    // Get current cart from PHP (already available)
-    const cartData = <?php echo json_encode($cart_items); ?>;
-    const cartTotals = <?php echo json_encode($cart_totals); ?>;
-    
-    // Validate cart is not empty
-    if (!cartData || cartData.length === 0) {
-        alert('Your cart is empty. Please add items first.');
-        showLoading(false);
-        return;
-    }
-    
-    // Store cart data in PHP session via AJAX
-    fetch(window.location.href, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: 'action=prepare_guest_checkout'
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Redirect to guest checkout with cart source
-            window.location.href = 'guest-checkout.php?source=cart';
-        } else {
-            alert('Error preparing checkout: ' + data.message);
-            showLoading(false);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('An error occurred while preparing checkout.');
-        showLoading(false);
-    });
-}
-
-        // Update cart totals display
-        function updateCartTotals(totals) {
-            document.getElementById('subtotal').textContent = '$' + totals.subtotal.toFixed(2);
-            document.getElementById('tax').textContent = '$' + totals.tax_amount.toFixed(2);
-            document.getElementById('total').textContent = '$' + totals.total.toFixed(2);
-            
-            const deliveryFeeElement = document.getElementById('delivery-fee');
-            if (totals.delivery_fee === 0) {
-                deliveryFeeElement.textContent = 'FREE';
-                deliveryFeeElement.className = 'free-delivery';
-            } else {
-                deliveryFeeElement.textContent = '$' + totals.delivery_fee.toFixed(2);
-                deliveryFeeElement.className = '';
-            }
-        }
-
-        // Show/hide loading state
-        function showLoading(show) {
-            const overlay = document.getElementById('loadingOverlay');
-            if (overlay) {
-                if (show) {
-                    overlay.style.display = 'flex';
-                } else {
-                    overlay.style.display = 'none';
-                }
-            }
-        }
-
-        // Debug function to force hide loading
-        function hideLoading() {
-            const overlay = document.getElementById('loadingOverlay');
-            if (overlay) {
-                overlay.style.display = 'none';
-            }
-        }
-
-        // Auto-hide loading after 5 seconds (safety net)
-        function startLoadingTimeout() {
-            setTimeout(() => {
-                hideLoading();
-                console.log('Loading timeout - force hide loading overlay');
-            }, 5000);
-        }
-
-        // Auto-hide success message and check for loading issues
+        
+        // Auto-hide flash messages
         document.addEventListener('DOMContentLoaded', function() {
-            // Force hide loading overlay on page load
-            hideLoading();
-            
-            const successMessage = document.getElementById('successMessage');
-            if (successMessage) {
+            const flashMessage = document.querySelector('.flash-message');
+            if (flashMessage) {
                 setTimeout(() => {
-                    successMessage.style.opacity = '0';
+                    flashMessage.style.opacity = '0';
+                    flashMessage.style.transition = 'opacity 0.5s ease';
                     setTimeout(() => {
-                        successMessage.style.display = 'none';
-                    }, 300);
+                        flashMessage.style.display = 'none';
+                    }, 500);
                 }, 3000);
             }
-
-            // Handle quantity input changes
-            document.querySelectorAll('.quantity-input').forEach(input => {
-                input.addEventListener('change', function() {
-                    const itemIndex = this.closest('.cart-item').dataset.index;
-                    updateQuantity(itemIndex, this.value);
-                });
-
-                // Prevent invalid input
-                input.addEventListener('input', function() {
-                    let value = parseInt(this.value);
-                    if (isNaN(value) || value < 1) {
-                        this.value = 1;
-                    } else if (value > 10) {
-                        this.value = 10;
-                    }
-                });
-            });
-
-            // Add click handler to hide loading if user clicks anywhere
-            document.addEventListener('click', function(e) {
-                if (e.target.id === 'loadingOverlay') {
-                    hideLoading();
-                }
-            });
-
-            // Add escape key to hide loading
-            document.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape') {
-                    hideLoading();
+        });
+        
+        // Smooth remove animation
+        document.querySelectorAll('.btn-remove').forEach(button => {
+            button.addEventListener('click', function(e) {
+                if (confirm('Remove this item from cart?')) {
+                    const cartItem = this.closest('.cart-item');
+                    cartItem.style.opacity = '0.5';
+                    cartItem.style.transform = 'translateX(-20px)';
+                    cartItem.style.transition = 'all 0.3s ease';
                 }
             });
         });
-
-        // Handle browser back button
-        window.addEventListener('popstate', function(event) {
-            // Refresh cart when user navigates back
-            window.location.reload();
-        });
-
-        // Prevent double submissions
+        
+        // Prevent double submission
         let isSubmitting = false;
-        document.querySelectorAll('.btn').forEach(btn => {
-            btn.addEventListener('click', function(e) {
-                if (isSubmitting && this.href && this.href.includes('checkout')) {
+        document.querySelectorAll('form').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                if (isSubmitting) {
                     e.preventDefault();
                     return false;
                 }
-                if (this.href && this.href.includes('checkout')) {
-                    isSubmitting = true;
-                }
+                isSubmitting = true;
+                
+                setTimeout(() => {
+                    isSubmitting = false;
+                }, 1000);
             });
         });
-
-        // Update cart counter in navigation (if exists)
-        function updateCartCounter() {
-            const cartCounter = document.querySelector('.cart-counter');
-            if (cartCounter) {
-                cartCounter.textContent = <?php echo $cart_totals['total_items']; ?>;
-                if (<?php echo $cart_totals['total_items']; ?> > 0) {
-                    cartCounter.style.display = 'inline-block';
-                } else {
-                    cartCounter.style.display = 'none';
-                }
-            }
-        }
-
-        // Initialize
-        updateCartCounter();
     </script>
 </body>
 </html>
