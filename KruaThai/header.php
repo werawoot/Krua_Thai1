@@ -728,7 +728,7 @@ body.has-header {
     <ul class="mobile-nav-links">
         <li><a href="./index.php" onclick="closeMobileMenu()">🏠 Home</a></li>
         <li><a href="./menus.php" onclick="closeMobileMenu()">🍽️ Menu</a></li>
-        <li><a href="./meal-kits.php" onclick="closeMobileMenu()">📦 Meal-Kits</a></li>
+        <li><a href="./product.php" onclick="closeMobileMenu()">📦 Meal-Kits</a></li>
         <li><a href="./index.php#how-it-works" onclick="closeMobileMenu()">❓ How It Works</a></li>
         <li><a href="./blogs.php" onclick="closeMobileMenu()">📚 About</a></li>
         <li><a href="./contact.php" onclick="closeMobileMenu()">📞 Contact</a></li>
