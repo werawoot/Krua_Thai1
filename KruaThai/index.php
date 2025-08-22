@@ -3,6 +3,7 @@
  * Somdul Table - Home Page with Database Integration and Coming Soon Popup
  * File: index.php
  * FIXED: Character encoding and JavaScript issues
+ * ADDED: ZIP Code Checking Functionality
  */
 
 error_reporting(E_ALL);
@@ -339,25 +340,60 @@ if ($email_conn) {
     .popup-overlay.minimized .popup-message,
     .popup-overlay.minimized .popup-form-container,
     .popup-overlay.minimized .popup-browse-btn,
-    .popup-overlay.minimized .popup-close {
+    .popup-overlay.minimized .popup-controls {
         display: none;
     }
 
     .popup-close {
-        position: absolute;
-        top: 1rem;
-        right: 1rem;
         background: none;
         border: none;
-        font-size: 2rem;
+        font-size: 1.8rem;
         color: var(--text-gray);
         cursor: pointer;
         transition: color 0.3s ease;
         z-index: 10001;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
     }
 
     .popup-close:hover {
         color: var(--brown);
+        background: rgba(189, 147, 121, 0.1);
+    }
+
+    .popup-minimize {
+        background: none;
+        border: none;
+        font-size: 1.8rem;
+        color: var(--text-gray);
+        cursor: pointer;
+        transition: color 0.3s ease;
+        z-index: 10001;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        margin-right: 8px;
+    }
+
+    .popup-minimize:hover {
+        color: var(--sage);
+        background: rgba(173, 184, 157, 0.1);
+    }
+
+    .popup-controls {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        display: flex;
+        align-items: center;
+        z-index: 10001;
     }
 
     .popup-logo {
@@ -1046,7 +1082,7 @@ if ($email_conn) {
 
     .zip-input {
         width: 100%;
-        padding: 1rem 1.5rem;
+        padding: 1rem 4rem 1rem 1.5rem; /* Added right padding for button */
         border: 2px solid var(--border-light);
         border-radius: 50px;
         font-size: 1.1rem;
@@ -1066,6 +1102,197 @@ if ($email_conn) {
         font-family: 'BaticaSans', sans-serif;
     }
 
+    /* ZIP Input States */
+    .zip-input.loading {
+        border-color: var(--sage);
+        background: #f8f9fa;
+    }
+
+    .zip-input.success {
+        border-color: #28a745;
+        background: #f8fff9;
+    }
+
+    .zip-input.error {
+        border-color: #dc3545;
+        background: #fff8f8;
+    }
+
+    /* ZIP Check Button */
+    .zip-check-btn {
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 40px;
+        height: 40px;
+        border: none;
+        border-radius: 50%;
+        background: var(--brown);
+        color: var(--white);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        font-weight: bold;
+    }
+
+    .zip-check-btn:hover:not(:disabled) {
+        background: var(--curry);
+        transform: translateY(-50%) scale(1.05);
+    }
+
+    .zip-check-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: translateY(-50%);
+    }
+
+    .zip-check-btn .loading-icon {
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    /* ZIP Feedback */
+    .zip-feedback {
+        margin-top: 0.5rem;
+        padding: 0;
+        border-radius: 12px;
+        font-size: 0.9rem;
+        font-family: 'BaticaSans', sans-serif;
+        opacity: 0;
+        transform: translateY(-10px);
+        transition: all 0.4s ease; /* Slower transition */
+        max-height: 0;
+        overflow: hidden;
+        position: relative;
+        z-index: 100; /* Ensure it appears above other elements */
+    }
+
+    .zip-feedback.show {
+        opacity: 1;
+        transform: translateY(0);
+        max-height: 800px; /* Increased max height */
+        padding: 1rem;
+    }
+
+    .zip-feedback.success {
+        background: linear-gradient(135deg, #adb89d 0%, #a7b296ff 100%);
+        color: #4c7355;
+        border: 2px solid #8e9781ff;
+        box-shadow: 0 4px 15px rgba(40, 167, 69, 0.2); /* Added shadow */
+    }
+
+    .zip-feedback.error {
+        background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+        color: #721c24;
+        border: 2px solid #f1b0b7;
+        box-shadow: 0 4px 15px rgba(220, 53, 69, 0.2); /* Added shadow */
+    }
+
+    .zip-feedback.warning {
+        background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+        color: #856404;
+        border: 2px solid #fdd835;
+        box-shadow: 0 4px 15px rgba(255, 193, 7, 0.2); /* Added shadow */
+    }
+
+    .feedback-icon {
+        margin-right: 0.5rem;
+        font-size: 1.1rem;
+    }
+
+    /* Delivery Information Styling */
+    .delivery-info {
+        margin-top: 1rem;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 10px;
+        border: 2px solid rgba(189, 147, 121, 0.2);
+    }
+
+    .delivery-info h4 {
+        margin: 0 0 1rem 0;
+        color: var(--brown);
+        font-size: 1.1rem;
+        font-weight: 700;
+        font-family: 'BaticaSans', sans-serif;
+    }
+
+    .delivery-detail {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+        padding: 0.3rem 0;
+        border-bottom: 1px solid rgba(189, 147, 121, 0.1);
+        font-size: 0.9rem;
+    }
+
+    .delivery-detail:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+    }
+
+    .delivery-detail span {
+        color: var(--text-gray);
+        font-weight: 500;
+    }
+
+    .delivery-detail strong {
+        color: var(--text-dark);
+        font-weight: 700;
+    }
+
+    /* ZIP Suggestions */
+    .zip-suggestions {
+        margin-top: 1rem;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 10px;
+        border: 2px solid rgba(189, 147, 121, 0.2);
+    }
+
+    .zip-suggestions h5 {
+        margin: 0 0 0.8rem 0;
+        color: var(--brown);
+        font-size: 1rem;
+        font-weight: 600;
+        font-family: 'BaticaSans', sans-serif;
+    }
+
+    .suggestion-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .suggestion-item {
+        background: var(--cream);
+        color: var(--brown);
+        padding: 0.4rem 0.8rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+        font-family: 'BaticaSans', sans-serif;
+    }
+
+    .suggestion-item:hover {
+        background: var(--brown);
+        color: var(--white);
+        border-color: var(--curry);
+        transform: translateY(-1px);
+    }
+
     .order-now-button {
         background: var(--curry);
         color: var(--white);
@@ -1082,12 +1309,27 @@ if ($email_conn) {
         align-items: center;
         justify-content: center;
         max-width: 200px;
+        margin-top: 1rem;
     }
 
-    .order-now-button:hover {
+    .order-now-button:hover:not(.disabled) {
         background: #b8631e;
         transform: translateY(-2px);
         box-shadow: var(--shadow-medium);
+    }
+
+    .order-now-button.disabled {
+        background: #ccc;
+        color: #666;
+        cursor: not-allowed;
+        opacity: 0.7;
+    }
+
+    .order-now-button.enabled {
+        background: var(--curry);
+        color: var(--white);
+        cursor: pointer;
+        opacity: 1;
     }
 
     /* Hero Videos - Vertical Sliding Animation */
@@ -1185,6 +1427,56 @@ if ($email_conn) {
             object-fit: cover;
             object-position: center center;
             border-radius: 12px;
+        }
+
+        .zip-input-container {
+            max-width: 100%;
+        }
+
+        .zip-input {
+            padding: 0.9rem 3.5rem 0.9rem 1.2rem; /* Adjusted for mobile */
+            font-size: 1rem;
+        }
+
+        .zip-check-btn {
+            width: 36px;
+            height: 36px;
+            right: 6px;
+            font-size: 1rem;
+        }
+
+        .order-now-button {
+            max-width: 100%;
+            font-size: 1rem;
+            padding: 0.9rem 2rem;
+        }
+
+        .delivery-info {
+            padding: 0.8rem;
+        }
+
+        .delivery-info h4 {
+            font-size: 1rem;
+        }
+
+        .delivery-detail {
+            font-size: 0.85rem;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.2rem;
+        }
+
+        .zip-suggestions {
+            padding: 0.8rem;
+        }
+
+        .zip-suggestions h5 {
+            font-size: 0.9rem;
+        }
+
+        .suggestion-item {
+            font-size: 0.75rem;
+            padding: 0.3rem 0.6rem;
         }
     }
 
@@ -1590,14 +1882,6 @@ if ($email_conn) {
             font-size: 0.9rem;
         }
 
-        .zip-input-container {
-            max-width: 100%;
-        }
-
-        .order-now-button {
-            max-width: 100%;
-        }
-
         .steps-grid {
             grid-template-columns: repeat(2, 1fr);
         }
@@ -1666,6 +1950,404 @@ if ($email_conn) {
             height: 320px;
         }
     }
+
+    /* Additional CSS that was potentially missing */
+    
+    /* Loading states and transitions */
+    .loading {
+        opacity: 0.7;
+        pointer-events: none;
+        position: relative;
+    }
+
+    .loading::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 20px;
+        height: 20px;
+        margin: -10px 0 0 -10px;
+        border: 2px solid var(--cream);
+        border-top: 2px solid var(--brown);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    /* Error states */
+    .error {
+        border-color: #dc3545 !important;
+        background-color: #fff5f5 !important;
+    }
+
+    .error-message {
+        color: #dc3545;
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+        font-family: 'BaticaSans', sans-serif;
+    }
+
+    /* Success states */
+    .success {
+        border-color: #9aa48bff !important;
+        background-color: #f0fff4 !important;
+    }
+
+    .success-message {
+        color: #68866fff;
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+        font-family: 'BaticaSans', sans-serif;
+    }
+
+    /* Animation classes */
+    .animate-in {
+        animation: fadeInUp 0.6s ease-out forwards;
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .fade-in {
+        animation: fadeIn 0.8s ease-out forwards;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    /* Accessibility */
+    .skip-link:focus {
+        clip: unset !important;
+        height: auto !important;
+        overflow: visible !important;
+        position: absolute !important;
+        width: auto !important;
+    }
+
+    .keyboard-navigation *:focus {
+        outline: 2px solid var(--curry) !important;
+        outline-offset: 2px !important;
+    }
+
+    /* Mobile menu enhancements */
+    .menu-open {
+        overflow: hidden;
+    }
+
+    .mobile-menu-toggle.active {
+        transform: rotate(180deg);
+    }
+
+    /* Lazy loading */
+    img.lazy {
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+
+    img.lazy.loaded {
+        opacity: 1;
+    }
+
+    /* Scrollbar styling */
+    ::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: var(--cream);
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: var(--brown);
+        border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: var(--curry);
+    }
+
+    /* Print styles */
+    @media print {
+        .popup-overlay,
+        .hero-videos,
+        .scroll-controls,
+        .menu-nav-scroll-btn {
+            display: none !important;
+        }
+        
+        body {
+            font-size: 12pt;
+            line-height: 1.5;
+        }
+        
+        h1, h2, h3 {
+            page-break-after: avoid;
+        }
+    }
+
+    /* High contrast mode support */
+    @media (prefers-contrast: high) {
+        :root {
+            --brown: #000000;
+            --curry: #000000;
+            --sage: #000000;
+            --text-dark: #000000;
+            --white: #ffffff;
+            --cream: #ffffff;
+        }
+    }
+
+    /* Reduced motion support */
+    @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+        }
+        
+        .image-slider,
+        .image-slider-reverse {
+            animation: none !important;
+        }
+    }
+
+    /* Dark mode support (future enhancement) */
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --white: #1a1a1a;
+            --cream: #2d2d2d;
+            --text-dark: #ffffff;
+            --text-gray: #cccccc;
+            --border-light: #404040;
+        }
+        
+        .popup-container {
+            background: var(--cream);
+            color: var(--text-dark);
+        }
+        
+        .hero-section {
+            background: var(--white);
+        }
+    }
+
+    /* Additional component styles */
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.25rem 0.75rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        border-radius: 50px;
+        font-family: 'BaticaSans', sans-serif;
+    }
+
+    .badge-primary {
+        background: var(--curry);
+        color: var(--white);
+    }
+
+    .badge-secondary {
+        background: var(--sage);
+        color: var(--white);
+    }
+
+    .badge-success {
+        background: #28a745;
+        color: var(--white);
+    }
+
+    /* Tooltip component */
+    .tooltip {
+        position: relative;
+        cursor: help;
+    }
+
+    .tooltip::before {
+        content: attr(data-tooltip);
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--text-dark);
+        color: var(--white);
+        padding: 0.5rem;
+        border-radius: 4px;
+        font-size: 0.875rem;
+        white-space: nowrap;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+        z-index: 1000;
+    }
+
+    .tooltip:hover::before {
+        opacity: 1;
+        visibility: visible;
+        transform: translateX(-50%) translateY(-5px);
+    }
+
+    /* Modal backdrop */
+    .modal-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 9999;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .modal-backdrop.active {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    /* Enhanced form styling */
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        color: var(--text-dark);
+        font-family: 'BaticaSans', sans-serif;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: 2px solid var(--border-light);
+        border-radius: 8px;
+        font-size: 1rem;
+        font-family: 'BaticaSans', sans-serif;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--brown);
+        box-shadow: 0 0 0 3px rgba(189, 147, 121, 0.1);
+    }
+
+    /* Grid system */
+    .row {
+        display: flex;
+        flex-wrap: wrap;
+        margin: 0 -15px;
+    }
+
+    .col {
+        flex: 1;
+        padding: 0 15px;
+    }
+
+    .col-2 { flex: 0 0 16.666667%; max-width: 16.666667%; }
+    .col-3 { flex: 0 0 25%; max-width: 25%; }
+    .col-4 { flex: 0 0 33.333333%; max-width: 33.333333%; }
+    .col-6 { flex: 0 0 50%; max-width: 50%; }
+    .col-8 { flex: 0 0 66.666667%; max-width: 66.666667%; }
+    .col-12 { flex: 0 0 100%; max-width: 100%; }
+
+    @media (max-width: 768px) {
+        .col,
+        .col-2,
+        .col-3,
+        .col-4,
+        .col-6,
+        .col-8 {
+            flex: 0 0 100%;
+            max-width: 100%;
+        }
+    }
+
+    /* Spacing utilities */
+    .mt-1 { margin-top: 0.25rem; }
+    .mt-2 { margin-top: 0.5rem; }
+    .mt-3 { margin-top: 1rem; }
+    .mt-4 { margin-top: 1.5rem; }
+    .mt-5 { margin-top: 3rem; }
+
+    .mb-1 { margin-bottom: 0.25rem; }
+    .mb-2 { margin-bottom: 0.5rem; }
+    .mb-3 { margin-bottom: 1rem; }
+    .mb-4 { margin-bottom: 1.5rem; }
+    .mb-5 { margin-bottom: 3rem; }
+
+    .pt-1 { padding-top: 0.25rem; }
+    .pt-2 { padding-top: 0.5rem; }
+    .pt-3 { padding-top: 1rem; }
+    .pt-4 { padding-top: 1.5rem; }
+    .pt-5 { padding-top: 3rem; }
+
+    .pb-1 { padding-bottom: 0.25rem; }
+    .pb-2 { padding-bottom: 0.5rem; }
+    .pb-3 { padding-bottom: 1rem; }
+    .pb-4 { padding-bottom: 1.5rem; }
+    .pb-5 { padding-bottom: 3rem; }
+
+    /* Text utilities */
+    .text-center { text-align: center; }
+    .text-left { text-align: left; }
+    .text-right { text-align: right; }
+
+    .text-primary { color: var(--brown); }
+    .text-secondary { color: var(--sage); }
+    .text-success { color: #28a745; }
+    .text-danger { color: #dc3545; }
+    .text-warning { color: #ffc107; }
+    .text-info { color: #17a2b8; }
+    .text-muted { color: var(--text-gray); }
+
+    .font-weight-normal { font-weight: 400; }
+    .font-weight-bold { font-weight: 700; }
+    .font-italic { font-style: italic; }
+
+    /* Display utilities */
+    .d-none { display: none; }
+    .d-block { display: block; }
+    .d-inline { display: inline; }
+    .d-inline-block { display: inline-block; }
+    .d-flex { display: flex; }
+
+    /* Flex utilities */
+    .justify-content-start { justify-content: flex-start; }
+    .justify-content-center { justify-content: center; }
+    .justify-content-end { justify-content: flex-end; }
+    .justify-content-between { justify-content: space-between; }
+    .justify-content-around { justify-content: space-around; }
+
+    .align-items-start { align-items: flex-start; }
+    .align-items-center { align-items: center; }
+    .align-items-end { align-items: flex-end; }
+
+    /* Border utilities */
+    .border { border: 1px solid var(--border-light); }
+    .border-top { border-top: 1px solid var(--border-light); }
+    .border-bottom { border-bottom: 1px solid var(--border-light); }
+    .border-0 { border: 0; }
+
+    .rounded { border-radius: 0.375rem; }
+    .rounded-lg { border-radius: 0.5rem; }
+    .rounded-pill { border-radius: 50px; }
+    .rounded-circle { border-radius: 50%; }
     </style>
 </head>
 
@@ -1673,7 +2355,10 @@ if ($email_conn) {
     <!-- Coming Soon Popup -->
     <div class="popup-overlay active" id="comingSoonPopup">
         <div class="popup-container" onclick="restorePopup(event)">
-            <button class="popup-close" onclick="minimizePopup()" title="Minimize">&times;</button>
+            <div class="popup-controls">
+                <button class="popup-minimize" onclick="minimizePopup()" title="Minimize">−</button>
+                <button class="popup-close" onclick="closeComingSoonPopup()" title="Close">&times;</button>
+            </div>
             
             <!-- Floating circle content (hidden by default) -->
             <div class="floating-circle-content">
@@ -1744,9 +2429,14 @@ if ($email_conn) {
                 
                 <div class="hero-form">
                     <div class="zip-input-container">
-                        <input type="text" class="zip-input" placeholder="Enter your ZIP code">
+                        <input type="text" id="zipCodeInput" class="zip-input" placeholder="Enter your ZIP code" maxlength="5">
+                        <button type="button" id="zipCheckBtn" class="zip-check-btn" title="Check ZIP code">
+                            <span class="check-icon">✓</span>
+                            <span class="loading-icon" style="display: none;">⟳</span>
+                        </button>
                     </div>
-                    <a href="./menus.php" class="order-now-button">View Menu</a>
+                    <div id="zipFeedback" class="zip-feedback"></div>
+                    <a href="./menus.php" id="orderButton" class="order-now-button disabled">Check ZIP First</a>
                 </div>
             </div>
             
@@ -2194,7 +2884,277 @@ if ($email_conn) {
                 }
             }
         }, 500);
+
+        // Initialize zipcode checker when DOM is ready
+        initializeZipcodeChecker();
     });
+
+    // Zipcode checking functionality
+    function initializeZipcodeChecker() {
+        const zipInput = document.getElementById('zipCodeInput');
+        const zipCheckBtn = document.getElementById('zipCheckBtn');
+        const zipFeedback = document.getElementById('zipFeedback');
+        const orderButton = document.getElementById('orderButton');
+        
+        if (!zipInput || !zipCheckBtn || !zipFeedback || !orderButton) {
+            console.warn('Zipcode checker elements not found');
+            return;
+        }
+        
+        let currentZipCode = '';
+        let checkTimeout;
+        
+        // Format zip code input (numbers only)
+        zipInput.addEventListener('input', function() {
+            const oldValue = this.value;
+            this.value = this.value.replace(/\D/g, '').substring(0, 5);
+            
+            console.log('📝 ZIP input changed:', this.value, 'Length:', this.value.length);
+            
+            // Auto-check when 5 digits entered
+            if (this.value.length === 5) {
+                clearTimeout(checkTimeout);
+                checkTimeout = setTimeout(() => {
+                    checkZipCode(this.value);
+                }, 500);
+            } else {
+                // Only reset state and hide feedback if user completely cleared the input
+                if (this.value.length === 0) {
+                    console.log('🧹 Input cleared, resetting state');
+                    resetZipCodeState();
+                } else {
+                    // Just reset the order button, but keep any existing feedback
+                    resetOrderButton();
+                    currentZipCode = '';
+                    console.log('⚪ Partial input, keeping feedback visible');
+                }
+            }
+        });
+        
+        // Enter key support
+        zipInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && this.value.length === 5) {
+                e.preventDefault();
+                checkZipCode(this.value);
+            }
+        });
+        
+        // Check button click
+        zipCheckBtn.addEventListener('click', function() {
+            const zipCode = zipInput.value.trim();
+            if (zipCode.length === 5) {
+                checkZipCode(zipCode);
+            } else {
+                showFeedback('Please enter a 5-digit ZIP code', 'error');
+            }
+        });
+        
+        // Check zip code availability
+        function checkZipCode(zipCode) {
+            if (zipCode === currentZipCode) {
+                return; // Don't check the same zip code again
+            }
+            
+            currentZipCode = zipCode;
+            setLoadingState(true);
+            
+            fetch(`ajax/check_zipcode.php?zip_code=${encodeURIComponent(zipCode)}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    setLoadingState(false);
+                    handleZipCodeResponse(data, zipCode);
+                })
+                .catch(error => {
+                    console.error('Zipcode check error:', error);
+                    setLoadingState(false);
+                    showFeedback('Unable to verify ZIP code. Please try again.', 'error');
+                    resetOrderButton();
+                });
+        }
+        
+        // Handle API response
+        function handleZipCodeResponse(data, zipCode) {
+            if (data.success) {
+                showSuccessFeedback(data, zipCode);
+                enableOrderButton(zipCode);
+                zipInput.className = 'zip-input success';
+            } else {
+                showErrorFeedback(data, zipCode);
+                resetOrderButton();
+                zipInput.className = 'zip-input error';
+            }
+        }
+        
+        // Show success feedback with delivery info
+        function showSuccessFeedback(data, zipCode) {
+            const deliveryInfo = data.zone ? `
+
+            ` : '';
+            
+            showFeedback(
+                `<span class="feedback-icon">✓</span>${data.message}${deliveryInfo}`,
+                'success'
+            );
+        }
+        
+        // Show error feedback with suggestions
+        function showErrorFeedback(data, zipCode) {
+            let suggestionHTML = '';
+            
+            if (data.suggestions && data.suggestions.length > 0) {
+                suggestionHTML = `
+                    <div class="zip-suggestions">
+                        <h5>🔍 We deliver to these nearby areas:</h5>
+                        <div class="suggestion-list">
+                            ${data.suggestions.map(suggestion => `
+                                <span class="suggestion-item" onclick="selectSuggestion('${suggestion.zip_code}')">
+                                    ${suggestion.zip_code} (${suggestion.area})
+                                </span>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            const icon = data.type === 'warning' ? '⚠️' : '❌';
+            showFeedback(
+                `<span class="feedback-icon">${icon}</span>${data.message}${suggestionHTML}`,
+                data.type || 'error'
+            );
+        }
+        
+        // Show feedback message
+        function showFeedback(message, type) {
+            console.log('🔔 Showing feedback:', type, message.substring(0, 50) + '...');
+            
+            zipFeedback.innerHTML = message;
+            zipFeedback.className = `zip-feedback ${type}`;
+            
+            // Trigger animation with longer delay
+            setTimeout(() => {
+                zipFeedback.classList.add('show');
+                console.log('✅ Feedback displayed with class:', zipFeedback.className);
+            }, 50); // Increased from 10ms
+            
+            // Clear any existing hide timeout
+            if (window.zipFeedbackTimeout) {
+                clearTimeout(window.zipFeedbackTimeout);
+                console.log('🚫 Cleared existing feedback timeout');
+            }
+            
+            // Auto-hide only error messages after 10 seconds, keep success/warning messages
+            if (type === 'error') {
+                window.zipFeedbackTimeout = setTimeout(() => {
+                    console.log('⏰ Auto-hiding error feedback after 10 seconds');
+                    hideFeedback();
+                }, 10000); // 10 seconds for errors
+            } else {
+                console.log('📌 Feedback will stay visible (success/warning type)');
+            }
+            // Success and warning messages stay visible until user interaction
+        }
+        
+        // Hide feedback
+        function hideFeedback() {
+            console.log('👻 Hiding feedback');
+            zipFeedback.classList.remove('show');
+            setTimeout(() => {
+                zipFeedback.innerHTML = '';
+                zipFeedback.className = 'zip-feedback';
+                console.log('🧹 Feedback cleared');
+            }, 300);
+        }
+        
+        // Clear feedback when user starts typing again
+        // (This is now handled in the main input event listener above)
+        
+        // Set loading state
+        function setLoadingState(loading) {
+            const checkIcon = zipCheckBtn.querySelector('.check-icon');
+            const loadingIcon = zipCheckBtn.querySelector('.loading-icon');
+            
+            if (loading) {
+                console.log('⏳ Setting loading state ON');
+                zipInput.className = 'zip-input loading';
+                zipCheckBtn.disabled = true;
+                checkIcon.style.display = 'none';
+                loadingIcon.style.display = 'block';
+                // Don't hide feedback during loading - user should see previous state
+                console.log('📌 Keeping existing feedback during loading');
+            } else {
+                console.log('✅ Setting loading state OFF');
+                zipCheckBtn.disabled = false;
+                checkIcon.style.display = 'block';
+                loadingIcon.style.display = 'none';
+                // Don't change input class here - let the response handler do it
+            }
+        }
+        
+        // Enable order button with valid zip code
+        function enableOrderButton(zipCode) {
+            orderButton.className = 'order-now-button enabled';
+            orderButton.textContent = 'View Menu';
+            orderButton.href = `./menus.php?zip=${encodeURIComponent(zipCode)}`;
+            orderButton.onclick = null;
+            
+            // Store zip code for later use
+            sessionStorage.setItem('deliveryZipCode', zipCode);
+        }
+        
+        // Reset order button
+        function resetOrderButton() {
+            orderButton.className = 'order-now-button disabled';
+            orderButton.textContent = 'Check ZIP First';
+            orderButton.href = '#';
+            orderButton.onclick = function(e) {
+                e.preventDefault();
+                zipInput.focus();
+                return false;
+            };
+            
+            // Clear stored zip code
+            sessionStorage.removeItem('deliveryZipCode');
+        }
+        
+        // Reset zip code state
+        function resetZipCodeState() {
+            console.log('🔄 Resetting ZIP code state');
+            zipInput.className = 'zip-input';
+            // Only hide feedback when input is completely empty
+            if (zipInput.value.length === 0) {
+                console.log('🧹 Input is empty, hiding feedback');
+                hideFeedback();
+            } else {
+                console.log('📝 Input has content, keeping feedback');
+            }
+            resetOrderButton();
+            currentZipCode = '';
+        }
+        
+        // Global function for suggestion clicks
+        window.selectSuggestion = function(zipCode) {
+            zipInput.value = zipCode;
+            zipInput.focus();
+            checkZipCode(zipCode);
+        };
+        
+        // Make hideFeedback globally accessible
+        window.hideFeedback = hideFeedback;
+        
+        // Check if there's a stored zip code from previous session
+        const storedZip = sessionStorage.getItem('deliveryZipCode');
+        if (storedZip && storedZip.length === 5) {
+            zipInput.value = storedZip;
+            setTimeout(() => {
+                checkZipCode(storedZip);
+            }, 500);
+        }
+    }
 
     // Function to handle meal card clicks - redirects to menus.php with menu ID
     function openMenuDetails(menuId) {
@@ -2244,6 +3204,18 @@ if ($email_conn) {
         
         // Store in sessionStorage that popup was completely closed
         sessionStorage.setItem('comingSoonPopupState', 'closed');
+    }
+
+    function minimizePopup() {
+        const popup = document.getElementById('comingSoonPopup');
+        popup.classList.remove('active');
+        popup.classList.add('minimized');
+        
+        // Allow scrolling when minimized
+        document.body.style.overflow = 'auto';
+        
+        // Store in sessionStorage that popup was minimized (not completely closed)
+        sessionStorage.setItem('comingSoonPopupState', 'minimized');
     }
 
     // Check if popup should be shown

@@ -102,7 +102,7 @@ $signature_sauces = [
         'size' => '6.76 oz (200 mL)',
         'price' => 15.99,
         'image_url' => './assets/image/spicy-garlic-basil-sauce.jpg',
-        'description' => 'Embrace our Thai stir-fried holy basil sauce, inspired by "Pad Kra Pow" â€" the iconic Thai street food dish. Infused with the unique aroma of Thai holy basil leaves, its authenticity is craved by locals. Meticulously crafted, this sauce captures the true essence of Thailand\'s culinary legacy. Dive in and experience an unmatched taste sensation.',
+        'description' => 'Embrace our Thai stir-fried holy basil sauce, inspired by "Pad Kra Pow" — the iconic Thai street food dish. Infused with the unique aroma of Thai holy basil leaves, its authenticity is craved by locals. Meticulously crafted, this sauce captures the true essence of Thailand\'s culinary legacy. Dive in and experience an unmatched taste sensation.',
         'ingredients' => ['Holy basil', 'Thai chilies', 'Garlic', 'Fish sauce', 'Oyster sauce', 'Sugar', 'Soy sauce'],
         'recipe_title' => 'Pad Kra Pao Gai (Holy Basil Chicken)',
         'recipe_description' => 'The dish that started it all - Uncle Kole\'s street cart signature that drew lines around the block in Bangkok.',
@@ -533,11 +533,38 @@ function formatPrice($price) {
             font-weight: 600;
         }
 
-        .ingredients-text,
-        .uses-text {
+        .ingredients-list,
+        .uses-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .ingredients-list li,
+        .uses-list li {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--cream);
             color: var(--text-dark);
-            line-height: 1.6;
-            font-style: italic;
+            position: relative;
+            padding-left: 1.5rem;
+        }
+
+        .ingredients-list li::before {
+            content: '🌿';
+            position: absolute;
+            left: 0;
+            top: 0.5rem;
+        }
+
+        .uses-list li::before {
+            content: '🍳';
+            position: absolute;
+            left: 0;
+            top: 0.5rem;
+        }
+
+        .ingredients-list li:last-child,
+        .uses-list li:last-child {
+            border-bottom: none;
         }
 
         /* Success notification */
@@ -678,11 +705,6 @@ function formatPrice($price) {
                 order: 1;
             }
             
-            .sauce-image img,
-            .sauce-image .placeholder {
-                height: 350px;
-            }
-            
             .sauce-info {
                 order: 2;
                 padding: 1rem 0;
@@ -727,154 +749,6 @@ function formatPrice($price) {
             .cta-buttons {
                 flex-direction: column;
                 align-items: center;
-            }
-        }
-
-        /* Small Mobile Devices (480px and below) */
-        @media (max-width: 480px) {
-            .story-hero {
-                padding: 3rem 0.75rem 1.5rem;
-            }
-            
-            .story-hero h1 {
-                font-size: 2rem;
-                line-height: 1.1;
-            }
-            
-            .story-hero .subtitle {
-                font-size: 1.1rem;
-            }
-            
-            .story-hero .hero-quote {
-                font-size: 1rem;
-                padding: 1.5rem;
-            }
-            
-            .story-container {
-                padding: 1.5rem 0.75rem;
-            }
-            
-            .story-intro {
-                padding: 2rem 1.5rem;
-                margin-bottom: 3rem;
-            }
-            
-            .story-intro h2 {
-                font-size: 2rem;
-            }
-            
-            .story-intro .story-text {
-                font-size: 1.1rem;
-            }
-            
-            .sauce-section {
-                margin-bottom: 4rem;
-            }
-            
-            .sauce-content {
-                gap: 1.5rem;
-            }
-            
-            .sauce-image img,
-            .sauce-image .placeholder {
-                height: 280px;
-            }
-            
-            .sauce-name {
-                font-size: 1.8rem;
-            }
-            
-            .sauce-description {
-                font-size: 1rem;
-            }
-            
-            .sauce-price {
-                font-size: 1.6rem;
-            }
-            
-            .recipe-card {
-                padding: 1.25rem;
-                margin-top: 1.5rem;
-            }
-            
-            .recipe-title {
-                font-size: 1.2rem;
-            }
-            
-            .floating-cart-icon {
-                width: 50px;
-                height: 50px;
-                font-size: 1.3rem;
-            }
-            
-            .floating-cart-counter {
-                width: 24px;
-                height: 24px;
-                font-size: 0.75rem;
-                top: -6px;
-                right: -6px;
-            }
-            
-            .story-cta {
-                padding: 3rem 1.5rem;
-                margin-top: 3rem;
-            }
-            
-            .story-cta h3 {
-                font-size: 1.6rem;
-            }
-            
-            .btn-cta {
-                padding: 0.875rem 1.5rem;
-                width: 100%;
-                max-width: 280px;
-            }
-        }
-
-        /* Extra Small Mobile Devices (360px and below) */
-        @media (max-width: 360px) {
-            .story-hero h1 {
-                font-size: 1.75rem;
-            }
-            
-            .story-hero {
-                padding: 2.5rem 0.5rem 1.25rem;
-            }
-            
-            .story-container {
-                padding: 1.25rem 0.5rem;
-            }
-            
-            .story-intro {
-                padding: 1.5rem 1rem;
-            }
-            
-            .sauce-image img,
-            .sauce-image .placeholder {
-                height: 240px;
-            }
-            
-            .sauce-name {
-                font-size: 1.6rem;
-            }
-            
-            .sauce-info {
-                padding: 0.75rem 0;
-            }
-            
-            .recipe-card {
-                padding: 1rem;
-            }
-            
-            .floating-cart {
-                bottom: 15px;
-                right: 15px;
-            }
-            
-            .floating-cart-icon {
-                width: 45px;
-                height: 45px;
-                font-size: 1.2rem;
             }
         }
     </style>
@@ -952,7 +826,7 @@ function formatPrice($price) {
                         <div class="sauce-info">
                             <div class="sauce-category">Uncle Kole's Signature</div>
                             <h3 class="sauce-name"><?= htmlspecialchars($sauce['name']) ?></h3>
-                            <div class="sauce-size"><?= htmlspecialchars($sauce['size']) ?></div>
+                            <div class="sauce-size"><?= htmlspecialchars($sauce['size_display']) ?></div>
                             
                             <p class="sauce-description">
                                 <?= htmlspecialchars($sauce['description']) ?>
@@ -997,16 +871,20 @@ function formatPrice($price) {
                         <div class="ingredients-uses">
                             <div class="ingredients">
                                 <h4>Key Ingredients</h4>
-                                <p class="ingredients-text">
-                                    <?= htmlspecialchars(implode(', ', $sauce['ingredients'])) ?>
-                                </p>
+                                <ul class="ingredients-list">
+                                    <?php foreach ($sauce['ingredients'] as $ingredient): ?>
+                                        <li><?= htmlspecialchars($ingredient) ?></li>
+                                    <?php endforeach; ?>
+                                </ul>
                             </div>
                             
                             <div class="uses">
                                 <h4>Perfect For</h4>
-                                <p class="uses-text">
-                                    <?= htmlspecialchars(implode(', ', $sauce['uses'])) ?>
-                                </p>
+                                <ul class="uses-list">
+                                    <?php foreach ($sauce['uses'] as $use): ?>
+                                        <li><?= htmlspecialchars($use) ?></li>
+                                    <?php endforeach; ?>
+                                </ul>
                             </div>
                         </div>
                     </div>
