@@ -2118,26 +2118,6 @@ $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2
         }
     }
 
-    /* Dark mode support (future enhancement) */
-    @media (prefers-color-scheme: dark) {
-        :root {
-            --white: #1a1a1a;
-            --cream: #2d2d2d;
-            --text-dark: #ffffff;
-            --text-gray: #cccccc;
-            --border-light: #404040;
-        }
-        
-        .popup-container {
-            background: var(--cream);
-            color: var(--text-dark);
-        }
-        
-        .hero-section {
-            background: var(--white);
-        }
-    }
-
     /* Additional component styles */
     .badge {
         display: inline-flex;
