@@ -15,23 +15,8 @@ require_once 'config/database.php';
 // Include the header (contains navbar, promo banner, fonts, and base styles)
 include 'header.php';
 
-// Database configuration for email signups
-$servername = "localhost";
-$username = "u548716370_ad";      // Change this to your MySQL username
-$password = "bjXZrBsAQXiaAk7&";   // Change this to your MySQL password
-$dbname = "u548716370_getemail";  // Change this to your database name
-
-// Create connection for email signups
-$email_conn = new mysqli($servername, $username, $password, $dbname);
-
-// Check connection
-if ($email_conn->connect_error) {
-    error_log("Email database connection failed: " . $email_conn->connect_error);
-    $email_conn = null;
-}
-
-// Create table if it doesn't exist
-if ($email_conn) {
+// Create email_signups table if it doesn't exist (using main database)
+try {
     $create_table_sql = "CREATE TABLE IF NOT EXISTS email_signups (
         id INT(11) AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(100) NOT NULL,
@@ -39,12 +24,19 @@ if ($email_conn) {
         signup_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         status ENUM('active', 'unsubscribed') DEFAULT 'active',
         ip_address VARCHAR(45),
-        user_agent TEXT
-    )";
+        user_agent TEXT,
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        
+        INDEX idx_email (email),
+        INDEX idx_status (status),
+        INDEX idx_signup_date (signup_date)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
-    if (!$email_conn->query($create_table_sql)) {
-        error_log("Error creating table: " . $email_conn->error);
-    }
+    $pdo->exec($create_table_sql);
+} catch (PDOException $e) {
+    error_log("Error creating email_signups table: " . $e->getMessage());
 }
 
 // Initialize variables for popup
@@ -65,37 +57,44 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['submit_popup_signup'])
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $popup_message = "Please enter a valid email address.";
         $popup_message_type = "error";
-    } elseif ($email_conn) {
-        // Check if email already exists
-        $check_email_sql = "SELECT id FROM email_signups WHERE email = ?";
-        $check_stmt = $email_conn->prepare($check_email_sql);
-        $check_stmt->bind_param("s", $email);
-        $check_stmt->execute();
-        $result = $check_stmt->get_result();
-        
-        if ($result->num_rows > 0) {
-            $popup_message = "This email is already registered! We'll notify you when we open.";
-            $popup_message_type = "info";
-        } else {
-            // Insert new signup
-            $insert_sql = "INSERT INTO email_signups (name, email, ip_address, user_agent) VALUES (?, ?, ?, ?)";
-            $insert_stmt = $email_conn->prepare($insert_sql);
-            $insert_stmt->bind_param("ssss", $name, $email, $ip_address, $user_agent);
+    } else {
+        try {
+            // Check if email already exists
+            $check_email_sql = "SELECT id FROM email_signups WHERE email = ?";
+            $check_stmt = $pdo->prepare($check_email_sql);
+            $check_stmt->execute([$email]);
             
-            if ($insert_stmt->execute()) {
-                $popup_message = "Thank you, " . htmlspecialchars($name) . "! You're now on our exclusive preview list. We'll notify you at " . htmlspecialchars($email) . " when Somdul Table opens.";
-                $popup_message_type = "success";
+            if ($check_stmt->fetch()) {
+                $popup_message = "This email is already registered! We'll notify you when we open.";
+                $popup_message_type = "info";
+            } else {
+                // Insert new signup
+                $insert_sql = "INSERT INTO email_signups (name, email, ip_address, user_agent) VALUES (?, ?, ?, ?)";
+                $insert_stmt = $pdo->prepare($insert_sql);
+                
+                if ($insert_stmt->execute([$name, $email, $ip_address, $user_agent])) {
+                    $popup_message = "Thank you, " . htmlspecialchars($name) . "! You're now on our exclusive preview list. We'll notify you at " . htmlspecialchars($email) . " when Somdul Table opens.";
+                    $popup_message_type = "success";
+                    
+                    // Log successful signup
+                    error_log("New email signup: {$email} from IP: {$ip_address}");
+                } else {
+                    $popup_message = "Sorry, there was an error processing your request. Please try again.";
+                    $popup_message_type = "error";
+                    error_log("Database insert error for email signup: {$email}");
+                }
+            }
+        } catch (PDOException $e) {
+            // Check for duplicate entry error
+            if ($e->getCode() == 23000) { // Duplicate entry
+                $popup_message = "This email is already registered! We'll notify you when we open.";
+                $popup_message_type = "info";
             } else {
                 $popup_message = "Sorry, there was an error processing your request. Please try again.";
                 $popup_message_type = "error";
-                error_log("Database insert error: " . $insert_stmt->error);
+                error_log("Database error in email signup: " . $e->getMessage());
             }
-            $insert_stmt->close();
         }
-        $check_stmt->close();
-    } else {
-        $popup_message = "Sorry, there was an error processing your request. Please try again later.";
-        $popup_message_type = "error";
     }
 }
 
@@ -145,10 +144,6 @@ $category_icons = [
 // Default icon for categories not in mapping
 $default_icon = '<path d="M12 2c-1.1 0-2 .9-2 2v2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-2V4c0-1.1-.9-2-2-2zm0 2v2h-2V4h2zm-4 4h8v2h-8V8zm0 4h8v6H8v-6z"/>';
 
-// Close email connection
-if ($email_conn) {
-    $email_conn->close();
-}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -1137,6 +1132,7 @@ if ($email_conn) {
         justify-content: center;
         font-size: 1.2rem;
         font-weight: bold;
+        display: none;
     }
 
     .zip-check-btn:hover:not(:disabled) {
@@ -1183,7 +1179,6 @@ if ($email_conn) {
     }
 
     .zip-feedback.success {
-        background: linear-gradient(135deg, #adb89d 0%, #a7b296ff 100%);
         color: #4c7355;
         border: 2px solid #8e9781ff;
         box-shadow: 0 4px 15px rgba(40, 167, 69, 0.2); /* Added shadow */
@@ -2123,26 +2118,6 @@ if ($email_conn) {
         }
     }
 
-    /* Dark mode support (future enhancement) */
-    @media (prefers-color-scheme: dark) {
-        :root {
-            --white: #1a1a1a;
-            --cream: #2d2d2d;
-            --text-dark: #ffffff;
-            --text-gray: #cccccc;
-            --border-light: #404040;
-        }
-        
-        .popup-container {
-            background: var(--cream);
-            color: var(--text-dark);
-        }
-        
-        .hero-section {
-            background: var(--white);
-        }
-    }
-
     /* Additional component styles */
     .badge {
         display: inline-flex;
@@ -2436,7 +2411,7 @@ if ($email_conn) {
                         </button>
                     </div>
                     <div id="zipFeedback" class="zip-feedback"></div>
-                    <a href="./menus.php" id="orderButton" class="order-now-button disabled">Check ZIP First</a>
+                    <a href="./menus.php" id="orderButton" class="order-now-button disabled">Check ZIP</a>
                 </div>
             </div>
             
