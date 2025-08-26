@@ -25,6 +25,35 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
+// FIXED: Database connection - make $pdo available for header.php
+try {
+    require_once 'config/database.php';
+    // Create database instance and get PDO connection
+    $database = new Database();
+    $pdo = $database->getConnection();
+} catch (Exception $e) {
+    // Fallback connections for header.php compatibility
+    $configs = [
+        ["mysql:host=localhost;dbname=somdul_table;charset=utf8mb4", "root", "root"],
+        ["mysql:host=localhost:8889;dbname=somdul_table;charset=utf8mb4", "root", "root"]
+    ];
+    
+    $pdo = null;
+    foreach ($configs as $config) {
+        try {
+            $pdo = new PDO($config[0], $config[1], $config[2]);
+            $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            break;
+        } catch (PDOException $e) {
+            continue;
+        }
+    }
+    
+    if ($pdo === null) {
+        die("Database connection failed: " . $e->getMessage());
+    }
+}
+
 // Utility Functions
 class CheckoutUtils {
     
@@ -84,6 +113,7 @@ class DatabaseConnection {
     private static $connection = null;
     
     public static function getInstance() {
+        global $pdo;
         if (self::$connection === null) {
             try {
                 require_once 'config/database.php';
