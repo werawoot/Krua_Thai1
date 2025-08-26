@@ -11,6 +11,7 @@ error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
 require_once 'config/database.php';
+require_once 'NotificationManager.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
@@ -305,10 +306,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'
         'cancel' => 'cancelled',
         'renew' => 'active'
     ];
+    
     if (isset($status_map[$action])) {
         $new_status = $status_map[$action];
+        
+        // Get subscription details before updating for notification
+        $subscriptionDetails = null;
+        if ($action === 'cancel') {
+            $stmt = $pdo->prepare("
+                SELECT s.*, sp.name AS plan_name, sp.meals_per_week 
+                FROM subscriptions s 
+                JOIN subscription_plans sp ON s.plan_id = sp.id
+                WHERE s.id = ? AND s.user_id = ?
+            ");
+            $stmt->execute([$id, $user_id]);
+            $subscriptionDetails = $stmt->fetch(PDO::FETCH_ASSOC);
+        }
+        
+        // Update subscription status
         $stmt = $pdo->prepare("UPDATE subscriptions SET status = ?, updated_at = NOW() WHERE id = ? AND user_id = ?");
-        $stmt->execute([$new_status, $id, $user_id]);
+        $result = $stmt->execute([$new_status, $id, $user_id]);
+        
+        // CREATE CANCELLATION NOTIFICATION
+        if ($result && $action === 'cancel' && $subscriptionDetails) {
+            try {
+                $notificationManager = new NotificationManager($pdo);
+                
+                // Create system notification for cancellation
+                $notificationManager->createSystemNotification(
+                    $user_id,
+                    'Order Cancelled',
+                    "Your order for '{$subscriptionDetails['plan_name']}' has been cancelled successfully. " .
+                    "",
+                    'medium' // Medium priority for cancellations
+                );
+                
+                error_log("Cancellation notification created for user: $user_id, subscription: $id");
+                
+            } catch (Exception $e) {
+                error_log("Failed to create cancellation notification: " . $e->getMessage());
+                // Don't stop the cancellation process if notification fails
+            }
+        }
+        
         header("Location: subscription-status.php");
         exit();
     }

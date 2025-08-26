@@ -4,9 +4,10 @@
  * File: admin/rider-dashboard.php
  * Features: View daily assignments, update delivery status, add notes, upload photos
  * Status: PRODUCTION READY ✅
- * ENHANCED: Added note and photo functionality + DELIVERED STATUS UPDATE
+ * ENHANCED: Added note and photo functionality + DELIVERED STATUS UPDATE + OUT FOR DELIVERY
  * 
  * UPDATED: Now updates subscription status to "delivered" when marking delivery as completed
+ * UPDATED: Added "Out for Delivery" functionality with notifications and user_status updates
  */
 
 session_start();
@@ -15,6 +16,7 @@ ini_set('display_errors', 1);
 
 require_once '../config/database.php';
 require_once '../includes/functions.php';
+require_once '../NotificationManager.php';
 
 // Check if a rider is logged in
 if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'rider') {
@@ -27,13 +29,13 @@ try {
     $database = new Database();
     $pdo = $database->getConnection();
 } catch (Exception $e) {
-    die("⚠ Database connection failed: " . $e->getMessage());
+    die("⚠️ Database connection failed: " . $e->getMessage());
 }
 
 $rider_id = $_SESSION['user_id'];
 
 // ======================================================================
-// ENHANCED FUNCTIONS WITH DELIVERED STATUS UPDATE
+// ENHANCED FUNCTIONS WITH DELIVERED STATUS UPDATE + OUT FOR DELIVERY
 // ======================================================================
 
 function updateDeliveryStatus($pdo, $subscriptionId, $riderId, $newStatus, $notes = '', $photoPath = '') {
@@ -79,35 +81,141 @@ function updateDeliveryStatus($pdo, $subscriptionId, $riderId, $newStatus, $note
         
         error_log("🔍 DEBUG - delivery_status insert/update result: " . ($result ? "SUCCESS" : "FAILED"));
         
-        // ✅ NEW: Update subscription status to "delivered" when delivery is completed
+        // ✅ NEW: Update subscription status and user_status based on delivery status
         if ($newStatus === 'completed') {
+            // Mark as delivered when completed
             $stmt = $pdo->prepare("
                 UPDATE subscriptions 
-                SET status = 'delivered', delivered_at = NOW(), updated_at = NOW() 
+                SET status = 'delivered', 
+                    user_status = 'completed',
+                    delivered_at = NOW(), 
+                    updated_at = NOW() 
                 WHERE CAST(id as CHAR) = ? AND assigned_rider_id = ?
             ");
             $subscriptionResult = $stmt->execute([$subscriptionId, $riderId]);
             
-            error_log("✅ Subscription {$subscriptionId} status updated to 'delivered' by rider {$riderId} - Result: " . ($subscriptionResult ? "SUCCESS" : "FAILED"));
-        }
-        
-        // If status is changed back to pending/in_progress, revert subscription to active
-        if (in_array($newStatus, ['pending', 'in_progress'])) {
+            error_log("✅ Subscription {$subscriptionId} status updated to 'delivered' and user_status to 'completed' by rider {$riderId} - Result: " . ($subscriptionResult ? "SUCCESS" : "FAILED"));
+            
+        } elseif ($newStatus === 'delivering') {
+            // ✅ NEW: Update user_status to 'delivering' when out for delivery
             $stmt = $pdo->prepare("
                 UPDATE subscriptions 
-                SET status = 'active', delivered_at = NULL, updated_at = NOW() 
+                SET user_status = 'delivering',
+                    updated_at = NOW() 
+                WHERE CAST(id as CHAR) = ? AND assigned_rider_id = ?
+            ");
+            $subscriptionResult = $stmt->execute([$subscriptionId, $riderId]);
+            
+            error_log("🚚 Subscription {$subscriptionId} user_status updated to 'delivering' by rider {$riderId} - Result: " . ($subscriptionResult ? "SUCCESS" : "FAILED"));
+            
+        } elseif ($newStatus === 'in_progress') {
+            // Update user_status to 'in the kitchen' when in progress
+            $stmt = $pdo->prepare("
+                UPDATE subscriptions 
+                SET user_status = 'in the kitchen',
+                    updated_at = NOW() 
+                WHERE CAST(id as CHAR) = ? AND assigned_rider_id = ?
+            ");
+            $subscriptionResult = $stmt->execute([$subscriptionId, $riderId]);
+            
+            error_log("🍳 Subscription {$subscriptionId} user_status updated to 'in the kitchen' by rider {$riderId} - Result: " . ($subscriptionResult ? "SUCCESS" : "FAILED"));
+        }
+        
+        // If status is changed back to pending, revert subscription to active with order received status
+        if ($newStatus === 'pending') {
+            $stmt = $pdo->prepare("
+                UPDATE subscriptions 
+                SET status = 'active', 
+                    user_status = 'order received',
+                    delivered_at = NULL, 
+                    updated_at = NOW() 
                 WHERE CAST(id as CHAR) = ? AND assigned_rider_id = ? AND status = 'delivered'
             ");
             $revertResult = $stmt->execute([$subscriptionId, $riderId]);
             
-            error_log("🔄 Subscription {$subscriptionId} status reverted to 'active' by rider {$riderId} - Result: " . ($revertResult ? "SUCCESS" : "FAILED"));
+            error_log("🔄 Subscription {$subscriptionId} status reverted to 'active' with 'order received' by rider {$riderId} - Result: " . ($revertResult ? "SUCCESS" : "FAILED"));
+        }
+        
+        // ✅ NEW: CREATE NOTIFICATIONS FOR STATUS UPDATES
+        try {
+            $notificationManager = new NotificationManager($pdo);
+            
+            // Get customer info for personalized notifications
+            $stmt = $pdo->prepare("
+                SELECT s.user_id, u.first_name, u.last_name
+                FROM subscriptions s
+                JOIN users u ON s.user_id = u.id
+                WHERE CAST(s.id as CHAR) = ?
+            ");
+            $stmt->execute([$subscriptionId]);
+            $customer = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($customer) {
+                $customer_name = $customer['first_name'];
+                $user_id = $customer['user_id'];
+                
+                // Create appropriate notification based on status
+                switch ($newStatus) {
+                    case 'delivering':
+                        $notificationManager->createSystemNotification(
+                            $user_id,
+                            'Order Out for Delivery! 🚚',
+                            "Great news, " . $customer_name . "! Your delicious Thai meal is now out for delivery and will arrive soon. Get ready to enjoy authentic flavors!",
+                            'high' // High priority for delivery notifications
+                        );
+                        error_log("🚚 'Out for Delivery' notification created for user: $user_id, subscription: $subscriptionId");
+                        break;
+                        
+                    case 'completed':
+                        $notificationManager->createSystemNotification(
+                            $user_id,
+                            'Order Delivered Successfully! ✅',
+                            "Enjoy your meal, " . $customer_name . "! Your Thai food order has been successfully delivered. Thank you for choosing Somdul Table!",
+                            'medium'
+                        );
+                        error_log("✅ 'Delivery Completed' notification created for user: $user_id, subscription: $subscriptionId");
+                        break;
+                        
+                    case 'in_progress':
+                        // Only notify if not already in kitchen status
+                        $stmt = $pdo->prepare("SELECT user_status FROM subscriptions WHERE CAST(id as CHAR) = ?");
+                        $stmt->execute([$subscriptionId]);
+                        $current_status = $stmt->fetchColumn();
+                        
+                        if ($current_status !== 'in the kitchen') {
+                            $notificationManager->createSystemNotification(
+                                $user_id,
+                                'Order Update: Preparation Started',
+                                "Hi " . $customer_name . "! Your order is now being prepared by our skilled chefs. Your fresh Thai meal will be ready for delivery soon!",
+                                'medium'
+                            );
+                            error_log("🍳 'In Progress' notification created for user: $user_id, subscription: $subscriptionId");
+                        }
+                        break;
+                }
+            }
+            
+        } catch (Exception $e) {
+            error_log("Failed to create notification for status update: " . $e->getMessage());
+            // Don't stop the delivery update process if notification fails
         }
         
         $pdo->commit();
         
-        $statusMessage = $newStatus === 'completed' ? 
-            'Delivery completed successfully! Subscription marked as delivered.' : 
-            'Delivery status updated successfully.';
+        $statusMessage = '';
+        switch ($newStatus) {
+            case 'completed':
+                $statusMessage = 'Delivery completed successfully! Subscription marked as delivered and customer notified.';
+                break;
+            case 'delivering':
+                $statusMessage = 'Order marked as "Out for Delivery"! Customer has been notified.';
+                break;
+            case 'in_progress':
+                $statusMessage = 'Delivery status updated to "In Progress".';
+                break;
+            default:
+                $statusMessage = 'Delivery status updated successfully.';
+        }
             
         return ['success' => true, 'message' => $statusMessage];
         
@@ -258,6 +366,7 @@ try {
             s.total_amount,
             s.preferred_delivery_time,
             s.status as subscription_status,
+            s.user_status as subscription_user_status,
             s.delivered_at,
             s.delivery_days,
             u.first_name, 
@@ -317,6 +426,7 @@ $stats = [
     'completed' => 0, 
     'pending' => 0, 
     'in_progress' => 0,
+    'delivering' => 0,
     'delivered' => 0,
     'total_items' => 0
 ];
@@ -336,6 +446,9 @@ foreach($deliveries as $delivery) {
                 break;
             case 'in_progress':
                 $stats['in_progress']++;
+                break;
+            case 'delivering':
+                $stats['delivering']++;
                 break;
             default:
                 $stats['pending']++;
@@ -368,7 +481,7 @@ $shopLocation = [ 'lat' => 33.888121, 'lng' => -117.868256, 'name' => 'Somdul Ta
             --cream: #ece8e1; --sage: #adb89d; --brown: #bd9379; --curry: #cf723a; --white: #ffffff;
             --text-dark: #2c3e50; --text-gray: #7f8c8d; --border-light: #e8e8e8;
             --shadow-soft: 0 4px 12px rgba(0,0,0,0.05); --radius-md: 12px; --transition: all 0.3s ease;
-            --success: #28a745; --warning: #ffc107; --danger: #dc3545; --info: #17a2b8; --delivered: #6f42c1;
+            --success: #28a745; --warning: #ffc107; --danger: #dc3545; --info: #17a2b8; --delivered: #6f42c1; --delivering: #fd7e14;
         }
         
         body { 
@@ -451,6 +564,7 @@ $shopLocation = [ 'lat' => 33.888121, 'lng' => -117.868256, 'name' => 'Somdul Ta
         }
         
         .stat-card.delivered { border-top-color: var(--delivered); }
+        .stat-card.delivering { border-top-color: var(--delivering); }
         
         .stat-value { 
             font-size: 2.5rem; 
@@ -460,6 +574,7 @@ $shopLocation = [ 'lat' => 33.888121, 'lng' => -117.868256, 'name' => 'Somdul Ta
         }
         
         .stat-card.delivered .stat-value { color: var(--delivered); }
+        .stat-card.delivering .stat-value { color: var(--delivering); }
         
         .stat-label { 
             font-size: 0.9rem; 
@@ -502,6 +617,11 @@ $shopLocation = [ 'lat' => 33.888121, 'lng' => -117.868256, 'name' => 'Somdul Ta
         .delivery-card[data-status="completed"] { 
             background-color: #f0fdf4; 
             border-left: 4px solid var(--success);
+        }
+        
+        .delivery-card[data-status="delivering"] { 
+            background-color: #fff3e0; 
+            border-left: 4px solid var(--delivering);
         }
         
         .delivery-card[data-status="in_progress"] { 
@@ -553,6 +673,7 @@ $shopLocation = [ 'lat' => 33.888121, 'lng' => -117.868256, 'name' => 'Somdul Ta
         }
         
         .status-completed { background: var(--success); color: white; }
+        .status-delivering { background: var(--delivering); color: white; }
         .status-in_progress { background: var(--warning); color: white; }
         .status-pending { background: var(--danger); color: white; }
         .status-delivered { background: var(--delivered); color: white; }
@@ -595,6 +716,11 @@ $shopLocation = [ 'lat' => 33.888121, 'lng' => -117.868256, 'name' => 'Somdul Ta
         
         .btn-complete {
             background: var(--success);
+            color: white;
+        }
+        
+        .btn-delivering {
+            background: var(--delivering);
             color: white;
         }
         
@@ -877,6 +1003,10 @@ $shopLocation = [ 'lat' => 33.888121, 'lng' => -117.868256, 'name' => 'Somdul Ta
                     <div class="stat-value"><?= $stats['completed'] ?></div>
                     <div class="stat-label">Completed</div>
                 </div>
+                <div class="stat-card delivering">
+                    <div class="stat-value"><?= $stats['delivering'] ?></div>
+                    <div class="stat-label">Out for Delivery</div>
+                </div>
                 <div class="stat-card">
                     <div class="stat-value"><?= $stats['in_progress'] ?></div>
                     <div class="stat-label">In Progress</div>
@@ -934,11 +1064,20 @@ $shopLocation = [ 'lat' => 33.888121, 'lng' => -117.868256, 'name' => 'Somdul Ta
                                                 <?php if ($delivery['status_updated_at']): ?>
                                                     <div><i class="fas fa-history"></i> Updated: <?= date('g:i A', strtotime($delivery['status_updated_at'])) ?></div>
                                                 <?php endif; ?>
+                                                <?php if ($delivery['subscription_user_status']): ?>
+                                                    <div><i class="fas fa-info-circle"></i> Order Status: <?= htmlspecialchars(ucfirst(str_replace('_', ' ', $delivery['subscription_user_status']))) ?></div>
+                                                <?php endif; ?>
                                             </div>
                                         </div>
                                         <div>
                                             <span class="status-badge <?= $isDelivered ? 'status-delivered' : $statusClass ?>">
-                                                <?= $isDelivered ? 'Delivered' : ucfirst(str_replace('_', ' ', $status)) ?>
+                                                <?php 
+                                                if ($isDelivered) {
+                                                    echo 'Delivered';
+                                                } else {
+                                                    echo ucfirst(str_replace('_', ' ', $status));
+                                                }
+                                                ?>
                                             </span>
                                         </div>
                                     </div>
@@ -946,26 +1085,26 @@ $shopLocation = [ 'lat' => 33.888121, 'lng' => -117.868256, 'name' => 'Somdul Ta
                                 
                                 <div class="delivery-actions">
                                     <?php if (!$isDelivered): ?>
-                                        <!-- 🔧 DEBUG: Show what subscription_id is being passed -->
-                                        <div style="background: #ffe6e6; padding: 0.5rem; margin-bottom: 0.5rem; border-radius: 4px; font-size: 0.8rem;">
-                                            <strong>🔍 ACTION DEBUG:</strong><br>
-                                            Passing subscription_id: <code><?= htmlspecialchars($delivery['subscription_id']) ?></code><br>
-                                            Length: <?= strlen($delivery['subscription_id']) ?><br>
-                                            Raw value: <code><?= var_export($delivery['subscription_id'], true) ?></code>
-                                        </div>
                                         
                                         <button class="action-btn btn-complete" 
                                                 onclick="updateDeliveryStatus('<?= htmlspecialchars($delivery['subscription_id']) ?>', 'completed')"
                                                 data-subscription-id="<?= htmlspecialchars($delivery['subscription_id']) ?>">
                                             <i class="fas fa-check-circle"></i> Mark Complete
                                         </button>
+                                        
+                                        <button class="action-btn btn-delivering" 
+                                                onclick="updateDeliveryStatus('<?= htmlspecialchars($delivery['subscription_id']) ?>', 'delivering')"
+                                                data-subscription-id="<?= htmlspecialchars($delivery['subscription_id']) ?>">
+                                            <i class="fas fa-truck"></i> Out for Delivery
+                                        </button>
+                                        
                                         <button class="action-btn btn-progress" 
                                                 onclick="updateDeliveryStatus('<?= htmlspecialchars($delivery['subscription_id']) ?>', 'in_progress')"
                                                 data-subscription-id="<?= htmlspecialchars($delivery['subscription_id']) ?>">
                                             <i class="fas fa-clock"></i> In Progress
                                         </button>
                                         
-                                        <?php if ($status === 'completed'): ?>
+                                        <?php if (in_array($status, ['completed', 'delivering', 'in_progress'])): ?>
                                             <button class="action-btn btn-pending" 
                                                     onclick="updateDeliveryStatus('<?= htmlspecialchars($delivery['subscription_id']) ?>', 'pending')"
                                                     data-subscription-id="<?= htmlspecialchars($delivery['subscription_id']) ?>">
@@ -1087,7 +1226,7 @@ $shopLocation = [ 'lat' => 33.888121, 'lng' => -117.868256, 'name' => 'Somdul Ta
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         // ======================================================================
-        // ENHANCED DELIVERY MANAGEMENT FUNCTIONS WITH DELIVERED STATUS
+        // ENHANCED DELIVERY MANAGEMENT FUNCTIONS WITH DELIVERED STATUS + OUT FOR DELIVERY
         // ======================================================================
         
         function showLoading() {
@@ -1102,15 +1241,20 @@ $shopLocation = [ 'lat' => 33.888121, 'lng' => -117.868256, 'name' => 'Somdul Ta
         function updateDeliveryStatus(subscriptionId, newStatus) {
             const statusText = newStatus.replace('_', ' ');
             let confirmText = `Mark this delivery as ${statusText}?`;
+            let icon = 'question';
             
             if (newStatus === 'completed') {
-                confirmText = 'Mark this delivery as completed? This will update the subscription status to "delivered".';
+                confirmText = 'Mark this delivery as completed? This will update the subscription status to "delivered" and notify the customer.';
+                icon = 'success';
+            } else if (newStatus === 'delivering') {
+                confirmText = 'Mark this order as "Out for Delivery"? The customer will be notified that their food is on the way.';
+                icon = 'info';
             }
             
             Swal.fire({
                 title: 'Update Delivery Status',
                 text: confirmText,
-                icon: 'question',
+                icon: icon,
                 showCancelButton: true,
                 confirmButtonColor: getStatusColor(newStatus),
                 cancelButtonColor: '#6c757d',
@@ -1157,12 +1301,18 @@ $shopLocation = [ 'lat' => 33.888121, 'lng' => -117.868256, 'name' => 'Somdul Ta
                 
                 if (data.success) {
                     let title = 'Status Updated!';
+                    let iconType = 'success';
+                    
                     if (status === 'completed') {
                         title = 'Delivery Completed! ✅';
+                        iconType = 'success';
+                    } else if (status === 'delivering') {
+                        title = 'Out for Delivery! 🚚';
+                        iconType = 'info';
                     }
                     
                     Swal.fire({
-                        icon: 'success',
+                        icon: iconType,
                         title: title,
                         text: data.message,
                         timer: 3000,
@@ -1193,6 +1343,7 @@ $shopLocation = [ 'lat' => 33.888121, 'lng' => -117.868256, 'name' => 'Somdul Ta
         function getStatusColor(status) {
             switch (status) {
                 case 'completed': return '#28a745';
+                case 'delivering': return '#fd7e14';
                 case 'in_progress': return '#ffc107';
                 case 'pending': return '#dc3545';
                 default: return '#17a2b8';
@@ -1432,7 +1583,7 @@ $shopLocation = [ 'lat' => 33.888121, 'lng' => -117.868256, 'name' => 'Somdul Ta
         
         document.addEventListener('DOMContentLoaded', function() {
             console.log('✅ Enhanced Rider Dashboard loaded successfully');
-            console.log('📱 Features: Status updates, Notes, Photo uploads, Delivered status tracking');
+            console.log('📱 Features: Status updates, Notes, Photo uploads, Delivered status tracking, OUT FOR DELIVERY notifications');
             
             // Auto-refresh page every 5 minutes to get latest assignments
             setInterval(() => {
@@ -1446,7 +1597,7 @@ $shopLocation = [ 'lat' => 33.888121, 'lng' => -117.868256, 'name' => 'Somdul Ta
             navigator.serviceWorker.register('../sw.js').then(() => {
                 console.log('📱 Service Worker registered for offline support');
             }).catch(err => {
-                console.log('⚠ Service Worker registration failed:', err);
+                console.log('⚠️ Service Worker registration failed:', err);
             });
         }
     </script>

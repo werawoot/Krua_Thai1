@@ -58,6 +58,7 @@ if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
 
 require_once '../config/database.php';
 require_once '../includes/functions.php';
+require_once '../NotificationManager.php';
 
 // Database connection with PDO
 try {
@@ -180,110 +181,144 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         switch ($action) {
             case 'confirm_all_orders':
                 $selected_date = $_POST['date'] ?? '';
-                
-                if (empty($selected_date)) {
-                    throw new Exception('Date is required');
-                }
-                
-                // Store previous states for undo functionality (from both tables)
-                $prev_states_query = "
-                    SELECT sm.id, 
-                           COALESCE(sm.user_status, 'order received') as user_status, 
-                           sm.subscription_id, s.user_id, 
-                           u.first_name, u.last_name,
-                           s.status as subscription_status,
-                           COALESCE(s.user_status, 'order received') as subscription_user_status
-                    FROM subscription_menus sm
-                    JOIN subscriptions s ON sm.subscription_id = s.id
-                    JOIN users u ON s.user_id = u.id
-                    WHERE sm.delivery_date = ?
-                    AND sm.status = 'scheduled'
-                    AND s.status = 'active'
-                ";
-                
-                $stmt = $pdo->prepare($prev_states_query);
-                $stmt->execute([$selected_date]);
-                $previous_states = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                
-                if (empty($previous_states)) {
-                    throw new Exception('No orders found for the selected date');
-                }
-                
-                // Store undo information in session
-                $_SESSION['undo_data'] = [
-                    'type' => 'confirm_all',
-                    'date' => $selected_date,
-                    'timestamp' => time(),
-                    'states' => $previous_states
-                ];
-                
-                // Start transaction for both table updates
-                $pdo->beginTransaction();
-                
-                try {
-                    // Update subscription_menus to "in the kitchen"
-                    $update_menus_query = "
-                        UPDATE subscription_menus sm
-                        JOIN subscriptions s ON sm.subscription_id = s.id
-                        SET sm.user_status = 'in the kitchen',
-                            sm.updated_at = CURRENT_TIMESTAMP
-                        WHERE sm.delivery_date = ?
-                        AND sm.status = 'scheduled'
-                        AND s.status = 'active'
-                        AND COALESCE(sm.user_status, 'order received') = 'order received'
-                    ";
                     
-                    $stmt = $pdo->prepare($update_menus_query);
-                    $stmt->execute([$selected_date]);
-                    $menu_count = $stmt->rowCount();
-                    
-                    // Get distinct subscription IDs that were affected
-                    $get_subscription_ids_query = "
-                        SELECT DISTINCT sm.subscription_id
-                        FROM subscription_menus sm
-                        JOIN subscriptions s ON sm.subscription_id = s.id
-                        WHERE sm.delivery_date = ?
-                        AND sm.status = 'scheduled'
-                        AND s.status = 'active'
-                        AND sm.user_status = 'in the kitchen'
-                    ";
-                    
-                    $stmt = $pdo->prepare($get_subscription_ids_query);
-                    $stmt->execute([$selected_date]);
-                    $subscription_ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
-                    
-                    $subscription_count = 0;
-                    
-                    // Update each affected subscription
-                    if (!empty($subscription_ids)) {
-                        $update_subscriptions_query = "
-                            UPDATE subscriptions
-                            SET user_status = 'in the kitchen',
-                                updated_at = CURRENT_TIMESTAMP
-                            WHERE id = ?
-                            AND COALESCE(user_status, 'order received') = 'order received'
-                        ";
-                        
-                        $stmt = $pdo->prepare($update_subscriptions_query);
-                        foreach ($subscription_ids as $subscription_id) {
-                            $stmt->execute([$subscription_id]);
-                            $subscription_count += $stmt->rowCount();
-                        }
+                    if (empty($selected_date)) {
+                        throw new Exception('Date is required');
                     }
                     
-                    // Commit transaction
-                    $pdo->commit();
+                    // Store previous states for undo functionality (from both tables)
+                    $prev_states_query = "
+                        SELECT sm.id, 
+                            COALESCE(sm.user_status, 'order received') as user_status, 
+                            sm.subscription_id, s.user_id, 
+                            u.first_name, u.last_name,
+                            s.status as subscription_status,
+                            COALESCE(s.user_status, 'order received') as subscription_user_status
+                        FROM subscription_menus sm
+                        JOIN subscriptions s ON sm.subscription_id = s.id
+                        JOIN users u ON s.user_id = u.id
+                        WHERE sm.delivery_date = ?
+                        AND sm.status = 'scheduled'
+                        AND s.status = 'active'
+                    ";
                     
-                    $response['success'] = true;
-                    $response['message'] = "Successfully confirmed {$menu_count} menu items and {$subscription_count} subscriptions to 'In the Kitchen' status";
-                    $response['count'] = $menu_count + $subscription_count;
+                    $stmt = $pdo->prepare($prev_states_query);
+                    $stmt->execute([$selected_date]);
+                    $previous_states = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     
-                } catch (Exception $e) {
-                    // Rollback transaction on error
-                    $pdo->rollback();
-                    throw $e;
-                }
-                break;
+                    if (empty($previous_states)) {
+                        throw new Exception('No orders found for the selected date');
+                    }
+                    
+                    // Store undo information in session
+                    $_SESSION['undo_data'] = [
+                        'type' => 'confirm_all',
+                        'date' => $selected_date,
+                        'timestamp' => time(),
+                        'states' => $previous_states
+                    ];
+                    
+                    // Start transaction for both table updates
+                    $pdo->beginTransaction();
+                    
+                    try {
+                        // Update subscription_menus to "in the kitchen"
+                        $update_menus_query = "
+                            UPDATE subscription_menus sm
+                            JOIN subscriptions s ON sm.subscription_id = s.id
+                            SET sm.user_status = 'in the kitchen',
+                                sm.updated_at = CURRENT_TIMESTAMP
+                            WHERE sm.delivery_date = ?
+                            AND sm.status = 'scheduled'
+                            AND s.status = 'active'
+                            AND COALESCE(sm.user_status, 'order received') = 'order received'
+                        ";
+                        
+                        $stmt = $pdo->prepare($update_menus_query);
+                        $stmt->execute([$selected_date]);
+                        $menu_count = $stmt->rowCount();
+                        
+                        // Get distinct subscription IDs that were affected
+                        $get_subscription_ids_query = "
+                            SELECT DISTINCT sm.subscription_id
+                            FROM subscription_menus sm
+                            JOIN subscriptions s ON sm.subscription_id = s.id
+                            WHERE sm.delivery_date = ?
+                            AND sm.status = 'scheduled'
+                            AND s.status = 'active'
+                            AND sm.user_status = 'in the kitchen'
+                        ";
+                        
+                        $stmt = $pdo->prepare($get_subscription_ids_query);
+                        $stmt->execute([$selected_date]);
+                        $subscription_ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
+                        
+                        $subscription_count = 0;
+                        
+                        // Update each affected subscription
+                        if (!empty($subscription_ids)) {
+                            $update_subscriptions_query = "
+                                UPDATE subscriptions
+                                SET user_status = 'in the kitchen',
+                                    updated_at = CURRENT_TIMESTAMP
+                                WHERE id = ?
+                                AND COALESCE(user_status, 'order received') = 'order received'
+                            ";
+                            
+                            $stmt = $pdo->prepare($update_subscriptions_query);
+                            foreach ($subscription_ids as $subscription_id) {
+                                $stmt->execute([$subscription_id]);
+                                $subscription_count += $stmt->rowCount();
+                            }
+                        }
+                        
+                        // Commit transaction
+                        $pdo->commit();
+                        
+                        // CREATE "IN THE KITCHEN" NOTIFICATIONS
+                        try {
+                            $notificationManager = new NotificationManager($pdo);
+                            $delivery_date_formatted = date('l, F j, Y', strtotime($selected_date));
+                            
+                            // Create notifications for each affected user
+                            $affected_users = array_unique(array_column($previous_states, 'user_id'));
+                            
+                            foreach ($affected_users as $user_id) {
+                                // Get user's name for personalized message
+                                $user_name = '';
+                                foreach ($previous_states as $state) {
+                                    if ($state['user_id'] == $user_id) {
+                                        $user_name = $state['first_name'];
+                                        break;
+                                    }
+                                }
+                                
+                                $notificationManager->createSystemNotification(
+                                    $user_id,
+                                    'Order Update: In the Kitchen',
+                                    "Great news, " . $user_name . "! Your order for " . $delivery_date_formatted . 
+                                    " is now being prepared by our chefs. Your delicious Thai meals will be ready for delivery soon!",
+                                    'medium'
+                                );
+                            }
+                            
+                            error_log("Kitchen notifications created for " . count($affected_users) . " users for date: $selected_date");
+                            
+                        } catch (Exception $e) {
+                            error_log("Failed to create kitchen notifications: " . $e->getMessage());
+                            // Don't stop the order process if notification fails
+                        }
+                        
+                        $response['success'] = true;
+                        $response['message'] = "Successfully confirmed {$menu_count} menu items and {$subscription_count} subscriptions to 'In the Kitchen' status";
+                        $response['count'] = $menu_count + $subscription_count;
+                        
+                    } catch (Exception $e) {
+                        // Rollback transaction on error
+                        $pdo->rollback();
+                        throw $e;
+                    }
+                    break;
                 
             case 'cancel_order':
                 $subscription_id = $_POST['subscription_id'] ?? '';
@@ -297,14 +332,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 // Get current state for undo (from both tables)
                 $current_state_query = "
                     SELECT sm.id, 
-                           COALESCE(sm.user_status, 'order received') as user_status, 
-                           sm.subscription_id, s.user_id,
-                           u.first_name, u.last_name,
-                           s.status as subscription_status,
-                           COALESCE(s.user_status, 'order received') as subscription_user_status,
-                           s.cancellation_reason as subscription_cancellation_reason,
-                           s.cancelled_at as subscription_cancelled_at,
-                           s.cancelled_by as subscription_cancelled_by
+                        COALESCE(sm.user_status, 'order received') as user_status, 
+                        sm.subscription_id, s.user_id,
+                        u.first_name, u.last_name,
+                        s.status as subscription_status,
+                        COALESCE(s.user_status, 'order received') as subscription_user_status,
+                        s.cancellation_reason as subscription_cancellation_reason,
+                        s.cancelled_at as subscription_cancelled_at,
+                        s.cancelled_by as subscription_cancelled_by
                     FROM subscription_menus sm
                     JOIN subscriptions s ON sm.subscription_id = s.id
                     JOIN users u ON s.user_id = u.id
@@ -366,6 +401,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     
                     // Commit transaction
                     $pdo->commit();
+                    
+                    // CREATE CANCELLATION NOTIFICATION
+                    try {
+                        $notificationManager = new NotificationManager($pdo);
+                        $user_id = $current_state[0]['user_id'];
+                        $user_name = $current_state[0]['first_name'];
+                        $delivery_date_formatted = date('l, F j, Y', strtotime($delivery_date));
+                        
+                        $notificationManager->createSystemNotification(
+                            $user_id,
+                            'Order Cancelled',
+                            "We're sorry to inform you that your order for " . $delivery_date_formatted . 
+                            " has been cancelled. Reason: " . $cancel_reason . 
+                            ". Please contact us if you have any questions or would like to place a new order.",
+                            'high' // High priority for cancellations
+                        );
+                        
+                        error_log("Cancellation notification created for user: $user_id, subscription: $subscription_id");
+                        
+                    } catch (Exception $e) {
+                        error_log("Failed to create cancellation notification: " . $e->getMessage());
+                        // Don't stop the cancellation process if notification fails
+                    }
                     
                     $response['success'] = true;
                     $response['message'] = "Successfully cancelled order and subscription for {$current_state[0]['first_name']} {$current_state[0]['last_name']} (Updated {$menu_count} menu items and {$subscription_count} subscription)";

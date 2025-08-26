@@ -257,9 +257,9 @@ class NotificationManager {
      */
     public function createOrderNotification($userId, $subscriptionId, $status, $orderDetails = []) {
         $messages = [
-            'confirmed' => 'Your order has been confirmed and is being prepared.',
+            'confirmed' => 'Your order has been confirmed.',
             'preparing' => 'Our chefs are preparing your delicious Thai meals.',
-            'out_for_delivery' => 'Your order is out for delivery and will arrive soon.',
+            'out_for_delivery' => 'Your order is out for delivery.',
             'delivered' => 'Your order has been delivered. Enjoy your meal!',
             'cancelled' => 'Your order has been cancelled. If you have questions, please contact support.',
         ];

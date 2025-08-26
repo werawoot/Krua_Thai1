@@ -117,6 +117,7 @@ class DatabaseConnection {
         if (self::$connection === null) {
             try {
                 require_once 'config/database.php';
+                require_once 'NotificationManager.php';
                 self::$connection = (new Database())->getConnection();
             } catch (Exception $e) {
                 // Fallback connections
@@ -542,6 +543,34 @@ try {
                 
                 if ($result['success']) {
                     $success = true;
+                    
+                    // CREATE ORDER NOTIFICATION
+                    try {
+                        $notificationManager = new NotificationManager($db);
+                        
+                        // Prepare order details for notification
+                        $orderDetails = [
+                            'plan_name' => CheckoutUtils::getPlanName($plan),
+                            'total_amount' => CheckoutUtils::formatPrice($plan['final_price']),
+                            'delivery_date' => $postData['delivery_day'],
+                            'transaction_id' => $result['transaction_id']
+                        ];
+                        
+                        // Create order notification
+                        $notificationManager->createOrderNotification(
+                            $user_id,                    // User ID (UUID)
+                            $result['subscription_id'],  // Subscription ID
+                            'confirmed',                 // Status
+                            $orderDetails               // Additional order data
+                        );
+                        
+                        error_log("Order notification created for user: $user_id, subscription: {$result['subscription_id']}");
+                        
+                    } catch (Exception $e) {
+                        error_log("Failed to create order notification: " . $e->getMessage());
+                        // Don't stop the order process if notification fails
+                    }
+                    
                     unset($_SESSION['checkout_data']);
                     $_SESSION['flash_message'] = "Order placed successfully! Thank you for choosing Somdul Table";
                     $_SESSION['flash_type'] = 'success';
