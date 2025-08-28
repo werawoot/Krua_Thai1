@@ -3,7 +3,7 @@
  * Somdul Table - Subscription Status Page
  * File: subscription-status.php
  * Description: Track order status and manage subscriptions
- * UPDATED: Added "delivered" status and photo viewing functionality
+ * UPDATED: Removed duplicate status column, keeping only user status
  */
 
 session_start();
@@ -11,6 +11,7 @@ error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
 require_once 'config/database.php';
+require_once 'NotificationManager.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
@@ -305,10 +306,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['id'
         'cancel' => 'cancelled',
         'renew' => 'active'
     ];
+    
     if (isset($status_map[$action])) {
         $new_status = $status_map[$action];
+        
+        // Get subscription details before updating for notification
+        $subscriptionDetails = null;
+        if ($action === 'cancel') {
+            $stmt = $pdo->prepare("
+                SELECT s.*, sp.name AS plan_name, sp.meals_per_week 
+                FROM subscriptions s 
+                JOIN subscription_plans sp ON s.plan_id = sp.id
+                WHERE s.id = ? AND s.user_id = ?
+            ");
+            $stmt->execute([$id, $user_id]);
+            $subscriptionDetails = $stmt->fetch(PDO::FETCH_ASSOC);
+        }
+        
+        // Update subscription status
         $stmt = $pdo->prepare("UPDATE subscriptions SET status = ?, updated_at = NOW() WHERE id = ? AND user_id = ?");
-        $stmt->execute([$new_status, $id, $user_id]);
+        $result = $stmt->execute([$new_status, $id, $user_id]);
+        
+        // CREATE CANCELLATION NOTIFICATION
+        if ($result && $action === 'cancel' && $subscriptionDetails) {
+            try {
+                $notificationManager = new NotificationManager($pdo);
+                
+                // Create system notification for cancellation
+                $notificationManager->createSystemNotification(
+                    $user_id,
+                    'Order Cancelled',
+                    "Your order for '{$subscriptionDetails['plan_name']}' has been cancelled successfully. " .
+                    "",
+                    'medium' // Medium priority for cancellations
+                );
+                
+                error_log("Cancellation notification created for user: $user_id, subscription: $id");
+                
+            } catch (Exception $e) {
+                error_log("Failed to create cancellation notification: " . $e->getMessage());
+                // Don't stop the cancellation process if notification fails
+            }
+        }
+        
         header("Location: subscription-status.php");
         exit();
     }
@@ -546,24 +586,6 @@ include 'header.php';
     }
 
     /* Status Badges */
-    .order-status-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-weight: 600;
-        font-family: 'BaticaSans', sans-serif;
-        border-radius: 20px;
-        padding: 0.5rem 1rem;
-        font-size: 0.85rem;
-        white-space: nowrap;
-        transition: var(--transition);
-    }
-
-    .order-status-badge:hover {
-        transform: scale(1.05);
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-
     .status {
         font-weight: 600;
         font-family: 'BaticaSans', sans-serif;
@@ -613,6 +635,25 @@ include 'header.php';
         background: linear-gradient(135deg, rgba(111, 66, 193, 0.1), rgba(111, 66, 193, 0.05));
         color: #6f42c1;
         border: 1px solid #6f42c1;
+    }
+
+    /* Additional user_status values that might exist */
+    .status.completed {
+        background: linear-gradient(135deg, rgba(39, 174, 96, 0.1), rgba(39, 174, 96, 0.05));
+        color: #27ae60;
+        border: 1px solid #27ae60;
+    }
+
+    .status.processing {
+        background: linear-gradient(135deg, rgba(52, 152, 219, 0.1), rgba(52, 152, 219, 0.05));
+        color: #3498db;
+        border: 1px solid #3498db;
+    }
+
+    .status.on_hold {
+        background: linear-gradient(135deg, rgba(243, 156, 18, 0.1), rgba(243, 156, 18, 0.05));
+        color: #f39c12;
+        border: 1px solid #f39c12;
     }
 
     /* Action Buttons */
@@ -1564,7 +1605,6 @@ include 'header.php';
                                     <th><i class="fas fa-box"></i> Plan</th>
                                     <th><i class="fas fa-utensils"></i> Meals</th>
                                     <th><i class="fas fa-money-bill"></i> Price</th>
-                                    <th><i class="fas fa-truck"></i> Order Status</th>
                                     <th><i class="fas fa-info-circle"></i> Status</th>
                                     <th><i class="fas fa-calendar-alt"></i> Delivery Date</th>
                                     <th><i class="fas fa-cogs"></i> Manage</th>
@@ -1584,29 +1624,9 @@ include 'header.php';
                                         </span>
                                     </td>
                                     <td>
-                                        <div class="order-status-badge" style="
-                                            display: inline-flex; 
-                                            align-items: center; 
-                                            gap: 0.5rem;
-                                            background: <?= $sub['status_display']['color'] ?>15;
-                                            color: <?= $sub['status_display']['color'] ?>;
-                                            padding: 0.5rem 1rem;
-                                            border-radius: 20px;
-                                            border: 1px solid <?= $sub['status_display']['color'] ?>;
-                                            font-size: 0.85rem;
-                                            font-weight: 600;
-                                        ">
-                                            <span><?= $sub['status_display']['icon'] ?></span>
-                                            <span><?= $sub['status_display']['label'] ?></span>
-                                        </div>
-                                        <small style="display: block; margin-top: 0.3rem; color: var(--text-gray);">
-                                            <?= $sub['status_display']['description'] ?>
-                                        </small>
-                                    </td>
-                                    <td>
-                                        <span class="status <?= $sub['status'] ?>"><?= getStatusText($sub['status']) ?></span>
+                                        <span class="status <?= $sub['user_status'] ?>"><?= getStatusText($sub['user_status']) ?></span>
                                         
-                                        <!-- ✅ NEW: Show delivered timestamp if available -->
+                                        <!-- ✅ Show delivered timestamp if available - still checks status for actual delivery -->
                                         <?php if ($sub['status'] === 'delivered' && $sub['delivered_at']): ?>
                                             <small style="display: block; margin-top: 0.3rem; color: var(--text-gray);">
                                                 <i class="fas fa-check-circle"></i> 
@@ -1622,14 +1642,14 @@ include 'header.php';
                                                 <i class="fas fa-eye"></i> View Details
                                             </button>
 
-                                            <!-- ✅ NEW: View Photo button for delivered orders -->
+                                            <!-- ✅ View Photo button for delivered orders - checks status = 'delivered' -->
                                             <?php if ($sub['status'] === 'delivered' && isset($sub['delivery_photo']) && $sub['delivery_photo']): ?>
                                                 <button onclick="viewDeliveryPhoto('<?= htmlspecialchars($sub['delivery_photo']['photo_path']) ?>', '<?= htmlspecialchars($sub['plan_name']) ?>', '<?= htmlspecialchars($sub['delivery_photo']['notes'] ?? '') ?>', '<?= $sub['delivery_photo']['updated_at'] ?>')" class="btn-action btn-view-photo">
                                                     <i class="fas fa-camera"></i> View Photo
                                                 </button>
                                             <?php endif; ?>
 
-                                            <?php if (($sub['status'] === 'active' || $sub['status'] === 'completed' || $sub['status'] === 'delivered') && !$sub['has_review']): ?>
+                                            <?php if (($sub['user_status'] === 'active' || $sub['user_status'] === 'completed' || $sub['status'] === 'delivered') && !$sub['has_review']): ?>
                                             <button onclick="openReviewModal('<?= htmlspecialchars($sub['id']) ?>', '<?= htmlspecialchars($sub['plan_name']) ?>')" class="btn-action btn-review">
                                                 <i class="fas fa-star"></i> Review
                                             </button>
@@ -1647,7 +1667,7 @@ include 'header.php';
                                             <!-- Management Buttons -->
                                             <form method="post" style="display: contents;">
                                                 <input type="hidden" name="id" value="<?= htmlspecialchars($sub['id']) ?>">
-                                                <?php if ($sub['status'] === 'active'): ?>
+                                                <?php if ($sub['user_status'] === 'active'): ?>
                                                     <?php
                                                     // Check if subscription can be cancelled
                                                     $canCancelSubscription = true;
@@ -1742,7 +1762,7 @@ include 'header.php';
         </div>
     </div>
 
-    <!-- ✅ NEW: Modal for Delivery Photo Viewing -->
+    <!-- ✅ Modal for Delivery Photo Viewing -->
     <div id="photoModal" class="modal">
         <div class="modal-content photo-modal-content">
             <div class="modal-header">
@@ -1967,7 +1987,7 @@ include 'header.php';
                     closeModal('detailsModal');
                     closeModal('complaintModal');
                     closeModal('reviewModal');
-                    closeModal('photoModal'); // ✅ NEW: Added photo modal
+                    closeModal('photoModal');
                 }
             });
 
@@ -1982,16 +2002,13 @@ include 'header.php';
                     row.style.transform = 'translateY(0)';
                 }, index * 100);
             });
-            
-            // The mobile menu and promo banner functions are already available from header.php
-            // You can use: toggleMobileMenu(), closeMobileMenu(), closePromoBanner()
         });
 
         // Subscription data for modal
         const subscriptionData = <?= json_encode($subs) ?>;
         const menuData = <?= json_encode($subscription_menus) ?>;
 
-        // ✅ NEW: Function to view delivery photo
+        // ✅ Function to view delivery photo
         function viewDeliveryPhoto(photoPath, planName, notes, timestamp) {
             const photoModal = document.getElementById('photoModal');
             const photoImg = document.getElementById('deliveryPhotoImg');
@@ -2099,7 +2116,7 @@ include 'header.php';
                 'cancelled': '#e74c3c',
                 'expired': '#636e72',
                 'pending_payment': '#3498db',
-                'delivered': '#6f42c1' // ✅ NEW: Added delivered status color
+                'delivered': '#6f42c1'
             };
 
             // Group menus by day
@@ -2208,8 +2225,8 @@ include 'header.php';
                         <div class="detail-item">
                             <div class="detail-label">Current Status</div>
                             <div class="detail-value">
-                                <span style="color: ${statusColors[subscription.status] || '#636e72'}; font-weight: 700;">
-                                    ${getStatusText(subscription.status)}
+                                <span style="color: ${statusColors[subscription.user_status] || statusColors[subscription.status] || '#636e72'}; font-weight: 700;">
+                                    ${getStatusText(subscription.user_status)}
                                 </span>
                             </div>
                         </div>
@@ -2330,7 +2347,7 @@ include 'header.php';
                 'cancelled': 'Cancelled',
                 'expired': 'Expired',
                 'pending_payment': 'Pending Payment',
-                'delivered': 'Delivered' // ✅ NEW: Added delivered status
+                'delivered': 'Delivered'
             };
             return statusMap[status] || status;
         }

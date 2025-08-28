@@ -3,7 +3,7 @@
  * Dashboard with Error Handling - Updated with Somdul Table Theme
  * File: dashboard.php
  * UPDATED: Now uses header.php for consistent navigation and styling
- * UPDATED: Added logout button to dashboard header
+ * UPDATED: Removed duplicate notification functions - uses header.php system
  */
 
 error_reporting(E_ALL);
@@ -30,7 +30,6 @@ $user = null;
 $subscriptions = [];
 $recent_orders = [];
 $nutrition_data = [];
-$notifications = [];
 $upcoming_delivery = null;
 
 // Initialize stats with defaults
@@ -123,25 +122,6 @@ if (empty($db_errors)) {
         } catch (Exception $e) {
             $db_errors[] = "Orders query error: " . $e->getMessage();
         }
-    }
-
-    // 4. Get notifications count (simplified)
-    $notification_count = 0;
-    try {
-        $notif_query = "SELECT COUNT(*) as count FROM notifications WHERE user_id = ?";
-        $stmt = mysqli_prepare($connection, $notif_query);
-        
-        if ($stmt !== false) {
-            mysqli_stmt_bind_param($stmt, "s", $user_id);
-            if (mysqli_stmt_execute($stmt)) {
-                $result = mysqli_stmt_get_result($stmt);
-                $notif_result = mysqli_fetch_assoc($result);
-                $notification_count = (int)($notif_result['count'] ?? 0);
-            }
-            mysqli_stmt_close($stmt);
-        }
-    } catch (Exception $e) {
-        // Notifications table may not exist, ignore error
     }
 
     // Update last login (if user found)
@@ -521,84 +501,6 @@ $page_title = "Dashboard";
             font-family: 'BaticaSans', sans-serif;
         }
 
-        /* Notification Bell - Dashboard specific */
-        .notification-dropdown {
-            position: relative;
-            display: inline-block;
-        }
-
-        .notification-bell {
-            position: relative;
-            background: var(--brown); /* LEVEL 1: Brown */
-            color: var(--white); /* LEVEL 1: White */
-            border: none;
-            border-radius: 50%;
-            width: 44px;
-            height: 44px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-            transition: all 0.3s ease;
-            box-shadow: var(--shadow-soft);
-        }
-
-        .notification-bell:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-medium);
-            background: #a8855f; /* Darker brown */
-        }
-
-        .notification-badge {
-            position: absolute;
-            top: -5px;
-            right: -5px;
-            background: var(--curry); /* LEVEL 4: Curry */
-            color: var(--white); /* LEVEL 1: White */
-            border-radius: 50%;
-            min-width: 20px;
-            height: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            font-weight: 600;
-            border: 2px solid var(--white); /* LEVEL 1: White */
-        }
-
-        .notification-dropdown-panel {
-            position: absolute;
-            top: 100%;
-            right: 0;
-            width: 380px;
-            max-height: 500px;
-            background: var(--white); /* LEVEL 1: White */
-            border-radius: 12px;
-            box-shadow: var(--shadow-medium);
-            border: 1px solid var(--border-light);
-            z-index: 1000;
-            display: none;
-            overflow: hidden;
-            margin-top: 8px;
-        }
-
-        .notification-dropdown-panel.show {
-            display: block;
-            animation: dropdownFadeIn 0.3s ease-out;
-        }
-
-        @keyframes dropdownFadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
         /* User welcome text */
         .user-welcome {
             color: var(--text-gray);
@@ -704,14 +606,14 @@ $page_title = "Dashboard";
 
 <!-- IMPORTANT: Add has-header class for proper spacing -->
 <body class="has-header">
-    <!-- The header (promo banner + navbar) is already included from header.php -->
+    <!-- The header (promo banner + navbar + notifications) is already included from header.php -->
     
     <div class="dashboard">
         <div class="container">
             <!-- Show errors if any (for debugging) -->
             <?php if (!empty($db_errors)): ?>
             <div class="error-list">
-                <h4>🚨 Database Issues Detected:</h4>
+                <h4>Database Issues Detected:</h4>
                 <ul>
                     <?php foreach ($db_errors as $error): ?>
                         <li><?php echo htmlspecialchars($error); ?></li>
@@ -757,7 +659,12 @@ $page_title = "Dashboard";
                         <div class="stat-label">Nutrition Goals</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-number"><?php echo $notification_count ?? 0; ?></div>
+                        <div class="stat-number">
+                            <?php 
+                            // Get notification count from header.php data if available
+                            echo isset($notificationData) ? $notificationData['unreadCount'] : 0; 
+                            ?>
+                        </div>
                         <div class="stat-label">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: inline-block; margin-right: 6px; color: var(--text-gray);">
                                 <path d="M18 8C18 6.4087 17.3679 4.88258 16.2426 3.75736C15.1174 2.63214 13.5913 2 12 2C10.4087 2 8.88258 2.63214 7.75736 3.75736C6.63214 4.88258 6 6.4087 6 8C6 15 3 17 3 17H21C21 17 18 15 18 8Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -898,6 +805,9 @@ $page_title = "Dashboard";
     </div>
 
     <script>
+        // DASHBOARD-SPECIFIC JAVASCRIPT ONLY
+        // All notification and mobile menu functions come from header.php
+        
         console.log('Somdul Table Dashboard loaded successfully!');
         console.log('Database errors:', <?php echo json_encode($db_errors); ?>);
         
@@ -921,258 +831,13 @@ $page_title = "Dashboard";
         }, 5000);
         <?php endif; ?>
 
-        // Facebook-Style Notification System
-        let notificationDropdownOpen = false;
-        let unreadCount = 0;
-
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            updateNotificationCount();
-            startNotificationPolling();
-        });
-
-        // Toggle notification dropdown
-        function toggleNotificationDropdown() {
-            if (notificationDropdownOpen) {
-                closeNotificationDropdown();
-            } else {
-                openNotificationDropdown();
-            }
-        }
-
-        // Open notification dropdown
-        async function openNotificationDropdown() {
-            notificationDropdownOpen = true;
-            const panel = document.getElementById('notificationPanel');
-            panel.innerHTML = `
-                <div class="dropdown-header" style="padding: 1rem; border-bottom: 1px solid #e1e8ed; background: #f8f9fa;">
-                    <h4 style="margin: 0; font-size: 1.1rem; color: var(--text-dark);">Notifications</h4>
-                    <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-                        <button class="btn btn-sm btn-secondary" onclick="openNotificationsPage()" style="font-size: 0.8rem; padding: 0.3rem 0.6rem;">View All</button>
-                        <button class="btn btn-sm btn-success" onclick="markAllDropdownRead()" style="font-size: 0.8rem; padding: 0.3rem 0.6rem;">Mark All Read</button>
-                    </div>
-                </div>
-                <div class="dropdown-content" style="max-height: 400px; overflow-y: auto;">
-                    <div style="padding: 1rem; text-align: center; color: var(--text-gray);">
-                        <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">⏳</div>
-                        Loading notifications...
-                    </div>
-                </div>
-            `;
-            panel.classList.add('show');
-            
-            // Load notifications
-            await loadDropdownNotifications();
-        }
-
-        // Close notification dropdown
-        function closeNotificationDropdown() {
-            notificationDropdownOpen = false;
-            const panel = document.getElementById('notificationPanel');
-            panel.classList.remove('show');
-        }
-
-        // Load notifications for dropdown
-        async function loadDropdownNotifications() {
-            try {
-                const response = await fetch('notifications.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: 'action=get_notifications&limit=5&filter=all'
-                });
-
-                const data = await response.json();
-                
-                if (data.success) {
-                    displayDropdownNotifications(data.notifications || []);
-                } else {
-                    document.querySelector('.dropdown-content').innerHTML = `
-                        <div style="padding: 2rem; text-align: center; color: var(--text-gray);">
-                            <div style="font-size: 2rem; margin-bottom: 0.5rem;">⚠️</div>
-                            <p>Unable to load notifications</p>
-                        </div>
-                    `;
-                }
-            } catch (error) {
-                console.error('Error loading notifications:', error);
-                document.querySelector('.dropdown-content').innerHTML = `
-                    <div style="padding: 2rem; text-align: center; color: var(--text-gray);">
-                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">🔌</div>
-                        <p>Connection problem</p>
-                    </div>
-                `;
-            }
-        }
-
-        // Display notifications in dropdown
-        function displayDropdownNotifications(notifications) {
-            const content = document.querySelector('.dropdown-content');
-            
-            if (!notifications || notifications.length === 0) {
-                content.innerHTML = `
-                    <div style="padding: 2rem; text-align: center; color: var(--text-gray);">
-                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">🔔</div>
-                        <p>No new notifications</p>
-                        <small>You're all caught up!</small>
-                    </div>
-                `;
-                return;
-            }
-
-            const notificationsHTML = notifications.map(notification => {
-                const isUnread = !notification.read_at;
-                const icon = getNotificationIcon(notification.type);
-                const timeAgo = formatTimeAgo(notification.created_at);
-                
-                return `
-                    <div class="dropdown-notification-item" style="
-                        padding: 0.75rem 1rem; 
-                        border-bottom: 1px solid #f0f0f0; 
-                        cursor: pointer;
-                        ${isUnread ? 'background: linear-gradient(90deg, rgba(207, 114, 58, 0.05) 0%, transparent 100%); border-left: 3px solid var(--curry);' : ''}
-                        transition: background 0.3s ease;
-                    " onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background='${isUnread ? 'linear-gradient(90deg, rgba(207, 114, 58, 0.05) 0%, transparent 100%)' : 'transparent'}'" onclick="handleDropdownNotificationClick('${notification.id}', ${isUnread})">
-                        <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
-                            <div style="font-size: 1.2rem; margin-top: 0.25rem;">${icon}</div>
-                            <div style="flex: 1; min-width: 0;">
-                                <div style="font-weight: ${isUnread ? '600' : '500'}; font-size: 0.9rem; color: var(--text-dark); margin-bottom: 0.25rem; line-height: 1.3;">
-                                    ${notification.title}
-                                </div>
-                                <div style="font-size: 0.8rem; color: var(--text-gray); line-height: 1.3; margin-bottom: 0.5rem;">
-                                    ${notification.message.length > 80 ? notification.message.substring(0, 80) + '...' : notification.message}
-                                </div>
-                                <div style="font-size: 0.75rem; color: var(--text-gray);">
-                                    ${timeAgo} ${isUnread ? '• <span style="color: var(--curry); font-weight: 600;">NEW</span>' : ''}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-
-            content.innerHTML = notificationsHTML;
-        }
-
-        // Handle notification click in dropdown
-        function handleDropdownNotificationClick(notificationId, isUnread) {
-            if (isUnread) {
-                markNotificationAsRead(notificationId);
-            }
-            // Optionally close dropdown and navigate
-            closeNotificationDropdown();
-        }
-
-        // Get notification icon
-        function getNotificationIcon(type) {
-            const icons = {
-                order_update: '📦',
-                delivery: '🚚',
-                payment: '💳',
-                promotion: '🎉',
-                system: '⚙️',
-                review_reminder: '⭐'
-            };
-            return icons[type] || '📢';
-        }
-
-        // Format time ago
-        function formatTimeAgo(dateString) {
-            const date = new Date(dateString);
-            const now = new Date();
-            const diffInSeconds = Math.floor((now - date) / 1000);
-
-            if (diffInSeconds < 60) return 'Just now';
-            if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-            if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-            return date.toLocaleDateString();
-        }
-
-        // Update notification count
-        async function updateNotificationCount() {
-            try {
-                const response = await fetch('notifications.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: 'action=get_unread_count'
-                });
-
-                const data = await response.json();
-                
-                if (data.success) {
-                    unreadCount = data.count;
-                    const badge = document.getElementById('notificationCount');
-                    badge.textContent = unreadCount;
-                    badge.style.display = unreadCount > 0 ? 'flex' : 'none';
-                }
-            } catch (error) {
-                console.error('Error updating notification count:', error);
-            }
-        }
-
-        // Mark notification as read
-        async function markNotificationAsRead(notificationId) {
-            try {
-                const response = await fetch('notifications.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: `action=mark_as_read&notification_id=${notificationId}`
-                });
-
-                const data = await response.json();
-                
-                if (data.success) {
-                    updateNotificationCount();
-                }
-            } catch (error) {
-                console.error('Error marking notification as read:', error);
-            }
-        }
-
-        // Mark all notifications as read (dropdown)
-        async function markAllDropdownRead() {
-            try {
-                const response = await fetch('notifications.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: 'action=mark_all_read'
-                });
-
-                const data = await response.json();
-                
-                if (data.success) {
-                    updateNotificationCount();
-                    loadDropdownNotifications(); // Refresh dropdown
-                }
-            } catch (error) {
-                console.error('Error marking all as read:', error);
-            }
-        }
-
-        // Open full notifications page
-        function openNotificationsPage() {
-            window.location.href = 'notifications.php';
-        }
-
-        // Start polling for new notifications
-        function startNotificationPolling() {
-            setInterval(updateNotificationCount, 30000); // Every 30 seconds
-        }
-
-        // Close dropdown when clicking outside
-        document.addEventListener('click', function(event) {
-            const dropdown = document.querySelector('.notification-dropdown');
-            if (!dropdown.contains(event.target)) {
-                closeNotificationDropdown();
-            }
-        });
+        // The following functions are available from header.php:
+        // - toggleMobileMenu()
+        // - closeMobileMenu()
+        // - closePromoBanner()
+        // - toggleNotifications()
+        // - markAsRead()
+        // - markAllAsRead()
     </script>
 </body>
 </html>

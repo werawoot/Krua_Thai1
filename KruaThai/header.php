@@ -1,6 +1,6 @@
 <?php
 /**
- * Somdul Table - Reusable Header Component
+ * Somdul Table - Updated Header Component with Notifications
  * File: header.php
  * Include this file in every page that needs the navigation and promo banner
  */
@@ -8,6 +8,33 @@
 // Ensure session is started (if not already started)
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
+}
+
+// Initialize notification data if user is logged in
+$notificationData = null;
+if (isset($_SESSION['user_id'])) {
+    // Only load notification manager if user is logged in
+    if (file_exists('NotificationManager.php')) {
+        require_once 'NotificationManager.php';
+        try {
+            $notificationManager = new NotificationManager($pdo);
+            $userId = $_SESSION['user_id'];
+            $unreadCount = $notificationManager->getUnreadCount($userId);
+            $recentNotifications = $notificationManager->getUserNotifications($userId, false, 5);
+            
+            $notificationData = [
+                'unreadCount' => $unreadCount,
+                'notifications' => $recentNotifications
+            ];
+        } catch (Exception $e) {
+            error_log("Notification system error: " . $e->getMessage());
+            // Gracefully continue without notifications if there's an error
+            $notificationData = [
+                'unreadCount' => 0,
+                'notifications' => []
+            ];
+        }
+    }
 }
 ?>
 
@@ -435,6 +462,196 @@ h1, h2, h3, h4, h5, h6 {
     height: 24px;
 }
 
+/* Notification Widget Styles - Integrated into Header Design */
+.notification-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.notification-bell {
+    width: 45px;
+    height: 45px;
+    background: var(--cream);
+    border: 2px solid var(--brown);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--brown);
+    cursor: pointer;
+    transition: var(--transition);
+    position: relative;
+    box-shadow: var(--shadow-soft);
+}
+
+.notification-bell:hover {
+    background: var(--brown);
+    color: var(--white);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-medium);
+}
+
+.notification-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: var(--curry);
+    color: var(--white);
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: 'BaticaSans', sans-serif;
+    border: 2px solid var(--white);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.notification-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: var(--white);
+    border: 2px solid var(--cream);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-medium);
+    width: 350px;
+    max-height: 500px;
+    z-index: 1000;
+    display: none;
+    margin-top: 8px;
+    animation: fadeInDown 0.3s ease;
+    overflow: hidden;
+}
+
+.notification-dropdown.active {
+    display: block;
+}
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.notification-header {
+    padding: 1rem;
+    border-bottom: 1px solid var(--cream);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.notification-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--brown);
+    font-family: 'BaticaSans', sans-serif;
+}
+
+.mark-all-read {
+    font-size: 0.85rem;
+    color: var(--sage);
+    cursor: pointer;
+    font-family: 'BaticaSans', sans-serif;
+    font-weight: 500;
+    transition: color 0.3s ease;
+}
+
+.mark-all-read:hover {
+    color: var(--brown);
+}
+
+.notification-list {
+    max-height: 400px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.notification-item {
+    padding: 1rem;
+    border-bottom: 1px solid rgba(189, 147, 121, 0.1);
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    position: relative;
+}
+
+.notification-item:hover {
+    background: rgba(236, 232, 225, 0.5);
+}
+
+.notification-item.unread {
+    background: rgba(173, 184, 157, 0.1);
+    border-left: 3px solid var(--curry);
+}
+
+.notification-item.unread::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: 1rem;
+    width: 8px;
+    height: 8px;
+    background: var(--curry);
+    border-radius: 50%;
+    transform: translateY(-50%);
+}
+
+.notification-type-icon {
+    font-size: 1.2rem;
+    margin-right: 0.5rem;
+}
+
+.notification-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+.notification-details h4 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin: 0 0 0.25rem 0;
+    font-family: 'BaticaSans', sans-serif;
+}
+
+.notification-details p {
+    font-size: 0.8rem;
+    color: var(--text-gray);
+    margin: 0 0 0.25rem 0;
+    line-height: 1.4;
+    font-family: 'BaticaSans', sans-serif;
+}
+
+.notification-time {
+    font-size: 0.75rem;
+    color: var(--text-gray);
+    font-family: 'BaticaSans', sans-serif;
+}
+
+.no-notifications {
+    padding: 2rem;
+    text-align: center;
+    color: var(--text-gray);
+    font-family: 'BaticaSans', sans-serif;
+}
+
+.no-notifications-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    opacity: 0.5;
+}
+
 /* Promotional Banner Styles */
 .promo-banner {
     position: fixed;
@@ -607,6 +824,26 @@ h1, h2, h3, h4, h5, h6 {
     .mobile-nav-menu {
         display: block !important; /* Ensure mobile menu is available */
     }
+
+    /* Mobile Notification Adjustments */
+    .notification-dropdown {
+        width: 300px;
+        right: 50%;
+        transform: translateX(50%);
+        left: auto;
+    }
+    
+    .notification-item {
+        padding: 0.75rem;
+    }
+    
+    .notification-details h4 {
+        font-size: 0.85rem;
+    }
+    
+    .notification-details p {
+        font-size: 0.75rem;
+    }
 }
 
 @media (max-width: 480px) {
@@ -693,7 +930,73 @@ body.has-header {
         
         <div class="nav-actions">
             <?php if (isset($_SESSION['user_id'])): ?>
-                <!-- User is logged in - show profile icon -->
+                <!-- Notification Widget - Only show when user is logged in -->
+                <?php if ($notificationData): ?>
+                    <div class="notification-wrapper">
+                        <div class="notification-bell" id="notificationBell" onclick="toggleNotifications()">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                            </svg>
+                            <?php if ($notificationData['unreadCount'] > 0): ?>
+                                <span class="notification-badge"><?php echo min($notificationData['unreadCount'], 99); ?></span>
+                            <?php endif; ?>
+                        </div>
+                        
+                        <div class="notification-dropdown" id="notificationDropdown">
+                            <div class="notification-header">
+                                <h3 class="notification-title">Notifications</h3>
+                                <?php if ($notificationData['unreadCount'] > 0): ?>
+                                    <span class="mark-all-read" onclick="markAllAsRead()">Mark all read</span>
+                                <?php endif; ?>
+                            </div>
+                            
+                            <div class="notification-list">
+                                <?php if (empty($notificationData['notifications'])): ?>
+                                    <div class="no-notifications">
+                                        <div class="no-notifications-icon">🔔</div>
+                                        <p>No notifications yet</p>
+                                    </div>
+                                <?php else: ?>
+                                    <?php foreach ($notificationData['notifications'] as $notification): ?>
+                                        <div class="notification-item <?php echo !$notification['is_read'] ? 'unread' : ''; ?>" 
+                                             onclick="markAsRead(<?php echo $notification['id']; ?>)">
+                                            <div class="notification-content">
+                                                <span class="notification-type-icon">
+                                                    <?php
+                                                    $icons = [
+                                                        'order' => '🍽️',
+                                                        'system' => '⚙️',
+                                                        'promotion' => '🎉',
+                                                        'delivery' => '🚗',
+                                                        'payment' => '💳',
+                                                        'general' => '📢'
+                                                    ];
+                                                    echo $icons[$notification['type']] ?? '📢';
+                                                    ?>
+                                                </span>
+                                                <div class="notification-details">
+                                                    <h4><?php echo htmlspecialchars($notification['title']); ?></h4>
+                                                    <p><?php echo htmlspecialchars($notification['message']); ?></p>
+                                                    <span class="notification-time">
+                                                        <?php 
+                                                        $time = new DateTime($notification['created_at']);
+                                                        echo $time->format('M j, g:i A');
+                                                        ?>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </div>
+                            
+
+                        </div>
+                    </div>
+                <?php endif; ?>
+
+                <!-- User Profile Icon -->
                 <a href="dashboard.php" class="profile-link" title="Go to Dashboard">
                     <div class="profile-icon">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -787,6 +1090,103 @@ function closeMobileMenu() {
     }
 }
 
+// Notification Functions
+let notificationDropdownOpen = false;
+
+function toggleNotifications() {
+    const dropdown = document.getElementById('notificationDropdown');
+    if (!dropdown) return;
+    
+    notificationDropdownOpen = !notificationDropdownOpen;
+    
+    if (notificationDropdownOpen) {
+        dropdown.classList.add('active');
+        // Load latest notifications
+        loadNotifications();
+    } else {
+        dropdown.classList.remove('active');
+    }
+}
+
+function markAsRead(notificationId) {
+    fetch('ajax/mark_notification_read.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ notification_id: notificationId })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update UI
+            const item = document.querySelector(`[onclick="markAsRead(${notificationId})"]`);
+            if (item) {
+                item.classList.remove('unread');
+            }
+            updateNotificationBadge();
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+function markAllAsRead() {
+    fetch('ajax/mark_all_notifications_read.php', {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update UI
+            document.querySelectorAll('.notification-item.unread').forEach(item => {
+                item.classList.remove('unread');
+            });
+            const markAllBtn = document.querySelector('.mark-all-read');
+            if (markAllBtn) markAllBtn.style.display = 'none';
+            updateNotificationBadge();
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+function updateNotificationBadge() {
+    fetch('ajax/get_notification_count.php')
+    .then(response => response.json())
+    .then(data => {
+        const badge = document.querySelector('.notification-badge');
+        if (data.count > 0) {
+            if (badge) {
+                badge.textContent = Math.min(data.count, 99);
+            } else {
+                // Create badge if it doesn't exist
+                const bell = document.getElementById('notificationBell');
+                if (bell) {
+                    const newBadge = document.createElement('span');
+                    newBadge.className = 'notification-badge';
+                    newBadge.textContent = Math.min(data.count, 99);
+                    bell.appendChild(newBadge);
+                }
+            }
+        } else if (badge) {
+            badge.remove();
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+function loadNotifications() {
+    // Optional: Load fresh notifications when dropdown opens
+    fetch('ajax/get_notifications.php')
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update notification list if needed
+            console.log('Notifications loaded:', data.notifications);
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
 // Robust Mobile Menu Initialization
 function initializeMobileMenu() {
     const hamburger = document.getElementById('mobileMenuToggle');
@@ -861,12 +1261,23 @@ document.addEventListener('click', function(event) {
         !hamburger.contains(event.target)) {
         closeMobileMenu();
     }
+    
+    // Close notification dropdown when clicking outside
+    const notificationWrapper = document.querySelector('.notification-wrapper');
+    if (notificationWrapper && !notificationWrapper.contains(event.target) && notificationDropdownOpen) {
+        toggleNotifications();
+    }
 });
 
 // Close mobile menu on escape key
 document.addEventListener('keydown', function(event) {
-    if (event.key === 'Escape' && window.mobileMenuOpen) {
-        closeMobileMenu();
+    if (event.key === 'Escape') {
+        if (window.mobileMenuOpen) {
+            closeMobileMenu();
+        }
+        if (notificationDropdownOpen) {
+            toggleNotifications();
+        }
     }
 });
 
@@ -947,6 +1358,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 250);
         });
         
+        // Auto-refresh notification count every 30 seconds
+        if (document.querySelector('.notification-wrapper')) {
+            setInterval(updateNotificationBadge, 30000);
+        }
+        
     } catch (error) {
         console.error('Error during header initialization:', error);
     }
@@ -958,6 +1374,9 @@ window.closeMobileMenu = closeMobileMenu;
 window.closePromoBanner = closePromoBanner;
 window.initializeMobileMenu = initializeMobileMenu;
 window.debugHamburgerButton = debugHamburgerButton;
+window.toggleNotifications = toggleNotifications;
+window.markAsRead = markAsRead;
+window.markAllAsRead = markAllAsRead;
 
 // Backup fix function for pages that might need it
 window.fixHamburgerMenu = function() {
