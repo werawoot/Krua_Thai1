@@ -105,7 +105,7 @@ $current_page = basename($_SERVER['PHP_SELF'], '.php');
                 <i class="nav-icon fas fa-percent"></i>
                 <span>Promotions</span>
             </a>
-            <a href="workinprogress.php" class="nav-item <?= $current_page === 'notifications' ? 'active' : '' ?>">
+            <a href="notifications.php" class="nav-item <?= $current_page === 'notifications' ? 'active' : '' ?>">
                 <i class="nav-icon fas fa-bell"></i>
                 <span>Notifications</span>
             </a>
