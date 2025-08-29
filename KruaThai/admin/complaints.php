@@ -49,6 +49,67 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $result = getComplaintDetails($pdo, $_POST['id']);
                 echo json_encode($result);
                 exit;
+                case 'send_email_reply':
+    require_once '../includes/email_functions.php'; // โหลด email functions
+    
+    $complaintId = $_POST['complaint_id'] ?? '';
+    $emailTo = $_POST['email_to'] ?? '';
+    $emailSubject = $_POST['email_subject'] ?? '';
+    $emailMessage = $_POST['email_message'] ?? '';
+    
+    if (!$complaintId || !$emailTo || !$emailSubject || !$emailMessage) {
+        echo json_encode(['success' => false, 'message' => 'ข้อมูลไม่ครบถ้วน']);
+        exit;
+    }
+    
+    // สร้าง HTML email
+    $emailBody = "
+    <html>
+    <head>
+        <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; background: #fff; }
+            .header { background: linear-gradient(135deg, #cf723a, #e67e22); color: white; padding: 25px; text-align: center; }
+            .content { padding: 30px 20px; }
+            .footer { background: #f8f9fa; padding: 20px; text-align: center; color: #666; border-top: 1px solid #e9ecef; }
+        </style>
+    </head>
+    <body>
+        <div class='container'>
+            <div class='header'>
+                <h1 style='margin: 0; font-size: 1.8rem;'>🍽️ Krua Thai Restaurant</h1>
+                <p style='margin: 10px 0 0 0;'>ตอบกลับเรื่องแจ้งปัญหา</p>
+            </div>
+            
+            <div class='content'>
+                " . nl2br(htmlspecialchars($emailMessage)) . "
+            </div>
+            
+            <div class='footer'>
+                <p><strong>Krua Thai Restaurant - Authentic Thai Meals, Made Healthy</strong></p>
+                <p>📧 admin@kruathai.com | 📞 (02) 123-4567</p>
+                <p style='font-size: 0.9em; color: #999; margin-top: 15px;'>
+                    ท่านสามารถตอบกลับอีเมลนี้ได้โดยตรง ไม่ต้องเข้าเว็บไซต์อีกครั้ง
+                </p>
+            </div>
+        </div>
+    </body>
+    </html>";
+    
+    // ส่ง email ผ่านฟังก์ชัน sendRealEmail
+    $success = sendRealEmail($emailTo, $emailSubject, $emailBody);
+    
+    if ($success) {
+        // บันทึกลง database ว่าส่ง email แล้ว (optional)
+        $stmt = $pdo->prepare("UPDATE complaints SET admin_response_email = 1, updated_at = NOW() WHERE id = ?");
+        $stmt->execute([$complaintId]);
+        
+        echo json_encode(['success' => true, 'message' => 'อีเมลส่งเรียบร้อยแล้ว']);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'ไม่สามารถส่งอีเมลได้']);
+    }
+    exit;
+
         }
     } catch (Exception $e) {
         echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
@@ -1012,11 +1073,16 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                                         </div>
                                     <?php endif; ?>
                                 </div>
-                                <div class="complaint-actions">
+                    <div class="complaint-actions">
                                     <button type="button" class="btn btn-sm btn-secondary btn-icon" 
                                             onclick="viewComplaint('<?php echo $complaint['id']; ?>')" 
                                             title="View Details">
                                         <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-primary btn-icon" 
+                                            onclick="replyViaEmail('<?php echo $complaint['id']; ?>', '<?php echo htmlspecialchars($complaint['customer_email']); ?>', '<?php echo htmlspecialchars($complaint['customer_name']); ?>', '<?php echo htmlspecialchars($complaint['complaint_number']); ?>')" 
+                                            title="Reply via Email">
+                                        <i class="fas fa-reply"></i>
                                     </button>
                                     <button type="button" class="btn btn-sm btn-primary btn-icon" 
                                             onclick="resolveComplaint('<?php echo $complaint['id']; ?>')" 
@@ -1137,7 +1203,101 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             </div>
         </div>
     </div>
+<!-- Email Reply Modal -->
+    <div id="emailReplyModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h2 class="modal-title">
+                    <i class="fas fa-reply" style="color: #cf723a;"></i>
+                    Reply to Customer via Email
+                </h2>
+                <button type="button" class="modal-close" onclick="closeModal('emailReplyModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="emailReplyForm">
+                    <input type="hidden" id="emailComplaintId" name="complaint_id">
+                    
+                    <!-- Customer Info -->
+                    <div style="background: linear-gradient(135deg, #3498db, #2980b9); color: white; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <h4 style="margin: 0 0 10px 0;">
+                            <i class="fas fa-user"></i> Customer Information
+                        </h4>
+                        <div id="customerInfoDisplay">
+                            <!-- จะถูกแทนที่ด้วย JavaScript -->
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i class="fas fa-envelope"></i> To (Customer Email)
+                        </label>
+                        <input type="email" 
+                               id="emailTo" 
+                               name="email_to" 
+                               class="form-control" 
+                               readonly 
+                               style="background: #f8f9fa;">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i class="fas fa-tag"></i> Subject
+                        </label>
+                        <input type="text" 
+                               id="emailSubject" 
+                               name="email_subject" 
+                               class="form-control" 
+                               placeholder="Re: Your complaint #CMP-..."
+                               required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i class="fas fa-edit"></i> Message
+                        </label>
+                        <textarea id="emailMessage" 
+                                  name="email_message" 
+                                  class="form-control" 
+                                  rows="8" 
+                                  placeholder="เรียน คุณ [ชื่อลูกค้า]
 
+ขอบคุณที่ติดต่อมายัง Krua Thai
+
+เกี่ยวกับการแจ้งปัญหา #[เลขอ้างอิง] เราได้ตรวจสอบแล้วและ...
+
+[รายละเอียดการแก้ไขปัญหา]
+
+หากมีข้อสงสัยเพิ่มเติม กรุณาตอบกลับอีเมลนี้ได้เลย
+
+ขอบคุณครับ
+ทีมงาน Krua Thai
+โทร: (02) 123-4567"
+                                  required></textarea>
+                    </div>
+                    
+                    <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                        <h5 style="color: #856404; margin: 0 0 10px 0;">
+                            <i class="fas fa-lightbulb"></i> Email Tips:
+                        </h5>
+                        <ul style="margin: 0; color: #856404; font-size: 0.9rem;">
+                            <li>ใช้ภาษาที่เป็นมิตรและเข้าใจง่าย</li>
+                            <li>อธิบายการแก้ไขปัญหาอย่างชัดเจน</li>
+                            <li>ให้ช่องทางติดต่อกลับ</li>
+                            <li>ลูกค้าสามารถตอบกลับอีเมลนี้ได้โดยตรง</li>
+                        </ul>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('emailReplyModal')">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <button type="button" class="btn btn-primary" onclick="sendEmailReply()" id="sendEmailBtn">
+                    <i class="fas fa-paper-plane"></i> Send Email
+                </button>
+            </div>
+        </div>
+    </div>
     <!-- Toast Container -->
     <div class="toast-container" id="toastContainer"></div>
 
@@ -1449,6 +1609,100 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 });
             }
         });
+        // เปิด Email Reply Modal
+        function replyViaEmail(complaintId, customerEmail, customerName, complaintNumber) {
+            // เซ็ตข้อมูล
+            document.getElementById('emailComplaintId').value = complaintId;
+            document.getElementById('emailTo').value = customerEmail;
+            document.getElementById('emailSubject').value = `Re: แจ้งปัญหา #${complaintNumber} - Krua Thai`;
+            
+            // แสดงข้อมูลลูกค้า
+            document.getElementById('customerInfoDisplay').innerHTML = `
+                <div style="display: flex; justify-content: space-between;">
+                    <div>
+                        <strong>ชื่อ:</strong> ${customerName}<br>
+                        <strong>อีเมล:</strong> ${customerEmail}
+                    </div>
+                    <div>
+                        <strong>Complaint:</strong> #${complaintNumber}
+                    </div>
+                </div>
+            `;
+            
+            // ตั้งค่าข้อความเริ่มต้น
+            const defaultMessage = `เรียน คุณ${customerName}
+
+ขอบคุณที่ติดต่อมายัง Krua Thai Restaurant
+
+เกี่ยวกับการแจ้งปัญหา #${complaintNumber} เราได้ตรวจสอบเรื่องของท่านเรียบร้อยแล้ว
+
+[กรุณาเขียนรายละเอียดการแก้ไขปัญหาที่นี่]
+
+เราขออภัยในความไม่สะดวกที่เกิดขึ้น และหวังว่าจะได้ให้บริการท่านอีกในโอกาสต่อไป
+
+หากมีข้อสงสัยเพิ่มเติม กรุณาตอบกลับอีเมลนี้ได้เลย ไม่ต้องเข้าเว็บไซต์อีกครั้ง
+
+ด้วยความห่วงใย
+ทีมงาน Krua Thai Restaurant
+📞 โทร: (02) 123-4567
+📧 อีเมล: admin@kruathai.com`;
+
+            document.getElementById('emailMessage').value = defaultMessage;
+            
+            // เปิด modal
+            openModal('emailReplyModal');
+        }
+
+        // ส่ง Email Reply
+        function sendEmailReply() {
+            const complaintId = document.getElementById('emailComplaintId').value;
+            const emailTo = document.getElementById('emailTo').value;
+            const emailSubject = document.getElementById('emailSubject').value.trim();
+            const emailMessage = document.getElementById('emailMessage').value.trim();
+            
+            if (!emailSubject || !emailMessage) {
+                showToast('กรุณากรอก Subject และ Message', 'error');
+                return;
+            }
+            
+            // แสดง loading
+            const sendBtn = document.getElementById('sendEmailBtn');
+            const originalText = sendBtn.innerHTML;
+            sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+            sendBtn.disabled = true;
+            
+            // ส่ง AJAX
+            fetch('complaints.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `action=send_email_reply&complaint_id=${complaintId}&email_to=${encodeURIComponent(emailTo)}&email_subject=${encodeURIComponent(emailSubject)}&email_message=${encodeURIComponent(emailMessage)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('อีเมลส่งเรียบร้อยแล้ว!', 'success');
+                    closeModal('emailReplyModal');
+                    
+                    // อัปเดต complaint status หรือ reload หน้า
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    showToast('ไม่สามารถส่งอีเมลได้: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('เกิดข้อผิดพลาดในการส่งอีเมล', 'error');
+            })
+            .finally(() => {
+                // คืน button เป็นปกติ
+                sendBtn.innerHTML = originalText;
+                sendBtn.disabled = false;
+            });
+        }
     </script>
 </body>
 </html>

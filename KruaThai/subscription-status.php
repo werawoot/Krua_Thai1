@@ -11,6 +11,7 @@ error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
 require_once 'config/database.php';
+require_once 'includes/email_functions.php'; // ←← เพิ่มบรรทัดนี้
 require_once 'NotificationManager.php';
 
 // Check if user is logged in
@@ -282,9 +283,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $description
         ]);
         
-        if ($result) {
-            $_SESSION['flash_message'] = "Complaint submitted successfully. Reference: " . $complaint_number;
-            $_SESSION['flash_type'] = 'success';
+       if ($result) {
+    // ส่ง email ยืนยันให้ลูกค้า
+    sendComplaintConfirmationEmail($pdo, $user_id, $complaint_number, $_POST);
+    
+    // ส่ง email แจ้งเตือน admin
+    sendAdminNotificationEmail($pdo, $user_id, $complaint_number, $_POST);
+    
+    $_SESSION['flash_message'] = "
+        <div style='background: linear-gradient(135deg, #27ae60, #2ecc71); color: white; padding: 2rem; border-radius: 15px; text-align: center; margin-bottom: 2rem; box-shadow: 0 8px 25px rgba(39, 174, 96, 0.3);'>
+            <i class='fas fa-check-circle' style='font-size: 3rem; margin-bottom: 1rem;'></i>
+            <h3 style='margin: 0 0 1rem 0; font-size: 1.5rem;'>แจ้งปัญหาเรียบร้อยแล้ว!</h3>
+            <div style='background: rgba(255,255,255,0.2); padding: 1rem; border-radius: 10px; margin: 1rem 0;'>
+                <p style='margin: 0; font-size: 1.1rem; font-weight: bold;'>รหัสอ้างอิง: #{$complaint_number}</p>
+            </div>
+            <div style='text-align: left; margin-top: 1.5rem;'>
+                <p style='margin: 0.5rem 0;'><i class='fas fa-envelope'></i> เราจะติดต่อกลับท่านผ่านทางอีเมล ภายใน 4 ชั่วโมง</p>
+                <p style='margin: 0.5rem 0;'><i class='fas fa-lightbulb'></i> ท่านสามารถตอบกลับอีเมลจากเราได้โดยตรง ไม่ต้องเข้าเว็บไซต์อีกครั้ง</p>
+                <p style='margin: 0.5rem 0;'><i class='fas fa-phone'></i> กรณีเร่งด่วน: โทร (02) 123-4567</p>
+            </div>
+        </div>
+    ";
+    $_SESSION['flash_type'] = 'success';
         } else {
             $_SESSION['flash_message'] = "Failed to submit complaint. Please try again.";
             $_SESSION['flash_type'] = 'error';
@@ -418,6 +438,158 @@ function getDayName($day) {
         'sunday' => 'Sunday'
     ];
     return $days[$day] ?? $day;
+}
+
+// Email Functions
+require_once 'includes/email_functions.php';
+
+function sendComplaintConfirmationEmail($pdo, $userId, $complaintNumber, $complaintData) {
+    // Get user info
+    $stmt = $pdo->prepare("SELECT first_name, last_name, email FROM users WHERE id = ?");
+    $stmt->execute([$userId]);
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if (!$user) return false;
+    
+    $customerName = $user['first_name'] . ' ' . $user['last_name'];
+    $customerEmail = $user['email'];
+    
+    $subject = "[Somdul Table] รับแจ้งปัญหา #{$complaintNumber}";
+    
+    $emailBody = "
+    <html>
+    <head>
+        <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+            .container { max-width: 600px; margin: 0 auto; background: #fff; }
+            .header { background: linear-gradient(135deg, #cf723a, #e67e22); color: white; padding: 30px 20px; text-align: center; }
+            .content { padding: 30px 20px; }
+            .complaint-box { background: #f8f9fa; border-left: 5px solid #cf723a; padding: 20px; margin: 20px 0; border-radius: 5px; }
+            .info-box { background: linear-gradient(135deg, #3498db, #2980b9); color: white; padding: 20px; border-radius: 10px; margin: 20px 0; }
+            .footer { background: #ece8e1; padding: 20px; text-align: center; color: #666; }
+            .highlight { color: #cf723a; font-weight: bold; }
+        </style>
+    </head>
+    <body>
+        <div class='container'>
+            <div class='header'>
+                <h1 style='margin: 0; font-size: 2rem;'>🍽️ Somdul Table</h1>
+                <p style='margin: 10px 0 0 0; font-size: 1.2rem;'>ยืนยันการรับแจ้งปัญหา</p>
+            </div>
+            
+            <div class='content'>
+                <h2>เรียน คุณ {$customerName}</h2>
+                
+                <p>ขอบคุณที่แจ้งปัญหาให้เราทราบ เราได้รับเรื่องของท่านแล้วและจะดำเนินการแก้ไขโดยเร็วที่สุด</p>
+                
+                <div class='complaint-box'>
+                    <h3 style='margin-top: 0; color: #cf723a;'>📋 รายละเอียดการแจ้งปัญหา</h3>
+                    <p><strong>รหัสอ้างอิง:</strong> <span class='highlight'>#{$complaintNumber}</span></p>
+                    <p><strong>หัวข้อ:</strong> {$complaintData['title']}</p>
+                    <p><strong>ประเภท:</strong> " . ucfirst(str_replace('_', ' ', $complaintData['category'])) . "</p>
+                    <p><strong>ระดับความสำคัญ:</strong> " . ucfirst($complaintData['priority']) . "</p>
+                    <p><strong>วันที่แจ้ง:</strong> " . date('d/m/Y H:i น.') . "</p>
+                </div>
+                
+                <div class='info-box'>
+                    <h3 style='margin-top: 0;'>⏰ ขั้นตอนต่อไป</h3>
+                    <p style='margin: 10px 0;'>✅ ทีมงานจะตรวจสอบและติดต่อกลับภายใน <strong>4 ชั่วโมง</strong></p>
+                    <p style='margin: 10px 0;'>✅ ท่านสามารถตอบกลับอีเมลนี้ได้โดยตรง ไม่ต้องเข้าเว็บไซต์อีกครั้ง</p>
+                    <p style='margin: 10px 0;'>✅ กรณีเร่งด่วน: โทร <strong>(02) 123-4567</strong></p>
+                </div>
+                
+                <p>เราขออภัยในความไม่สะดวก และขอบคุณที่ให้โอกาสเราปรับปรุงการบริการให้ดียิ่งขึ้น</p>
+                
+                <p>ด้วยความห่วงใย<br>
+                <strong>Somdul Table Support Team</strong></p>
+            </div>
+            
+            <div class='footer'>
+                <p><strong>Somdul Table - Authentic Thai Meals, Made Healthy</strong></p>
+                <p>📧 support@somdultable.com | 📞 (02) 123-4567</p>
+                <p style='font-size: 0.9em; margin-top: 15px;'>
+                    อีเมลนี้ส่งเกี่ยวกับการแจ้งปัญหา #{$complaintNumber}
+                </p>
+            </div>
+        </div>
+    </body>
+    </html>";
+    
+    return sendRealEmail($customerEmail, $subject, $emailBody);
+}
+
+function sendAdminNotificationEmail($pdo, $userId, $complaintNumber, $complaintData) {
+    // Get customer info
+    $stmt = $pdo->prepare("SELECT first_name, last_name, email, phone FROM users WHERE id = ?");
+    $stmt->execute([$userId]);
+    $customer = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if (!$customer) return false;
+    
+    $customerName = $customer['first_name'] . ' ' . $customer['last_name'];
+    $adminEmail = 'admin@kruathai.com';
+    
+    $subject = "[🚨 URGENT] New Complaint #{$complaintNumber} - " . ucfirst(str_replace('_', ' ', $complaintData['category']));
+    
+    $priorityColor = $complaintData['priority'] === 'critical' ? '#c0392b' : 
+                    ($complaintData['priority'] === 'high' ? '#e74c3c' : '#f39c12');
+    
+    $emailBody = "
+    <html>
+    <head>
+        <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+            .container { max-width: 700px; margin: 0 auto; background: #fff; }
+            .header { background: linear-gradient(135deg, #cf723a, #e67e22); color: white; padding: 25px; text-align: center; }
+            .priority-{$complaintData['priority']} { border-left: 5px solid {$priorityColor}; padding: 15px; margin: 20px 0; }
+            .customer-info { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 15px 0; }
+            .complaint-details { background: #e8f4f8; padding: 20px; border-radius: 8px; margin: 15px 0; }
+            .action-button { background: #cf723a; color: white; padding: 12px 25px; text-decoration: none; border-radius: 6px; display: inline-block; margin: 10px 0; }
+            .footer { background: #f1f1f1; padding: 20px; text-align: center; color: #666; }
+        </style>
+    </head>
+    <body>
+        <div class='container'>
+            <div class='header'>
+                <h1 style='margin: 0;'>🚨 New Customer Complaint Alert</h1>
+                <p style='margin: 10px 0 0 0; font-size: 1.1rem;'>Requires Immediate Attention</p>
+            </div>
+            
+            <div style='padding: 25px;'>
+                <div class='priority-{$complaintData['priority']}'>
+                    <h2 style='margin: 0 0 10px 0; color: {$priorityColor};'>Complaint #{$complaintNumber}</h2>
+                    <p style='margin: 0; font-size: 1.1rem;'><strong>Priority:</strong> " . strtoupper($complaintData['priority']) . "</p>
+                </div>
+                
+                <div class='customer-info'>
+                    <h3 style='margin: 0 0 15px 0; color: #cf723a;'>👤 Customer Information</h3>
+                    <p><strong>Name:</strong> {$customerName}</p>
+                    <p><strong>Email:</strong> {$customer['email']}</p>
+                    <p><strong>Phone:</strong> " . ($customer['phone'] ?: 'Not provided') . "</p>
+                </div>
+                
+                <div class='complaint-details'>
+                    <h3 style='margin: 0 0 15px 0; color: #2980b9;'>📋 Complaint Details</h3>
+                    <p><strong>Category:</strong> " . ucfirst(str_replace('_', ' ', $complaintData['category'])) . "</p>
+                    <p><strong>Subject:</strong> {$complaintData['title']}</p>
+                    <p><strong>Description:</strong></p>
+                    <div style='background: white; padding: 15px; border-radius: 5px; margin-top: 10px;'>
+                        " . nl2br(htmlspecialchars($complaintData['description'])) . "
+                    </div>
+                    <p><strong>Submitted:</strong> " . date('d/m/Y H:i น.') . "</p>
+                </div>
+                
+                <div style='text-align: center; margin: 30px 0;'>
+                    <a href='https://somdultable.com/admin/complaints.php' class='action-button'>
+                        📝 Respond to Complaint Now
+                    </a>
+                </div>
+            </div>
+        </div>
+    </body>
+    </html>";
+    
+    return sendRealEmail($adminEmail, $subject, $emailBody);
 }
 
 // Include the header (contains navbar, promo banner, fonts, and base styles)
@@ -1624,7 +1796,7 @@ include 'header.php';
                                         </span>
                                     </td>
                                     <td>
-                                        <span class="status <?= $sub['user_status'] ?>"><?= getStatusText($sub['user_status']) ?></span>
+    <span class="status <?= ($sub['user_status'] ?? $sub['status']) ?>"><?= getStatusText($sub['user_status'] ?? $sub['status']) ?></span>
                                         
                                         <!-- ✅ Show delivered timestamp if available - still checks status for actual delivery -->
                                         <?php if ($sub['status'] === 'delivered' && $sub['delivered_at']): ?>
@@ -1649,7 +1821,7 @@ include 'header.php';
                                                 </button>
                                             <?php endif; ?>
 
-                                            <?php if (($sub['user_status'] === 'active' || $sub['user_status'] === 'completed' || $sub['status'] === 'delivered') && !$sub['has_review']): ?>
+<?php if ((($sub['user_status'] ?? $sub['status']) === 'active' || ($sub['user_status'] ?? $sub['status']) === 'completed' || $sub['status'] === 'delivered') && !$sub['has_review']): ?>
                                             <button onclick="openReviewModal('<?= htmlspecialchars($sub['id']) ?>', '<?= htmlspecialchars($sub['plan_name']) ?>')" class="btn-action btn-review">
                                                 <i class="fas fa-star"></i> Review
                                             </button>
@@ -1667,7 +1839,7 @@ include 'header.php';
                                             <!-- Management Buttons -->
                                             <form method="post" style="display: contents;">
                                                 <input type="hidden" name="id" value="<?= htmlspecialchars($sub['id']) ?>">
-                                                <?php if ($sub['user_status'] === 'active'): ?>
+<?php if (($sub['user_status'] ?? $sub['status']) === 'active'): ?>
                                                     <?php
                                                     // Check if subscription can be cancelled
                                                     $canCancelSubscription = true;
