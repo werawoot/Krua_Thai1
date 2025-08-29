@@ -1154,8 +1154,11 @@ function toggleNotifications() {
 }
 
 function markAsRead(notificationId, notificationSource) {
+    console.log('Marking notification as read:', notificationId, 'Source:', notificationSource);
+    
     // Handle both personal and system notifications
     const isSystemNotification = notificationSource === 'system' || String(notificationId).startsWith('sys_');
+    const actualSource = isSystemNotification ? 'system' : 'personal';
     
     fetch('ajax/mark_notification_read.php', {
         method: 'POST',
@@ -1164,20 +1167,29 @@ function markAsRead(notificationId, notificationSource) {
         },
         body: JSON.stringify({ 
             notification_id: notificationId,
-            notification_source: notificationSource || (isSystemNotification ? 'system' : 'personal')
+            notification_source: actualSource
         })
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
     .then(data => {
+        console.log('Mark as read response:', data);
+        
         if (data.success) {
             // Update UI immediately
             const item = document.querySelector(`[data-notification-id="${notificationId}"]`);
             if (item) {
                 item.classList.remove('unread');
-                // Remove the unread indicator
+                item.classList.add('read');
+                
+                // Remove the unread indicator (blue dot)
                 const indicator = item.querySelector('::before');
                 if (indicator) {
-                    item.classList.add('read');
+                    item.style.position = 'relative';
                 }
             }
             
@@ -1289,6 +1301,8 @@ function updateNotificationList(notifications) {
         const notificationId = notification.id;
         const notificationSource = notification.notification_source || 'personal';
         
+        console.log('Rendering notification:', notificationId, 'Source:', notificationSource, 'Unread:', isUnread);
+        
         const typeIcon = {
             'order': '🍽️',
             'system': '⚙️',
@@ -1309,6 +1323,7 @@ function updateNotificationList(notifications) {
         return `
             <div class="notification-item ${isUnread ? 'unread' : 'read'}" 
                  data-notification-id="${notificationId}"
+                 data-notification-source="${notificationSource}"
                  onclick="markAsRead('${notificationId}', '${notificationSource}')">
                 <div class="notification-content">
                     <span class="notification-type-icon">${typeIcon}</span>

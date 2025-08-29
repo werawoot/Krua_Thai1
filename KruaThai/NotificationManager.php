@@ -1,6 +1,6 @@
 <?php
 /**
- * Somdul Table - Improved Notification Manager
+ * Somdul Table - Corrected Notification Manager
  * Handles both personal and system-wide notifications efficiently
  */
 
@@ -15,15 +15,6 @@ class NotificationManager {
     
     /**
      * Create a personal notification for a specific user
-     * 
-     * @param string $userId UUID of the user
-     * @param string $type (order, system, promotion, delivery, payment, general)
-     * @param string $title
-     * @param string $message
-     * @param array $data Additional data (order_id, subscription_id, etc.)
-     * @param string $priority (low, medium, high, urgent)
-     * @param DateTime $expiresAt Optional expiration date
-     * @return int|false Notification ID or false on failure
      */
     public function createPersonalNotification($userId, $type, $title, $message, $data = null, $priority = 'medium', $expiresAt = null) {
         try {
@@ -57,17 +48,6 @@ class NotificationManager {
     
     /**
      * Create a system notification (broadcast to multiple users)
-     * 
-     * @param string $createdBy Admin user ID
-     * @param string $type (system, promotion, announcement, maintenance, general)
-     * @param string $title
-     * @param string $message
-     * @param string $targetAudience (all, customers, active_subscribers, custom)
-     * @param array $data Additional data
-     * @param string $priority (low, medium, high, urgent)
-     * @param DateTime $expiresAt Optional expiration date
-     * @param array $targetCriteria Custom targeting criteria for 'custom' audience
-     * @return int|false System notification ID or false on failure
      */
     public function createSystemNotification($createdBy, $type, $title, $message, $targetAudience = 'all', $data = null, $priority = 'medium', $expiresAt = null, $targetCriteria = null) {
         try {
@@ -96,45 +76,97 @@ class NotificationManager {
     }
     
     /**
-     * Get all notifications for a user (personal + system)
-     * 
-     * @param string $userId UUID of the user
-     * @param bool $unreadOnly Get only unread notifications
-     * @param int $limit Maximum number of notifications to return
-     * @param string $type Filter by notification type
-     * @return array
+     * Get all notifications for a user (personal + system) - CORRECTED
      */
     public function getUserNotifications($userId, $unreadOnly = false, $limit = 20, $type = null) {
         try {
-            $sql = "SELECT * FROM user_notifications_view WHERE user_id = ?";
-            $params = [$userId];
+            $notifications = [];
+            
+            // Get personal notifications
+            $personalSql = "SELECT 
+                            id, 
+                            type, 
+                            title, 
+                            message, 
+                            created_at, 
+                            is_read, 
+                            data,
+                            'personal' as notification_source
+                        FROM notifications 
+                        WHERE user_id = ?";
+            
+            $personalParams = [$userId];
             
             if ($unreadOnly) {
-                $sql .= " AND is_read = 0";
+                $personalSql .= " AND is_read = 0";
             }
             
             if ($type) {
-                $sql .= " AND type = ?";
-                $params[] = $type;
+                $personalSql .= " AND type = ?";
+                $personalParams[] = $type;
             }
             
-            $sql .= " ORDER BY created_at DESC LIMIT ?";
-            $params[] = $limit;
+            $personalSql .= " ORDER BY created_at DESC";
             
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute($params);
+            $stmt = $this->pdo->prepare($personalSql);
+            $stmt->execute($personalParams);
+            $personalNotifications = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
-            $notifications = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            // Get system notifications with read status
+            $systemSql = "SELECT 
+                            CONCAT('sys_', sn.id) as id,
+                            sn.id as system_id,
+                            sn.type, 
+                            sn.title, 
+                            sn.message, 
+                            sn.created_at,
+                            CASE WHEN usnr.read_at IS NOT NULL THEN 1 ELSE 0 END as is_read,
+                            sn.data,
+                            'system' as notification_source,
+                            sn.target_audience
+                        FROM system_notifications sn
+                        LEFT JOIN user_system_notification_reads usnr 
+                            ON sn.id = usnr.system_notification_id AND usnr.user_id = ?
+                        WHERE sn.is_active = 1 
+                            AND (sn.expires_at IS NULL OR sn.expires_at > NOW())";
             
-            // Decode JSON data and format
+            $systemParams = [$userId];
+            
+            if ($unreadOnly) {
+                $systemSql .= " AND usnr.read_at IS NULL";
+            }
+            
+            if ($type) {
+                $systemSql .= " AND sn.type = ?";
+                $systemParams[] = $type;
+            }
+            
+            $systemSql .= " ORDER BY sn.created_at DESC";
+            
+            $stmt = $this->pdo->prepare($systemSql);
+            $stmt->execute($systemParams);
+            $systemNotifications = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            // Filter system notifications by target audience
+            $systemNotifications = array_filter($systemNotifications, function($notification) use ($userId) {
+                return $this->isNotificationTargetedToUser($notification, $userId);
+            });
+            
+            // Merge notifications
+            $notifications = array_merge($personalNotifications, $systemNotifications);
+            
+            // Sort by created_at descending
+            usort($notifications, function($a, $b) {
+                return strtotime($b['created_at']) - strtotime($a['created_at']);
+            });
+            
+            // Limit results
+            $notifications = array_slice($notifications, 0, $limit);
+            
+            // Process data field
             foreach ($notifications as &$notification) {
                 if ($notification['data']) {
                     $notification['data'] = json_decode($notification['data'], true);
-                }
-                
-                // Add source-specific ID handling
-                if ($notification['notification_source'] === 'system') {
-                    $notification['system_id'] = str_replace('sys_', '', $notification['id']);
                 }
             }
             
@@ -147,20 +179,64 @@ class NotificationManager {
     }
     
     /**
-     * Get unread notification count for a user
-     * 
-     * @param string $userId UUID of the user
-     * @return int
+     * Check if notification is targeted to user
+     */
+    private function isNotificationTargetedToUser($notification, $userId) {
+        $targetAudience = $notification['target_audience'];
+        
+        if ($targetAudience === 'all') {
+            return true;
+        }
+        
+        if ($targetAudience === 'customers') {
+            // Check if user has any subscriptions
+            $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM subscriptions WHERE user_id = ?");
+            $stmt->execute([$userId]);
+            return $stmt->fetchColumn() > 0;
+        }
+        
+        if ($targetAudience === 'active_subscribers') {
+            // Check if user has active subscriptions
+            $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM subscriptions WHERE user_id = ? AND status = 'active'");
+            $stmt->execute([$userId]);
+            return $stmt->fetchColumn() > 0;
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Get unread notification count for a user - CORRECTED
      */
     public function getUnreadCount($userId) {
         try {
-            $sql = "SELECT COUNT(*) FROM user_notifications_view 
-                    WHERE user_id = ? AND is_read = 0";
+            $totalCount = 0;
             
-            $stmt = $this->pdo->prepare($sql);
+            // Count unread personal notifications
+            $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read = 0");
             $stmt->execute([$userId]);
+            $totalCount += (int) $stmt->fetchColumn();
             
-            return (int) $stmt->fetchColumn();
+            // Count unread system notifications
+            $systemSql = "SELECT COUNT(*) FROM system_notifications sn
+                         LEFT JOIN user_system_notification_reads usnr 
+                             ON sn.id = usnr.system_notification_id AND usnr.user_id = ?
+                         WHERE sn.is_active = 1 
+                             AND (sn.expires_at IS NULL OR sn.expires_at > NOW())
+                             AND usnr.read_at IS NULL";
+            
+            $stmt = $this->pdo->prepare($systemSql);
+            $stmt->execute([$userId]);
+            $systemCount = (int) $stmt->fetchColumn();
+            
+            // Filter system notifications by target audience (this is simplified)
+            // In a production system, you might want to cache this or optimize further
+            if ($systemCount > 0) {
+                $systemNotifications = $this->getSystemNotifications($userId, true);
+                $totalCount += count($systemNotifications);
+            }
+            
+            return $totalCount;
             
         } catch (Exception $e) {
             error_log("Error getting unread count: " . $e->getMessage());
@@ -169,15 +245,39 @@ class NotificationManager {
     }
     
     /**
+     * Get system notifications for a user
+     */
+    private function getSystemNotifications($userId, $unreadOnly = false) {
+        $systemSql = "SELECT 
+                        sn.id,
+                        sn.target_audience,
+                        CASE WHEN usnr.read_at IS NOT NULL THEN 1 ELSE 0 END as is_read
+                    FROM system_notifications sn
+                    LEFT JOIN user_system_notification_reads usnr 
+                        ON sn.id = usnr.system_notification_id AND usnr.user_id = ?
+                    WHERE sn.is_active = 1 
+                        AND (sn.expires_at IS NULL OR sn.expires_at > NOW())";
+        
+        if ($unreadOnly) {
+            $systemSql .= " AND usnr.read_at IS NULL";
+        }
+        
+        $stmt = $this->pdo->prepare($systemSql);
+        $stmt->execute([$userId]);
+        $systemNotifications = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Filter by target audience
+        return array_filter($systemNotifications, function($notification) use ($userId) {
+            return $this->isNotificationTargetedToUser($notification, $userId);
+        });
+    }
+    
+    /**
      * Mark personal notification as read
-     * 
-     * @param int $notificationId
-     * @param string $userId UUID of the user for security
-     * @return bool
      */
     public function markPersonalNotificationAsRead($notificationId, $userId) {
         try {
-            $sql = "UPDATE notifications SET is_read = TRUE, read_at = NOW() 
+            $sql = "UPDATE notifications SET is_read = 1, read_at = NOW() 
                     WHERE id = ? AND user_id = ?";
             $stmt = $this->pdo->prepare($sql);
             
@@ -190,19 +290,19 @@ class NotificationManager {
     }
     
     /**
-     * Mark system notification as read for a user
-     * 
-     * @param int $systemNotificationId
-     * @param string $userId UUID of the user
-     * @return bool
+     * Mark system notification as read for a user - CORRECTED
      */
     public function markSystemNotificationAsRead($systemNotificationId, $userId) {
         try {
-            $sql = "INSERT IGNORE INTO user_system_notification_reads (user_id, system_notification_id) 
-                    VALUES (?, ?)";
+            // Remove 'sys_' prefix if it exists
+            $systemId = str_replace('sys_', '', $systemNotificationId);
+            
+            $sql = "INSERT INTO user_system_notification_reads (user_id, system_notification_id, read_at) 
+                    VALUES (?, ?, NOW())
+                    ON DUPLICATE KEY UPDATE read_at = NOW()";
             $stmt = $this->pdo->prepare($sql);
             
-            return $stmt->execute([$userId, $systemNotificationId]);
+            return $stmt->execute([$userId, $systemId]);
             
         } catch (Exception $e) {
             error_log("Error marking system notification as read: " . $e->getMessage());
@@ -211,11 +311,7 @@ class NotificationManager {
     }
     
     /**
-     * Mark notification as read (auto-detects personal vs system)
-     * 
-     * @param string $notificationId Can be numeric (personal) or "sys_123" (system)
-     * @param string $userId UUID of the user
-     * @return bool
+     * Mark notification as read (auto-detects personal vs system) - CORRECTED
      */
     public function markAsRead($notificationId, $userId) {
         if (strpos($notificationId, 'sys_') === 0) {
@@ -230,28 +326,26 @@ class NotificationManager {
     
     /**
      * Mark all notifications as read for a user
-     * 
-     * @param string $userId UUID of the user
-     * @return bool
      */
     public function markAllAsRead($userId) {
         try {
             $this->pdo->beginTransaction();
             
             // Mark all personal notifications as read
-            $sql1 = "UPDATE notifications SET is_read = TRUE, read_at = NOW() 
-                     WHERE user_id = ? AND is_read = FALSE";
+            $sql1 = "UPDATE notifications SET is_read = 1, read_at = NOW() 
+                     WHERE user_id = ? AND is_read = 0";
             $stmt1 = $this->pdo->prepare($sql1);
             $stmt1->execute([$userId]);
             
             // Mark all unread system notifications as read
-            $sql2 = "INSERT IGNORE INTO user_system_notification_reads (user_id, system_notification_id)
-                     SELECT ?, sn.id 
+            $sql2 = "INSERT INTO user_system_notification_reads (user_id, system_notification_id, read_at)
+                     SELECT ?, sn.id, NOW()
                      FROM system_notifications sn
                      LEFT JOIN user_system_notification_reads usnr ON sn.id = usnr.system_notification_id AND usnr.user_id = ?
-                     WHERE sn.is_active = TRUE 
+                     WHERE sn.is_active = 1 
                      AND (sn.expires_at IS NULL OR sn.expires_at > NOW())
-                     AND usnr.id IS NULL";
+                     AND usnr.id IS NULL
+                     ON DUPLICATE KEY UPDATE read_at = NOW()";
             $stmt2 = $this->pdo->prepare($sql2);
             $stmt2->execute([$userId, $userId]);
             
@@ -267,10 +361,6 @@ class NotificationManager {
     
     /**
      * Delete a personal notification
-     * 
-     * @param int $notificationId
-     * @param string $userId UUID of the user for security
-     * @return bool
      */
     public function deletePersonalNotification($notificationId, $userId) {
         try {
@@ -286,46 +376,7 @@ class NotificationManager {
     }
     
     /**
-     * Get system notification statistics for admin
-     * 
-     * @return array
-     */
-    public function getSystemNotificationStats() {
-        try {
-            $stats = [];
-            
-            // Active system notifications
-            $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM system_notifications WHERE is_active = TRUE");
-            $stmt->execute();
-            $stats['active_system_notifications'] = $stmt->fetchColumn();
-            
-            // Total users who can receive notifications
-            $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM users WHERE role != 'admin' AND status = 'active'");
-            $stmt->execute();
-            $stats['target_users'] = $stmt->fetchColumn();
-            
-            // System notifications sent in last 30 days
-            $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM system_notifications WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)");
-            $stmt->execute();
-            $stats['recent_system_notifications'] = $stmt->fetchColumn();
-            
-            return $stats;
-            
-        } catch (Exception $e) {
-            error_log("Error getting system notification stats: " . $e->getMessage());
-            return [
-                'active_system_notifications' => 0,
-                'target_users' => 0,
-                'recent_system_notifications' => 0
-            ];
-        }
-    }
-    
-    /**
      * Clean up old personal notifications for a user
-     * 
-     * @param string $userId UUID of the user
-     * @return void
      */
     private function cleanupOldPersonalNotifications($userId) {
         try {
@@ -349,9 +400,7 @@ class NotificationManager {
     }
     
     /**
-     * Clean up expired notifications (run this periodically)
-     * 
-     * @return int Number of expired notifications cleaned up
+     * Clean up expired notifications
      */
     public function cleanupExpiredNotifications() {
         try {
@@ -363,8 +412,8 @@ class NotificationManager {
             $stmt1->execute();
             $deletedCount += $stmt1->rowCount();
             
-            // Deactivate expired system notifications (don't delete, keep for records)
-            $sql2 = "UPDATE system_notifications SET is_active = FALSE WHERE expires_at IS NOT NULL AND expires_at <= NOW() AND is_active = TRUE";
+            // Deactivate expired system notifications
+            $sql2 = "UPDATE system_notifications SET is_active = 0 WHERE expires_at IS NOT NULL AND expires_at <= NOW() AND is_active = 1";
             $stmt2 = $this->pdo->prepare($sql2);
             $stmt2->execute();
             
@@ -375,41 +424,4 @@ class NotificationManager {
             return 0;
         }
     }
-    
-    /**
-     * Estimate total reach of a system notification
-     * 
-     * @param string $targetAudience
-     * @param array $targetCriteria
-     * @return int Estimated number of users who will receive the notification
-     */
-    public function estimateSystemNotificationReach($targetAudience, $targetCriteria = null) {
-        try {
-            $sql = "SELECT COUNT(*) FROM users WHERE role != 'admin'";
-            $params = [];
-            
-            switch ($targetAudience) {
-                case 'customers':
-                    $sql .= " AND role = 'customer'";
-                    break;
-                case 'active_subscribers':
-                    $sql .= " AND status = 'active'";
-                    break;
-                case 'custom':
-                    // Add custom criteria logic here if needed
-                    break;
-                // 'all' uses base query
-            }
-            
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute($params);
-            
-            return (int) $stmt->fetchColumn();
-            
-        } catch (Exception $e) {
-            error_log("Error estimating notification reach: " . $e->getMessage());
-            return 0;
-        }
-    }
 }
-?>
