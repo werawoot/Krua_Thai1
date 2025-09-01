@@ -147,32 +147,7 @@ class DatabaseConnection {
 
 // Checkout Data Manager
 class CheckoutDataManager {
-    
-    public static function createDemoCheckoutData($db) {
-        try {
-            $stmt = $db->query("SELECT * FROM subscription_plans WHERE is_active = 1 ORDER BY sort_order ASC LIMIT 1");
-            $plan = $stmt->fetch(PDO::FETCH_ASSOC);
-            
-            if ($plan) {
-                $meal_limit = $plan['meals_per_week'] ?? 3;
-                $stmt = $db->query("SELECT id, name, base_price FROM menus WHERE is_available = 1 ORDER BY RAND() LIMIT $meal_limit");
-                $menus = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                
-                if (!empty($menus)) {
-                    return [
-                        'plan' => $plan,
-                        'selected_meals' => array_column($menus, 'id'),
-                        'meal_details' => array_combine(array_column($menus, 'id'), $menus)
-                    ];
-                }
-            }
-        } catch (Exception $e) {
-            throw new Exception("Error loading demo data: " . $e->getMessage());
-        }
-        
-        return null;
-    }
-    
+  
     public static function validateCheckoutData($order) {
         $errors = [];
         
@@ -496,18 +471,18 @@ try {
     $stmt->execute([$user_id]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
     
-    // Get or create checkout data
+    // Get checkout data from session
     $order = $_SESSION['checkout_data'] ?? null;
-    
-    // Validate existing checkout data or create demo data
+
+    // Validate checkout data
     $validation_errors = CheckoutDataManager::validateCheckoutData($order);
     if (!empty($validation_errors)) {
-        $order = CheckoutDataManager::createDemoCheckoutData($db);
-        if ($order) {
-            $_SESSION['checkout_data'] = $order;
-        } else {
-            throw new Exception("Unable to create checkout data. Please ensure plans and menus are available.");
-        }
+        // Don't create demo data - redirect to proper flow
+        error_log("Invalid checkout data for user: " . ($_SESSION['user_id'] ?? 'unknown'));
+        $_SESSION['flash_message'] = "Please start your order from the beginning.";
+        $_SESSION['flash_type'] = 'error';
+        header("Location: subscribe.php");
+        exit;
     }
     
     // Populate meal details if missing (coming from meal-selection.php)
@@ -552,7 +527,7 @@ try {
                         $orderDetails = [
                             'plan_name' => CheckoutUtils::getPlanName($plan),
                             'total_amount' => CheckoutUtils::formatPrice($plan['final_price']),
-                            'delivery_date' => $postData['delivery_day'],
+                            'delivery_date' => $_POST['delivery_day'],
                             'transaction_id' => $result['transaction_id']
                         ];
                         
