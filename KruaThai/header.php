@@ -652,6 +652,39 @@ h1, h2, h3, h4, h5, h6 {
     opacity: 0.5;
 }
 
+.system-badge {
+    display: inline-block;
+    background: #e8f5e8;
+    color: #388e3c;
+    padding: 0.2rem 0.5rem;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-left: 0.5rem;
+}
+
+.notification-item.read {
+    opacity: 0.7;
+}
+
+.notification-item {
+    transition: all 0.3s ease;
+}
+
+.notification-item:active {
+    transform: scale(0.98);
+}
+
+/* Ensure proper cursor for clickable notifications */
+.notification-item {
+    cursor: pointer;
+}
+
+.notification-item:hover .notification-details h4 {
+    color: var(--brown);
+}
+
 /* Promotional Banner Styles */
 .promo-banner {
     position: fixed;
@@ -943,56 +976,65 @@ body.has-header {
                             <?php endif; ?>
                         </div>
                         
-                        <div class="notification-dropdown" id="notificationDropdown">
-                            <div class="notification-header">
-                                <h3 class="notification-title">Notifications</h3>
-                                <?php if ($notificationData['unreadCount'] > 0): ?>
-                                    <span class="mark-all-read" onclick="markAllAsRead()">Mark all read</span>
-                                <?php endif; ?>
-                            </div>
-                            
-                            <div class="notification-list">
-                                <?php if (empty($notificationData['notifications'])): ?>
-                                    <div class="no-notifications">
-                                        <div class="no-notifications-icon">🔔</div>
-                                        <p>No notifications yet</p>
-                                    </div>
-                                <?php else: ?>
-                                    <?php foreach ($notificationData['notifications'] as $notification): ?>
-                                        <div class="notification-item <?php echo !$notification['is_read'] ? 'unread' : ''; ?>" 
-                                             onclick="markAsRead(<?php echo $notification['id']; ?>)">
-                                            <div class="notification-content">
-                                                <span class="notification-type-icon">
-                                                    <?php
-                                                    $icons = [
-                                                        'order' => '🍽️',
-                                                        'system' => '⚙️',
-                                                        'promotion' => '🎉',
-                                                        'delivery' => '🚗',
-                                                        'payment' => '💳',
-                                                        'general' => '📢'
-                                                    ];
-                                                    echo $icons[$notification['type']] ?? '📢';
-                                                    ?>
-                                                </span>
-                                                <div class="notification-details">
-                                                    <h4><?php echo htmlspecialchars($notification['title']); ?></h4>
-                                                    <p><?php echo htmlspecialchars($notification['message']); ?></p>
-                                                    <span class="notification-time">
-                                                        <?php 
-                                                        $time = new DateTime($notification['created_at']);
-                                                        echo $time->format('M j, g:i A');
-                                                        ?>
-                                                    </span>
+                            <div class="notification-dropdown" id="notificationDropdown">
+                                <div class="notification-header">
+                                    <h3 class="notification-title">Notifications</h3>
+                                    <?php if ($notificationData['unreadCount'] > 0): ?>
+                                        <span class="mark-all-read" onclick="markAllAsRead()">Mark all read</span>
+                                    <?php endif; ?>
+                                </div>
+                                
+                                <div class="notification-list">
+                                    <?php if (empty($notificationData['notifications'])): ?>
+                                        <div class="no-notifications">
+                                            <div class="no-notifications-icon">🔔</div>
+                                            <p>No notifications yet</p>
+                                        </div>
+                                    <?php else: ?>
+                                        <?php foreach ($notificationData['notifications'] as $notification): ?>
+                                            <?php
+                                            // Determine notification source and ID
+                                            $notificationSource = $notification['notification_source'] ?? 'personal';
+                                            $notificationId = $notification['id'];
+                                            $isUnread = !$notification['is_read'];
+                                            
+                                            // Icon mapping
+                                            $icons = [
+                                                'order' => '🍽️',
+                                                'system' => '⚙️',
+                                                'promotion' => '🎉',
+                                                'delivery' => '🚗',
+                                                'payment' => '💳',
+                                                'general' => '📢',
+                                                'announcement' => '📢'
+                                            ];
+                                            $icon = $icons[$notification['type']] ?? '📢';
+                                            ?>
+                                            <div class="notification-item <?php echo $isUnread ? 'unread' : 'read'; ?>" 
+                                                data-notification-id="<?php echo htmlspecialchars($notificationId); ?>"
+                                                data-notification-source="<?php echo htmlspecialchars($notificationSource); ?>"
+                                                onclick="markAsRead('<?php echo htmlspecialchars($notificationId); ?>', '<?php echo htmlspecialchars($notificationSource); ?>')">
+                                                <div class="notification-content">
+                                                    <span class="notification-type-icon"><?php echo $icon; ?></span>
+                                                    <div class="notification-details">
+                                                        <h4><?php echo htmlspecialchars($notification['title']); ?></h4>
+                                                        <p><?php echo htmlspecialchars($notification['message']); ?></p>
+                                                        <span class="notification-time">
+                                                            <?php 
+                                                            $time = new DateTime($notification['created_at']);
+                                                            echo $time->format('M j, g:i A');
+                                                            ?>
+                                                        </span>
+                                                        <?php if ($notificationSource === 'system'): ?>
+                                                            <small class="system-badge">System</small>
+                                                        <?php endif; ?>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </div>
                             </div>
-                            
-
-                        </div>
                     </div>
                 <?php endif; ?>
 
@@ -1090,6 +1132,9 @@ function closeMobileMenu() {
     }
 }
 
+// Fixed Notification Functions for header.php
+// Replace the notification JavaScript section in header.php with this:
+
 // Notification Functions
 let notificationDropdownOpen = false;
 
@@ -1101,33 +1146,65 @@ function toggleNotifications() {
     
     if (notificationDropdownOpen) {
         dropdown.classList.add('active');
-        // Load latest notifications
+        // Load latest notifications when opening
         loadNotifications();
     } else {
         dropdown.classList.remove('active');
     }
 }
 
-function markAsRead(notificationId) {
+function markAsRead(notificationId, notificationSource) {
+    console.log('Marking notification as read:', notificationId, 'Source:', notificationSource);
+    
+    // Handle both personal and system notifications
+    const isSystemNotification = notificationSource === 'system' || String(notificationId).startsWith('sys_');
+    const actualSource = isSystemNotification ? 'system' : 'personal';
+    
     fetch('ajax/mark_notification_read.php', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ notification_id: notificationId })
+        body: JSON.stringify({ 
+            notification_id: notificationId,
+            notification_source: actualSource
+        })
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
     .then(data => {
+        console.log('Mark as read response:', data);
+        
         if (data.success) {
-            // Update UI
-            const item = document.querySelector(`[onclick="markAsRead(${notificationId})"]`);
+            // Update UI immediately
+            const item = document.querySelector(`[data-notification-id="${notificationId}"]`);
             if (item) {
                 item.classList.remove('unread');
+                item.classList.add('read');
+                
+                // Remove the unread indicator (blue dot)
+                const indicator = item.querySelector('::before');
+                if (indicator) {
+                    item.style.position = 'relative';
+                }
             }
+            
+            // Update badge count
             updateNotificationBadge();
+            
+            // Update "mark all read" button visibility
+            updateMarkAllReadButton();
+        } else {
+            console.error('Failed to mark notification as read:', data.error);
         }
     })
-    .catch(error => console.error('Error:', error));
+    .catch(error => {
+        console.error('Error marking notification as read:', error);
+    });
 }
 
 function markAllAsRead() {
@@ -1137,54 +1214,132 @@ function markAllAsRead() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // Update UI
+            // Update UI - remove unread class from all notifications
             document.querySelectorAll('.notification-item.unread').forEach(item => {
                 item.classList.remove('unread');
+                item.classList.add('read');
             });
+            
+            // Hide mark all read button
             const markAllBtn = document.querySelector('.mark-all-read');
             if (markAllBtn) markAllBtn.style.display = 'none';
+            
+            // Update badge
             updateNotificationBadge();
+        } else {
+            console.error('Failed to mark all notifications as read:', data.error);
         }
     })
-    .catch(error => console.error('Error:', error));
+    .catch(error => {
+        console.error('Error marking all notifications as read:', error);
+    });
 }
 
 function updateNotificationBadge() {
     fetch('ajax/get_notification_count.php')
     .then(response => response.json())
     .then(data => {
-        const badge = document.querySelector('.notification-badge');
-        if (data.count > 0) {
-            if (badge) {
-                badge.textContent = Math.min(data.count, 99);
-            } else {
-                // Create badge if it doesn't exist
-                const bell = document.getElementById('notificationBell');
-                if (bell) {
-                    const newBadge = document.createElement('span');
-                    newBadge.className = 'notification-badge';
-                    newBadge.textContent = Math.min(data.count, 99);
-                    bell.appendChild(newBadge);
+        if (data.success) {
+            const badge = document.querySelector('.notification-badge');
+            if (data.count > 0) {
+                if (badge) {
+                    badge.textContent = Math.min(data.count, 99);
+                    badge.style.display = 'flex';
+                } else {
+                    // Create badge if it doesn't exist
+                    const bell = document.getElementById('notificationBell');
+                    if (bell) {
+                        const newBadge = document.createElement('span');
+                        newBadge.className = 'notification-badge';
+                        newBadge.textContent = Math.min(data.count, 99);
+                        bell.appendChild(newBadge);
+                    }
                 }
+            } else if (badge) {
+                badge.style.display = 'none';
             }
-        } else if (badge) {
-            badge.remove();
         }
     })
-    .catch(error => console.error('Error:', error));
+    .catch(error => console.error('Error updating notification badge:', error));
+}
+
+function updateMarkAllReadButton() {
+    const hasUnread = document.querySelectorAll('.notification-item.unread').length > 0;
+    const markAllBtn = document.querySelector('.mark-all-read');
+    if (markAllBtn) {
+        markAllBtn.style.display = hasUnread ? 'inline' : 'none';
+    }
 }
 
 function loadNotifications() {
-    // Optional: Load fresh notifications when dropdown opens
     fetch('ajax/get_notifications.php')
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // Update notification list if needed
-            console.log('Notifications loaded:', data.notifications);
+            updateNotificationList(data.notifications);
         }
     })
-    .catch(error => console.error('Error:', error));
+    .catch(error => console.error('Error loading notifications:', error));
+}
+
+function updateNotificationList(notifications) {
+    const notificationList = document.querySelector('.notification-list');
+    if (!notificationList) return;
+    
+    if (notifications.length === 0) {
+        notificationList.innerHTML = `
+            <div class="no-notifications">
+                <div class="no-notifications-icon">🔔</div>
+                <p>No notifications yet</p>
+            </div>
+        `;
+        return;
+    }
+    
+    notificationList.innerHTML = notifications.map(notification => {
+        const isUnread = !notification.is_read;
+        const notificationId = notification.id;
+        const notificationSource = notification.notification_source || 'personal';
+        
+        console.log('Rendering notification:', notificationId, 'Source:', notificationSource, 'Unread:', isUnread);
+        
+        const typeIcon = {
+            'order': '🍽️',
+            'system': '⚙️',
+            'promotion': '🎉',
+            'delivery': '🚗',
+            'payment': '💳',
+            'general': '📢',
+            'announcement': '📢'
+        }[notification.type] || '📢';
+        
+        const timeStr = new Date(notification.created_at).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit'
+        });
+        
+        return `
+            <div class="notification-item ${isUnread ? 'unread' : 'read'}" 
+                 data-notification-id="${notificationId}"
+                 data-notification-source="${notificationSource}"
+                 onclick="markAsRead('${notificationId}', '${notificationSource}')">
+                <div class="notification-content">
+                    <span class="notification-type-icon">${typeIcon}</span>
+                    <div class="notification-details">
+                        <h4>${notification.title}</h4>
+                        <p>${notification.message}</p>
+                        <span class="notification-time">${timeStr}</span>
+                        ${notificationSource === 'system' ? '<small class="system-badge">System</small>' : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    // Update mark all read button visibility
+    updateMarkAllReadButton();
 }
 
 // Robust Mobile Menu Initialization
