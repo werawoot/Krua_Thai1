@@ -15,6 +15,7 @@
 | 5. Sequence: สมัคร + Stripe | [5-seq-signup.png](diagrams/png/5-seq-signup.png) |
 | 6. Sequence: ตัดเงินรายสัปดาห์ | [6-seq-weekly-charge.png](diagrams/png/6-seq-weekly-charge.png) |
 | 7. ER (ฉบับที่เสนอ) | [7-er-proposed.png](diagrams/png/7-er-proposed.png) |
+| 8. System Flow | [8-system-flow.png](diagrams/png/8-system-flow.png) |
 
 ## สารบัญ
 
@@ -24,6 +25,7 @@
 4. [State Machine: Order](#4-state-machine-order)
 5. [Sequence: สมัครและตัดเงินผ่าน Stripe](#5-sequence-สมัครและตัดเงินผ่าน-stripe)
 6. [ER Diagram (ฉบับที่เสนอ)](#6-er-diagram-ฉบับที่เสนอ)
+7. [System Flow](#7-system-flow)
 
 ---
 
@@ -364,3 +366,84 @@ erDiagram
 - `delivery_zones` ใช้บล็อก ZIP จริง แทนรายการที่ hardcode อยู่ในโค้ด
 - `subscription_menus`, `payments` และตาราง log ของการจ่ายเงินแบบเดิม ให้ย้ายข้อมูลแล้วเลิกใช้
 - `role` เหลือ 4 ค่า ตัด `support` ออก
+
+---
+
+## 7. System Flow
+
+ภาพรวมการทำงานของทั้งระบบ แบ่งเป็น 5 ชั้นจากซ้ายไปขวา: ผู้ใช้ → หน้าจอ → Auth/Role guard → service → ข้อมูลและระบบภายนอก ทุก request ต้องผ่าน guard กลางก่อนถึง service
+
+```mermaid
+flowchart LR
+    subgraph USERS[ผู้ใช้]
+        AD([Admin])
+        CU([Customer])
+        KS([Kitchen Staff])
+        RD([Rider])
+    end
+
+    subgraph KT[Krua Thai - PHP + MySQL]
+        subgraph UI[หน้าจอ]
+            UCON[Admin Console]
+            UPOR[Customer Portal]
+            UKIT[Kitchen View]
+            URID[Rider App]
+        end
+        GUARD{{Auth · Session · Role guard}}
+        subgraph SVC[Service]
+            SCAT[Catalog Service]
+            SSUB[Subscription Service]
+            SJOB[Weekly Cycle Job - cron ตอน Cutoff]
+            SWHK[Stripe Webhook Handler]
+            SORD[Order Service]
+            SDLV[Delivery Service]
+            SNTF[Notification Service]
+        end
+        subgraph DATA[ข้อมูล MySQL]
+            DCAT[(plans · weekly_menus · meals)]
+            DSUB[(users · delivery_zones · subscriptions · weekly_selections)]
+            DCHG[(weekly_charges)]
+            DORD[(orders · order_items · delivery_proofs)]
+        end
+    end
+
+    subgraph EXT[ระบบภายนอก]
+        XSTR[Stripe Billing]
+        XGGL[Google Route Optimization]
+        XFIL[ที่เก็บไฟล์ นอก web root]
+        XEML[ผู้ให้บริการอีเมล]
+    end
+
+    AD --> UCON
+    CU --> UPOR
+    KS --> UKIT
+    RD --> URID
+    UCON --> GUARD
+    UPOR --> GUARD
+    UKIT --> GUARD
+    URID --> GUARD
+    GUARD --> SCAT
+    GUARD --> SSUB
+    GUARD --> SORD
+    GUARD --> SDLV
+
+    SCAT --> DCAT
+    SSUB --> DSUB
+    SJOB -->|อ่าน / เขียน| DSUB
+    SSUB -->|Checkout · pause · cancel| XSTR
+    XSTR -->|webhook| SWHK
+    SWHK --> DCHG
+    SWHK -->|invoice.paid → สร้าง Order| SORD
+    SORD --> DORD
+    SDLV --> DORD
+    SDLV -->|optimizeTours| XGGL
+    SDLV -->|อัปโหลดรูป| XFIL
+    SDLV -.->|event| SNTF
+    SWHK -.->|event| SNTF
+    SNTF --> XEML
+```
+
+**ต่างจากโค้ดเดิม**
+- **ยังไม่มี guard กลาง** ตอนนี้แต่ละหน้าเขียนการเช็กสิทธิ์เอง และมีหลายหน้าที่ไม่เช็กเลย
+- ยังไม่มี Weekly Cycle Job, Stripe Webhook Handler หรือ Notification Service แยกเป็นส่วนของตัวเอง
+- โค้ดเดิมเขียนแต่ละหน้าเป็นไฟล์ PHP ที่ทั้งแสดงผลและยิง SQL เองในไฟล์เดียว การแยก service ตามภาพนี้ไม่จำเป็นต้องทำทีเดียว ทยอยแยกตอนแก้แต่ละ flow ได้
