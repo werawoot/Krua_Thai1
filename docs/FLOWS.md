@@ -4,6 +4,18 @@
 
 ใต้แต่ละแผนภาพมีหัวข้อ **"ต่างจากโค้ดเดิม"** บอกว่าต้องสร้างหรือแก้อะไร
 
+**ฉบับ draw.io:** [diagrams/krua-thai-flows.drawio](diagrams/krua-thai-flows.drawio) มี 7 หน้า (เปิดด้วย draw.io desktop หรือ app.diagrams.net) และมีภาพ PNG ของแต่ละหน้าอยู่ใน [diagrams/png/](diagrams/png/) ถ้าแก้แผนภาพ ให้แก้ทั้งไฟล์ draw.io และ mermaid ในหน้านี้ให้ตรงกัน
+
+| หน้า | ภาพ |
+|---|---|
+| 1. System Context | [1-system-context.png](diagrams/png/1-system-context.png) |
+| 2. รอบรายสัปดาห์ (Swimlane) | [2-weekly-cycle.png](diagrams/png/2-weekly-cycle.png) |
+| 3. State: Subscription | [3-subscription-state.png](diagrams/png/3-subscription-state.png) |
+| 4. State: Order | [4-order-state.png](diagrams/png/4-order-state.png) |
+| 5. Sequence: สมัคร + Stripe | [5-seq-signup.png](diagrams/png/5-seq-signup.png) |
+| 6. Sequence: ตัดเงินรายสัปดาห์ | [6-seq-weekly-charge.png](diagrams/png/6-seq-weekly-charge.png) |
+| 7. ER (ฉบับที่เสนอ) | [7-er-proposed.png](diagrams/png/7-er-proposed.png) |
+
 ## สารบัญ
 
 1. [System Context](#1-system-context)
